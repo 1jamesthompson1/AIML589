@@ -1,0 +1,110 @@
+\documentclass[11pt, a4paper]{article}
+
+\usepackage[left=2cm, right=2cm, top=2cm, bottom=2cm]{geometry}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{enumitem}
+\usepackage{hyperref}
+\usepackage{graphicx}
+\usepackage{pgfgantt}
+\usepackage{tikz}
+\usepackage{spreadtab}
+\usepackage[backend=biber,style=numeric]{biblatex}
+\addbibresource{references.bib}
+
+\title{Aligning Large Language Models to Public Values:\\Project Resources and Feasibility Summary}
+\author{James Thompson\thanks{Te Herenga Waka — Victoria University of Wellington}}
+\date{\today}
+
+\usepackage{csquotes}
+\newcommand{\scare}[1]{\enquote{#1}}
+\newcommand{\term}[1]{\textbf{#1}}
+
+% Budget inputs (spreadtab computes derived totals in the table)
+\newcommand{\gpuHours}{120}
+\newcommand{\gpuRate}{3.5}
+\newcommand{\participantCount}{100}
+\newcommand{\participantRate}{10}
+\newcommand{\contingencyRate}{0.2}
+\STautoround{0}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+	Large Language Models (LLMs) are increasingly deployed in society, yet their alignment targets are typically defined by small teams within private companies, lacking democratic legitimacy. This project proposes a proof-of-concept demonstration of aligning LLMs to publicly collected human values from the World Values Survey, with evaluation conducted through public consultation. This document outlines the resources required to complete this 18-week project, including computational needs, data sources, human participants, timeline, and estimated budget. \footnote{\href{https://raw.githubusercontent.com/1jamesthompson1/AIML501/main/output/AIML501_James_Thompson.pdf}{Full background and project proposal available here} where project will developed \href{https://github.com/1jamesthompson1/AIML589}.}
+
+
+\end{abstract}
+
+\section{Introduction and Background}
+
+The deployment of Large Language Models (LLMs) has accelerated rapidly, with these systems now acting with increasing autonomy and decreasing human oversight \cite{bommasaniOpportunitiesRisksFoundation2022}. This raises a pressing challenge: ensuring these models behave in alignment with human values \cite{amodeiConcreteProblemsAI2016a,hendrycksUnsolvedProblemsML2022,bostromEthicsArtificialIntelligence2014}. Current alignment methods rely on training data labeled by small teams of annotators \cite{baiTrainingHelpfulHarmless2022,ouyangTrainingLanguageModels2022}. These alignment methods are carried out within for-profit organizations with incentives that may not align with public good \cite{r.h.coarseProblemSocialCost,hendrycksAligningAIShared2023}.
+
+This project addresses a gap in AI alignment research by developing a democratically grounded approach to LLM alignment which is both more ethically defensible and increases public trust. Rather than relying on opaque annotation pipelines, we propose using existing value survey data (World Values Survey \cite{WVS2020}) to define \term{alignment targets} that are representative, and then conduct \term{alignment evaluation} by consulting the public who are the intended beneficiaries of aligned AI systems. This approach aims to enhance the legitimacy and societal acceptance of AI efforts.
+
+The project aims to answer two key research questions: (1) Can simple post-training methods effectively align LLMs to human values defined by survey data? and (2) Will the public \scare{prefer} the behavior of models aligned to their values compared to unaligned models?
+
+\section{Project Overview}
+
+This project will be an end-to-end demonstration of a novel alignment approach. This involves using a pre-trained LLM, defining alignment targets, fine-tuning to those targets, and then evaluating the results through public consultation.
+
+Using value survey data as an alignment target will create a dataset of question-answer pairs (e.g., "On a scale of 1-10, how important is it to have a strong police force?" \textit{response:} "7"). This dataset can then be used to fine-tune the model using supervised fine-tuning \cite{ouyangTrainingLanguageModels2022} and, if needed, more complex methods like Kahneman-Tversky Optimization \cite{ethayarajhKTOModelAlignment2024}. These methods allow us to push the model's behavior towards responding in the same distribution as the survey respondents. To evaluate the alignment, we will test the model's behavior in out-of-distribution scenarios (i.e., simulations of real-world situations) and then consult the public on the model's behavior in these scenarios. This public consultation will be in the form of a factorial experiment \cite{internetarchiveMeasuringSocialJudgments1982} where participants will be shown vignettes of the model's behavior in different scenarios and asked to rate how well the model's behavior aligns with their values.
+
+\section{Resources Required}
+
+\subsection{Computational Resources}
+
+Training and evaluating LLMs requires significant GPU resources. Based on our experimental design, we estimate the following computational requirements:
+
+\begin{itemize}
+	\item \textbf{Base Model}: We will use open-weight LLMs with approximately 30 billion parameters. Based on current benchmarks, models at this scale achieve approximately 70\% of frontier model performance while remaining feasible to fine-tune with limited resources\footnote{Comparing Qwen3.5 27b vs GPT-5.4 on \href{https://artificialanalysis.ai/leaderboards/models}{Artificial Analysis Leaderboard}}.
+	\item \textbf{Parameter-Efficient Fine-Tuning}: Using LoRA (Low-Rank Adaptation) \cite{huLoRALowRankAdaptation2021} and QLoRA \cite{dettmersQLoRAEfficientFinetuning2023}, we can effectively fine-tune large models by updating only a small fraction of parameters. This reduces VRAM requirements from hundreds of gigabytes to the realm of 100Ggb that will work on a single modern GPU.
+	\item \textbf{Estimated GPU Hours}: Approximately 120 hours of GPU time total, including:
+	      \begin{itemize}
+		      \item Pilot fine-tuning runs: 15 hours
+		      \item Full fine-tuning experiments (3 methods $\times$ 5 value sets): 75 hours
+		      \item Evaluation runs: 30 hours
+	      \end{itemize}
+	\item \textbf{Alternative Options}: University-provided GPU resources (2x A100 40 GB) are available. However, due to being older hardware will increase time to use and decrease depth of experiments.
+\end{itemize}
+
+\subsection{Data Sources}
+
+\begin{itemize}
+	\item \textbf{World Values Survey (WVS)}: The primary data source for defining alignment targets. The WVS contains responses from approximately 1,000 respondents per country across hundreds of questions covering human values. This data is openly accessible for research purposes.
+	\item \textbf{Base Models}: We will use open-weight models \footnote{An open-weight model is one in which the final output (neural network weights) is released, but limited or no training information is provided.} such as Qwen \cite{qwen3.5} or open-source models \footnote{An open-source model is one in which both the final output and all inputs (training data and training code) are supplied \cite{OpenSourceAI}.} such as Olmo \cite{olmo2025olmo3}. These models can be freely downloaded and used without financial cost or licensing restrictions.
+\end{itemize}
+
+\subsection{Human Resources}
+
+\begin{itemize}
+	\item \textbf{Public Consultation Participants}: We will recruit approximately 100 participants from the general public to evaluate model outputs ($\approx$ 15 minutes each). They will be sourced using a panel recruitment service (e.g., Samplify, Dynata) to ensure demographic diversity. \footnote{Advice from an experienced panel recruitment service suggests that the sweet spot is about 15 minutes per participant, which provides good depth while retaining engagement.}
+	\item \textbf{Ethics Approval}: Full ethics approval will be obtained from the university's ethics committee. This project is expected to be category B (low risk), meaning the application can be submitted and processed at any time of the year.
+\end{itemize}
+
+\section{Budget Summary}
+
+\begin{table}[h]
+	\centering
+	\begin{spreadtab}{{tabular}{l r}}
+		\hline
+		@\textbf{Item}                                     & @\textbf{Estimated Cost (NZD)} \\
+		\hline
+		@GPU Compute (\gpuHours\ hours @ \$\gpuRate/hour \footnote{Market rate of H200 (140GB vram) on \href{console.vast.ai}{vast.ai} which is ~\$2USD/hour}) & :={\gpuHours*\gpuRate} \\
+		@Participant Compensation (\participantCount\ participants @ \$\participantRate) & :={\participantCount*\participantRate} \\
+		@Contingency (20\%)   & :={(\gpuHours*\gpuRate+\participantCount*\participantRate)*\contingencyRate} \\
+		\hline
+		@\textbf{Total}                                    & :={\gpuHours*\gpuRate+\participantCount*\participantRate+(\gpuHours*\gpuRate+\participantCount*\participantRate)*\contingencyRate} \\
+		\hline
+	\end{spreadtab}
+	\caption{Estimated Budget for Project Resources, all values in New Zealand Dollars (NZD).}
+	\label{tab:budget}
+\end{table}
+
+\section{References}
+
+\printbibliography[heading=none]
+
+\end{document}
