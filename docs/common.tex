@@ -1,0 +1,15 @@
+% Common packages
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{hyperref}
+\usepackage{graphicx}
+\usepackage{csquotes}
+\usepackage[backend=biber,style=numeric]{biblatex}
+\addbibresource{references.bib}
+
+% Build system: override output PDF name
+\newcommand{\docname}[1]{}
+
+% Common macros
+\newcommand{\scare}[1]{\enquote{#1}}
+\newcommand{\term}[1]{\textbf{#1}}

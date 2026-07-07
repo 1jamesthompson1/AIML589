@@ -1,2 +1,2 @@
-output/*
-!output/*.pdf
+**/output/*
+!docs/output/*.pdf

@@ -1,0 +1,10 @@
+repos:
+  - repo: local
+    hooks:
+      - id: build-latex-pdfs
+        name: Build LaTeX PDFs
+        description: Rebuild out-of-date PDFs from .tex/.bib sources
+        entry: make
+        language: system
+        pass_filenames: false
+        files: ^docs/.*\.(tex|bib)$
