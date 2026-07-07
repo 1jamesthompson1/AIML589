@@ -1,9 +1,25 @@
 [project]
 name = "aiml589"
 version = "0.1.0"
-description = "Add your description here"
+description = "Aligning LLMs to NZ Public Values — mono repo for research, papers, and experiments."
+license = { text = "GPL-3.0-only (code) and CC-BY-SA-4.0 (docs)" }
 readme = "README.md"
 requires-python = ">=3.13"
+authors = [
+    { name = "James Thompson", email = "1jamesthompson1@gmail.com" },
+]
+keywords = ["LLM", "alignment", "public-values", "AI-safety", "New-Zealand"]
+classifiers = [
+    "Development Status :: 2 - Pre-Alpha",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
 dependencies = [
     "pre-commit>=4.6.0",
 ]
+
+[project.urls]
+Homepage = "https://github.com/1jamesthompson1/AIML589"
+Repository = "https://github.com/1jamesthompson1/AIML589"
