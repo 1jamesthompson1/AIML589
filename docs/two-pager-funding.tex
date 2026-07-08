@@ -1,0 +1,198 @@
+\documentclass[11pt, a4paper]{article}
+
+\input{common}
+
+\usepackage[left=2cm, right=2cm, top=2cm, bottom=2cm]{geometry}
+\usepackage{enumitem}
+\usepackage{pgfgantt}
+\usepackage{tikz}
+\usepackage{spreadtab}
+
+\docname{James-Thompson-LLM-NZ-Value-Alignment-Funding-Request}
+
+\title{Aligning Large Language Models to Public Values:\\Funding Request}
+\author{James Thompson\thanks{Te Herenga Waka — Victoria University of Wellington}}
+\date{\today}
+
+% Budget inputs (spreadtab computes derived totals in the table)
+\newcommand{\gpuHours}{150}
+\newcommand{\gpuRate}{3.5}
+\newcommand{\participantCount}{100}
+\newcommand{\participantRate}{10}
+\newcommand{\contingencyRate}{0.2}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+	Large Language Models (LLMs) are increasingly deployed in society, yet their alignment targets are typically defined by small teams within private companies, lacking democratic legitimacy. This project proposes a proof-of-concept demonstration of aligning LLMs to publicly collected human values from the World Values Survey, with evaluation conducted through public consultation. This document outlines the resources required to complete this 18-week project, including computational needs, data sources, human participants, timeline, and estimated budget. \footnote{\href{https://raw.githubusercontent.com/1jamesthompson1/AIML501/main/output/AIML501_James_Thompson.pdf}{Full background and project proposal available here} where project will be developed \href{https://github.com/1jamesthompson1/AIML589}{here}.}
+
+
+\end{abstract}
+
+\section{What the problem is}
+
+Large Language Models (LLMs) are some of the most powerful AI systems ever created, capable of performing a wide range of tasks with minimal human input. Problematically however they are overwhelming the product of for profit organizations, built to maximize profit which generally is at tension to the public good.
+
+When building a LLM, these organizations decide how it should act and behave in their deployment. This \term{alignment problem} is typically solved by the developers using small internal teams to label training data, which is then used to train the models. This process lacks democratic legitimacy and is not grounded in the values of the public who are both the intended beneficiaries of these systems and the potential victims of their mis alignment.
+
+\section{Introduction and Background}
+
+The deployment of Large Language Models (LLMs) has accelerated rapidly, with these systems now acting with increasing autonomy and decreasing human oversight \cite{bommasaniOpportunitiesRisksFoundation2022}. This raises a pressing challenge: ensuring these models behave in alignment with human values \cite{amodeiConcreteProblemsAI2016a,hendrycksUnsolvedProblemsML2022,bostromEthicsArtificialIntelligence2014}. Current alignment methods rely on training data labeled by small teams of annotators \cite{baiTrainingHelpfulHarmless2022,ouyangTrainingLanguageModels2022}. These alignment methods are carried out within for-profit organizations with incentives that may not align with public good \cite{r.h.coarseProblemSocialCost,hendrycksAligningAIShared2023}.
+
+This project addresses a gap in AI alignment research by developing a democratically grounded approach to LLM alignment which is both more ethically defensible and increases public trust. Rather than relying on opaque annotation pipelines, we propose using existing value survey data (World Values Survey \cite{WVS2020}) to define \term{alignment targets} that are representative, and then conduct \term{alignment evaluation} by consulting the public who are the intended beneficiaries of aligned AI systems. This approach aims to enhance the legitimacy and societal acceptance of AI efforts.
+
+The project aims to answer two key research questions: (1) Can simple post-training methods effectively align LLMs to human values defined by survey data? and (2) Will the public \scare{prefer} the behavior of models aligned to their values compared to unaligned models?
+
+\section{What the project will do}
+
+To improve both public alignment and public accountability of LLMs this project will demonstrate a new pragmatic approach to LLM alignment utilizing already collected survey data and open-weight models. Below is a short summary and  more complete methodology breakdown can be found in the appendix.
+
+The research questions that will be answered are:
+\begin{enumerate}
+	\item Can we use publicly collected value survey data to modify the behavior of LLMs to align with the values of the public?
+	\item Will users prefer the behavior of models aligned to their values compared to unaligned models?
+\end{enumerate}
+
+To answer these questions this project will do a proof-of-concept demonstration of this pragmatic approach to LLM alignment by doing three steps.
+\begin{itemize}
+	\item Using publicly collected value survey data to fine tune a LLM to respond to survey questions with the same distribution as the survey respondents.
+	\item Building and running simulations to evaluate the behavior of the fine-tuned LLMs in real world scenarios. This is to test the models to see for behavioral changes.
+	\item Consulting the public (i.e a new anonymous survey) on the behavior of the fine-tuned LLMs in these simulations.
+\end{itemize}
+
+The result of this project will be to answer the research questions and provide more support for pragmatic methods that can be used by any organization to make sure that their LLM powered agents will operate in way that the users of the system will prefer. In addition to answering these research questions this project will also  (1) produce a fine tuning dataset that could be used to fine tune an arbitrary LLM to align with the values of the NZ public (or modified to align with the values of any other country that has been surveyed by the World Values Survey) and (2) build a simulator that can be used to evaluate the behavior of LLMs in real world scenarios (focused on the New Zealand context). Both of these resources will be made publicly available for other researchers to use.
+
+\section{What is needed to complete the project}
+
+To complete this project there are two main requirements: (1) computational resources to fine-tune and evaluate LLMs, and (2) human participants to evaluate the behavior of the models. Both of these can be sourced at a reasonable cost, with the computational resources being available through a cloud provider and the human participants being recruited through a panel recruitment service. A summary of the estimated budget is provided below.
+
+\begin{table}[h]
+	\centering
+	\begin{spreadtab}{{tabular}{l r}}
+		\hline
+		@\textbf{Item}                                     & @\textbf{Estimated Cost (NZD)} \\
+		\hline
+		@GPU Compute (\gpuHours\ hours @ \$\gpuRate/hour \footnote{Market rate of H200 (140GB vram) on \href{console.vast.ai}{vast.ai} which is ~\$2USD/hour}) & :={\gpuHours*\gpuRate} \\
+		@Participant Compensation (\participantCount\ participants @ \$\participantRate) & :={\participantCount*\participantRate} \\
+		@Contingency (20\%)   & :={(\gpuHours*\gpuRate+\participantCount*\participantRate)*\contingencyRate} \\
+		\hline
+		@\textbf{Total}                                    & :={\gpuHours*\gpuRate+\participantCount*\participantRate+(\gpuHours*\gpuRate+\participantCount*\participantRate)*\contingencyRate} \\
+		\hline
+	\end{spreadtab}
+	\caption{Estimated Budget for Project Resources, all values in New Zealand Dollars (NZD). See the appendix \ref{app:resources} for a detailed breakdown of the resources required.}
+	\label{tab:budget}
+\end{table}
+
+The other requirements for the project are publicly and freely available, including the World Values Survey data and open-weight LLMs.
+
+Furthermore this project is being completed as part of a Masters programme that is currently unfunded. I am prepared to self-fund my own time and effort to complete this project, yet any extra funding above those listed would be appreciated as a contribution to my living costs while completing this project.
+
+
+
+
+\section{References}
+
+\printbibliography[heading=none]
+
+\appendix
+
+\section{Project methods}
+
+This project will be an end-to-end demonstration of a novel alignment approach. This involves using a pre-trained LLM, defining alignment targets, fine-tuning to those targets, and then evaluating the results through public consultation. There are three key components to this project: (1) using value survey data to fine-tune LLMs, (2) creating a simulator to evaluate the behavior of the fine-tuned LLMs, and (3) consulting the public on the behavior of the LLMs in these simulations.
+
+\subsection{Fine tuning of LLMs to Public Values}
+
+\subsubsection{Creating training dataset}
+
+The World Values Survey (WVS) is a global research project that collects survey responses from about 1000 people from each country on a about 300 questions about their values and beliefs. The response data from the WVS will be used to create a dataset of question-answer pairs that will look like the following:
+\begin{quote}
+\textit{Question:} On a scale of 1-10, how important is it to have a strong police force? \\
+\textit{Response:} [expected\_response]
+\end{quote}
+
+The exact format of the question including system prompt are yet to be determined yet a variety of formats will be used to ensure that the model is robust to different prompts.
+
+To allow for comparison between different subgroups of the population \footnote{i.e person from group A preferred behavior from its own group compared to group B yet was indifferent against the base model}, the survey responses will be grouped into subgroups based on a yet to be determined clustering method.
+
+The value of the expected response will be determined by the responses from the particular WVS subgroup. Depending on the fine tuning method used, it will either be the modal response, a sample from the distribution of responses, or the distribution of responses itself. 
+
+The training dataset will range in lengths from as small as about 300 questions (i.e simple modal modelling with fixed template) to as large as 3,000 question-answer pairs (i.e. distributional modelling with many templates/samples per question). The exact size of the complete training dataset will be determined by the fine tuning method used and the number of subgroups that are used.
+
+\subsubsection{Fine tuning methods}
+
+There are many methods for fine tuning LLMs. The key requirement for this project is that the method is able to push the model's distribution of responses towards the distribution of responses from the WVS. This is a different requirement than simply training the model to produce the modal response, which is what most fine tuning methods do. Two general methods will be explored for this project: (1) traditional modal response fine tuning, and (2) distributional fine tuning. The most successful of which will be used for the final evaluation of the model's behavior.
+
+Given the first method is the most common method for fine tuning LLMs, it will be used as a baseline for comparison. The training dataset will simply be the questions and the modal response from the WVS subgroup. This dataset will then be used in a supervised fine tuning (SFT) method \cite{ouyangTrainingLanguageModels2022} to train the model to produce the modal response for each question.
+
+A second more nuanced method will be used to optimize the model to produce responses that match the distribution of responses from the WVS subgroup. This will be attempted in two different ways. Firstly by simply augmenting the training dataset to include many repeats of the same question with the expected response being drawn from the distribution of responses from the WVS. When applied to SFT as above in expectation it matches the WVS subgroup distribution. Secondly one could optimize for the distribution directly by using a soft entropy loss between the expected WVS subgroup distribution and the models distribution.
+
+\begin{comment}
+	Left here for later
+The first method empirically pushes the model's distribution of responses towards the distribution of responses from the WVS. Where the dataset is many repeats of questions and the expected response where the expected response is drawn from the distribution of responses from the WVS. Therefore the model ($p_{model}$) is trained to minimize the loss:
+\begin{equation}
+	\mathcal{L} = -\log p_{model}(y|x)
+\end{equation}
+\noindent For each question $x$ and expected response $y$. In expectation this will push the model's distribution of responses towards the distribution of responses from the WVS.
+
+A more direct method can be used instead which is to optimize the distribution directly using the cross-entropy loss. Where the dataset is a question and the expected response distribution. The model is then trained to minimize the cross entropy between its predicted distribution and the expected distribution for each question. 
+\begin{equation}
+	\mathcal{L} = - \sum_{i=1}^{N} q_{expected}(i) \log p_{model}(i)
+\end{equation}
+\noindent Where $q_{expected}$ is the expected distribution of responses from the WVS and $p_{model}$ is the model's predicted distribution of responses.
+
+\end{comment}
+
+\subsection{Running Simulations to Evaluate LLM Behavior}
+
+Understanding how well a model is aligned to humans values requires evaluating the model's behavior in real world scenarios. To do this a simulator will be built that will allow for the evaluation of the model's behavior in a variety of scenarios. The goal of the simulations is to both test if the fine tuning methods have changed the model's behavior and to provide a basis for public consultation on the model's behavior. Therefore the simulations will be designed to be both long enough to allow for the model's behavior to be evaluated (i.e many turns) and simple enough for a human to evaluate a vignette of the model's behavior in the simulation.
+
+The exact design of the simulations is yet to be determined, yet will be based on a variety of real world scenarios that are relevant to the New Zealand context. However it will involve placing the LLM in a Agentic harness and letting it operate in a simulated environment.
+
+\todo{Add some more ideation and thoughts on what it will look like.}
+
+
+\subsection{Public Consultation on LLM Alignment}
+
+The public consultation will be an anonymous survey where participants will be shown vignettes of the model's behavior in different scenarios and asked to rate how well the model's behavior aligns with their values. The survey will be designed to be completed in about 15 minutes, with participants being recruited from a panel recruitment service to fair sampling.
+
+To understand which group to put the survey respondents into, they will be asked to answer a handful of questions from the WVS that are most predictive of the WVS subgroup that they belong to. This will allow for the survey respondents to be grouped into the same subgroups as the WVS respondents, allowing for a comparison between the model's behavior and the values of the survey respondents.
+
+\todo{WOuld htis be discribed as a factorial?}
+
+\section{Resources Required}
+\label{app:resources}
+
+\subsection{Computational Resources}
+
+Training and evaluating LLMs requires significant GPU resources. Based on my method design, I estimate the following computational requirements:
+
+\begin{itemize}
+	\item \textbf{Base Model}: We will use open-weight LLMs with approximately 30 billion parameters. Based on current benchmarks, models at this scale achieve approximately 70\% of frontier model performance while remaining feasible to fine-tune with limited resources\footnote{Comparing Qwen3.5 27b vs GPT-5.4 on \href{https://artificialanalysis.ai/leaderboards/models}{Artificial Analysis Leaderboard}}.
+	\item \textbf{Parameter-Efficient Fine-Tuning}: Using LoRA (Low-Rank Adaptation) \cite{huLoRALowRankAdaptation2021} and QLoRA \cite{dettmersQLoRAEfficientFinetuning2023}, we can effectively fine-tune large models by updating only a small fraction of parameters. This reduces VRAM requirements from hundreds of gigabytes to the realm of 100Ggb that will work on a single modern GPU.
+	\item \textbf{Estimated GPU Hours}: Approximately 150 hours of GPU time total, including:
+	      \begin{itemize}
+		      \item Pilot fine-tuning runs: 25 hours
+		      \item Full fine-tuning experiments (3 methods $\times$ 5 value sets): 75 hours
+		      \item Evaluation runs: 50 hours
+	      \end{itemize}
+	\item \textbf{Alternative Options}: University-provided GPU resources (2x A100 40 GB) are available. However, due to being older hardware will increase time to use and decrease depth of experiments.
+\end{itemize}
+
+\subsection{Data Sources}
+
+\begin{itemize}
+	\item \textbf{World Values Survey (WVS)}: The primary data source for defining alignment targets. The WVS contains responses from approximately 1,000 respondents in New Zealand with the survey being almost 300 questions long. This data is openly accessible for research purposes.
+	\item \textbf{Base Models}: We will use open-weight models \footnote{An open-weight model is one in which the final output (neural network weights) is released, but limited or no training information is provided.} such as Qwen \cite{qwen3.5} or open-source models \footnote{An open-source model is one in which both the final output and all inputs (training data and training code) are supplied \cite{OpenSourceAI}.} such as Olmo \cite{olmo2025olmo3}. These models can be freely downloaded and used without financial cost or licensing restrictions.
+\end{itemize}
+
+\subsection{Human Resources}
+
+\begin{itemize}
+	\item \textbf{Public Consultation Participants}: We will recruit approximately 100 participants from the general public to evaluate model outputs ($\approx$ 15 minutes each). They will be sourced using a panel recruitment service (e.g., Pureprofile, Dynata) to ensure demographic diversity. \footnote{Advice from an experienced panel recruitment service suggests that the sweet spot is about 15 minutes per participant, which provides good depth while retaining engagement.}
+	\item \textbf{Ethics Approval}: Full ethics approval will be obtained from the university's ethics committee. This project is expected to be category B (low risk), meaning the application can be submitted and processed at any time of the year.
+\end{itemize}
+
+
+\end{document}

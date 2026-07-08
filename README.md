@@ -1,6 +1,6 @@
 # Aligning LLM to NZ public values and evaluation through public consultation
 
-> [!info] Project status
+> [!NOTE] Project status
 > This project is a 4 month research project. Starting July 2026 ending in November 2026. It is being conducted by James Thompson as a Master project under the supervision of Dr Andrew Lensen.
 > This repo will not be considered 'presentation' ready until the end. Regardless though it is public as that seem like the right way to do things.
 
