@@ -32,7 +32,7 @@
 \renewcommand{\abstractname}{}
 \begin{abstract}
 	\vspace{-0.5em}
-	Large Language Models (LLMs) are increasingly making decisions that affect human lives, yet their behavior is determined by private for-profit companies, lacking democratic legitimacy. This project proposes a proof-of-concept demonstration of a pragmatic method for making LLMs behave in ways the public would prefer. This will be achieved by using publicly collected value survey data to fine-tune open-weight LLMs. Behavioral preferences will then be validated through a public consultation. \footnote{This project is developed in the open and can be found at \url{https://github.com/1jamesthompson1/AIML589}}
+	Large Language Models (LLMs) are increasingly making decisions that affect human lives, yet their behavior is determined by private for-profit companies, lacking democratic legitimacy. This project proposes a pragmatic method for tuning LLMs to behave in ways that align with public values. This will be achieved by using publicly collected value survey data to fine-tune open-weight LLMs. Behavioral preferences will then be validated through a public consultation. \footnote{This project is developed in the open and can be found at \url{https://github.com/1jamesthompson1/AIML589}}
 	\vspace{-0.5em}
 \end{abstract}
 
@@ -44,15 +44,13 @@ Large Language Models (LLMs) are some of the most powerful AI systems ever creat
 
 The \term{alignment problem} is typically solved by the developers using small internal teams to label training data, which is then used to train the models \cite{baiTrainingHelpfulHarmless2022, ouyangTrainingLanguageModels2022}. In the post-training of these models decisions are made which determine the values the model will exhibit and the way it will behave.
 
-
-The current training and alignment pipelines are insufficiently robust to ensure public accountability and democratic legitimacy. Furthermore these LLMs are overwhelmingly the product of for-profit organizations, which inherently aim to maximize profit, which is generally in tension with the public good \cite{r.h.coarseProblemSocialCost,hendrycksAligningAIShared2023}. 
-
+The current training and alignment pipelines are insufficiently robust to ensure public accountability and democratic legitimacy. Furthermore these LLMs are overwhelmingly the product of for-profit organizations, which inherently aim to maximize profit, which is generally in tension with the public good \cite{r.h.coarseProblemSocialCost,hendrycksAligningAIShared2023}. This can create scalable harm and compound downstream misalignment risks.
 
 Many current alignment methods \cite{baiConstitutionalAIHarmlessness2022,CollectiveConstitutionalAI2023} are targeting a form of \term{value alignment} in which the model is aligned to broad values set by the developers—which may or may not be influenced by public views. Human values, however, are very heterogeneous, and so a model \scare{aligned} may not be in practice aligned with the end user's values. This is exacerbated when models are trained once and deployed to many users across national and cultural boundaries.
 
 \section{What the project will do}
 
-To improve both public alignment and public accountability of LLMs this project will demonstrate a pragmatic approach to LLM alignment. It will use an open-weight model \footnote{Open-weight models are those whose weights are publicly available and are a superset of open-source AI models, in which the weights along with training pipeline and data are publicly available.} and readily available value survey data to modify model behavior. To validate that the resultant model is indeed preferred by the public (intended beneficiary), behavioral simulations will be run and used in a public consultation. Below is a short summary and a more complete methodology breakdown can be found in Appendix \ref{app:methods}.
+To improve both public alignment and public accountability of LLMs this project will demonstrate a pragmatic approach to LLM alignment. This will be done by using an open-weight model \footnote{Open-weight models are those whose weights are publicly available and are a superset of open-source AI models, in which the weights along with training pipeline and data are publicly available.} and readily available value survey data to modify model behavior. To validate that the resultant model is indeed preferred by the public (intended beneficiary), behavioral simulations will be run and used in a public consultation. Below is a short summary and a more complete methodology breakdown can be found in Appendix \ref{app:methods}.
 
 The \textbf{research questions} that will be answered are:
 \begin{enumerate}
@@ -62,14 +60,14 @@ The \textbf{research questions} that will be answered are:
 
 To answer these questions this project will do a proof-of-concept demonstration of this pragmatic approach to LLM alignment. The \textbf{method} can be summarized in three steps:
 \begin{itemize}
-	\item Using already publicly collected value survey data to fine tune a LLM to respond to survey questions with the same distribution as the survey respondents.
-	\item Building and running simulations to evaluate the behavior of the fine-tuned LLMs in real world scenarios. This is to test the models to see for behavioral changes.
-	\item Consulting the public (i.e a new anonymous survey) on the behavior of the fine-tuned LLMs in these simulations.
+	\item Using already publicly collected value survey data to fine-tune a LLM to respond to survey questions with the same distribution as the survey respondents.
+	\item Building and running text-based simulations to evaluate the behavior of the fine-tuned LLMs in real world scenarios. This is to test the models to see for behavioral changes.
+	\item Consulting the public (i.e a new anonymous survey) on the behavior of the fine-tuned LLMs in these simulations. Which will involve the public rating vignettes of the model's behavior in the simulations.
 \end{itemize}
 
-The \textbf{expected outcome} will be to answer the research questions and provide more support for pragmatic methods that can be used by any organization to make sure that their LLM powered agents will operate in a way that users of the system will prefer.
+The \textbf{expected outcome} will be to answer the research questions as well as provide more evidence for the efficacy of this approach to getting LLM powered systems to behave in ways that are preferred by the public.
 
-In addition to answering these research questions this project will also produce reusable datasets and pipelines. First, a NZ public values dataset to fine-tune an arbitrary LLM to align with the values of the NZ public (or, through small modifications, those of other countries around the world). Second, a simulator that can be used to evaluate the behavior of LLMs in real world scenarios, focused on the New Zealand context. Both resources will be built in the open and made available publicly for other researchers to use.
+In addition to the above contributions, the project will produce reusable datasets and pipelines. First, a NZ public values dataset to fine-tune an arbitrary LLM to align with the values of the NZ public (or, through small modifications, those of other countries around the world). Second, a simulator that can be used to evaluate the behavior of LLMs in real world scenarios, focused on the New Zealand context. Both resources will be built in the open and made available publicly for other researchers to use.
 
 \section{What is needed to complete the project}
 
@@ -93,13 +91,15 @@ Both of these can be sourced at a reasonable cost, with the computational resour
 		@\textbf{Total}                                    & :={\gpuHours*\gpuRate+\participantCount*\participantRate+(\gpuHours*\gpuRate+\participantCount*\participantRate)*\contingencyRate} \\
 		\hline
 	\end{spreadtab}
-	\caption{Estimated Budget for Project Resources, all values in New Zealand Dollars (NZD). GPU price is based off of \href{console.vast.ai}{vast.ai} price for H200 (140GB vram). Participant compensation is estimated and quote is pending. See appendix \ref{app:resources} for a detailed breakdown of the resources required.}
+	\caption{Estimated Budget for Project Resources, all values in New Zealand Dollars (NZD). GPU price is based on \href{https://console.vast.ai}{vast.ai} price for H200 (140GB VRAM). Participant compensation is estimated and a quote is pending. See appendix \ref{app:resources} for a detailed breakdown of the resources required.}
 	\label{tab:budget}
 \end{table} 
 
 The other requirements for the project are publicly and freely available namely the World Values Survey data and open-weight LLMs.
 
-Furthermore this project is being completed as part of a Masters programme that is currently unfunded. I am prepared to self-fund my own time and effort to complete this project, yet any extra funding above those listed would be appreciated as a contribution to my living costs while completing this project.
+\subsection{Funding counterfactual}
+
+This project has a graceful degradation of scope, regardless of funding it will be completed on some level. The first part of the scope to be removed would be the paid public consultation which would be replaced with a voluntary public consultation. This reduces the statistical power of answering the second research question, but would still allow the first question to be answered fully. The second item to be removed would be the paid GPU compute which would be replaced with using university provided GPU resources, and would cause the breadth of the experiments to be cut by about half.
 
 \newpage
 
@@ -116,6 +116,8 @@ This project will be an end-to-end demonstration of a pragmatic alignment approa
 
 \subsection{Fine tuning of LLMs to Public Values}
 
+There are 4 things that are needed to fine tune a LLM. A loss function, a base model, a training dataset, and a fine-tuning method. Here I will outline each of these components and how they will be used in this project.
+
 \subsubsection{Creating training dataset}
 
 The World Values Survey (WVS)\cite{WVS2020} is a global research project that collects survey responses from about 1000 people from each country on a about 300 questions about their values and beliefs. The response data from the WVS will be used to create a dataset of question-answer pairs that will look like the following:
@@ -124,15 +126,15 @@ The World Values Survey (WVS)\cite{WVS2020} is a global research project that co
 \textit{Response:} [expected\_response]
 \end{quote}
 
-The exact format of the question, including the system prompt, is yet to be determined. Yet the same structure of getting the model to answer the question using its \scare{own values} will be used. This is so that when training we are targeting the model's internal values and not just the model's ability to predict responses for a subgroup.
+The exact format of the question, including the system prompt, is yet to be determined. The same structure of getting the model to answer the question using its \scare{own values} will be used. This is so that when training we are targeting the model's internal values and not just the model's ability to predict responses for a subgroup.
 
-To allow for comparison between different subgroups of the population \footnote{i.e person from group A preferred behavior from its own group compared to group B yet was indifferent against the base model}, the survey responses will be grouped into subgroups based on a yet to be determined clustering method.
+To allow for comparison between different subgroups of the population \footnote{i.e. a person from group A preferred behavior from its own group compared to group B but was indifferent relative to the base model}, the survey responses will be grouped into subgroups based on a yet to be determined clustering method.
 
 The value of the expected response will be determined by the responses from the particular WVS subgroup. Depending on the fine-tuning method used, it will either be the modal response, a sample from the distribution of responses, or the distribution of responses itself. 
 
 The training dataset will range in length from as small as about 300 questions (i.e. simple modal modelling with a fixed template) to as large as 3,000 question-answer pairs (i.e. distributional modelling with many templates/samples per question). The exact size of the complete training dataset will be determined by the fine-tuning method used and the number of subgroups that are used.
 
-\subsubsection{Fine tuning methods}
+\subsubsection{Fine tuning loss function}
 
 Two general methods will be explored for fine-tuning: traditional modal response fine-tuning in which the model is trained to produce the modal response for each question, and distributional fine-tuning in which the model is trained to produce responses that match the distribution of responses from the WVS subgroup. The two methods will be compared to see which method produces a model that is more aligned with the values of the WVS subgroup. The two methods are:
 
@@ -156,44 +158,62 @@ A more direct method can be used instead which is to optimize the distribution d
 
 \end{comment}
 
+\subsubsection{Base model and fine-tuning method}
+
+The base model used is restricted by our hardware resources. The model must be small enough to be fine-tuned on a single modern GPU (i.e., around 100 GB VRAM). This restricts the base model to be around 30 billion parameters. This gives us model options such as Qwen 3.6 27B that achieve approximately 62\% of frontier model performance while remaining feasible to fine-tune with limited resources\footnote{Comparing Qwen3.6 27b vs Claude Fable 5 on \href{https://artificialanalysis.ai/leaderboards/models}{Artificial Analysis Leaderboard}}.
+
+To actually fine-tune a model of this size, we will use both parameter-efficient fine-tuning \cite{huLoRALowRankAdaptation2021,dettmersQLoRAEfficientFinetuning2023} and quantization \cite{xiaoSmoothQuantAccurateEfficient2024}. These methods allow us to fine-tune large models with significantly reduced memory requirements.
+
 \subsection{Running Simulations to Evaluate LLM Behavior}
 
 Understanding how well a model is aligned to human values requires evaluating the model's behavior in real world scenarios. To do this, a simulator will be built that will allow for the evaluation of the model's behavior in a variety of scenarios. The goal of the simulations is both to test whether the fine-tuning methods have changed the model's behavior and to provide a basis for public consultation on the model's behavior.
 
-The exact design of the simulations is yet to be determined, but will be based on a variety of real world scenarios that are relevant to the New Zealand context. The structure of the simulation will involve placing the LLM in an agentic harness and letting it operate in a text-based simulation of the real world.
+The structure of the simulation will involve placing the LLM in an agentic harness and letting it operate in a text-based simulation of the real world. The scenarios used are yet to be determined, but will have a focus on \scare{grounded} New Zealand scenarios. There will be 20 scenarios in total, with each scenario being run multiple times by each model (different fine-tunes using the base model).
+
+Each agent's trajectory through the simulation will be logged and turned into a vignette using as deterministic a template as possible. Some LLM assistance will likely be used to make the vignettes readable.
 
 \subsection{Public Consultation on LLM Alignment}
 
-The public consultation will be an anonymous survey where participants will be shown vignettes of the model's behavior from the simulations and asked to rate how well the model's behavior aligns with their values. The survey will be designed to be completed in about 15 minutes, with participants recruited from a panel recruitment service to ensure fair representation of the New Zealand population.
+The public consultation will be an anonymous survey where participants will be asked to rate their preference for a model's behavior in a given scenario. The survey will be designed to be completed in about 15 minutes, with participants recruited from a panel recruitment service to ensure fair representation of the New Zealand population.
 
-For the purposes of understanding inter-group differences respondents will be asked to answer a handful of questions from the WVS that are most predictive of the WVS subgroup that they belong to. This will allow for the survey respondents to be grouped into the same subgroups as the WVS respondents, and open more lines of inquiry into preferences for the model's behavior between different subgroups of the population.
+Each question in the survey will present the vignette of a single model's behavior in a single scenario and ask participants to use a Likert scale to rate their \scare{agreement} with the model's behavior. Each participant will be shown 3 random simulations. Through aggregation of the responses, we will be able to determine which model's behavior is preferred by the public. 
 
-% Consider whether the consultation design should be described as factorial.
+For the purposes of understanding inter-group differences, respondents will be asked to answer a handful of questions from the WVS that are most predictive of the WVS subgroup that they belong to. This will allow the survey respondents to be grouped into the same subgroups as the WVS respondents and open more lines of inquiry into preferences for the model's behavior between different subgroups of the population.
+
+\subsection{Answering research questions}
+
+\subsubsection{Research Question 1: Can we use publicly collected value survey data to modify the behavior of LLMs to align with the values of the public?}
+
+To answer this question we will first need to ensure that the model has successfully learned to produce responses that match the distribution of responses from the WVS subgroup. This will be done by ensuring that the fine-tuning loss function is minimized. Conditional on this being the case, we will then run the simulations to evaluate the behavior of the fine-tuned LLMs.
+
+These simulations will have a set of key decisions that can be evaluated to see if the model's behavior has changed from the base model. Note that understanding whether the model's behavior changes in the direction of the WVS subgroup will only be done through public consultation.
+
+\subsubsection{Research Question 2: Will users prefer the behavior of models aligned to their values compared to unaligned models?}
+
+To answer this, a public consultation will be done in the form of an anonymous survey. The survey results will be many Likert ratings of the model's behavior in a given scenario by respondents from different subgroups. These ratings will be aggregated to determine which model's behavior is preferred by the public (i.e. the model that is aligned to the respondents' subgroup, another group, or the base model). This will allow us to determine if the model that is aligned to the respondents' subgroup is preferred by the respondents.
 
 \section{Resources Required}
 \label{app:resources}
 
 \subsection{Computational Resources}
 
-Training and evaluating LLMs requires significant GPU resources. Based on my method design, I estimate the following computational requirements:
+Training and evaluating LLMs requires significant GPU resources. Based on the method design in Appendix \ref{app:methods}, I have estimated the total GPU hours required to complete the project to be approximately \gpuHours hours. This is broken down as follows:
 
 \begin{itemize}
-	\item \textbf{Base Model}: We will use LLMs with approximately 30 billion parameters. Based on current benchmarks, models at this scale achieve approximately 62\% of frontier model performance while remaining feasible to fine-tune with limited resources\footnote{Comparing Qwen3.6 27b vs Claude Fable 5 on \href{https://artificialanalysis.ai/leaderboards/models}{Artificial Analysis Leaderboard}}.
-	\item \textbf{Parameter-Efficient Fine-Tuning}: Using LoRA (Low-Rank Adaptation) \cite{huLoRALowRankAdaptation2021} and QLoRA \cite{dettmersQLoRAEfficientFinetuning2023}, we can effectively fine-tune large models by updating only a small fraction of parameters. This reduces VRAM requirements from hundreds of gigabytes to around 100 GB, which will work on a single modern GPU (e.g. H100, H200, B200).
-	\item \textbf{Estimated GPU Hours}: Approximately \gpuHours hours of GPU time total, including:
-	      \begin{itemize}
-		      \item Training pipeline development and testing: 25 hours
-		      \item Full fine-tuning experiments (3 methods $\times$ 3 value sets $\times$ 3 models @ 4 hours per fine tune): 81 hours
-		      \item Evaluation runs (27 trained models with 2 hours each): 54 hours
-	      \end{itemize}
-	\item \textbf{Alternative Options}: University-provided GPU resources (2x A100 40 GB or 1x RTX 6000 Blackwell) are available. However, due to being weaker hardware will increase time to use and decrease depth of experiments.
+	\item Training pipeline development and testing: 25 hours
+	\item Full fine-tuning experiments (3 methods $\times$ 3 value sets $\times$ 3 models @ 4 hours per fine-tune): 81 hours
+	\item Evaluation runs (27 trained models with 2 hours each): 54 hours
 \end{itemize}
+
+A reduction in funding may result in no cloud compute available and so using university provided GPU resources is possible. However due to the reduced power (2x A100 40 GB or 1x RTX 6000 Blackwell) and limited availability of these resources (i.e, waiting for availability), the number of experiments that can be run will be reduced. This will reduce the depth of the experiments, thus reducing the generalization of the results.
 
 \subsection{Data Sources}
 
+The two forms of data that are going to be needed are value survey data and the parameters of a base LLM. Fortunately both of these are publicly available and can be used without financial cost or licensing restrictions.
+
 \begin{itemize}
-	\item \textbf{World Values Survey (WVS)}: The primary data source for defining alignment targets. The WVS contains responses from approximately 1,000 respondents in New Zealand with the survey being almost 300 questions long. This data is openly accessible for research purposes.
-	\item \textbf{Base Models}: We will use open-weight models such as Qwen 3.5\cite{qwen3.5} or open-source models such as Olmo \cite{olmo2025olmo3}. These models can be freely downloaded and used without financial cost or licensing restrictions.
+	\item \textbf{World Values Survey (WVS)}: The primary data source for defining alignment targets. The WVS contains responses from approximately 1,000 respondents in New Zealand with the survey being almost 300 questions long. This survey data is also available for many other countries, allowing for the same method to be applied to other countries in the future.
+	\item \textbf{Base models}: We will use open-weight models such as Qwen 3.5\cite{qwen3.5} or open-source models such as Olmo \cite{olmo2025olmo3}. Final model choice will be determined based on the latest performance benchmarks.
 \end{itemize}
 
 \subsection{Human Resources}
