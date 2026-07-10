@@ -1,50 +1,74 @@
+LATEXMK := latexmk
+OPTS := -pdf -f -interaction=nonstopmode
+
 TEX_DIR := docs
+SRV_DIR := survey
 OUT_DIR := output
 
-TEX_SRCS := $(filter-out $(TEX_DIR)/common.tex,$(wildcard $(TEX_DIR)/*.tex))
+# --- docs/ sources (output to docs/output/) ---
+DOC_SRCS := $(filter-out $(TEX_DIR)/common.tex,$(wildcard $(TEX_DIR)/*.tex))
 
-# Extract \docname{...} from a tex file, fall back to filename stem
-docname = $(or $(shell sed -n 's/^[[:space:]]*\\docname{\(.*\)}/\1/p' $(TEX_DIR)/$(1).tex),$(1))
+docname_of = $(or $(shell sed -n 's/^[[:space:]]*\\docname{\(.*\)}/\1/p' $(2)/$(1).tex),$(1))
 
-# Build list of all PDF targets using their \docname (or filename stem)
-PDF_TGTS := $(foreach src,$(basename $(notdir $(TEX_SRCS))),$(TEX_DIR)/$(OUT_DIR)/$(call docname,$(src)).pdf)
+DOC_TGTS := $(foreach src,$(DOC_SRCS), \
+  $(TEX_DIR)/$(OUT_DIR)/$(call docname_of,$(basename $(notdir $(src))),$(TEX_DIR)).pdf)
 
-LATEXMK := latexmk
-LATEXMK_OPTS := -pdf -f -outdir=$(OUT_DIR) -cd -interaction=nonstopmode
+# --- survey/ sources (output to survey/output/) ---
+SRV_SRCS := $(wildcard $(SRV_DIR)/*.tex)
+SRV_TGTS := $(foreach src,$(SRV_SRCS), \
+  $(SRV_DIR)/$(OUT_DIR)/$(call docname_of,$(basename $(notdir $(src))),$(SRV_DIR)).pdf)
+
+ALL_TGTS := $(DOC_TGTS) $(SRV_TGTS)
 
 .PHONY: all clean watch setup help
 
-all: $(PDF_TGTS)
+all: $(ALL_TGTS)
 
-# Generate a build rule for each tex file
-# $(1) = basename of tex file (e.g., "two-pager-funding")
-define tex_build_rule
-$(TEX_DIR)/$(OUT_DIR)/$(call docname,$(1)).pdf: $(TEX_DIR)/$(1).tex
-	-$(LATEXMK) $(LATEXMK_OPTS) -jobname=$(call docname,$(1)) $$<
+# Build rule for docs/ sources (-cd changes to docs/, so outdir is relative)
+define doc_build_rule
+$(TEX_DIR)/$(OUT_DIR)/$(call docname_of,$(basename $(notdir $(1))),$(TEX_DIR)).pdf: $(1)
+	@mkdir -p $(TEX_DIR)/$(OUT_DIR)
+	-$(LATEXMK) $(OPTS) -outdir=$(OUT_DIR) -cd \
+	  -jobname=$(call docname_of,$(basename $(notdir $(1))),$(TEX_DIR)) $$<
 endef
 
-$(foreach src,$(basename $(notdir $(TEX_SRCS))),$(eval $(call tex_build_rule,$(src))))
+$(foreach src,$(DOC_SRCS),$(eval $(call doc_build_rule,$(src))))
 
-# Watch a file: make watch FILE=two-pager-funding
+# Build rule for survey/ sources (-cd changes to survey/, so outdir is relative)
+define srv_build_rule
+$(SRV_DIR)/$(OUT_DIR)/$(call docname_of,$(basename $(notdir $(1))),$(SRV_DIR)).pdf: $(1)
+	@mkdir -p $(SRV_DIR)/$(OUT_DIR)
+	-$(LATEXMK) $(OPTS) -outdir=$(OUT_DIR) -cd \
+	  -jobname=$(call docname_of,$(basename $(notdir $(1))),$(SRV_DIR)) $$<
+endef
+
+$(foreach src,$(SRV_SRCS),$(eval $(call srv_build_rule,$(src))))
+
+# Watch a file: make watch FILE=docs/somefile (or survey/somefile)
 watch:
-	@docname=$$(sed -n 's/^[[:space:]]*\\docname{\(.*\)}/\1/p' $(TEX_DIR)/$(FILE).tex 2>/dev/null); \
-	[ -z "$$docname" ] && docname="$(FILE)"; \
-	$(LATEXMK) -pdf -f -pvc -outdir=$(OUT_DIR) -cd -interaction=nonstopmode -jobname=$$docname $(TEX_DIR)/$(FILE).tex
+	@dir=$$(dirname "$(FILE)" 2>/dev/null); \
+	base=$$(basename "$(FILE)" .tex); \
+	[ "$$dir" = "." ] && dir="$(TEX_DIR)"; \
+	outdir="$$dir/$(OUT_DIR)"; \
+	docname=$$(sed -n 's/^[[:space:]]*\\docname{\(.*\)}/\1/p' "$$dir/$$base.tex" 2>/dev/null); \
+	[ -z "$$docname" ] && docname="$$base"; \
+	mkdir -p "$$outdir"; \
+	$(LATEXMK) -pdf -f -pvc -outdir="$$outdir" -cd -interaction=nonstopmode \
+	  -jobname="$$docname" "$$dir/$$base.tex"
 
-# Bootstrap project: sync uv deps and install pre-commit hooks
+# Bootstrap
 setup:
-	uv sync
-	uv run pre-commit install
+	uv sync && uv run pre-commit install
 
-# Remove all build artifacts
+# Clean
 clean:
-	rm -rf $(TEX_DIR)/$(OUT_DIR)
+	rm -rf $(TEX_DIR)/$(OUT_DIR) $(SRV_DIR)/$(OUT_DIR)
 
 help:
 	@echo "Usage:"
-	@echo "  make              Build all PDFs (output name from \\docname in each .tex)"
-	@echo "  make watch FILE=x Watch and rebuild on changes"
+	@echo "  make              Build all PDFs"
+	@echo "  make watch FILE=x Watch and rebuild"
 	@echo "  make clean        Remove build artifacts"
 	@echo ""
-	@echo "Each .tex file can set \\docname{name} to control the output PDF name."
-	@echo "Without it, the PDF is named after the .tex file."
+	@echo "Sources in docs/   -> docs/output/"
+	@echo "Sources in survey/ -> survey/output/"

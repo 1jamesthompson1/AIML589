@@ -1,2 +1,3 @@
 **/output/*
-!docs/output/*.pdf
+!**.pdf
+workbench/**
