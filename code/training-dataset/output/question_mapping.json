@@ -1,0 +1,2987 @@
+[
+  {
+    "question": "Please indicate, for each of the following, how important it is in your life.",
+    "sub_questions": [
+      "Family",
+      "Friends",
+      "Leisure time",
+      "Politics",
+      "Work",
+      "Religion"
+    ],
+    "column_names": [
+      "Q1",
+      "Q2",
+      "Q3",
+      "Q4",
+      "Q5",
+      "Q6"
+    ],
+    "word_response_types": [
+      "Very important",
+      "Rather important",
+      "Not very important",
+      "Not at all important",
+      "Don't know"
+    ],
+    "numeric_response_types": [
+      "1.0",
+      "2.0",
+      "3.0",
+      "4.0",
+      "-1.0"
+    ],
+    "survey_section": "The community and you",
+    "question_type": "value survey",
+    "question_format": "matrix_single_select"
+  },
+  {
+    "question": "Here is a list of qualities that children can be encouraged to learn at home. Which, if any, do you consider to be especially important?",
+    "sub_questions": [
+      "Good manners",
+      "Independence",
+      "Hard work",
+      "Feeling of responsibility",
+      "Imagination",
+      "Tolerance and respect for other people",
+      "Thrift, saving money and things",
+      "Determination, perseverance",
+      "Religious faith",
+      "Unselfishness",
+      "Obedience"
+    ],
+    "column_names": [
+      "Q7",
+      "Q8",
+      "Q9",
+      "Q10",
+      "Q11",
+      "Q12",
+      "Q13",
+      "Q14",
+      "Q15",
+      "Q16",
+      "Q17"
+    ],
+    "word_response_types": [
+      "Important",
+      "Not mentioned"
+    ],
+    "numeric_response_types": [
+      "1.0",
+      "2.0"
+    ],
+    "survey_section": "The community and you",
+    "question_type": "value survey",
+    "question_format": "matrix_multi_select"
+  },
+  {
+    "question": "Here are various groups of people. Could you please tick any that you would not like to have as neighbours?",
+    "sub_questions": [
+      "Drug addicts",
+      "People of a different race",
+      "People who have AIDS",
+      "Immigrants/foreign workers",
+      "Homosexuals",
+      "People of a different religion",
+      "Heavy drinkers",
+      "Unmarried couples living together",
+      "People who speak a different language"
+    ],
+    "column_names": [
+      "Q18",
+      "Q19",
+      "Q20",
+      "Q21",
+      "Q22",
+      "Q23",
+      "Q24",
+      "Q25",
+      "Q26"
+    ],
+    "word_response_types": [
+      "Mentioned",
+      "Not mentioned"
+    ],
+    "numeric_response_types": [
+      "1.0",
+      "2.0"
+    ],
+    "survey_section": "The community and you",
+    "question_type": "value survey",
+    "question_format": "matrix_multi_select"
+  },
+  {
+    "question": "People talk about the changing roles of men and women today. For each of the following statements, please indicate how much you agree or disagree.",
+    "sub_questions": [
+      "One of my main goals in life has been to make my parents proud",
+      "A preschool child suffers if their mother works",
+      "Men make better political leaders than women do",
+      "A university education is more important for a boy than a girl",
+      "Men make better business executives than women do",
+      "Being a housewife is just as fulfilling as working for pay"
+    ],
+    "column_names": [
+      "Q27",
+      "Q28",
+      "Q29",
+      "Q30",
+      "Q31",
+      "Q32"
+    ],
+    "word_response_types": [
+      "Agree strongly",
+      "Agree",
+      "Disagree",
+      "Strongly disagree",
+      "Don't know"
+    ],
+    "numeric_response_types": [
+      "1.0",
+      "2.0",
+      "3.0",
+      "4.0",
+      "-1.0"
+    ],
+    "survey_section": "The community and you",
+    "question_type": "value survey",
+    "question_format": "matrix_likert"
+  },
+  {
+    "question": "Do you agree or disagree with the following statements?",
+    "sub_questions": [
+      "When jobs are scarce, men should have more right to a job than women",
+      "When jobs are scarce, employers should give priority to New Zealanders over immigrants",
+      "If a woman earns more than her husband, it is almost certain to cause problems"
+    ],
+    "column_names": [
+      "Q33",
+      "Q34",
+      "Q35"
+    ],
+    "word_response_types": [
+      "Strongly agree",
+      "Agree",
+      "Neither agree nor disagree",
+      "Disagree",
+      "Strongly disagree",
+      "Don't know"
+    ],
+    "numeric_response_types": [
+      "1.0",
+      "2.0",
+      "3.0",
+      "4.0",
+      "5.0",
+      "-1.0"
+    ],
+    "survey_section": "People and work",
+    "question_type": "value survey",
+    "question_format": "matrix_likert"
+  },
+  {
+    "question": "How much do you agree or disagree with the following statements?",
+    "sub_questions": [
+      "Homosexual couples are as good parents as other couples",
+      "It is a duty towards society to have children",
+      "It is children's duty to take care of ill parents",
+      "People who don't work turn lazy",
+      "Work is a duty towards society",
+      "Work should always come first, even if it means less spare time"
+    ],
+    "column_names": [
+      "Q36",
+      "Q37",
+      "Q38",
+      "Q39",
+      "Q40",
+      "Q41"
+    ],
+    "word_response_types": [
+      "Agree strongly",
+      "Agree",
+      "Neither agree nor disagree",
+      "Disagree",
+      "Strongly disagree",
+      "Don't know"
+    ],
+    "numeric_response_types": [
+      "1.0",
+      "2.0",
+      "3.0",
+      "4.0",
+      "5.0",
+      "-1.0"
+    ],
+    "survey_section": "The community and you",
+    "question_type": "value survey",
+    "question_format": "matrix_likert"
+  },
+  {
+    "question": "Listed below are three basic kinds of attitudes concerning the society we live in. Please choose the one that best describes your own opinion.",
+    "column_names": [
+      "Q42"
+    ],
+    "word_response_types": [
+      "The entire way our society is organised must be radically changed by revolutionary action",
+      "Our society must be gradually improved by reforms",
+      "Our present society must be valiantly defended against all subversive forces"
+    ],
+    "numeric_response_types": [
+      "1.0",
+      "2.0",
+      "3.0"
+    ],
+    "survey_section": "People, society and politics",
+    "question_type": "value survey",
+    "question_format": "single_select"
+  },
+  {
+    "question": "Listed below are various changes in our way of life that might take place in the near future. Please indicate whether you think each would be a good thing, a bad thing, or don't you mind?",
+    "sub_questions": [
+      "Less importance placed on work",
+      "More emphasis on the development of technology",
+      "Greater respect for authority"
+    ],
+    "column_names": [
+      "Q43",
+      "Q44",
+      "Q45"
+    ],
+    "word_response_types": [
+      "Good thing",
+      "Don't mind",
+      "Bad thing"
+    ],
+    "numeric_response_types": [
+      "1.0",
+      "2.0",
+      "3.0"
+    ],
+    "survey_section": "The community and you",
+    "question_type": "value survey",
+    "question_format": "matrix_single_select"
+  },
+  {
+    "question": "Taking all things together, would you say you are:",
+    "column_names": [
+      "Q46"
+    ],
+    "word_response_types": [
+      "Very happy",
+      "Quite happy",
+      "Not very happy",
+      "Not at all happy",
+      "Don't know"
+    ],
+    "numeric_response_types": [
+      "1.0",
+      "2.0",
+      "3.0",
+      "4.0",
+      "-1.0"
+    ],
+    "survey_section": "The community and you",
+    "question_type": "value survey",
+    "question_format": "single_select"
+  },
+  {
+    "question": "All in all, how would you describe your state of health these days? Would you say it is:",
+    "column_names": [
+      "Q47"
+    ],
+    "word_response_types": [
+      "Very good",
+      "Good",
+      "Fair",
+      "Poor",
+      "Very poor"
+    ],
+    "numeric_response_types": [
+      "1.0",
+      "2.0",
+      "3.0",
+      "4.0",
+      "5.0"
+    ],
+    "survey_section": "The community and you",
+    "question_type": "value survey",
+    "question_format": "single_select"
+  },
+  {
+    "question": "Some people feel they have completely free choice and control over their lives, while other people feel that what they do has no real effect on what happens to them. Please use this scale where 1 means \"none at all\" and 10 means \"a great deal\" to indicate how much freedom of choice and control you feel you have over the way your life turns out.",
+    "column_names": [
+      "Q48"
+    ],
+    "word_response_types": [
+      "1",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6",
+      "7",
+      "8",
+      "9",
+      "10",
+      "Don't know"
+    ],
+    "numeric_response_types": [
+      "1.0",
+      "2.0",
+      "3.0",
+      "4.0",
+      "5.0",
+      "6.0",
+      "7.0",
+      "8.0",
+      "9.0",
+      "10.0",
+      "-1.0"
+    ],
+    "survey_section": "The community and you",
+    "question_type": "value survey",
+    "question_format": "rating_scale"
+  },
+  {
+    "question": "All things considered, how satisfied are you with your life as a whole these days? Please use this scale where 1 means you are \"completely dissatisfied\" and 10 means you are \"completely satisfied\".",
+    "column_names": [
+      "Q49"
+    ],
+    "word_response_types": [
+      "1",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6",
+      "7",
+      "8",
+      "9",
+      "10",
+      "Don't know"
+    ],
+    "numeric_response_types": [
+      "1.0",
+      "2.0",
+      "3.0",
+      "4.0",
+      "5.0",
+      "6.0",
+      "7.0",
+      "8.0",
+      "9.0",
+      "10.0",
+      "-1.0"
+    ],
+    "survey_section": "The community and you",
+    "question_type": "value survey",
+    "question_format": "rating_scale"
+  },
+  {
+    "question": "How satisfied are you with the financial situation of your household? Please use this scale where 1 means \"completely dissatisfied\" and 10 means \"completely satisfied\".",
+    "column_names": [
+      "Q50"
+    ],
+    "word_response_types": [
+      "1",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6",
+      "7",
+      "8",
+      "9",
+      "10",
+      "Don't know"
+    ],
+    "numeric_response_types": [
+      "1.0",
+      "2.0",
+      "3.0",
+      "4.0",
+      "5.0",
+      "6.0",
+      "7.0",
+      "8.0",
+      "9.0",
+      "10.0",
+      "-1.0"
+    ],
+    "survey_section": "People and work",
+    "question_type": "value survey",
+    "question_format": "rating_scale"
+  },
+  {
+    "question": "In the last 12 months, how often have you or your family:",
+    "sub_questions": [
+      "Gone without enough food to eat",
+      "Felt unsafe from crime in your own home",
+      "Gone without needed medicine or medical treatment that you needed",
+      "Gone without a cash income",
+      "Gone without a safe shelter over your head"
+    ],
+    "column_names": [
+      "Q51",
+      "Q52",
+      "Q53",
+      "Q54",
+      "Q55"
+    ],
+    "word_response_types": [
+      "Often",
+      "Sometimes",
+      "Rarely",
+      "Never"
+    ],
+    "numeric_response_types": [
+      "1.0",
+      "2.0",
+      "3.0",
+      "4.0"
+    ],
+    "survey_section": "The community and you",
+    "question_type": "value survey",
+    "question_format": "matrix_single_select"
+  },
+  {
+    "question": "Comparing your standard of living with your parents' standard of living when they were about your age, would you say that you are better off, worse off, or about the same?",
+    "column_names": [
+      "Q56"
+    ],
+    "word_response_types": [
+      "Better off",
+      "About the same",
+      "Worse off"
+    ],
+    "numeric_response_types": [
+      "1.0",
+      "2.0",
+      "3.0"
+    ],
+    "survey_section": "The community and you",
+    "question_type": "value survey",
+    "question_format": "single_select"
+  },
+  {
+    "question": "Generally speaking, would you say that most people can be trusted or that you need to be very careful in dealing with people?",
+    "column_names": [
+      "Q57"
+    ],
+    "word_response_types": [
+      "Most people can be trusted",
+      "Need to be very careful",
+      "Don't know"
+    ],
+    "numeric_response_types": [
+      "1.0",
+      "2.0",
+      "-1.0"
+    ],
+    "survey_section": "The community and you",
+    "question_type": "value survey",
+    "question_format": "single_select"
+  },
+  {
+    "question": "Here are some questions about how much you trust people from various groups. Please indicate how much you trust...",
+    "sub_questions": [
+      "Your family",
+      "Your neighbourhood",
+      "People you know personally",
+      "People you meet for the first time",
+      "People of another religion",
+      "People of another nationality"
+    ],
+    "column_names": [
+      "Q58",
+      "Q59",
+      "Q60",
+      "Q61",
+      "Q62",
+      "Q63"
+    ],
+    "word_response_types": [
+      "Trust completely",
+      "Trust somewhat",
+      "Do not trust very much",
+      "Do not trust at all",
+      "Don't know"
+    ],
+    "numeric_response_types": [
+      "1.0",
+      "2.0",
+      "3.0",
+      "4.0",
+      "-1.0"
+    ],
+    "survey_section": "The community and you",
+    "question_type": "value survey",
+    "question_format": "matrix_single_select"
+  },
+  {
+    "question": "Here are the names of a number of organisations. For each one, please indicate how much confidence you have in them: is it a great deal of confidence, quite a lot of confidence, not very much confidence or none at all?",
+    "sub_questions": [
+      "The churches",
+      "The armed forces",
+      "The press",
+      "Television",
+      "Trade unions",
+      "The police",
+      "The courts",
+      "The government in Wellington",
+      "Political parties",
+      "Parliament",
+      "The Public Service",
+      "Universities",
+      "Elections",
+      "Major companies",
+      "Banks",
+      "Environmental organisations",
+      "Women's organisations",
+      "Charitable or humanitarian organisations",
+      "The United Nations",
+      "The International Monetary Fund (IMF)",
+      "International Criminal Court (ICC)",
+      "The World Bank",
+      "The World Health Organisation (WHO)",
+      "The World Trade Organisation (WTO)"
+    ],
+    "column_names": [
+      "Q64",
+      "Q65",
+      "Q66",
+      "Q67",
+      "Q68",
+      "Q69",
+      "Q70",
+      "Q71",
+      "Q72",
+      "Q73",
+      "Q74",
+      "Q75",
+      "Q76",
+      "Q77",
+      "Q78",
+      "Q79",
+      "Q80",
+      "Q81",
+      "Q83",
+      "Q84",
+      "Q85",
+      "Q87",
+      "Q88",
+      "Q89"
+    ],
+    "word_response_types": [
+      "A great deal",
+      "Quite a lot",
+      "Not very much",
+      "None at all",
+      "Don't know"
+    ],
+    "numeric_response_types": [
+      "1.0",
+      "2.0",
+      "3.0",
+      "4.0",
+      "-1.0"
+    ],
+    "survey_section": "People, society and politics",
+    "question_type": "value survey",
+    "question_format": "matrix_single_select"
+  },
+  {
+    "question": "People sometimes say that international organisations should prioritise improving people's lives, even if this may imply that decisions are not made democratically. What do you think international organisations should prioritise, being effective or being democratic? If your views are somewhat mixed, choose the appropriate number in between. (1 = Being effective, 10 = Being democratic)",
+    "column_names": [
+      "Q90"
+    ],
+    "word_response_types": [
+      "1",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6",
+      "7",
+      "8",
+      "9",
+      "10"
+    ],
+    "numeric_response_types": [
+      "1.0",
+      "2.0",
+      "3.0",
+      "4.0",
+      "5.0",
+      "6.0",
+      "7.0",
+      "8.0",
+      "9.0",
+      "10.0"
+    ],
+    "survey_section": "People, society and politics",
+    "question_type": "value survey",
+    "question_format": "rating_scale"
+  },
+  {
+    "question": "Five countries have permanent seats on the Security Council of the United Nations. Which one of the following is not a member?",
+    "survey_section": "People, society and politics",
+    "question_type": "value survey",
+    "sub_questions": [
+      "Countries with permanent seats on UN Security Council"
+    ],
+    "column_names": [
+      "Q91"
+    ],
+    "word_response_types": [
+      "France",
+      "China",
+      "India",
+      "Don't know"
+    ],
+    "numeric_response_types": [
+      "1.0",
+      "2.0",
+      "3.0",
+      "-1.0"
+    ],
+    "question_format": "single_select"
+  },
+  {
+    "question": "Where are the headquarters of the International Monetary Fund (IMF) located?",
+    "survey_section": "People, society and politics",
+    "question_type": "value survey",
+    "sub_questions": [
+      "Where are the headquarters of the IMF located?"
+    ],
+    "column_names": [
+      "Q92"
+    ],
+    "word_response_types": [
+      "Washington DC",
+      "London",
+      "Geneva",
+      "Don't know"
+    ],
+    "numeric_response_types": [
+      "1.0",
+      "2.0",
+      "3.0",
+      "-1.0"
+    ],
+    "question_format": "single_select"
+  },
+  {
+    "question": "Which one of the following problems does the organisation, Amnesty International, deal with?",
+    "survey_section": "People, society and politics",
+    "question_type": "value survey",
+    "sub_questions": [
+      "Which problem does Amnesty International deal with?"
+    ],
+    "column_names": [
+      "Q93"
+    ],
+    "word_response_types": [
+      "Climate change",
+      "Human rights",
+      "Destruction of historic monuments",
+      "Don't know"
+    ],
+    "numeric_response_types": [
+      "1.0",
+      "2.0",
+      "3.0",
+      "-1.0"
+    ],
+    "question_format": "single_select"
+  },
+  {
+    "question": "Listed below are different types of voluntary organisations. For each, are you an active member, an inactive member, or don't you belong?",
+    "sub_questions": [
+      "Church or religious organisation",
+      "Sport or recreational organisation",
+      "Art, music or educational organisation",
+      "Labour union",
+      "Political party",
+      "Environmental organisation",
+      "Professional association",
+      "Charitable/humanitarian organisation",
+      "Consumer organisation",
+      "Self-help group, mutual aid group",
+      "Community group (Marae, local groups etc)",
+      "Other organisation"
+    ],
+    "column_names": [
+      "Q94",
+      "Q95",
+      "Q96",
+      "Q97",
+      "Q98",
+      "Q99",
+      "Q100",
+      "Q101",
+      "Q102",
+      "Q103",
+      "Q104",
+      "Q105"
+    ],
+    "word_response_types": [
+      "Don't belong",
+      "Inactive member",
+      "Active member"
+    ],
+    "numeric_response_types": [
+      "0.0",
+      "1.0",
+      "2.0"
+    ],
+    "survey_section": "The community and you",
+    "question_type": "value survey",
+    "question_format": "matrix_single_select"
+  },
+  {
+    "question": "How would you place your views on this scale? 1 means you agree completely with the statement on the left; 10 means you agree completely with the statement on the right.",
+    "sub_questions": [
+      "Incomes should be made more equal vs There should be greater incentives for individual effort",
+      "Private ownership should be increased vs Government ownership should be increased",
+      "Government should take more responsibility vs People should take more responsibility",
+      "Competition is good vs Competition is harmful",
+      "Hard work brings a better life vs Hard work doesn't bring success"
+    ],
+    "column_names": [
+      "Q106",
+      "Q107",
+      "Q108",
+      "Q109",
+      "Q110"
+    ],
+    "word_response_types": [
+      "1",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6",
+      "7",
+      "8",
+      "9",
+      "10"
+    ],
+    "numeric_response_types": [
+      "1.0",
+      "2.0",
+      "3.0",
+      "4.0",
+      "5.0",
+      "6.0",
+      "7.0",
+      "8.0",
+      "9.0",
+      "10.0"
+    ],
+    "survey_section": "People and work",
+    "question_type": "value survey",
+    "question_format": "matrix_single_select"
+  },
+  {
+    "question": "Here are two statements people sometimes make when discussing the environment and economic growth. Which one comes closest to your own point of view?",
+    "column_names": [
+      "Q111"
+    ],
+    "word_response_types": [
+      "Protecting environment should be given priority",
+      "Economic growth and creating jobs should be top priority",
+      "Don't know"
+    ],
+    "numeric_response_types": [
+      "1.0",
+      "2.0",
+      "-1.0"
+    ],
+    "survey_section": "The environment",
+    "question_type": "value survey",
+    "question_format": "single_select"
+  },
+  {
+    "question": "How would you place your views on corruption in New Zealand on a 10-point scale where 1 means \"there is no corruption in New Zealand\" and 10 means \"there is abundant corruption in New Zealand\"?",
+    "column_names": [
+      "Q112"
+    ],
+    "word_response_types": [
+      "1",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6",
+      "7",
+      "8",
+      "9",
+      "10",
+      "Don't know"
+    ],
+    "numeric_response_types": [
+      "1.0",
+      "2.0",
+      "3.0",
+      "4.0",
+      "5.0",
+      "6.0",
+      "7.0",
+      "8.0",
+      "9.0",
+      "10.0",
+      "-1.0"
+    ],
+    "survey_section": "People, society and politics",
+    "question_type": "value survey",
+    "question_format": "rating_scale"
+  },
+  {
+    "question": "Among the following groups of people, how many do you believe are involved in corruption?",
+    "sub_questions": [
+      "State authorities",
+      "Business executives",
+      "Local authorities",
+      "Civil service providers",
+      "Journalists and media"
+    ],
+    "column_names": [
+      "Q113",
+      "Q114",
+      "Q115",
+      "Q116",
+      "Q117"
+    ],
+    "word_response_types": [
+      "None of them",
+      "Few of them",
+      "Most of them",
+      "All of them",
+      "Don't know"
+    ],
+    "numeric_response_types": [
+      "1.0",
+      "2.0",
+      "3.0",
+      "4.0",
+      "-1.0"
+    ],
+    "survey_section": "People, society and politics",
+    "question_type": "value survey",
+    "question_format": "matrix_single_select"
+  },
+  {
+    "question": "How often do you think ordinary people like yourself or people from your neighbourhood have to pay a bribe, give a gift or do a favour to these people in order to get the services needed? Does it happen never, rarely, frequently or always?",
+    "column_names": [
+      "Q118"
+    ],
+    "word_response_types": [
+      "Never",
+      "Rarely",
+      "Frequently",
+      "Always"
+    ],
+    "numeric_response_types": [
+      "1.0",
+      "2.0",
+      "3.0",
+      "4.0"
+    ],
+    "survey_section": "People, society and politics",
+    "question_type": "value survey",
+    "question_format": "single_select"
+  },
+  {
+    "question": "How strongly do you agree or disagree with the following statement: \"On the whole, women are less corrupt than men\"?",
+    "column_names": [
+      "Q119"
+    ],
+    "word_response_types": [
+      "Strongly agree",
+      "Agree",
+      "Hard to say",
+      "Disagree",
+      "Strongly disagree"
+    ],
+    "numeric_response_types": [
+      "0.0",
+      "1.0",
+      "2.0",
+      "3.0",
+      "4.0"
+    ],
+    "survey_section": "People, society and politics",
+    "question_type": "value survey",
+    "question_format": "single_select"
+  },
+  {
+    "question": "How high is the risk in New Zealand of being held accountable for giving or receiving a bribe, gift or favour in return for public service? Please indicate your opinion on the 10 point scale below, where 1 means \"no risk at all\" and 10 means \"very high risk\".",
+    "column_names": [
+      "Q120"
+    ],
+    "word_response_types": [
+      "1",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6",
+      "7",
+      "8",
+      "9",
+      "10"
+    ],
+    "numeric_response_types": [
+      "1.0",
+      "2.0",
+      "3.0",
+      "4.0",
+      "5.0",
+      "6.0",
+      "7.0",
+      "8.0",
+      "9.0",
+      "10.0"
+    ],
+    "survey_section": "People, society and politics",
+    "question_type": "value survey",
+    "question_format": "rating_scale"
+  },
+  {
+    "question": "How would you evaluate the impact of immigrants on the development of New Zealand?",
+    "column_names": [
+      "Q121"
+    ],
+    "word_response_types": [
+      "Very good",
+      "Quite good",
+      "Neither good nor bad",
+      "Quite bad",
+      "Very bad"
+    ],
+    "numeric_response_types": [
+      "1.0",
+      "2.0",
+      "3.0",
+      "4.0",
+      "5.0"
+    ],
+    "survey_section": "The community and you",
+    "question_type": "value survey",
+    "question_format": "single_select"
+  },
+  {
+    "question": "What have been the effects of immigration on the development of New Zealand? For each of the following statements, please indicate whether you agree or disagree with it.",
+    "sub_questions": [
+      "Fills important job vacancies",
+      "Strengthens cultural diversity",
+      "Increases the crime rate",
+      "Gives asylum to political refugees who are persecuted elsewhere",
+      "Increases the risk of terrorism",
+      "Offers people from poorer countries a better living",
+      "Increases unemployment",
+      "Leads to social conflict"
+    ],
+    "column_names": [
+      "Q122",
+      "Q123",
+      "Q124",
+      "Q125",
+      "Q126",
+      "Q127",
+      "Q128",
+      "Q129"
+    ],
+    "word_response_types": [
+      "Agree",
+      "Hard to say",
+      "Disagree"
+    ],
+    "numeric_response_types": [
+      "0.0",
+      "1.0",
+      "2.0"
+    ],
+    "survey_section": "The community and you",
+    "question_type": "value survey",
+    "question_format": "matrix_likert"
+  },
+  {
+    "question": "How about people from other countries coming here to work. Which one of the following do you think the government should do?",
+    "column_names": [
+      "Q130"
+    ],
+    "word_response_types": [
+      "Let anyone come who wants to",
+      "Let people come as long as there are jobs available",
+      "Place strict limits on the number who can come here",
+      "Prohibit people coming here from other countries",
+      "Don't know"
+    ],
+    "numeric_response_types": [
+      "1.0",
+      "2.0",
+      "3.0",
+      "4.0",
+      "-1.0"
+    ],
+    "survey_section": "The community and you",
+    "question_type": "value survey",
+    "question_format": "single_select"
+  },
+  {
+    "question": "Please tell us how secure you feel these days in your neighbourhood?",
+    "column_names": [
+      "Q131"
+    ],
+    "word_response_types": [
+      "Very Secure",
+      "Quite secure",
+      "Not very secure",
+      "Not at all secure",
+      "Don't know"
+    ],
+    "numeric_response_types": [
+      "1.0",
+      "2.0",
+      "3.0",
+      "4.0",
+      "-1.0"
+    ],
+    "survey_section": "The community and you",
+    "question_type": "value survey",
+    "question_format": "single_select"
+  },
+  {
+    "question": "How frequently do the following things occur in your neighbourhood?",
+    "sub_questions": [
+      "Robberies",
+      "Alcohol consumption in the streets",
+      "Police or military interference with people's private life",
+      "Racist behaviour",
+      "Drug sales in streets",
+      "Street violence and fights",
+      "Sexual harassment"
+    ],
+    "column_names": [
+      "Q132",
+      "Q133",
+      "Q134",
+      "Q135",
+      "Q136",
+      "Q137",
+      "Q138"
+    ],
+    "word_response_types": [
+      "Not at all frequently",
+      "Not frequently",
+      "Quite frequently",
+      "Very Frequently",
+      "Don't know"
+    ],
+    "numeric_response_types": [
+      "1.0",
+      "2.0",
+      "3.0",
+      "4.0",
+      "-1.0"
+    ],
+    "survey_section": "The community and you",
+    "question_type": "value survey",
+    "question_format": "matrix_single_select"
+  },
+  {
+    "question": "Which of the following things have you done for reasons of security?",
+    "sub_questions": [
+      "Didn't carry much money",
+      "Preferred not to go out at night",
+      "Carried a knife, gun or other weapon"
+    ],
+    "column_names": [
+      "Q139",
+      "Q140",
+      "Q141"
+    ],
+    "word_response_types": [
+      "No",
+      "Yes"
+    ],
+    "numeric_response_types": [
+      "1.0",
+      "2.0"
+    ],
+    "survey_section": "The community and you",
+    "question_type": "value survey",
+    "question_format": "matrix_binary"
+  },
+  {
+    "question": "Have you or your family been the victim of a crime during the past year?",
+    "sub_questions": [
+      "Respondent was victim of a crime",
+      "Respondent's family was victim of a crime"
+    ],
+    "column_names": [
+      "Q142",
+      "Q143"
+    ],
+    "word_response_types": [
+      "Very much",
+      "A great deal",
+      "Not much",
+      "Not at all",
+      "Don't know"
+    ],
+    "numeric_response_types": [
+      "1.0",
+      "2.0",
+      "3.0",
+      "4.0",
+      "-1.0"
+    ],
+    "survey_section": "The community and you",
+    "question_type": "value survey",
+    "question_format": "matrix_single_select"
+  },
+  {
+    "question": "Were you or your family a victim of a crime during the past year?",
+    "sub_questions": [
+      "",
+      ""
+    ],
+    "column_names": [
+      "Q144",
+      "Q145"
+    ],
+    "word_response_types": [
+      "No",
+      "Yes"
+    ],
+    "numeric_response_types": [
+      "1.0",
+      "2.0"
+    ],
+    "survey_section": "The community and you",
+    "question_type": "value survey",
+    "question_format": "matrix_binary"
+  },
+  {
+    "question": "To what degree are you worried about the following situations?",
+    "sub_questions": [
+      "Losing my job or not finding a job",
+      "Not being able to give my children a good education",
+      "A war involving my country"
+    ],
+    "column_names": [
+      "Q146",
+      "Q147",
+      "Q148"
+    ],
+    "word_response_types": [
+      "Very much",
+      "A great deal",
+      "Not much",
+      "Not at all",
+      "Don't know"
+    ],
+    "numeric_response_types": [
+      "1.0",
+      "2.0",
+      "3.0",
+      "4.0",
+      "-1.0"
+    ],
+    "survey_section": "The community and you",
+    "question_type": "value survey",
+    "question_format": "matrix_single_select"
+  },
+  {
+    "question": "Most people consider both freedom and equality to be important, but if you had to choose between them, which one would you consider most important?",
+    "column_names": [
+      "Q149"
+    ],
+    "word_response_types": [
+      "Freedom",
+      "Equality",
+      "Don't know"
+    ],
+    "numeric_response_types": [
+      "1.0",
+      "2.0",
+      "-1.0"
+    ],
+    "survey_section": "People, society and politics",
+    "question_type": "value survey",
+    "question_format": "single_select"
+  },
+  {
+    "question": "Most people consider both freedom and security to be important, but if you had to choose between them, which one would you consider most important?",
+    "column_names": [
+      "Q150"
+    ],
+    "word_response_types": [
+      "Freedom",
+      "Security",
+      "Don't know"
+    ],
+    "numeric_response_types": [
+      "1.0",
+      "2.0",
+      "-1.0"
+    ],
+    "survey_section": "People, society and politics",
+    "question_type": "value survey",
+    "question_format": "single_select"
+  },
+  {
+    "question": "Of course, we all hope there will not be another war, but if it were to come to that, would you be willing to fight for your country?",
+    "column_names": [
+      "Q151"
+    ],
+    "word_response_types": [
+      "Yes",
+      "No",
+      "Don't know"
+    ],
+    "numeric_response_types": [
+      "1.0",
+      "2.0",
+      "-1.0"
+    ],
+    "survey_section": "People, society and politics",
+    "question_type": "value survey",
+    "question_format": "single_select"
+  },
+  {
+    "question": "People sometimes talk about what the aims of this country should be for the next ten years. Listed below are some of the goals which different people would give top priority. Would you please say which one of these you, yourself, consider the most important? And which would be the next most important?",
+    "column_names": [
+      "Q152",
+      "Q153"
+    ],
+    "word_response_types": [
+      "A high level of economic growth",
+      "Strong defence forces",
+      "People have more say at work and in their communities",
+      "Making cities and countryside more beautiful"
+    ],
+    "numeric_response_types": [
+      "1.0",
+      "2.0",
+      "3.0",
+      "4.0"
+    ],
+    "survey_section": "People, society and politics",
+    "question_type": "value survey",
+    "question_format": "ranking"
+  },
+  {
+    "question": "If you had to choose, which one of the things on this card would you say is most important? And which would be the next most important?",
+    "column_names": [
+      "Q154",
+      "Q155"
+    ],
+    "word_response_types": [
+      "Maintaining order in the nation",
+      "Giving people more say in important government decisions",
+      "Fighting rising prices",
+      "Protecting freedom of speech"
+    ],
+    "numeric_response_types": [
+      "1.0",
+      "2.0",
+      "3.0",
+      "4.0"
+    ],
+    "survey_section": "People, society and politics",
+    "question_type": "value survey",
+    "question_format": "ranking"
+  },
+  {
+    "question": "Here is another list. In your opinion, which one of these is most important? And which would be the next most important?",
+    "column_names": [
+      "Q156",
+      "Q157"
+    ],
+    "word_response_types": [
+      "A stable economy",
+      "Progress toward a less impersonal and more humane society",
+      "Progress toward a society where ideas count more than money",
+      "The fight against crime"
+    ],
+    "numeric_response_types": [
+      "1.0",
+      "2.0",
+      "3.0",
+      "4.0"
+    ],
+    "survey_section": "People, society and politics",
+    "question_type": "value survey",
+    "question_format": "ranking"
+  },
+  {
+    "question": "Here are some statements about science and technology. How much do you agree or disagree with each of these statements? For these questions, a 1 means that you \"completely disagree\" and a 10 means that you \"completely agree.\"",
+    "sub_questions": [
+      "Science and technology are making our lives healthier, easier, and more comfortable",
+      "Because of science and technology, there will be more opportunities for the next generation",
+      "We depend too much on science and not enough on faith",
+      "One of the bad effects of science is that it breaks down people's ideas of right and wrong",
+      "It is not important for me to know about science in my daily life",
+      "The world is better off because of science and technology"
+    ],
+    "column_names": [
+      "Q158",
+      "Q159",
+      "Q160",
+      "Q161",
+      "Q162",
+      "Q163"
+    ],
+    "word_response_types": [
+      "1",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6",
+      "7",
+      "8",
+      "9",
+      "10"
+    ],
+    "numeric_response_types": [
+      "1.0",
+      "2.0",
+      "3.0",
+      "4.0",
+      "5.0",
+      "6.0",
+      "7.0",
+      "8.0",
+      "9.0",
+      "10.0"
+    ],
+    "survey_section": "Science and technology",
+    "question_type": "value survey",
+    "question_format": "matrix_single_select"
+  },
+  {
+    "question": "How important is God in your life? Please use this scale to indicate your strength of belief: 1 means not at all important and 10 means very important.",
+    "column_names": [
+      "Q164"
+    ],
+    "word_response_types": [
+      "1",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6",
+      "7",
+      "8",
+      "9",
+      "10"
+    ],
+    "numeric_response_types": [
+      "1.0",
+      "2.0",
+      "3.0",
+      "4.0",
+      "5.0",
+      "6.0",
+      "7.0",
+      "8.0",
+      "9.0",
+      "10.0"
+    ],
+    "survey_section": "Religion and morality",
+    "question_type": "value survey",
+    "question_format": "rating_scale"
+  },
+  {
+    "question": "Which, if any, of the following do you believe in?",
+    "sub_questions": [
+      "God",
+      "Life after death",
+      "Hell",
+      "Heaven"
+    ],
+    "column_names": [
+      "Q165",
+      "Q166",
+      "Q167",
+      "Q168"
+    ],
+    "word_response_types": [
+      "Yes",
+      "No"
+    ],
+    "numeric_response_types": [
+      "1.0",
+      "2.0"
+    ],
+    "survey_section": "Religion and morality",
+    "question_type": "value survey",
+    "question_format": "matrix_binary"
+  },
+  {
+    "question": "How much do you agree or disagree with the following statements?",
+    "sub_questions": [
+      "Whenever science and religion conflict, religion is always right",
+      "The only acceptable religion is my religion"
+    ],
+    "column_names": [
+      "Q169",
+      "Q170"
+    ],
+    "word_response_types": [
+      "Strongly agree",
+      "Agree",
+      "Disagree",
+      "Strongly disagree",
+      "Don't know"
+    ],
+    "numeric_response_types": [
+      "1.0",
+      "2.0",
+      "3.0",
+      "4.0",
+      "-1.0"
+    ],
+    "survey_section": "Religion and morality",
+    "question_type": "value survey",
+    "question_format": "matrix_likert"
+  },
+  {
+    "question": "Apart from weddings, funerals and christenings, about how often do you attend religious services these days?",
+    "column_names": [
+      "Q171"
+    ],
+    "word_response_types": [
+      "More than once a week",
+      "Once a week",
+      "Once a month",
+      "Only on special holy days",
+      "Once a year",
+      "Less often",
+      "Never, practically never"
+    ],
+    "numeric_response_types": [
+      "1.0",
+      "2.0",
+      "3.0",
+      "4.0",
+      "5.0",
+      "6.0",
+      "7.0"
+    ],
+    "survey_section": "Religion and morality",
+    "question_type": "value survey",
+    "question_format": "single_select"
+  },
+  {
+    "question": "Apart from weddings and funerals, about how often do you pray?",
+    "column_names": [
+      "Q172"
+    ],
+    "word_response_types": [
+      "Several times a day",
+      "Once a day",
+      "Several times each week",
+      "Only when attending religious services",
+      "Once a year",
+      "Less often",
+      "Never, practically never",
+      "Only on special holy days"
+    ],
+    "numeric_response_types": [
+      "1.0",
+      "2.0",
+      "3.0",
+      "4.0",
+      "5.0",
+      "6.0",
+      "7.0",
+      "8.0"
+    ],
+    "survey_section": "Religion and morality",
+    "question_type": "value survey",
+    "question_format": "single_select"
+  },
+  {
+    "question": "Independently of whether you go to religious services or not, would you say you are:",
+    "column_names": [
+      "Q173"
+    ],
+    "word_response_types": [
+      "A religious person",
+      "Not a religious person",
+      "An atheist"
+    ],
+    "numeric_response_types": [
+      "1.0",
+      "2.0",
+      "3.0"
+    ],
+    "survey_section": "Religion and morality",
+    "question_type": "value survey",
+    "question_format": "single_select"
+  },
+  {
+    "question": "Meaning of religion: To follow religious norms and ceremonies vs To do good to other people",
+    "column_names": [
+      "Q174"
+    ],
+    "word_response_types": [
+      "Follow religious norms and ceremonies",
+      "Do good to other people"
+    ],
+    "numeric_response_types": [
+      "1.0",
+      "2.0"
+    ],
+    "survey_section": "Religion and morality",
+    "question_type": "value survey",
+    "question_format": "single_select"
+  },
+  {
+    "question": "Meaning of religion: To make sense of life after death vs To make sense of life in this world",
+    "column_names": [
+      "Q175"
+    ],
+    "word_response_types": [
+      "Make sense of life after death",
+      "Make sense of life in this world"
+    ],
+    "numeric_response_types": [
+      "1.0",
+      "2.0"
+    ],
+    "survey_section": "Religion and morality",
+    "question_type": "value survey",
+    "question_format": "single_select"
+  },
+  {
+    "question": "How much do you agree or disagree with the statement that nowadays one often has trouble deciding which moral rules are the right ones to follow? (1 = Completely agree, 10 = Completely disagree)",
+    "column_names": [
+      "Q176"
+    ],
+    "word_response_types": [
+      "1",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6",
+      "7",
+      "8",
+      "9",
+      "10"
+    ],
+    "numeric_response_types": [
+      "1.0",
+      "2.0",
+      "3.0",
+      "4.0",
+      "5.0",
+      "6.0",
+      "7.0",
+      "8.0",
+      "9.0",
+      "10.0"
+    ],
+    "survey_section": "Religion and morality",
+    "question_type": "value survey",
+    "question_format": "rating_scale"
+  },
+  {
+    "question": "Please indicate for each of the following statements whether you think it can always be justified, never be justified, or something in between. (1 = Never justifiable, 10 = Always justifiable)",
+    "sub_questions": [
+      "Claiming government benefits to which you are not entitled",
+      "Avoiding a fare on public transport",
+      "Stealing property",
+      "Cheating on taxes if you have a chance",
+      "Buying something you knew was stolen",
+      "Someone accepting a bribe in the course of their duties",
+      "Homosexuality",
+      "Prostitution",
+      "Abortion",
+      "Divorce",
+      "Sex before marriage",
+      "Euthanasia",
+      "Suicide",
+      "For a man to beat his wife",
+      "Parents beating children",
+      "Violence against other people",
+      "Terrorism as a political, ideological, or religious means",
+      "Having casual sex",
+      "Political violence",
+      "Death penalty"
+    ],
+    "column_names": [
+      "Q177",
+      "Q178",
+      "Q179",
+      "Q180",
+      "Q181",
+      "Q182",
+      "Q183",
+      "Q184",
+      "Q185",
+      "Q186",
+      "Q187",
+      "Q188",
+      "Q189",
+      "Q190",
+      "Q191",
+      "Q192",
+      "Q193",
+      "Q194",
+      "Q195"
+    ],
+    "word_response_types": [
+      "1",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6",
+      "7",
+      "8",
+      "9",
+      "10"
+    ],
+    "numeric_response_types": [
+      "1.0",
+      "2.0",
+      "3.0",
+      "4.0",
+      "5.0",
+      "6.0",
+      "7.0",
+      "8.0",
+      "9.0",
+      "10.0"
+    ],
+    "survey_section": "Religion and morality",
+    "question_type": "value survey",
+    "question_format": "matrix_single_select"
+  },
+  {
+    "question": "Do you think that the New Zealand Government should or should not have the right to do each of the following?",
+    "sub_questions": [
+      "Keep people under video surveillance in public areas",
+      "Monitor all emails and any other information exchanged on the internet",
+      "Collect information about anyone living in New Zealand without their knowledge"
+    ],
+    "column_names": [
+      "Q196",
+      "Q197",
+      "Q198"
+    ],
+    "word_response_types": [
+      "Definitely should have the right",
+      "Probably should have the right",
+      "Probably should not have the right",
+      "Definitely should not have the right"
+    ],
+    "numeric_response_types": [
+      "1.0",
+      "2.0",
+      "3.0",
+      "4.0"
+    ],
+    "survey_section": "People, society and politics",
+    "question_type": "value survey",
+    "question_format": "matrix_single_select"
+  },
+  {
+    "question": "How interested would you say you are in politics?",
+    "column_names": [
+      "Q199"
+    ],
+    "word_response_types": [
+      "Very interested",
+      "Somewhat interested",
+      "Not very interested",
+      "Not at all interested"
+    ],
+    "numeric_response_types": [
+      "1.0",
+      "2.0",
+      "3.0",
+      "4.0"
+    ],
+    "survey_section": "People, society and politics",
+    "question_type": "value survey",
+    "question_format": "single_select"
+  },
+  {
+    "question": "When you get together with friends, would you say you discuss political matters frequently, occasionally or never?",
+    "column_names": [
+      "Q200"
+    ],
+    "word_response_types": [
+      "Frequently",
+      "Occasionally",
+      "Never"
+    ],
+    "numeric_response_types": [
+      "1.0",
+      "2.0",
+      "3.0"
+    ],
+    "survey_section": "People, society and politics",
+    "question_type": "value survey",
+    "question_format": "single_select"
+  },
+  {
+    "question": "How often do you use each of the following information sources?",
+    "sub_questions": [
+      "Daily newspaper",
+      "TV news",
+      "Radio news",
+      "Mobile phone (text, apps, alerts)",
+      "Internet (social media, websites, blogs)",
+      "Print magazines",
+      "Talk with friends or colleagues",
+      "None of these"
+    ],
+    "column_names": [
+      "Q201",
+      "Q202",
+      "Q203",
+      "Q204",
+      "Q205",
+      "Q206",
+      "Q207",
+      "Q208"
+    ],
+    "word_response_types": [
+      "Daily",
+      "Weekly",
+      "Monthly",
+      "Less than monthly",
+      "Never"
+    ],
+    "numeric_response_types": [
+      "1.0",
+      "2.0",
+      "3.0",
+      "4.0",
+      "5.0"
+    ],
+    "survey_section": "People, society and politics",
+    "question_type": "value survey",
+    "question_format": "matrix_single_select"
+  },
+  {
+    "question": "Here are some different forms of political action that people can take. For each one, please indicate whether you have actually done any of these things, whether you might do it or would never, under any circumstances, do it.",
+    "sub_questions": [
+      "Signing a petition",
+      "Joining in boycotts",
+      "Attending peaceful demonstrations",
+      "Joining strikes"
+    ],
+    "column_names": [
+      "Q209",
+      "Q210",
+      "Q211",
+      "Q212"
+    ],
+    "word_response_types": [
+      "Have done",
+      "Might do",
+      "Would never do"
+    ],
+    "numeric_response_types": [
+      "1.0",
+      "2.0",
+      "3.0"
+    ],
+    "survey_section": "People, society and politics",
+    "question_type": "value survey",
+    "question_format": "matrix_single_select"
+  },
+  {
+    "question": "For each social activism action, have you done it, might do it, or would never do it?",
+    "sub_questions": [
+      "",
+      "",
+      "",
+      ""
+    ],
+    "column_names": [
+      "Q213",
+      "Q214",
+      "Q215",
+      "Q216"
+    ],
+    "word_response_types": [
+      "Have done",
+      "Might do",
+      "Would never do"
+    ],
+    "numeric_response_types": [
+      "1.0",
+      "2.0",
+      "3.0"
+    ],
+    "survey_section": "People, society and politics",
+    "question_type": "value survey",
+    "question_format": "matrix_single_select"
+  },
+  {
+    "question": "Listed below are some other forms of political action people can take using internet and social media tools like Facebook, Twitter, etc. For each one please indicate whether you have done any of these things, whether you might do it, would never under any circumstances do it.",
+    "sub_questions": [
+      "Searching information about politics and political events",
+      "Signing an electronic petition",
+      "Encouraging other people to take any form of political action",
+      "Organising political activities, events, protests"
+    ],
+    "column_names": [
+      "Q217",
+      "Q218",
+      "Q219",
+      "Q220"
+    ],
+    "word_response_types": [
+      "Have done",
+      "Might do",
+      "Would never do"
+    ],
+    "numeric_response_types": [
+      "1.0",
+      "2.0",
+      "3.0"
+    ],
+    "survey_section": "People, society and politics",
+    "question_type": "value survey",
+    "question_format": "matrix_single_select"
+  },
+  {
+    "question": "When elections take place, do you always vote, usually vote, or never vote? Please tell us separately how often you vote at a local level, and at the national level.",
+    "sub_questions": [
+      "Local level",
+      "National level"
+    ],
+    "column_names": [
+      "Q221",
+      "Q222"
+    ],
+    "word_response_types": [
+      "Always",
+      "Usually",
+      "Never"
+    ],
+    "numeric_response_types": [
+      "1.0",
+      "2.0",
+      "3.0"
+    ],
+    "survey_section": "People, society and politics",
+    "question_type": "value survey",
+    "question_format": "matrix_single_select"
+  },
+  {
+    "question": "If there were a national election tomorrow which party would you vote for? And which Party would be your second choice?",
+    "column_names": [
+      "Q223"
+    ],
+    "word_response_types": [
+      "NZ Labour",
+      "NZ National",
+      "NZ Green",
+      "NZ First",
+      "TOP",
+      "Maori Party",
+      "ACT",
+      "New Conservative",
+      "Other",
+      "Don't know"
+    ],
+    "numeric_response_types": [
+      "554005.0",
+      "554006.0",
+      "554004.0",
+      "554007.0",
+      "554014.0",
+      "554009.0",
+      "554001.0",
+      "554013.0",
+      "5.0",
+      "-1.0"
+    ],
+    "survey_section": "People, society and politics",
+    "question_type": "value survey",
+    "question_format": "single_select"
+  },
+  {
+    "question": "In your view how often do each of the following things occur in New Zealand's elections?",
+    "sub_questions": [
+      "Votes are counted fairly",
+      "Opposition candidates are prevented from running",
+      "TV news favours the governing party",
+      "Voters are bribed",
+      "Journalists provide fair coverage of elections",
+      "Election officials are fair",
+      "Rich people buy elections",
+      "Voters are threatened with violence at the polls",
+      "Voters are offered a genuine choice in the elections",
+      "Women have equal opportunities to run for office"
+    ],
+    "column_names": [
+      "Q224",
+      "Q225",
+      "Q226",
+      "Q227",
+      "Q228",
+      "Q229",
+      "Q230",
+      "Q231",
+      "Q232",
+      "Q233"
+    ],
+    "word_response_types": [
+      "Very often",
+      "Fairly often",
+      "Not often",
+      "Not at all often"
+    ],
+    "numeric_response_types": [
+      "1.0",
+      "2.0",
+      "3.0",
+      "4.0"
+    ],
+    "survey_section": "People, society and politics",
+    "question_type": "value survey",
+    "question_format": "matrix_single_select"
+  },
+  {
+    "question": "Some people think that having honest elections makes a lot of difference in their lives; other people think that it does not matter much. How important would you say is having honest elections for you?",
+    "column_names": [
+      "Q234"
+    ],
+    "word_response_types": [
+      "Very important",
+      "Rather important",
+      "Not very important",
+      "Not at all important"
+    ],
+    "numeric_response_types": [
+      "1.0",
+      "2.0",
+      "3.0",
+      "4.0"
+    ],
+    "survey_section": "People, society and politics",
+    "question_type": "value survey",
+    "question_format": "single_select"
+  },
+  {
+    "question": "How much does the political system allow you to have a say?",
+    "column_names": [
+      "Q234A"
+    ],
+    "word_response_types": [
+      "A great deal",
+      "A lot",
+      "Some",
+      "Very little",
+      "Not at all"
+    ],
+    "numeric_response_types": [
+      "1.0",
+      "2.0",
+      "3.0",
+      "4.0",
+      "5.0"
+    ],
+    "survey_section": "People, society and politics",
+    "question_type": "value survey",
+    "question_format": "single_select"
+  },
+  {
+    "question": "Listed below are various types of political systems. Please think about each one as a way of governing this country. For each one, would you say it is a very good, fairly good, fairly bad or very bad way of governing this country?",
+    "sub_questions": [
+      "Having a strong leader who does not have to bother with parliament and elections",
+      "Having experts, not government, make decisions according to what they think is best for the country",
+      "Having the army rule",
+      "Having a democratic political system",
+      "Having a system governed by religious law in which there are no political parties or elections"
+    ],
+    "column_names": [
+      "Q235",
+      "Q236",
+      "Q237",
+      "Q238",
+      "Q239"
+    ],
+    "word_response_types": [
+      "Very good",
+      "Fairly good",
+      "Fairly bad",
+      "Very bad"
+    ],
+    "numeric_response_types": [
+      "1.0",
+      "2.0",
+      "3.0",
+      "4.0"
+    ],
+    "survey_section": "People, society and politics",
+    "question_type": "value survey",
+    "question_format": "matrix_single_select"
+  },
+  {
+    "question": "In political matters, people talk of \"the left\" and \"the right\". How would you place your views on this scale, generally speaking? (1 = Left, 10 = Right)",
+    "column_names": [
+      "Q240"
+    ],
+    "word_response_types": [
+      "1",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6",
+      "7",
+      "8",
+      "9",
+      "10"
+    ],
+    "numeric_response_types": [
+      "1.0",
+      "2.0",
+      "3.0",
+      "4.0",
+      "5.0",
+      "6.0",
+      "7.0",
+      "8.0",
+      "9.0",
+      "10.0"
+    ],
+    "survey_section": "People, society and politics",
+    "question_type": "value survey",
+    "question_format": "rating_scale"
+  },
+  {
+    "question": "Many things are desirable, but not all of them are essential characteristics of democracy. Please tell us, for each of the following things how essential you think it is as a characteristic of democracy? Use this scale where 1 means \"not at all an essential characteristic of democracy\" and 10 means it definitely is \"an essential characteristic of democracy\".",
+    "sub_questions": [
+      "Governments tax the rich and subsidize the poor",
+      "Religious authorities ultimately interpret the laws",
+      "People choose their leaders in free elections",
+      "People receive state aid for unemployment",
+      "The army takes over when government is incompetent",
+      "Civil rights protect people from state oppression",
+      "The state makes people's incomes equal",
+      "People obey their rulers",
+      "Women have the same rights as men"
+    ],
+    "column_names": [
+      "Q241",
+      "Q242",
+      "Q243",
+      "Q244",
+      "Q245",
+      "Q246",
+      "Q247",
+      "Q248",
+      "Q249"
+    ],
+    "word_response_types": [
+      "1",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6",
+      "7",
+      "8",
+      "9",
+      "10"
+    ],
+    "numeric_response_types": [
+      "1.0",
+      "2.0",
+      "3.0",
+      "4.0",
+      "5.0",
+      "6.0",
+      "7.0",
+      "8.0",
+      "9.0",
+      "10.0"
+    ],
+    "survey_section": "People, society and politics",
+    "question_type": "value survey",
+    "question_format": "matrix_single_select"
+  },
+  {
+    "question": "How important is it for you to live in a country that is governed democratically? On this scale where 1 means it is \"not at all important\" and 10 means \"absolutely important\" what position would you choose?",
+    "column_names": [
+      "Q250"
+    ],
+    "word_response_types": [
+      "1",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6",
+      "7",
+      "8",
+      "9",
+      "10"
+    ],
+    "numeric_response_types": [
+      "1.0",
+      "2.0",
+      "3.0",
+      "4.0",
+      "5.0",
+      "6.0",
+      "7.0",
+      "8.0",
+      "9.0",
+      "10.0"
+    ],
+    "survey_section": "People, society and politics",
+    "question_type": "value survey",
+    "question_format": "rating_scale"
+  },
+  {
+    "question": "And how democratically is this country being governed today? Again using a scale from 1 to 10, where 1 means that it is \"not at all democratic\" and 10 means that it is \"completely democratic,\" what position would you choose?",
+    "column_names": [
+      "Q251"
+    ],
+    "word_response_types": [
+      "1",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6",
+      "7",
+      "8",
+      "9",
+      "10"
+    ],
+    "numeric_response_types": [
+      "1.0",
+      "2.0",
+      "3.0",
+      "4.0",
+      "5.0",
+      "6.0",
+      "7.0",
+      "8.0",
+      "9.0",
+      "10.0"
+    ],
+    "survey_section": "People, society and politics",
+    "question_type": "value survey",
+    "question_format": "rating_scale"
+  },
+  {
+    "question": "How satisfied are you with how the political system is functioning in New Zealand these days? On the scale from 1 to 10 below, 1 means not satisfied at all and 10 means completely satisfied.",
+    "column_names": [
+      "Q252"
+    ],
+    "word_response_types": [
+      "1",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6",
+      "7",
+      "8",
+      "9",
+      "10"
+    ],
+    "numeric_response_types": [
+      "1.0",
+      "2.0",
+      "3.0",
+      "4.0",
+      "5.0",
+      "6.0",
+      "7.0",
+      "8.0",
+      "9.0",
+      "10.0"
+    ],
+    "survey_section": "People, society and politics",
+    "question_type": "value survey",
+    "question_format": "rating_scale"
+  },
+  {
+    "question": "How much respect is there for individual human rights nowadays in New Zealand? Do you feel there is:",
+    "column_names": [
+      "Q253"
+    ],
+    "word_response_types": [
+      "A great deal of respect",
+      "Fairly much respect",
+      "Not much respect",
+      "No respect at all"
+    ],
+    "numeric_response_types": [
+      "1.0",
+      "2.0",
+      "3.0",
+      "4.0"
+    ],
+    "survey_section": "People, society and politics",
+    "question_type": "value survey",
+    "question_format": "single_select"
+  },
+  {
+    "question": "How proud are you to be a New Zealander?",
+    "column_names": [
+      "Q254"
+    ],
+    "word_response_types": [
+      "Very proud",
+      "Quite proud",
+      "Not very proud",
+      "Not at all proud",
+      "I am not [nationality]",
+      "Don't know"
+    ],
+    "numeric_response_types": [
+      "1.0",
+      "2.0",
+      "3.0",
+      "4.0",
+      "5.0",
+      "-1.0"
+    ],
+    "survey_section": "People, society and politics",
+    "question_type": "value survey",
+    "question_format": "single_select"
+  },
+  {
+    "question": "People have different views about themselves and how they relate to the world. Please tell us how close you feel to...",
+    "sub_questions": [
+      "Your village, town or city where you live",
+      "Your region of the country where you live",
+      "New Zealand as a whole",
+      "The South Pacific",
+      "The world as a whole"
+    ],
+    "column_names": [
+      "Q255",
+      "Q256",
+      "Q257",
+      "Q258",
+      "Q259"
+    ],
+    "word_response_types": [
+      "Very close",
+      "Close",
+      "Not very close",
+      "Not close at all"
+    ],
+    "numeric_response_types": [
+      "1.0",
+      "2.0",
+      "3.0",
+      "4.0"
+    ],
+    "survey_section": "The community and you",
+    "question_type": "value survey",
+    "question_format": "matrix_single_select"
+  },
+  {
+    "question": "Are you:",
+    "column_names": [
+      "Q260"
+    ],
+    "word_response_types": [
+      "Male",
+      "Female"
+    ],
+    "numeric_response_types": [
+      "1.0",
+      "2.0"
+    ],
+    "survey_section": "Respondent information",
+    "question_type": "respondent information",
+    "question_format": "binary"
+  },
+  {
+    "question": "What year were you born in?",
+    "column_names": [
+      "Q261"
+    ],
+    "word_response_types": [
+      "Free text (year)"
+    ],
+    "numeric_response_types": [
+      "1928.0",
+      "1929.0",
+      "1930.0",
+      "1931.0",
+      "1932.0",
+      "1933.0",
+      "1934.0",
+      "1935.0",
+      "1936.0",
+      "1937.0",
+      "1938.0",
+      "1939.0",
+      "1940.0",
+      "1941.0",
+      "1942.0",
+      "1943.0",
+      "1944.0",
+      "1945.0",
+      "1946.0",
+      "1947.0",
+      "1948.0",
+      "1949.0",
+      "1950.0",
+      "1951.0",
+      "1952.0",
+      "1953.0",
+      "1954.0",
+      "1955.0",
+      "1956.0",
+      "1957.0",
+      "1958.0",
+      "1959.0",
+      "1960.0",
+      "1961.0",
+      "1962.0",
+      "1963.0",
+      "1964.0",
+      "1965.0",
+      "1966.0",
+      "1967.0",
+      "1968.0",
+      "1969.0",
+      "1970.0",
+      "1971.0",
+      "1972.0",
+      "1973.0",
+      "1974.0",
+      "1975.0",
+      "1976.0",
+      "1977.0",
+      "1978.0",
+      "1979.0",
+      "1980.0",
+      "1981.0",
+      "1982.0",
+      "1983.0",
+      "1984.0",
+      "1985.0",
+      "1986.0",
+      "1987.0",
+      "1988.0",
+      "1989.0",
+      "1990.0",
+      "1991.0",
+      "1992.0",
+      "1993.0",
+      "1994.0",
+      "1995.0",
+      "1996.0",
+      "1997.0",
+      "1998.0",
+      "1999.0",
+      "2000.0",
+      "2001.0"
+    ],
+    "survey_section": "Respondent information",
+    "question_type": "respondent information",
+    "question_format": "open_text"
+  },
+  {
+    "question": "Age",
+    "column_names": [
+      "Q262"
+    ],
+    "word_response_types": [
+      "Free text (age)"
+    ],
+    "numeric_response_types": [
+      "18.0",
+      "19.0",
+      "20.0",
+      "21.0",
+      "22.0",
+      "23.0",
+      "24.0",
+      "25.0",
+      "26.0",
+      "27.0",
+      "28.0",
+      "29.0",
+      "30.0",
+      "31.0",
+      "32.0",
+      "33.0",
+      "34.0",
+      "35.0",
+      "36.0",
+      "37.0",
+      "38.0",
+      "39.0",
+      "40.0",
+      "41.0",
+      "42.0",
+      "43.0",
+      "44.0",
+      "45.0",
+      "46.0",
+      "47.0",
+      "48.0",
+      "49.0",
+      "50.0",
+      "51.0",
+      "52.0",
+      "53.0",
+      "54.0",
+      "55.0",
+      "56.0",
+      "57.0",
+      "58.0",
+      "59.0",
+      "60.0",
+      "61.0",
+      "62.0",
+      "63.0",
+      "64.0",
+      "65.0",
+      "66.0",
+      "67.0",
+      "68.0",
+      "69.0",
+      "70.0",
+      "71.0",
+      "72.0",
+      "73.0",
+      "74.0",
+      "75.0",
+      "76.0",
+      "77.0",
+      "78.0",
+      "79.0",
+      "80.0",
+      "81.0",
+      "82.0",
+      "83.0",
+      "84.0",
+      "85.0",
+      "86.0",
+      "87.0",
+      "88.0",
+      "89.0",
+      "90.0",
+      "91.0"
+    ],
+    "survey_section": "Respondent information",
+    "question_type": "respondent information",
+    "question_format": "open_text"
+  },
+  {
+    "question": "Are you and your parents immigrants to New Zealand?",
+    "sub_questions": [
+      "Respondent immigrant",
+      "Mother immigrant",
+      "Father immigrant"
+    ],
+    "column_names": [
+      "Q263",
+      "Q264",
+      "Q265"
+    ],
+    "word_response_types": [
+      "I am born in this country",
+      "I am an immigrant"
+    ],
+    "numeric_response_types": [
+      "1.0",
+      "2.0"
+    ],
+    "survey_section": "Respondent information",
+    "question_type": "respondent information",
+    "question_format": "demographic"
+  },
+  {
+    "question": "Can you please tell us where you and your parents were born?",
+    "sub_questions": [
+      "Respondent",
+      "Mother",
+      "Father"
+    ],
+    "column_names": [
+      "Q266",
+      "Q267",
+      "Q268"
+    ],
+    "word_response_types": [
+      "New Zealand",
+      "United Kingdom",
+      "Other"
+    ],
+    "numeric_response_types": [
+      "554.0",
+      "826.0",
+      "9999.0"
+    ],
+    "survey_section": "Respondent information",
+    "question_type": "respondent information",
+    "question_format": "demographic"
+  },
+  {
+    "question": "Are you a citizen of New Zealand?",
+    "column_names": [
+      "Q269"
+    ],
+    "word_response_types": [
+      "Yes",
+      "No"
+    ],
+    "numeric_response_types": [
+      "1.0",
+      "2.0"
+    ],
+    "survey_section": "Respondent information",
+    "question_type": "respondent information",
+    "question_format": "demographic"
+  },
+  {
+    "question": "Including yourself, how many people – including children – live here regularly as members of this household? (1 to 10 or more)",
+    "column_names": [
+      "Q270"
+    ],
+    "word_response_types": [
+      "1",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6",
+      "7",
+      "8",
+      "9",
+      "10+"
+    ],
+    "numeric_response_types": [
+      "1.0",
+      "2.0",
+      "3.0",
+      "4.0",
+      "5.0",
+      "6.0",
+      "7.0",
+      "8.0",
+      "9.0",
+      "10.0"
+    ],
+    "survey_section": "Respondent information",
+    "question_type": "respondent information",
+    "question_format": "demographic"
+  },
+  {
+    "question": "Do you live with your parents or your parents-in-law?",
+    "column_names": [
+      "Q271"
+    ],
+    "word_response_types": [
+      "No",
+      "Yes, own parent(s)",
+      "Yes, parent(s)-in-law",
+      "Yes, both"
+    ],
+    "numeric_response_types": [
+      "1.0",
+      "2.0",
+      "3.0",
+      "4.0"
+    ],
+    "survey_section": "Respondent information",
+    "question_type": "respondent information",
+    "question_format": "demographic"
+  },
+  {
+    "question": "What language do you normally speak at home?",
+    "column_names": [
+      "Q272"
+    ],
+    "word_response_types": [
+      "English",
+      "Maori",
+      "Other"
+    ],
+    "numeric_response_types": [
+      "1240.0",
+      "2020.0",
+      "2870.0",
+      "2920.0",
+      "9000.0",
+      "9900.0"
+    ],
+    "survey_section": "Respondent information",
+    "question_type": "respondent information",
+    "question_format": "demographic"
+  },
+  {
+    "question": "Which of the following categories describe your ethnic origin?",
+    "column_names": [
+      "Q273"
+    ],
+    "word_response_types": [
+      "Married",
+      "Living together as married",
+      "Divorced",
+      "Separated",
+      "Widowed",
+      "Single"
+    ],
+    "numeric_response_types": [
+      "1.0",
+      "2.0",
+      "3.0",
+      "4.0",
+      "5.0",
+      "6.0"
+    ],
+    "survey_section": "Families",
+    "question_type": "value survey",
+    "question_format": "single_select"
+  },
+  {
+    "question": "Have you had any children? If YES, how many? (0 to 8 or more)",
+    "column_names": [
+      "Q274"
+    ],
+    "word_response_types": [
+      "0",
+      "1",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6",
+      "7",
+      "8+"
+    ],
+    "numeric_response_types": [
+      "0.0",
+      "1.0",
+      "2.0",
+      "3.0",
+      "4.0",
+      "5.0",
+      "6.0",
+      "7.0",
+      "8.0"
+    ],
+    "survey_section": "Families",
+    "question_type": "value survey",
+    "question_format": "rating_scale"
+  },
+  {
+    "question": "Which of these categories describe your employment status? Then please tell us about the employment status of your spouse or partner.",
+    "sub_questions": [
+      "Yourself",
+      "Spouse/Partner"
+    ],
+    "column_names": [
+      "Q279",
+      "Q280"
+    ],
+    "word_response_types": [
+      "Full time",
+      "Part time",
+      "Self employed",
+      "Unemployed",
+      "Homemaker",
+      "Student",
+      "Retired",
+      "Other"
+    ],
+    "numeric_response_types": [
+      "1.0",
+      "2.0",
+      "3.0",
+      "4.0",
+      "5.0",
+      "6.0",
+      "7.0",
+      "8.0"
+    ],
+    "survey_section": "Respondent information",
+    "question_type": "respondent information",
+    "question_format": "demographic"
+  },
+  {
+    "question": "To which occupational group do you belong? If you have more than one job, tell us about the main job. Then please tell us about the occupational group of your spouse/partner, and then your father.",
+    "sub_questions": [
+      "Yourself",
+      "Spouse/Partner",
+      "Father"
+    ],
+    "column_names": [
+      "Q281",
+      "Q282",
+      "Q283"
+    ],
+    "word_response_types": [
+      "Professional/technical",
+      "Higher administrative",
+      "Clerical",
+      "Sales",
+      "Service",
+      "Skilled worker",
+      "Semi-skilled worker",
+      "Unskilled worker",
+      "Farm owner/manager",
+      "Farm worker",
+      "Never had a job"
+    ],
+    "numeric_response_types": [
+      "0.0",
+      "1.0",
+      "2.0",
+      "3.0",
+      "4.0",
+      "5.0",
+      "6.0",
+      "7.0",
+      "8.0",
+      "9.0",
+      "10.0"
+    ],
+    "survey_section": "Respondent information",
+    "question_type": "respondent information",
+    "question_format": "demographic"
+  },
+  {
+    "question": "Are you working for the government or a public institution, for private business or industry, or for a private non-profit organization? If you are not currently working, tell us about your major kind of work in the past!",
+    "column_names": [
+      "Q284"
+    ],
+    "word_response_types": [
+      "Government or public institution",
+      "Private business or industry",
+      "Private non-profit organisation"
+    ],
+    "numeric_response_types": [
+      "1.0",
+      "2.0",
+      "3.0"
+    ],
+    "survey_section": "Respondent information",
+    "question_type": "respondent information",
+    "question_format": "demographic"
+  },
+  {
+    "question": "Are you the chief wage earner in your household?",
+    "column_names": [
+      "Q285"
+    ],
+    "word_response_types": [
+      "No",
+      "Yes"
+    ],
+    "numeric_response_types": [
+      "1.0",
+      "2.0"
+    ],
+    "survey_section": "Respondent information",
+    "question_type": "respondent information",
+    "question_format": "demographic"
+  },
+  {
+    "question": "During the past year, did your family (or you, yourself, if you live independently):",
+    "column_names": [
+      "Q286"
+    ],
+    "word_response_types": [
+      "Save money",
+      "Just get by",
+      "Spent some savings",
+      "Spent savings and borrowed money"
+    ],
+    "numeric_response_types": [
+      "1.0",
+      "2.0",
+      "3.0",
+      "4.0"
+    ],
+    "survey_section": "Respondent information",
+    "question_type": "respondent information",
+    "question_format": "demographic"
+  },
+  {
+    "question": "People sometimes describe themselves as belonging to the working class, the middle class, or the upper or lower class. Would you describe yourself as belonging to the:",
+    "column_names": [
+      "Q287"
+    ],
+    "word_response_types": [
+      "Upper class",
+      "Upper middle class",
+      "Lower middle class",
+      "Working class",
+      "Lower class"
+    ],
+    "numeric_response_types": [
+      "1.0",
+      "2.0",
+      "3.0",
+      "4.0",
+      "5.0"
+    ],
+    "survey_section": "Respondent information",
+    "question_type": "respondent information",
+    "question_format": "demographic"
+  },
+  {
+    "question": "Scale of incomes – On this card is a scale of incomes on which 1 indicates the lowest income group and 10 the highest income group in New Zealand. Please specify the appropriate number, counting all wages, salaries, pensions and other incomes. (1 = Lower step, 10 = Upper step)",
+    "column_names": [
+      "Q288"
+    ],
+    "word_response_types": [
+      "Lower step (1)",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6",
+      "7",
+      "8",
+      "9",
+      "Upper step (10)"
+    ],
+    "numeric_response_types": [
+      "1.0",
+      "2.0",
+      "3.0",
+      "4.0",
+      "5.0",
+      "6.0",
+      "7.0",
+      "8.0",
+      "9.0",
+      "10.0"
+    ],
+    "survey_section": "Respondent information",
+    "question_type": "respondent information",
+    "question_format": "rating_scale"
+  },
+  {
+    "question": "What is your religion?",
+    "column_names": [
+      "Q289"
+    ],
+    "word_response_types": [
+      "No religion",
+      "Catholic",
+      "Other Christian",
+      "Muslim",
+      "Hindu",
+      "Buddhist",
+      "Jew",
+      "Orthodox",
+      "Other"
+    ],
+    "numeric_response_types": [
+      "0.0",
+      "1.0",
+      "3.0",
+      "4.0",
+      "5.0",
+      "6.0",
+      "7.0",
+      "8.0",
+      "9.0"
+    ],
+    "survey_section": "Respondent information",
+    "question_type": "respondent information",
+    "question_format": "single_select"
+  },
+  {
+    "question": "Highest formal education level (ISCED coding)",
+    "sub_questions": [
+      "Respondent",
+      "Spouse/Partner",
+      "Mother",
+      "Father"
+    ],
+    "column_names": [
+      "Q275",
+      "Q276",
+      "Q277",
+      "Q278"
+    ],
+    "word_response_types": [
+      "Early childhood education / No education (ISCED 0)",
+      "Primary education (ISCED 1)",
+      "Lower secondary education (ISCED 2)",
+      "Upper secondary education (ISCED 3)",
+      "Post-secondary non-tertiary education (ISCED 4)",
+      "Short-cycle tertiary education (ISCED 5)",
+      "Bachelor or equivalent (ISCED 6)",
+      "Master or equivalent (ISCED 7)",
+      "Doctoral or equivalent (ISCED 8)"
+    ],
+    "numeric_response_types": [
+      "0.0",
+      "1.0",
+      "2.0",
+      "3.0",
+      "4.0",
+      "5.0",
+      "6.0",
+      "7.0",
+      "8.0"
+    ],
+    "survey_section": "Respondent information",
+    "question_type": "respondent information",
+    "question_format": "demographic"
+  },
+  {
+    "question": "Which one of these categories best describes the highest level of formal education you have had?",
+    "sub_questions": [
+      "Respondent",
+      "Spouse/Partner",
+      "Mother",
+      "Father"
+    ],
+    "column_names": [
+      "Q275A",
+      "Q276A",
+      "Q277A",
+      "Q278A"
+    ],
+    "word_response_types": [
+      "No formal schooling",
+      "Kura kaupapa/primary school (including intermediate)",
+      "Secondary school for up to 3 years",
+      "Secondary school for 4 years or more",
+      "Some university, wananga, polytechnic or other tertiary",
+      "Completed university or polytechnic degree",
+      "Don't know"
+    ],
+    "numeric_response_types": [
+      "1.0",
+      "2.0",
+      "3.0",
+      "4.0",
+      "5.0",
+      "6.0",
+      "-1.0"
+    ],
+    "survey_section": "Respondent information",
+    "question_type": "respondent information",
+    "question_format": "demographic"
+  }
+]
