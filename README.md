@@ -28,3 +28,6 @@ make setup
 
 There are various documents made in the `docs` folder. These are written in LaTeX and can be compiled using `make all` or `make watch FILE=[.tex file name]` to compile a specific file. The output will be in the `docs/output` folder. Each latex file should inherit the `docs/common.tex` file and define its output file name using the `\docname{}` command.
 
+### Code
+
+This project has a fair amount of code. The code is separated into phases and each phase has its own folder. The code is written using [Marimo](https://docs.marimo.io/) to help with reproducibility. In each subdir of code you will find a readme explaining what the code does and how to run it.
