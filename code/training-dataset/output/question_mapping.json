@@ -33,7 +33,8 @@
     ],
     "survey_section": "The community and you",
     "question_type": "value survey",
-    "question_format": "matrix_single_select"
+    "question_format": "matrix_single_select",
+    "id": 1
   },
   {
     "question": "Here is a list of qualities that children can be encouraged to learn at home. Which, if any, do you consider to be especially important?",
@@ -73,7 +74,8 @@
     ],
     "survey_section": "The community and you",
     "question_type": "value survey",
-    "question_format": "matrix_multi_select"
+    "question_format": "matrix_multi_select",
+    "id": 2
   },
   {
     "question": "Here are various groups of people. Could you please tick any that you would not like to have as neighbours?",
@@ -109,7 +111,8 @@
     ],
     "survey_section": "The community and you",
     "question_type": "value survey",
-    "question_format": "matrix_multi_select"
+    "question_format": "matrix_multi_select",
+    "id": 3
   },
   {
     "question": "People talk about the changing roles of men and women today. For each of the following statements, please indicate how much you agree or disagree.",
@@ -145,7 +148,8 @@
     ],
     "survey_section": "The community and you",
     "question_type": "value survey",
-    "question_format": "matrix_likert"
+    "question_format": "matrix_likert",
+    "id": 4
   },
   {
     "question": "Do you agree or disagree with the following statements?",
@@ -177,7 +181,8 @@
     ],
     "survey_section": "People and work",
     "question_type": "value survey",
-    "question_format": "matrix_likert"
+    "question_format": "matrix_likert",
+    "id": 5
   },
   {
     "question": "How much do you agree or disagree with the following statements?",
@@ -215,7 +220,8 @@
     ],
     "survey_section": "The community and you",
     "question_type": "value survey",
-    "question_format": "matrix_likert"
+    "question_format": "matrix_likert",
+    "id": 6
   },
   {
     "question": "Listed below are three basic kinds of attitudes concerning the society we live in. Please choose the one that best describes your own opinion.",
@@ -234,7 +240,8 @@
     ],
     "survey_section": "People, society and politics",
     "question_type": "value survey",
-    "question_format": "single_select"
+    "question_format": "single_select",
+    "id": 7
   },
   {
     "question": "Listed below are various changes in our way of life that might take place in the near future. Please indicate whether you think each would be a good thing, a bad thing, or don't you mind?",
@@ -260,7 +267,8 @@
     ],
     "survey_section": "The community and you",
     "question_type": "value survey",
-    "question_format": "matrix_single_select"
+    "question_format": "matrix_single_select",
+    "id": 8
   },
   {
     "question": "Taking all things together, would you say you are:",
@@ -283,7 +291,8 @@
     ],
     "survey_section": "The community and you",
     "question_type": "value survey",
-    "question_format": "single_select"
+    "question_format": "single_select",
+    "id": 9
   },
   {
     "question": "All in all, how would you describe your state of health these days? Would you say it is:",
@@ -306,7 +315,8 @@
     ],
     "survey_section": "The community and you",
     "question_type": "value survey",
-    "question_format": "single_select"
+    "question_format": "single_select",
+    "id": 10
   },
   {
     "question": "Some people feel they have completely free choice and control over their lives, while other people feel that what they do has no real effect on what happens to them. Please use this scale where 1 means \"none at all\" and 10 means \"a great deal\" to indicate how much freedom of choice and control you feel you have over the way your life turns out.",
@@ -341,7 +351,8 @@
     ],
     "survey_section": "The community and you",
     "question_type": "value survey",
-    "question_format": "rating_scale"
+    "question_format": "rating_scale",
+    "id": 11
   },
   {
     "question": "All things considered, how satisfied are you with your life as a whole these days? Please use this scale where 1 means you are \"completely dissatisfied\" and 10 means you are \"completely satisfied\".",
@@ -376,7 +387,8 @@
     ],
     "survey_section": "The community and you",
     "question_type": "value survey",
-    "question_format": "rating_scale"
+    "question_format": "rating_scale",
+    "id": 12
   },
   {
     "question": "How satisfied are you with the financial situation of your household? Please use this scale where 1 means \"completely dissatisfied\" and 10 means \"completely satisfied\".",
@@ -411,7 +423,8 @@
     ],
     "survey_section": "People and work",
     "question_type": "value survey",
-    "question_format": "rating_scale"
+    "question_format": "rating_scale",
+    "id": 13
   },
   {
     "question": "In the last 12 months, how often have you or your family:",
@@ -443,7 +456,8 @@
     ],
     "survey_section": "The community and you",
     "question_type": "value survey",
-    "question_format": "matrix_single_select"
+    "question_format": "matrix_single_select",
+    "id": 14
   },
   {
     "question": "Comparing your standard of living with your parents' standard of living when they were about your age, would you say that you are better off, worse off, or about the same?",
@@ -462,7 +476,8 @@
     ],
     "survey_section": "The community and you",
     "question_type": "value survey",
-    "question_format": "single_select"
+    "question_format": "single_select",
+    "id": 15
   },
   {
     "question": "Generally speaking, would you say that most people can be trusted or that you need to be very careful in dealing with people?",
@@ -481,7 +496,8 @@
     ],
     "survey_section": "The community and you",
     "question_type": "value survey",
-    "question_format": "single_select"
+    "question_format": "single_select",
+    "id": 16
   },
   {
     "question": "Here are some questions about how much you trust people from various groups. Please indicate how much you trust...",
@@ -517,7 +533,8 @@
     ],
     "survey_section": "The community and you",
     "question_type": "value survey",
-    "question_format": "matrix_single_select"
+    "question_format": "matrix_single_select",
+    "id": 17
   },
   {
     "question": "Here are the names of a number of organisations. For each one, please indicate how much confidence you have in them: is it a great deal of confidence, quite a lot of confidence, not very much confidence or none at all?",
@@ -589,7 +606,8 @@
     ],
     "survey_section": "People, society and politics",
     "question_type": "value survey",
-    "question_format": "matrix_single_select"
+    "question_format": "matrix_single_select",
+    "id": 18
   },
   {
     "question": "People sometimes say that international organisations should prioritise improving people's lives, even if this may imply that decisions are not made democratically. What do you think international organisations should prioritise, being effective or being democratic? If your views are somewhat mixed, choose the appropriate number in between. (1 = Being effective, 10 = Being democratic)",
@@ -622,7 +640,8 @@
     ],
     "survey_section": "People, society and politics",
     "question_type": "value survey",
-    "question_format": "rating_scale"
+    "question_format": "rating_scale",
+    "id": 19
   },
   {
     "question": "Five countries have permanent seats on the Security Council of the United Nations. Which one of the following is not a member?",
@@ -646,7 +665,8 @@
       "3.0",
       "-1.0"
     ],
-    "question_format": "single_select"
+    "question_format": "single_select",
+    "id": 20
   },
   {
     "question": "Where are the headquarters of the International Monetary Fund (IMF) located?",
@@ -670,7 +690,8 @@
       "3.0",
       "-1.0"
     ],
-    "question_format": "single_select"
+    "question_format": "single_select",
+    "id": 21
   },
   {
     "question": "Which one of the following problems does the organisation, Amnesty International, deal with?",
@@ -694,7 +715,8 @@
       "3.0",
       "-1.0"
     ],
-    "question_format": "single_select"
+    "question_format": "single_select",
+    "id": 22
   },
   {
     "question": "Listed below are different types of voluntary organisations. For each, are you an active member, an inactive member, or don't you belong?",
@@ -738,7 +760,8 @@
     ],
     "survey_section": "The community and you",
     "question_type": "value survey",
-    "question_format": "matrix_single_select"
+    "question_format": "matrix_single_select",
+    "id": 23
   },
   {
     "question": "How would you place your views on this scale? 1 means you agree completely with the statement on the left; 10 means you agree completely with the statement on the right.",
@@ -782,7 +805,8 @@
     ],
     "survey_section": "People and work",
     "question_type": "value survey",
-    "question_format": "matrix_single_select"
+    "question_format": "matrix_single_select",
+    "id": 24
   },
   {
     "question": "Here are two statements people sometimes make when discussing the environment and economic growth. Which one comes closest to your own point of view?",
@@ -801,7 +825,8 @@
     ],
     "survey_section": "The environment",
     "question_type": "value survey",
-    "question_format": "single_select"
+    "question_format": "single_select",
+    "id": 25
   },
   {
     "question": "How would you place your views on corruption in New Zealand on a 10-point scale where 1 means \"there is no corruption in New Zealand\" and 10 means \"there is abundant corruption in New Zealand\"?",
@@ -836,7 +861,8 @@
     ],
     "survey_section": "People, society and politics",
     "question_type": "value survey",
-    "question_format": "rating_scale"
+    "question_format": "rating_scale",
+    "id": 26
   },
   {
     "question": "Among the following groups of people, how many do you believe are involved in corruption?",
@@ -870,7 +896,8 @@
     ],
     "survey_section": "People, society and politics",
     "question_type": "value survey",
-    "question_format": "matrix_single_select"
+    "question_format": "matrix_single_select",
+    "id": 27
   },
   {
     "question": "How often do you think ordinary people like yourself or people from your neighbourhood have to pay a bribe, give a gift or do a favour to these people in order to get the services needed? Does it happen never, rarely, frequently or always?",
@@ -891,7 +918,8 @@
     ],
     "survey_section": "People, society and politics",
     "question_type": "value survey",
-    "question_format": "single_select"
+    "question_format": "single_select",
+    "id": 28
   },
   {
     "question": "How strongly do you agree or disagree with the following statement: \"On the whole, women are less corrupt than men\"?",
@@ -914,7 +942,8 @@
     ],
     "survey_section": "People, society and politics",
     "question_type": "value survey",
-    "question_format": "single_select"
+    "question_format": "single_select",
+    "id": 29
   },
   {
     "question": "How high is the risk in New Zealand of being held accountable for giving or receiving a bribe, gift or favour in return for public service? Please indicate your opinion on the 10 point scale below, where 1 means \"no risk at all\" and 10 means \"very high risk\".",
@@ -947,7 +976,8 @@
     ],
     "survey_section": "People, society and politics",
     "question_type": "value survey",
-    "question_format": "rating_scale"
+    "question_format": "rating_scale",
+    "id": 30
   },
   {
     "question": "How would you evaluate the impact of immigrants on the development of New Zealand?",
@@ -970,7 +1000,8 @@
     ],
     "survey_section": "The community and you",
     "question_type": "value survey",
-    "question_format": "single_select"
+    "question_format": "single_select",
+    "id": 31
   },
   {
     "question": "What have been the effects of immigration on the development of New Zealand? For each of the following statements, please indicate whether you agree or disagree with it.",
@@ -1006,7 +1037,8 @@
     ],
     "survey_section": "The community and you",
     "question_type": "value survey",
-    "question_format": "matrix_likert"
+    "question_format": "matrix_likert",
+    "id": 32
   },
   {
     "question": "How about people from other countries coming here to work. Which one of the following do you think the government should do?",
@@ -1029,7 +1061,8 @@
     ],
     "survey_section": "The community and you",
     "question_type": "value survey",
-    "question_format": "single_select"
+    "question_format": "single_select",
+    "id": 33
   },
   {
     "question": "Please tell us how secure you feel these days in your neighbourhood?",
@@ -1052,7 +1085,8 @@
     ],
     "survey_section": "The community and you",
     "question_type": "value survey",
-    "question_format": "single_select"
+    "question_format": "single_select",
+    "id": 34
   },
   {
     "question": "How frequently do the following things occur in your neighbourhood?",
@@ -1090,7 +1124,8 @@
     ],
     "survey_section": "The community and you",
     "question_type": "value survey",
-    "question_format": "matrix_single_select"
+    "question_format": "matrix_single_select",
+    "id": 35
   },
   {
     "question": "Which of the following things have you done for reasons of security?",
@@ -1114,7 +1149,8 @@
     ],
     "survey_section": "The community and you",
     "question_type": "value survey",
-    "question_format": "matrix_binary"
+    "question_format": "matrix_binary",
+    "id": 36
   },
   {
     "question": "Have you or your family been the victim of a crime during the past year?",
@@ -1142,7 +1178,8 @@
     ],
     "survey_section": "The community and you",
     "question_type": "value survey",
-    "question_format": "matrix_single_select"
+    "question_format": "matrix_single_select",
+    "id": 37
   },
   {
     "question": "Were you or your family a victim of a crime during the past year?",
@@ -1164,7 +1201,8 @@
     ],
     "survey_section": "The community and you",
     "question_type": "value survey",
-    "question_format": "matrix_binary"
+    "question_format": "matrix_binary",
+    "id": 38
   },
   {
     "question": "To what degree are you worried about the following situations?",
@@ -1194,7 +1232,8 @@
     ],
     "survey_section": "The community and you",
     "question_type": "value survey",
-    "question_format": "matrix_single_select"
+    "question_format": "matrix_single_select",
+    "id": 39
   },
   {
     "question": "Most people consider both freedom and equality to be important, but if you had to choose between them, which one would you consider most important?",
@@ -1213,7 +1252,8 @@
     ],
     "survey_section": "People, society and politics",
     "question_type": "value survey",
-    "question_format": "single_select"
+    "question_format": "single_select",
+    "id": 40
   },
   {
     "question": "Most people consider both freedom and security to be important, but if you had to choose between them, which one would you consider most important?",
@@ -1232,7 +1272,8 @@
     ],
     "survey_section": "People, society and politics",
     "question_type": "value survey",
-    "question_format": "single_select"
+    "question_format": "single_select",
+    "id": 41
   },
   {
     "question": "Of course, we all hope there will not be another war, but if it were to come to that, would you be willing to fight for your country?",
@@ -1251,7 +1292,8 @@
     ],
     "survey_section": "People, society and politics",
     "question_type": "value survey",
-    "question_format": "single_select"
+    "question_format": "single_select",
+    "id": 42
   },
   {
     "question": "People sometimes talk about what the aims of this country should be for the next ten years. Listed below are some of the goals which different people would give top priority. Would you please say which one of these you, yourself, consider the most important? And which would be the next most important?",
@@ -1273,7 +1315,8 @@
     ],
     "survey_section": "People, society and politics",
     "question_type": "value survey",
-    "question_format": "ranking"
+    "question_format": "ranking",
+    "id": 43
   },
   {
     "question": "If you had to choose, which one of the things on this card would you say is most important? And which would be the next most important?",
@@ -1295,7 +1338,8 @@
     ],
     "survey_section": "People, society and politics",
     "question_type": "value survey",
-    "question_format": "ranking"
+    "question_format": "ranking",
+    "id": 44
   },
   {
     "question": "Here is another list. In your opinion, which one of these is most important? And which would be the next most important?",
@@ -1317,7 +1361,8 @@
     ],
     "survey_section": "People, society and politics",
     "question_type": "value survey",
-    "question_format": "ranking"
+    "question_format": "ranking",
+    "id": 45
   },
   {
     "question": "Here are some statements about science and technology. How much do you agree or disagree with each of these statements? For these questions, a 1 means that you \"completely disagree\" and a 10 means that you \"completely agree.\"",
@@ -1363,7 +1408,8 @@
     ],
     "survey_section": "Science and technology",
     "question_type": "value survey",
-    "question_format": "matrix_single_select"
+    "question_format": "matrix_single_select",
+    "id": 46
   },
   {
     "question": "How important is God in your life? Please use this scale to indicate your strength of belief: 1 means not at all important and 10 means very important.",
@@ -1396,7 +1442,8 @@
     ],
     "survey_section": "Religion and morality",
     "question_type": "value survey",
-    "question_format": "rating_scale"
+    "question_format": "rating_scale",
+    "id": 47
   },
   {
     "question": "Which, if any, of the following do you believe in?",
@@ -1422,7 +1469,8 @@
     ],
     "survey_section": "Religion and morality",
     "question_type": "value survey",
-    "question_format": "matrix_binary"
+    "question_format": "matrix_binary",
+    "id": 48
   },
   {
     "question": "How much do you agree or disagree with the following statements?",
@@ -1450,7 +1498,8 @@
     ],
     "survey_section": "Religion and morality",
     "question_type": "value survey",
-    "question_format": "matrix_likert"
+    "question_format": "matrix_likert",
+    "id": 49
   },
   {
     "question": "Apart from weddings, funerals and christenings, about how often do you attend religious services these days?",
@@ -1477,7 +1526,8 @@
     ],
     "survey_section": "Religion and morality",
     "question_type": "value survey",
-    "question_format": "single_select"
+    "question_format": "single_select",
+    "id": 50
   },
   {
     "question": "Apart from weddings and funerals, about how often do you pray?",
@@ -1506,7 +1556,8 @@
     ],
     "survey_section": "Religion and morality",
     "question_type": "value survey",
-    "question_format": "single_select"
+    "question_format": "single_select",
+    "id": 51
   },
   {
     "question": "Independently of whether you go to religious services or not, would you say you are:",
@@ -1525,7 +1576,8 @@
     ],
     "survey_section": "Religion and morality",
     "question_type": "value survey",
-    "question_format": "single_select"
+    "question_format": "single_select",
+    "id": 52
   },
   {
     "question": "Meaning of religion: To follow religious norms and ceremonies vs To do good to other people",
@@ -1542,7 +1594,8 @@
     ],
     "survey_section": "Religion and morality",
     "question_type": "value survey",
-    "question_format": "single_select"
+    "question_format": "single_select",
+    "id": 53
   },
   {
     "question": "Meaning of religion: To make sense of life after death vs To make sense of life in this world",
@@ -1559,7 +1612,8 @@
     ],
     "survey_section": "Religion and morality",
     "question_type": "value survey",
-    "question_format": "single_select"
+    "question_format": "single_select",
+    "id": 54
   },
   {
     "question": "How much do you agree or disagree with the statement that nowadays one often has trouble deciding which moral rules are the right ones to follow? (1 = Completely agree, 10 = Completely disagree)",
@@ -1592,7 +1646,8 @@
     ],
     "survey_section": "Religion and morality",
     "question_type": "value survey",
-    "question_format": "rating_scale"
+    "question_format": "rating_scale",
+    "id": 55
   },
   {
     "question": "Please indicate for each of the following statements whether you think it can always be justified, never be justified, or something in between. (1 = Never justifiable, 10 = Always justifiable)",
@@ -1665,7 +1720,8 @@
     ],
     "survey_section": "Religion and morality",
     "question_type": "value survey",
-    "question_format": "matrix_single_select"
+    "question_format": "matrix_single_select",
+    "id": 56
   },
   {
     "question": "Do you think that the New Zealand Government should or should not have the right to do each of the following?",
@@ -1693,7 +1749,8 @@
     ],
     "survey_section": "People, society and politics",
     "question_type": "value survey",
-    "question_format": "matrix_single_select"
+    "question_format": "matrix_single_select",
+    "id": 57
   },
   {
     "question": "How interested would you say you are in politics?",
@@ -1714,7 +1771,8 @@
     ],
     "survey_section": "People, society and politics",
     "question_type": "value survey",
-    "question_format": "single_select"
+    "question_format": "single_select",
+    "id": 58
   },
   {
     "question": "When you get together with friends, would you say you discuss political matters frequently, occasionally or never?",
@@ -1733,7 +1791,8 @@
     ],
     "survey_section": "People, society and politics",
     "question_type": "value survey",
-    "question_format": "single_select"
+    "question_format": "single_select",
+    "id": 59
   },
   {
     "question": "How often do you use each of the following information sources?",
@@ -1773,7 +1832,8 @@
     ],
     "survey_section": "People, society and politics",
     "question_type": "value survey",
-    "question_format": "matrix_single_select"
+    "question_format": "matrix_single_select",
+    "id": 60
   },
   {
     "question": "Here are some different forms of political action that people can take. For each one, please indicate whether you have actually done any of these things, whether you might do it or would never, under any circumstances, do it.",
@@ -1801,7 +1861,8 @@
     ],
     "survey_section": "People, society and politics",
     "question_type": "value survey",
-    "question_format": "matrix_single_select"
+    "question_format": "matrix_single_select",
+    "id": 61
   },
   {
     "question": "For each social activism action, have you done it, might do it, or would never do it?",
@@ -1829,7 +1890,8 @@
     ],
     "survey_section": "People, society and politics",
     "question_type": "value survey",
-    "question_format": "matrix_single_select"
+    "question_format": "matrix_single_select",
+    "id": 62
   },
   {
     "question": "Listed below are some other forms of political action people can take using internet and social media tools like Facebook, Twitter, etc. For each one please indicate whether you have done any of these things, whether you might do it, would never under any circumstances do it.",
@@ -1857,7 +1919,8 @@
     ],
     "survey_section": "People, society and politics",
     "question_type": "value survey",
-    "question_format": "matrix_single_select"
+    "question_format": "matrix_single_select",
+    "id": 63
   },
   {
     "question": "When elections take place, do you always vote, usually vote, or never vote? Please tell us separately how often you vote at a local level, and at the national level.",
@@ -1881,7 +1944,8 @@
     ],
     "survey_section": "People, society and politics",
     "question_type": "value survey",
-    "question_format": "matrix_single_select"
+    "question_format": "matrix_single_select",
+    "id": 64
   },
   {
     "question": "If there were a national election tomorrow which party would you vote for? And which Party would be your second choice?",
@@ -1914,7 +1978,8 @@
     ],
     "survey_section": "People, society and politics",
     "question_type": "value survey",
-    "question_format": "single_select"
+    "question_format": "single_select",
+    "id": 65
   },
   {
     "question": "In your view how often do each of the following things occur in New Zealand's elections?",
@@ -1956,7 +2021,8 @@
     ],
     "survey_section": "People, society and politics",
     "question_type": "value survey",
-    "question_format": "matrix_single_select"
+    "question_format": "matrix_single_select",
+    "id": 66
   },
   {
     "question": "Some people think that having honest elections makes a lot of difference in their lives; other people think that it does not matter much. How important would you say is having honest elections for you?",
@@ -1977,7 +2043,8 @@
     ],
     "survey_section": "People, society and politics",
     "question_type": "value survey",
-    "question_format": "single_select"
+    "question_format": "single_select",
+    "id": 67
   },
   {
     "question": "How much does the political system allow you to have a say?",
@@ -2000,7 +2067,8 @@
     ],
     "survey_section": "People, society and politics",
     "question_type": "value survey",
-    "question_format": "single_select"
+    "question_format": "single_select",
+    "id": 68
   },
   {
     "question": "Listed below are various types of political systems. Please think about each one as a way of governing this country. For each one, would you say it is a very good, fairly good, fairly bad or very bad way of governing this country?",
@@ -2032,7 +2100,8 @@
     ],
     "survey_section": "People, society and politics",
     "question_type": "value survey",
-    "question_format": "matrix_single_select"
+    "question_format": "matrix_single_select",
+    "id": 69
   },
   {
     "question": "In political matters, people talk of \"the left\" and \"the right\". How would you place your views on this scale, generally speaking? (1 = Left, 10 = Right)",
@@ -2065,7 +2134,8 @@
     ],
     "survey_section": "People, society and politics",
     "question_type": "value survey",
-    "question_format": "rating_scale"
+    "question_format": "rating_scale",
+    "id": 70
   },
   {
     "question": "Many things are desirable, but not all of them are essential characteristics of democracy. Please tell us, for each of the following things how essential you think it is as a characteristic of democracy? Use this scale where 1 means \"not at all an essential characteristic of democracy\" and 10 means it definitely is \"an essential characteristic of democracy\".",
@@ -2117,7 +2187,8 @@
     ],
     "survey_section": "People, society and politics",
     "question_type": "value survey",
-    "question_format": "matrix_single_select"
+    "question_format": "matrix_single_select",
+    "id": 71
   },
   {
     "question": "How important is it for you to live in a country that is governed democratically? On this scale where 1 means it is \"not at all important\" and 10 means \"absolutely important\" what position would you choose?",
@@ -2150,7 +2221,8 @@
     ],
     "survey_section": "People, society and politics",
     "question_type": "value survey",
-    "question_format": "rating_scale"
+    "question_format": "rating_scale",
+    "id": 72
   },
   {
     "question": "And how democratically is this country being governed today? Again using a scale from 1 to 10, where 1 means that it is \"not at all democratic\" and 10 means that it is \"completely democratic,\" what position would you choose?",
@@ -2183,7 +2255,8 @@
     ],
     "survey_section": "People, society and politics",
     "question_type": "value survey",
-    "question_format": "rating_scale"
+    "question_format": "rating_scale",
+    "id": 73
   },
   {
     "question": "How satisfied are you with how the political system is functioning in New Zealand these days? On the scale from 1 to 10 below, 1 means not satisfied at all and 10 means completely satisfied.",
@@ -2216,7 +2289,8 @@
     ],
     "survey_section": "People, society and politics",
     "question_type": "value survey",
-    "question_format": "rating_scale"
+    "question_format": "rating_scale",
+    "id": 74
   },
   {
     "question": "How much respect is there for individual human rights nowadays in New Zealand? Do you feel there is:",
@@ -2237,7 +2311,8 @@
     ],
     "survey_section": "People, society and politics",
     "question_type": "value survey",
-    "question_format": "single_select"
+    "question_format": "single_select",
+    "id": 75
   },
   {
     "question": "How proud are you to be a New Zealander?",
@@ -2262,7 +2337,8 @@
     ],
     "survey_section": "People, society and politics",
     "question_type": "value survey",
-    "question_format": "single_select"
+    "question_format": "single_select",
+    "id": 76
   },
   {
     "question": "People have different views about themselves and how they relate to the world. Please tell us how close you feel to...",
@@ -2294,7 +2370,8 @@
     ],
     "survey_section": "The community and you",
     "question_type": "value survey",
-    "question_format": "matrix_single_select"
+    "question_format": "matrix_single_select",
+    "id": 77
   },
   {
     "question": "Are you:",
@@ -2311,7 +2388,8 @@
     ],
     "survey_section": "Respondent information",
     "question_type": "respondent information",
-    "question_format": "binary"
+    "question_format": "binary",
+    "id": 78
   },
   {
     "question": "What year were you born in?",
@@ -2399,7 +2477,8 @@
     ],
     "survey_section": "Respondent information",
     "question_type": "respondent information",
-    "question_format": "open_text"
+    "question_format": "open_text",
+    "id": 79
   },
   {
     "question": "Age",
@@ -2487,7 +2566,8 @@
     ],
     "survey_section": "Respondent information",
     "question_type": "respondent information",
-    "question_format": "open_text"
+    "question_format": "open_text",
+    "id": 80
   },
   {
     "question": "Are you and your parents immigrants to New Zealand?",
@@ -2511,7 +2591,8 @@
     ],
     "survey_section": "Respondent information",
     "question_type": "respondent information",
-    "question_format": "demographic"
+    "question_format": "demographic",
+    "id": 81
   },
   {
     "question": "Can you please tell us where you and your parents were born?",
@@ -2537,7 +2618,8 @@
     ],
     "survey_section": "Respondent information",
     "question_type": "respondent information",
-    "question_format": "demographic"
+    "question_format": "demographic",
+    "id": 82
   },
   {
     "question": "Are you a citizen of New Zealand?",
@@ -2554,7 +2636,8 @@
     ],
     "survey_section": "Respondent information",
     "question_type": "respondent information",
-    "question_format": "demographic"
+    "question_format": "demographic",
+    "id": 83
   },
   {
     "question": "Including yourself, how many people – including children – live here regularly as members of this household? (1 to 10 or more)",
@@ -2587,7 +2670,8 @@
     ],
     "survey_section": "Respondent information",
     "question_type": "respondent information",
-    "question_format": "demographic"
+    "question_format": "demographic",
+    "id": 84
   },
   {
     "question": "Do you live with your parents or your parents-in-law?",
@@ -2608,7 +2692,8 @@
     ],
     "survey_section": "Respondent information",
     "question_type": "respondent information",
-    "question_format": "demographic"
+    "question_format": "demographic",
+    "id": 85
   },
   {
     "question": "What language do you normally speak at home?",
@@ -2630,7 +2715,8 @@
     ],
     "survey_section": "Respondent information",
     "question_type": "respondent information",
-    "question_format": "demographic"
+    "question_format": "demographic",
+    "id": 86
   },
   {
     "question": "Which of the following categories describe your ethnic origin?",
@@ -2655,7 +2741,8 @@
     ],
     "survey_section": "Families",
     "question_type": "value survey",
-    "question_format": "single_select"
+    "question_format": "single_select",
+    "id": 87
   },
   {
     "question": "Have you had any children? If YES, how many? (0 to 8 or more)",
@@ -2686,7 +2773,8 @@
     ],
     "survey_section": "Families",
     "question_type": "value survey",
-    "question_format": "rating_scale"
+    "question_format": "rating_scale",
+    "id": 88
   },
   {
     "question": "Which of these categories describe your employment status? Then please tell us about the employment status of your spouse or partner.",
@@ -2720,7 +2808,8 @@
     ],
     "survey_section": "Respondent information",
     "question_type": "respondent information",
-    "question_format": "demographic"
+    "question_format": "demographic",
+    "id": 89
   },
   {
     "question": "To which occupational group do you belong? If you have more than one job, tell us about the main job. Then please tell us about the occupational group of your spouse/partner, and then your father.",
@@ -2762,7 +2851,8 @@
     ],
     "survey_section": "Respondent information",
     "question_type": "respondent information",
-    "question_format": "demographic"
+    "question_format": "demographic",
+    "id": 90
   },
   {
     "question": "Are you working for the government or a public institution, for private business or industry, or for a private non-profit organization? If you are not currently working, tell us about your major kind of work in the past!",
@@ -2781,7 +2871,8 @@
     ],
     "survey_section": "Respondent information",
     "question_type": "respondent information",
-    "question_format": "demographic"
+    "question_format": "demographic",
+    "id": 91
   },
   {
     "question": "Are you the chief wage earner in your household?",
@@ -2798,7 +2889,8 @@
     ],
     "survey_section": "Respondent information",
     "question_type": "respondent information",
-    "question_format": "demographic"
+    "question_format": "demographic",
+    "id": 92
   },
   {
     "question": "During the past year, did your family (or you, yourself, if you live independently):",
@@ -2819,7 +2911,8 @@
     ],
     "survey_section": "Respondent information",
     "question_type": "respondent information",
-    "question_format": "demographic"
+    "question_format": "demographic",
+    "id": 93
   },
   {
     "question": "People sometimes describe themselves as belonging to the working class, the middle class, or the upper or lower class. Would you describe yourself as belonging to the:",
@@ -2842,7 +2935,8 @@
     ],
     "survey_section": "Respondent information",
     "question_type": "respondent information",
-    "question_format": "demographic"
+    "question_format": "demographic",
+    "id": 94
   },
   {
     "question": "Scale of incomes – On this card is a scale of incomes on which 1 indicates the lowest income group and 10 the highest income group in New Zealand. Please specify the appropriate number, counting all wages, salaries, pensions and other incomes. (1 = Lower step, 10 = Upper step)",
@@ -2875,7 +2969,8 @@
     ],
     "survey_section": "Respondent information",
     "question_type": "respondent information",
-    "question_format": "rating_scale"
+    "question_format": "rating_scale",
+    "id": 95
   },
   {
     "question": "What is your religion?",
@@ -2906,7 +3001,8 @@
     ],
     "survey_section": "Respondent information",
     "question_type": "respondent information",
-    "question_format": "single_select"
+    "question_format": "single_select",
+    "id": 96
   },
   {
     "question": "Highest formal education level (ISCED coding)",
@@ -2946,7 +3042,8 @@
     ],
     "survey_section": "Respondent information",
     "question_type": "respondent information",
-    "question_format": "demographic"
+    "question_format": "demographic",
+    "id": 97
   },
   {
     "question": "Which one of these categories best describes the highest level of formal education you have had?",
@@ -2982,6 +3079,7 @@
     ],
     "survey_section": "Respondent information",
     "question_type": "respondent information",
-    "question_format": "demographic"
+    "question_format": "demographic",
+    "id": 98
   }
 ]

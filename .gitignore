@@ -4,3 +4,4 @@
 workbench/**
 
 **/__marimo__/
+**/__pycache__/

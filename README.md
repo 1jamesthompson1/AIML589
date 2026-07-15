@@ -31,3 +31,17 @@ There are various documents made in the `docs` folder. These are written in LaTe
 ### Code
 
 This project has a fair amount of code. The code is separated into phases and each phase has its own folder. The code is written using [Marimo](https://docs.marimo.io/) to help with reproducibility. In each subdir of code you will find a readme explaining what the code does and how to run it.
+
+## Usage of AI models
+
+AI models are used in this project to help with the research. It is generally used as a research assistant and is used in a few areas:
+
+- A code assistant to help with code generation and debugging.
+- A devops assistant to help with setting up the project and managing the repo.
+- A literature review assistant to help with finding relevant papers.
+
+To do these jobs LLM are used in both the [Opencode](https://opencode.net/) and online chatbot interfaces (i.e ChatGPT).
+
+All the work remains fully under the control of the myself. With complete understanding of the code and the results. 
+
+For some particularly relevant conversations I will provide a link of the chat logs.
