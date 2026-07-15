@@ -1,5 +1,5 @@
 LATEXMK := latexmk
-OPTS := -pdf -f -interaction=nonstopmode
+OPTS := -pdf -interaction=nonstopmode
 
 TEX_DIR := docs
 SRV_DIR := survey
