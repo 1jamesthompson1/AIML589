@@ -1,0 +1,7 @@
+**/WVS*.csv
+# Ignored due to license restrictions. Original data can be downloaded from:
+# https://www.worldvaluessurvey.org/WVSDocumentationWV7.jsp
+
+**/wvs_value_survey.csv
+# Ignored due to license restrictions. I.e you can't redistribute the data.
+# This file is generated from the original WVS data with the wrangle_response_data.py script.
