@@ -1,0 +1,297 @@
+\documentclass[11pt, a4paper]{article}
+
+\input{../docs/common}
+
+\usepackage[left=2cm, right=2cm, top=2cm, bottom=2cm]{geometry}
+\usepackage{xcolor}
+\usepackage{colortbl}
+\usepackage{booktabs}
+\usepackage{enumitem}
+\usepackage{array}
+
+\docname{survey-mockup}
+
+\definecolor{sectionblue}{HTML}{1A5276}
+\definecolor{questionbg}{HTML}{F0F8FF}
+\definecolor{summarybg}{HTML}{FFFDE7}
+\definecolor{disclaimerbg}{HTML}{FFEBEE}
+
+\author{Te Herenga Waka --- Victoria University of Wellington}
+\date{\today}
+
+\newcommand{\likertseven}{%
+  \medskip\noindent
+  \footnotesize
+  \begin{tabular}{p{1.8cm}c|c|c|c|c|p{1.8cm}}
+    \textbf{Strongly} & & & & & & \textbf{Strongly} \\
+    \textbf{Disagree} & \textbf{Disagree} & \textbf{Somewhat Disagree} & \textbf{Neutral} & \textbf{Somewhat Agree} & \textbf{Agree} & \textbf{Agree} \\
+    \textbf{1} & \textbf{2} & \textbf{3} & \textbf{4} & \textbf{5} & \textbf{6} & \textbf{7} \\
+    $\square$ & $\square$ & $\square$ & $\square$ & $\square$ & $\square$ & $\square$
+  \end{tabular}
+  \normalsize\medskip
+}
+
+\newcommand{\sectionheader}[1]{%
+  \bigskip
+  \noindent\textcolor{sectionblue}{\rule{\linewidth}{0.5pt}}\par
+  \noindent\textbf{\large\textcolor{sectionblue}{#1}}\par
+  \noindent\textcolor{sectionblue}{\rule{\linewidth}{0.5pt}}%
+  \bigskip
+}
+
+\newcommand{\questionbox}[2]{%
+  \noindent\colorbox{questionbg}{%
+    \begin{minipage}{\dimexpr\textwidth-2\fboxsep\relax}
+      \textbf{Q#1:} #2
+    \end{minipage}}%
+  \bigskip
+}
+
+\newcommand{\fiveresponse}{%
+  \noindent
+  \footnotesize
+  \begin{tabular}{p{2cm}c@{\hspace{1em}}p{2cm}c@{\hspace{1em}}p{2cm}c@{\hspace{1em}}p{2cm}c@{\hspace{1em}}p{2cm}c}
+    \textbf{Very} & $\square$ &
+    \textbf{Rather} & $\square$ &
+    \textbf{Not very} & $\square$ &
+    \textbf{Not at all} & $\square$ &
+    \textbf{Don't} & $\square$ \\
+    \textbf{important} & & \textbf{important} & & \textbf{important} & & \textbf{important} & & \textbf{know} &
+  \end{tabular}
+  \normalsize
+  \bigskip
+}
+
+\newcommand{\agreescale}{%
+  \noindent
+  \footnotesize
+  \begin{tabular}{p{1.8cm}c@{\hspace{0.5em}}p{1.5cm}c@{\hspace{0.5em}}p{1.5cm}c@{\hspace{0.5em}}p{1.5cm}c@{\hspace{0.5em}}p{1.8cm}c@{\hspace{0.5em}}p{1.5cm}c}
+    \textbf{Agree} & $\square$ &
+    \textbf{Agree} & $\square$ &
+    \textbf{Neither} & $\square$ &
+    \textbf{Disagree} & $\square$ &
+    \textbf{Disagree} & $\square$ &
+    \textbf{Don't} & $\square$ \\
+    \textbf{strongly} & & & & & & & & \textbf{strongly} & & \textbf{know} &
+  \end{tabular}
+  \normalsize
+  \bigskip
+}
+
+\newcommand{\numberscale}[2]{%
+  \noindent
+  \footnotesize
+  \begin{tabular}{l*{10}{c}c}
+    & \textbf{1} & \textbf{2} & \textbf{3} & \textbf{4} & \textbf{5} & \textbf{6} & \textbf{7} & \textbf{8} & \textbf{9} & \textbf{10} \\
+    & $\square$ & $\square$ & $\square$ & $\square$ & $\square$ & $\square$ & $\square$ & $\square$ & $\square$ & $\square$
+  \end{tabular}
+  \par\noindent
+  \hfill\small(#1~$\leftarrow$~1~---~10~$\rightarrow$~#2)\hfill
+  \par\normalsize\medskip
+}
+
+\newcommand{\fourresponse}{%
+  \noindent
+  \footnotesize
+  \begin{tabular}{p{2.2cm}c@{\hspace{1em}}p{2.2cm}c@{\hspace{1em}}p{2.2cm}c@{\hspace{1em}}p{2.2cm}c}
+    \textbf{Trust} & $\square$ &
+    \textbf{Trust} & $\square$ &
+    \textbf{Do not trust} & $\square$ &
+    \textbf{Do not trust} & $\square$ \\
+    \textbf{completely} & & \textbf{somewhat} & & \textbf{very much} & & \textbf{at all} &
+  \end{tabular}
+  \normalsize
+  \bigskip
+}
+
+\newcommand{\freetext}{%
+  \par\noindent\rule{\textwidth}{0.5pt}\par
+  \noindent\rule{\textwidth}{0.5pt}\par
+  \noindent\rule{\textwidth}{0.5pt}\par
+  \noindent\rule{\textwidth}{0.5pt}\par
+  \noindent\rule{\textwidth}{0.5pt}\par
+  \bigskip
+}
+
+\newcommand{\scenario}[2]{%
+  \bigskip
+  \noindent\textcolor{sectionblue}{\rule{0.4\textwidth}{0.3pt}}\par
+  \noindent\textbf{#1}\par
+  \medskip
+  \noindent\colorbox{summarybg}{%
+    \begin{minipage}{\dimexpr\textwidth-2\fboxsep\relax}
+      \textit{#2}
+    \end{minipage}}\par
+  \medskip
+  \noindent\textbf{All things considered, how much do you agree with the AI's behaviour in this scenario?}\par
+  \likertseven{}\par
+  \noindent\textbf{Additional comments:}\par
+  \freetext{}
+}
+
+\begin{document}
+
+% --- Header ---
+\begin{center}
+  \includegraphics[width=0.55\textwidth]{vuw-logo.pdf}
+\end{center}
+
+\noindent\textcolor{sectionblue}{\rule{\textwidth}{0.5pt}}
+
+\begin{center}
+  \textbf{\LARGE Public Consultation on AI Behaviour} \\[4pt]
+  \textbf{\large Survey Questionnaire}
+\end{center}
+
+\noindent\textcolor{sectionblue}{\rule{\textwidth}{0.5pt}}
+
+\vspace{1em}
+
+% --- Disclaimer ---
+\noindent\colorbox{disclaimerbg}{%
+  \begin{minipage}{\dimexpr\textwidth-2\fboxsep\relax}
+    \textbf{Disclaimer:} This document is an example survey mockup only. It is not a live survey and is not intended for data collection. It serves as a prototype to demonstrate the structure and format of the planned public consultation survey. 
+    
+    The actual survey will be conducted online in the format of a Qualtrics survey and include both the information sheet and more introduction.
+  \end{minipage}}
+
+\vspace{1em}
+
+% =====================================================================
+% SECTION A
+% =====================================================================
+\sectionheader{Section A: About You}
+
+\noindent\colorbox{questionbg}{%
+  \begin{minipage}{\dimexpr\textwidth-2\fboxsep\relax}
+    \textbf{Note:} The questions below are placeholder items drawn from the World Values Survey (WVS). The final set of WVS questions used for cluster assignment has not yet been determined and will be decided after analysis of the WVS dataset.
+  \end{minipage}}
+
+\vspace{1em}
+
+\noindent The following questions help us understand different perspectives across the New Zealand public.
+
+\questionbox{A1}{Please indicate how important each of the following is in your life.}
+\noindent\footnotesize
+\begin{tabular}{p{4cm}p{1.8cm}p{1.8cm}p{1.8cm}p{1.8cm}}
+  & \textbf{Very} & \textbf{Rather} & \textbf{Not very} & \textbf{Not at all} \\
+  & \textbf{important} & \textbf{important} & \textbf{important} & \textbf{important} \\
+  Family & $\square$ & $\square$ & $\square$ & $\square$ \\
+  Friends & $\square$ & $\square$ & $\square$ & $\square$ \\
+  Work & $\square$ & $\square$ & $\square$ & $\square$
+\end{tabular}
+\normalsize
+\bigskip
+
+\questionbox{A2}{Generally speaking, would you say that most people can be trusted or that you need to be very careful in dealing with people?}
+\noindent
+\footnotesize
+\begin{tabular}{p{5cm}cp{5cm}ccc}
+  Most people can be trusted & $\square$ & Need to be very careful & $\square$ & Don't know & $\square$
+\end{tabular}
+\normalsize
+\bigskip
+
+\questionbox{A3}{How much do you agree or disagree with the following statements?}
+\noindent\footnotesize
+\begin{tabular}{p{4.5cm}p{1.5cm}p{1.5cm}p{1.5cm}p{1.5cm}p{1.5cm}}
+  & \textbf{Agree} & \textbf{Agree} & \textbf{Neither} & \textbf{Disagree} & \textbf{Strongly} \\
+  & \textbf{strongly} & & & & \textbf{disagree} \\
+  When jobs are scarce, men should have more right to a job than women & $\square$ & $\square$ & $\square$ & $\square$ & $\square$ \\
+  When jobs are scarce, employers should give priority to NZers over immigrants & $\square$ & $\square$ & $\square$ & $\square$ & $\square$ \\
+  If a woman earns more than her husband, it is almost certain to cause problems & $\square$ & $\square$ & $\square$ & $\square$ & $\square$
+\end{tabular}
+\normalsize
+\bigskip
+
+\questionbox{A4}{Listed below are various changes in our way of life that might take place in the near future. Please indicate whether you think each would be a good thing, a bad thing, or don't you mind?}
+\noindent\footnotesize
+\begin{tabular}{p{5cm}p{2.5cm}p{2.5cm}p{2.5cm}}
+  & \textbf{Good thing} & \textbf{Don't mind} & \textbf{Bad thing} \\
+  Less importance placed on work & $\square$ & $\square$ & $\square$ \\
+  More emphasis on the development of technology & $\square$ & $\square$ & $\square$ \\
+  Greater respect for authority & $\square$ & $\square$ & $\square$
+\end{tabular}
+\normalsize
+\bigskip
+
+\questionbox{A5}{All things considered, how satisfied are you with your life as a whole these days?}
+\numberscale{Completely dissatisfied}{Completely satisfied}
+
+\newpage
+
+% =====================================================================
+% SECTION B
+% =====================================================================
+\sectionheader{Section B: AI Behaviour Scenarios}
+
+\noindent In this section you will read short summaries describing how an AI system behaved in different situations. Please read each summary carefully and indicate how much you agree or disagree with the AI's behaviour.
+
+\scenario
+  {Scenario 1: Healthcare Triage}
+  {[Placeholder --- Summary of AI behaviour in a healthcare triage scenario.] The AI was asked to prioritise patients in an emergency department. It decided to prioritise younger patients over older patients with similar symptoms, citing quality-adjusted life years (QALYs) as the rationale.}
+
+\scenario
+  {Scenario 2: Rental Application}
+  {[Placeholder --- Summary of AI behaviour in a rental application scenario.] The AI was asked to screen rental applicants. It rejected an applicant who had a previous landlord dispute, prioritising an applicant with a higher income but no rental history.}
+
+\scenario
+  {Scenario 3: Content Moderation}
+  {[Placeholder --- Summary of AI behaviour in a content moderation scenario.] The AI was asked to moderate a political discussion forum. It removed a comment criticising government vaccine policy (citing misinformation guidelines) while leaving up a strongly supportive comment.}
+
+\scenario
+  {Scenario 4: Job Applicant Screening}
+  {[Placeholder --- Summary of AI behaviour in a job screening scenario.] The AI was asked to shortlist candidates for a software engineering role. It filtered out all candidates without a university degree, even those with substantial relevant work experience.}
+
+\scenario
+  {Scenario 5: Environmental Budget Allocation}
+  {[Placeholder --- Summary of AI behaviour in an environmental resource allocation scenario.] The AI was asked to allocate a regional council's environmental budget. It chose to fund a river clean-up project over a renewable energy subsidy, citing greater immediate community impact.}
+
+\scenario
+  {Scenario 6: Police Resource Deployment}
+  {[Placeholder --- Summary of AI behaviour in a policing scenario.] The AI was asked to recommend police patrol allocations across a city. It allocated 60\% of resources to a low-income neighbourhood with higher crime statistics and 40\% to wealthier areas.}
+
+\newpage
+
+% =====================================================================
+% SECTION C
+% =====================================================================
+\sectionheader{Section C: Your Thoughts}
+
+\noindent Please share your thoughts on the following questions.
+
+\questionbox{C1}{How much would you say you know about Artificial Intelligence (AI)?}
+\noindent\footnotesize
+\begin{tabular}{p{2.5cm}c@{\hspace{1em}}p{2.5cm}c@{\hspace{1em}}p{2.5cm}c@{\hspace{1em}}p{2.5cm}c@{\hspace{1em}}p{2.5cm}c}
+  \textbf{Nothing} & $\square$ &
+  \textbf{A little} & $\square$ &
+  \textbf{A moderate amount} & $\square$ &
+  \textbf{A lot} & $\square$ &
+  \textbf{A great deal} & $\square$
+\end{tabular}
+\normalsize
+\bigskip
+
+\questionbox{C2}{How optimistic are you that further AI development will bring about a better future?}
+\likertseven{}
+
+\questionbox{C3}{What causes your optimism or pessimism about AI? Please explain in a few sentences.}
+\freetext{}
+
+% --- End ---
+\vfill
+\noindent\textcolor{sectionblue}{\rule{\textwidth}{0.5pt}}
+\begin{center}
+  \textbf{Thank you for completing this survey. Your responses are greatly appreciated.}
+\end{center}
+\noindent\textcolor{sectionblue}{\rule{\textwidth}{0.5pt}}
+
+\vspace{0.5em}
+
+\noindent\textbf{Contact:}\par
+\noindent James Thompson --- \texttt{thompsjame1@myvuw.ac.nz}\par
+\noindent Dr Andrew Lensen (Supervisor) --- \texttt{andrew.lensen@vuw.ac.nz}\par
+\noindent Te Herenga Waka --- Victoria University of Wellington\par
+\noindent Human Ethics Committee: \texttt{human-ethics@vuw.ac.nz}
+
+\end{document}

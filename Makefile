@@ -28,7 +28,7 @@ all: $(ALL_TGTS)
 define doc_build_rule
 $(TEX_DIR)/$(OUT_DIR)/$(call docname_of,$(basename $(notdir $(1))),$(TEX_DIR)).pdf: $(1)
 	@mkdir -p $(TEX_DIR)/$(OUT_DIR)
-	-$(LATEXMK) $(OPTS) -outdir=$(OUT_DIR) -cd \
+	-$(LATEXMK) $(OPTS) -outdir=$(abspath $(TEX_DIR)/$(OUT_DIR)) -cd \
 	  -jobname=$(call docname_of,$(basename $(notdir $(1))),$(TEX_DIR)) $$<
 endef
 
@@ -38,7 +38,7 @@ $(foreach src,$(DOC_SRCS),$(eval $(call doc_build_rule,$(src))))
 define srv_build_rule
 $(SRV_DIR)/$(OUT_DIR)/$(call docname_of,$(basename $(notdir $(1))),$(SRV_DIR)).pdf: $(1)
 	@mkdir -p $(SRV_DIR)/$(OUT_DIR)
-	-$(LATEXMK) $(OPTS) -outdir=$(OUT_DIR) -cd \
+	-$(LATEXMK) $(OPTS) -outdir=$(abspath $(SRV_DIR)/$(OUT_DIR)) -cd \
 	  -jobname=$(call docname_of,$(basename $(notdir $(1))),$(SRV_DIR)) $$<
 endef
 
@@ -48,8 +48,8 @@ $(foreach src,$(SRV_SRCS),$(eval $(call srv_build_rule,$(src))))
 watch:
 	@dir=$$(dirname "$(FILE)" 2>/dev/null); \
 	base=$$(basename "$(FILE)" .tex); \
-	[ "$$dir" = "." ] && dir="$(TEX_DIR)"; \
-	outdir="$$dir/$(OUT_DIR)"; \
+	[ "$$dir" = "." ] && { [ -f "$(SRV_DIR)/$$base.tex" ] && dir="$(SRV_DIR)" || dir="$(TEX_DIR)"; }; \
+	outdir="$$(cd "$$dir" && pwd)/$(OUT_DIR)"; \
 	docname=$$(sed -n 's/^[[:space:]]*\\docname{\(.*\)}/\1/p' "$$dir/$$base.tex" 2>/dev/null); \
 	[ -z "$$docname" ] && docname="$$base"; \
 	mkdir -p "$$outdir"; \
