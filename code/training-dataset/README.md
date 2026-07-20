@@ -311,6 +311,15 @@ Please indicate, for each of the following, how important it is in your life.
 Family:
 ```
 
+### `wvs_value_survey.csv`
+
+The wrangled output dataset. Due to WVS licensing, raw input files cannot be redistributed,
+but this output file can be independently verified.
+
+| File | SHA-256 |
+|------|---------|
+| `wvs_value_survey.csv` | `<!-- HASH_START -->3b75f38e90f40d5ad023d7cc2150174dd871305209253111ac43861d7530a3e2<!-- HASH_END -->` |
+
 ### Generated Training Datasets
 
 The `build_dataset.py` notebook produces three datasets in Parquet format:
@@ -353,3 +362,20 @@ The cluster data is currently a placeholder (random Dirichlet-sampled distributi
 ## Input data
 
 The input data you need to have is the World Values Survey Wave 7 data for New Zealand. This is a CSV file that can be downloaded from the [World Values Survey website](https://www.worldvaluessurvey.org/WVSDocumentationWV7.jsp). The file should be named `WVS_Wave_7_New_Zealand_Csv_v5.1.csv` and placed in the `code/training-dataset/input` directory.
+
+### Data integrity verification
+
+Due to WVS licensing restrictions, the raw input files cannot be included in this repository. Use the SHA-256 hashes below to verify your downloaded data is identical to the version this pipeline was built with.
+
+Run the wrangle script; it will compute and print the hashes of your input files. Compare against the reference hashes below:
+
+| File | SHA-256 |
+|------|---------|
+| `WVS_Wave_7_New_Zealand_Csv_v5.1.csv` | `5ff709a700adf966f809a388111632a6eec5d6f816558cf08d2f0dec013282f0` |
+| `WVS_Wave_7_New_Zealand_CsvText_v5.1.csv` | `a99f40fbd6c509aa403b0c747193e2bf4efbeba3564cb9685aef76f0d364c6e2` |
+
+To verify manually:
+
+```bash
+sha256sum input/WVS_Wave_7_New_Zealand_Csv_v5.1.csv
+sha256sum input/WVS_Wave_7_New_Zealand_CsvText_v5.1.csv

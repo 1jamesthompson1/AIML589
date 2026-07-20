@@ -731,7 +731,7 @@
       "Charitable/humanitarian organisation",
       "Consumer organisation",
       "Self-help group, mutual aid group",
-      "Community group (Marae, local groups etc)",
+      "Women's group",
       "Other organisation"
     ],
     "column_names": [
@@ -1153,10 +1153,10 @@
     "id": 36
   },
   {
-    "question": "Have you or your family been the victim of a crime during the past year?",
+    "question": "To what degree are you worried about the following situations?",
     "sub_questions": [
-      "Respondent was victim of a crime",
-      "Respondent's family was victim of a crime"
+      "Losing my job or not finding a job",
+      "Not being able to give my children a good education"
     ],
     "column_names": [
       "Q142",
@@ -1184,8 +1184,8 @@
   {
     "question": "Were you or your family a victim of a crime during the past year?",
     "sub_questions": [
-      "",
-      ""
+      "Respondent was victim of a crime",
+      "Respondent's family was victim of a crime"
     ],
     "column_names": [
       "Q144",
@@ -1199,17 +1199,17 @@
       "1.0",
       "2.0"
     ],
-    "survey_section": "The community and you",
-    "question_type": "value survey",
-    "question_format": "matrix_binary",
+    "survey_section": "Respondent information",
+    "question_type": "respondent information",
+    "question_format": "demographic",
     "id": 38
   },
   {
     "question": "To what degree are you worried about the following situations?",
     "sub_questions": [
-      "Losing my job or not finding a job",
-      "Not being able to give my children a good education",
-      "A war involving my country"
+      "A war involving my country",
+      "A terrorist attack",
+      "A civil war"
     ],
     "column_names": [
       "Q146",
@@ -1655,16 +1655,15 @@
       "Claiming government benefits to which you are not entitled",
       "Avoiding a fare on public transport",
       "Stealing property",
-      "Cheating on taxes if you have a chance",
-      "Buying something you knew was stolen",
+      "Cheating on taxes",
       "Someone accepting a bribe in the course of their duties",
       "Homosexuality",
       "Prostitution",
       "Abortion",
       "Divorce",
       "Sex before marriage",
-      "Euthanasia",
       "Suicide",
+      "Euthanasia",
       "For a man to beat his wife",
       "Parents beating children",
       "Violence against other people",
@@ -1801,10 +1800,10 @@
       "TV news",
       "Radio news",
       "Mobile phone (text, apps, alerts)",
-      "Internet (social media, websites, blogs)",
-      "Print magazines",
-      "Talk with friends or colleagues",
-      "None of these"
+      "Email",
+      "Internet",
+      "Social media (Facebook, Twitter, etc.)",
+      "Talk with friends or colleagues"
     ],
     "column_names": [
       "Q201",
@@ -1867,10 +1866,10 @@
   {
     "question": "For each social activism action, have you done it, might do it, or would never do it?",
     "sub_questions": [
-      "",
-      "",
-      "",
-      ""
+      "Donating to a group or campaign",
+      "Contacting a government official",
+      "Encouraging others to take action about political issues",
+      "Encouraging others to vote"
     ],
     "column_names": [
       "Q213",
@@ -2702,8 +2701,11 @@
     ],
     "word_response_types": [
       "English",
+      "Japanese",
+      "Standard Chinese; Mandarin; Putonghua; Guoyu",
       "Maori",
-      "Other"
+      "Other",
+      "Other local; aboriginal; tribal, community"
     ],
     "numeric_response_types": [
       "1240.0",
@@ -2719,7 +2721,7 @@
     "id": 86
   },
   {
-    "question": "Which of the following categories describe your ethnic origin?",
+    "question": "Are you currently: Married, living together as married, divorced, separated, widowed, or single?",
     "column_names": [
       "Q273"
     ],
@@ -2739,9 +2741,9 @@
       "5.0",
       "6.0"
     ],
-    "survey_section": "Families",
-    "question_type": "value survey",
-    "question_format": "single_select",
+    "survey_section": "Respondent information",
+    "question_type": "respondent information",
+    "question_format": "demographic",
     "id": 87
   },
   {
@@ -2771,9 +2773,9 @@
       "7.0",
       "8.0"
     ],
-    "survey_section": "Families",
-    "question_type": "value survey",
-    "question_format": "rating_scale",
+    "survey_section": "Respondent information",
+    "question_type": "respondent information",
+    "question_format": "demographic",
     "id": 88
   },
   {

@@ -10,7 +10,7 @@ def _(mo):
     This notebook wrangles the raw WVS Wave 7 New Zealand dataset into a clean format.
 
     **Input:** `input/WVS_Wave_7_New_Zealand_Csv_v5.1.csv`
-    **Output:** `output/wvs_value_survey.csv` — metadata + value survey and resp_info columns.
+    **Output:** `output/wvs_value_survey.csv` — metadata + value survey and respondent information (for understanding clusters later downstream).
     """)
     return
 
@@ -21,11 +21,12 @@ def _():
 
     import pandas as pd
     import json
+    import hashlib
     from pathlib import Path
 
     input_dir = Path("input")
     output_dir = Path("output")
-    return input_dir, json, mo, output_dir, pd
+    return hashlib, input_dir, json, mo, output_dir, pd
 
 
 @app.cell(hide_code=True)
@@ -42,18 +43,18 @@ def _(json, output_dir, pd):
     question_mapping = json.load(open(output_dir / "question_mapping.json", "r"))
 
     rows = []
-    for entry in question_mapping:
-        sub_qs = entry.get("sub_questions") or [None] * len(entry["column_names"])
-        for i, col in enumerate(entry["column_names"]):
+    for question in question_mapping:
+        sub_qs = question.get("sub_questions") or [None] * len(question["column_names"])
+        for i, survey_col in enumerate(question["column_names"]):
             rows.append(
                 {
-                    "column_name": col,
-                    "question": entry["question"],
+                    "column_name": survey_col,
+                    "question": question["question"],
                     "sub_question": sub_qs[i] if i < len(sub_qs) else None,
-                    "question_type": entry["question_type"],
-                    "question_format": entry["question_format"],
-                    "survey_section": entry.get("survey_section"),
-                    "id": entry["id"],
+                    "question_type": question["question_type"],
+                    "question_format": question["question_format"],
+                    "survey_section": question.get("survey_section"),
+                    "id": question["id"],
                 }
             )
     questions_df = pd.DataFrame(rows)
@@ -69,15 +70,43 @@ def _(json, output_dir, pd):
     print(f"Found {len(resp_info_cols)} respondent information columns in mapping")
 
     questions_df
-    return resp_info_cols, value_survey_columns
+    return (value_survey_columns,)
 
 
 @app.cell
 def _(input_dir, pd):
     data_file = input_dir / "WVS_Wave_7_New_Zealand_Csv_v5.1.csv"
+    text_file = input_dir / "WVS_Wave_7_New_Zealand_CsvText_v5.1.csv"
     wvs_df = pd.read_csv(data_file, sep=";", index_col=False)
-    print(f"Loaded {wvs_df.shape[0]} rows, {wvs_df.shape[1]} columns")
-    return (wvs_df,)
+
+    # CSVText has semicolons inside quoted text values (e.g.,
+    # "Other missing; Multiple answers Mail (EVS) {other missing}")
+    # so pd.read_csv misaligns columns. Use csv.reader instead.
+    # Data rows have a trailing semicolon, creating an extra empty field;
+    # trim to match header count.
+    import csv as csv_mod
+
+    with open(text_file, "r", encoding="utf-8-sig") as f:
+        txt_reader = csv_mod.reader(f, delimiter=";")
+        txt_headers = next(txt_reader)
+        txt_rows = [row[: len(txt_headers)] for row in txt_reader]
+    txt_headers_clean = [h.split(" ", 1)[0] if " " in h else h for h in txt_headers]
+    wvs_text_df = pd.DataFrame(txt_rows, columns=txt_headers_clean)
+
+    print(f"Loaded {wvs_df.shape[0]} rows, {wvs_df.shape[1]} columns from main CSV")
+    return wvs_df, wvs_text_df
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    ### Output integrity hash
+
+    Compute a SHA-256 hash of the final output CSV so users can verify they
+    produced the exact same dataset (raw WVS data cannot be redistributed due to
+    licensing, but the output hash serves as a shared reference).
+    """)
+    return
 
 
 @app.cell(hide_code=True)
@@ -123,77 +152,69 @@ def _(mo):
     return
 
 
-@app.cell
-def _(wvs_df):
-    region_map = {
-        1: "Northland",
-        2: "Auckland",
-        4: "Bay of Plenty",
-        5: "Waikato",
-        8: "Hawkes Bay",
-        9: "Taranaki",
-        11: "Manawatu-Rangitikei",
-        13: "Wellington",
-        15: "Nelson Bays",
-        16: "Marlborough",
-        17: "West Coast",
-        18: "Canterbury",
-        20: "Clutha-Central Otago",
-        22: "Southland",
-        23: "Gisborne",
-        24: "Tasman",
-    }
-    wvs_df["region"] = wvs_df["N_REGION_WVS"].apply(
-        lambda x: (
-            region_map.get(int(x), -5)
-            if isinstance(x, (int, float)) and x > 0
-            else (-5 if x == -5 else x)
-        )
-    )
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    ### Add in useful respondent information columns
 
-    towns_map = {
-        1: "Under 2,000",
-        3: "5,000-10,000",
-        4: "10,000-20,000",
-        5: "20,000-50,000",
-        6: "50,000-100,000",
-        7: "100,000-500,000",
-        8: "500,000 and more",
-    }
-    wvs_df["townsize"] = wvs_df["G_TOWNSIZE"].apply(
-        lambda x: (
-            towns_map.get(int(x), "Missing")
-            if isinstance(x, (int, float)) and x > 0
-            else ("Missing" if x == -5 else x)
-        )
-    )
-
-    settlement_map = {1: "Capital city", 2: "Regional center"}
-    wvs_df["settlement"] = wvs_df["H_SETTLEMENT"].apply(
-        lambda x: (
-            settlement_map.get(int(x), "Missing")
-            if isinstance(x, (int, float)) and x > 0
-            else ("Missing" if x == -5 else x)
-        )
-    )
-
-    urbrural_map = {1: "Urban", 2: "Rural"}
-    wvs_df["settlement_tye"] = wvs_df["H_URBRURAL"].apply(
-        lambda x: (
-            urbrural_map.get(int(x), "Missing")
-            if isinstance(x, (int, float)) and x > 0
-            else ("Missing" if x == -5 else x)
-        )
-    )
-
-    print("Decoded region, townsize, settlement, and urban/rural")
+    Have good names as well as text values for the responses. This will make it easier to understand the data later down the pipeline.
+    """)
     return
+
+
+@app.cell
+def _():
+    using_text_cols = {
+        "N_REGION_WVS": "region",
+        "G_TOWNSIZE": "townsize",
+        "H_SETTLEMENT": "settlement",
+        "H_URBRURAL": "settlement_type",
+        "Q260": "sex",
+        "Q261": "birth_year",
+        "Q262": "age",
+        "Q263": "immigrant",
+        "Q264": "mother_immigrant",
+        "Q265": "father_immigrant",
+        "Q266": "birth_country",
+        "Q267": "mother_birth_country",
+        "Q268": "father_birth_country",
+        "Q269": "citizen",
+        "Q270": "household_size",
+        "Q271": "live_with_parents",
+        "Q272": "home_language",
+        "Q273": "marital_status",
+        "Q274": "children",
+        "Q275": "education_respondent",
+        "Q276": "education_spouse",
+        "Q277": "education_mother",
+        "Q278": "education_father",
+        "Q275A": "education_respondent_cs",
+        "Q276A": "education_spouse_cs",
+        "Q277A": "education_mother_cs",
+        "Q278A": "education_father_cs",
+        "Q279": "employment_respondent",
+        "Q280": "employment_spouse",
+        "Q281": "occupation_respondent",
+        "Q282": "occupation_spouse",
+        "Q283": "occupation_father",
+        "Q284": "employment_sector",
+        "Q285": "chief_wage_earner",
+        "Q286": "savings",
+        "Q287": "social_class",
+        "Q288": "income_scale",
+        "Q289": "religion",
+    }
+
+    print(
+        f"Going to clean up {len(using_text_cols)} respondent information columns: \n{list(using_text_cols.values())}"
+    )
+    return (using_text_cols,)
 
 
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    ## Handle missing values
+    ### Handle missing values
 
     The WVS uses negative codes to indicate why a response is missing. The raw data
     contains four codes, which we consolidate into two categories.
@@ -237,26 +258,26 @@ def _(wvs_df):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    ## 8. Subset to value survey + respondent info columns
+    ## Subset to value survey + respondent info columns
 
-    Keep metadata, all value survey columns, and respondent information columns
-    (renamed with `resp_info_` prefix to distinguish them).
+    Keep metadata, all value survey columns, and the already-renamed
+    respondent information columns (prefixed with `resp_info_`).
     """)
     return
 
 
 @app.cell
-def _(resp_info_cols, value_survey_columns, wvs_df):
-    metadata_columns = ["id", "date", "region", "townsize", "settlement_tye"]
+def _(using_text_cols, value_survey_columns, wvs_df, wvs_text_df):
+    metadata_columns = ["id", "date"]
 
     wvs_value_survey = wvs_df[metadata_columns + value_survey_columns].copy()
 
-    for resp_info_col in resp_info_cols:
-        wvs_value_survey[f"resp_info_{resp_info_col}"] = wvs_df[resp_info_col]
+    for original_col, new_col in using_text_cols.items():
+        wvs_value_survey[new_col] = wvs_text_df[original_col]
 
     print(
         f"Output: {wvs_value_survey.shape[1]} columns "
-        f"({len(metadata_columns)} metadata + {len(value_survey_columns)} value survey + {len(resp_info_cols)} resp_info)"
+        f"({len(metadata_columns)} metadata + {len(value_survey_columns)} value survey + {len(using_text_cols)} resp_info)"
     )
 
     wvs_value_survey
@@ -272,11 +293,30 @@ def _(mo):
 
 
 @app.cell
-def _(output_dir, wvs_value_survey):
-    wvs_value_survey.to_csv(output_dir / "wvs_value_survey.csv", index=False)
-    print(
-        f"Saved {wvs_value_survey.shape[0]} rows to {output_dir / 'wvs_value_survey.csv'}"
+def _(hashlib, output_dir, wvs_value_survey):
+    import re as regex_mod
+
+    out_path = output_dir / "wvs_value_survey.csv"
+    wvs_value_survey.to_csv(out_path, index=False)
+    print(f"Saved {wvs_value_survey.shape[0]} rows to {out_path}")
+
+    h = hashlib.sha256()
+    with open(out_path, "rb") as output_data_file:
+        h.update(output_data_file.read())
+    output_hash = h.hexdigest()
+
+    readme_path = output_dir.parent / "README.md"
+    readme_text = readme_path.read_text()
+    readme_text = regex_mod.sub(
+        r"<!-- HASH_START -->.*?<!-- HASH_END -->",
+        f"<!-- HASH_START -->{output_hash}<!-- HASH_END -->",
+        readme_text,
     )
+    readme_path.write_text(readme_text)
+
+    print(f"Output SHA-256: {output_hash}")
+    print(f"Saved hash to {output_dir / 'output_hash.json'}")
+    print(f"Updated {readme_path}")
     return
 
 
