@@ -359,6 +359,19 @@ Each dataset has the same row structure: every sub-question in every matrix/batt
 
 The cluster data is currently a placeholder (random Dirichlet-sampled distributions). When real WVS cluster data is available, replace the stub in the `Generate Placeholder Cluster Responses` cell to load actual response distributions per cluster.
 
+## Clustering respondents
+
+`cluster_respondents.py` partitions respondents into value subgroups using **Latent Class Analysis** (LCA, via `stepmix` with the `categorical_nan` measurement model, which handles missing responses inside EM). Only value survey columns are used — demographics are excluded so subgroups are value-based. The number of clusters is chosen by BIC (currently k=3); override via the `N_CLUSTERS` config cell.
+
+Outputs (consumed by `build_dataset.py` and the public consultation design):
+
+| File | Description |
+|------|-------------|
+| `cluster_assignments.csv` | Respondent id, modal cluster, and per-cluster membership probabilities. |
+| `cluster_response_distributions.json` | Per cluster × question: response distribution over WVS codes (with word labels) and non-response rate. Replaces the placeholder clusters. |
+| `question_informativeness.csv` | Questions ranked by how differently clusters answer them — the shortlist for the consultation survey's subgroup-assignment questions. |
+| `cluster_model_selection.csv` | BIC/AIC/log-likelihood per candidate k. |
+
 ## Input data
 
 The input data you need to have is the World Values Survey Wave 7 data for New Zealand. This is a CSV file that can be downloaded from the [World Values Survey website](https://www.worldvaluessurvey.org/WVSDocumentationWV7.jsp). The file should be named `WVS_Wave_7_New_Zealand_Csv_v5.1.csv` and placed in the `code/training-dataset/input` directory.
