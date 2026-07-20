@@ -5,6 +5,12 @@
 \usepackage{graphicx}
 \usepackage{csquotes}
 \usepackage{verbatim}
+\usepackage{enumitem}
+\usepackage{microtype}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta, positioning, shapes.geometric, shadows.blur}
+\usepackage{pgfgantt}
+\usepackage{pgfplots}
 \setlength{\marginparwidth}{2cm}
 \usepackage{todonotes}
 \usepackage[backend=biber,style=numeric]{biblatex}
@@ -12,7 +18,18 @@
 % Build system: override output PDF name
 \newcommand{\docname}[1]{}
 
-
 % Common macros
 \newcommand{\scare}[1]{\enquote{#1}}
-\newcommand{\term}[1]{\textit{#1}}
+\newcommand{\term}[1]{\textbf{#1}}
+
+\newtheorem{definition}{Definition}
+
+% Figure convenience: \cfigure[placement]{filename}{caption}
+\newcommand{\cfigure}[3][htbp]{%
+   \begin{figure}[#1]
+      \centering
+      \includegraphics[width=0.8\textwidth]{figures/#2}
+      \caption{#3}
+      \label{fig:#2}
+   \end{figure}%
+}

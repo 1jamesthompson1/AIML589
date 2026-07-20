@@ -6,12 +6,12 @@ SRV_DIR := survey
 OUT_DIR := output
 
 # --- docs/ sources (output to docs/output/) ---
-DOC_SRCS := $(filter-out $(TEX_DIR)/common.tex,$(wildcard $(TEX_DIR)/*.tex))
+DOC_SRCS := $(filter-out $(TEX_DIR)/common.tex,$(wildcard $(TEX_DIR)/*.tex) $(wildcard $(TEX_DIR)/*/*.tex))
 
 docname_of = $(or $(shell sed -n 's/^[[:space:]]*\\docname{\(.*\)}/\1/p' $(2)/$(1).tex),$(1))
 
 DOC_TGTS := $(foreach src,$(DOC_SRCS), \
-  $(TEX_DIR)/$(OUT_DIR)/$(call docname_of,$(basename $(notdir $(src))),$(TEX_DIR)).pdf)
+  $(TEX_DIR)/$(OUT_DIR)/$(call docname_of,$(basename $(notdir $(src))),$(dir $(src))).pdf)
 
 # --- survey/ sources (output to survey/output/) ---
 SRV_SRCS := $(wildcard $(SRV_DIR)/*.tex)
@@ -24,12 +24,12 @@ ALL_TGTS := $(DOC_TGTS) $(SRV_TGTS)
 
 all: $(ALL_TGTS)
 
-# Build rule for docs/ sources (-cd changes to docs/, so outdir is relative)
+# Build rule for docs/ sources (-cd changes to source dir, outdir is absolute)
 define doc_build_rule
-$(TEX_DIR)/$(OUT_DIR)/$(call docname_of,$(basename $(notdir $(1))),$(TEX_DIR)).pdf: $(1)
+$(TEX_DIR)/$(OUT_DIR)/$(call docname_of,$(basename $(notdir $(1))),$(dir $(1))).pdf: $(1)
 	@mkdir -p $(TEX_DIR)/$(OUT_DIR)
 	-$(LATEXMK) $(OPTS) -outdir=$(abspath $(TEX_DIR)/$(OUT_DIR)) -cd \
-	  -jobname=$(call docname_of,$(basename $(notdir $(1))),$(TEX_DIR)) $$<
+	  -jobname=$(call docname_of,$(basename $(notdir $(1))),$(dir $(1))) $$<
 endef
 
 $(foreach src,$(DOC_SRCS),$(eval $(call doc_build_rule,$(src))))
@@ -44,17 +44,27 @@ endef
 
 $(foreach src,$(SRV_SRCS),$(eval $(call srv_build_rule,$(src))))
 
-# Watch a file: make watch FILE=docs/somefile (or survey/somefile)
+# Watch a file: make watch FILE=name (searches docs/, docs/*/, survey/)
 watch:
-	@dir=$$(dirname "$(FILE)" 2>/dev/null); \
-	base=$$(basename "$(FILE)" .tex); \
-	[ "$$dir" = "." ] && { [ -f "$(SRV_DIR)/$$base.tex" ] && dir="$(SRV_DIR)" || dir="$(TEX_DIR)"; }; \
-	outdir="$$(cd "$$dir" && pwd)/$(OUT_DIR)"; \
-	docname=$$(sed -n 's/^[[:space:]]*\\docname{\(.*\)}/\1/p' "$$dir/$$base.tex" 2>/dev/null); \
+	@base=$$(basename "$(FILE)" .tex); \
+	dir=$$(dirname "$(FILE)" 2>/dev/null); \
+	if [ "$$dir" != "." ]; then \
+		src="$$dir/$$base.tex"; \
+	elif [ -f "$(SRV_DIR)/$$base.tex" ]; then \
+		src="$(SRV_DIR)/$$base.tex"; \
+	elif [ -f "$(TEX_DIR)/$$base.tex" ]; then \
+		src="$(TEX_DIR)/$$base.tex"; \
+	else \
+		src="$$(find $(TEX_DIR) -maxdepth 2 -name "$$base.tex" -print -quit 2>/dev/null)"; \
+	fi; \
+	[ -z "$$src" ] && { echo "Error: $$base.tex not found in $(TEX_DIR) or $(SRV_DIR)"; exit 1; }; \
+	src_dir=$$(dirname "$$src"); \
+	outdir="$$(cd "$(TEX_DIR)" && pwd)/$(OUT_DIR)"; \
+	docname=$$(sed -n 's/^[[:space:]]*\\docname{\(.*\)}/\1/p' "$$src" 2>/dev/null); \
 	[ -z "$$docname" ] && docname="$$base"; \
 	mkdir -p "$$outdir"; \
 	$(LATEXMK) -pdf -f -pvc -outdir="$$outdir" -cd -interaction=nonstopmode \
-	  -jobname="$$docname" "$$dir/$$base.tex"
+	  -jobname="$$docname" "$$src"
 
 # Bootstrap
 setup:

@@ -1,0 +1,74 @@
+\documentclass[11pt, a4paper, twoside, openright]{report}
+
+\usepackage{float}
+
+\usepackage{url}
+
+\usepackage[font,ecs]{vuwproject}
+
+\input{../common.tex}
+
+\newfloat{fig}{thp}{lof}[chapter]
+\floatname{fig}{Figure}
+
+\title{Aligning Large Language Models to publicly collected values}
+\author{James Thompson}
+
+\supervisor{Ali Knott}
+\otherdegree{Master of Artificial Intelligence}
+
+\docname{AIML589-James-Thompson-LLM-NZ-Value-Alignment}
+
+
+\addbibresource{../references.bib}
+
+\date{}
+
+\begin{document}
+
+% Draft notice
+\thispagestyle{empty}
+\begin{center}
+   \vspace*{\fill}
+   {\Huge\bfseries WORKING DRAFT}\\[24pt]
+   {\Large \today}\\[12pt]
+   {\large This document is a work in progress and may contain errors or incomplete sections.}\\
+   \vspace*{\fill}
+\end{center}
+\newpage
+
+\frontmatter
+
+\begin{abstract}
+
+A short description of the project goes here.
+
+\end{abstract}
+
+\maketitle
+
+\chapter*{Acknowledgments}
+\input{chapters/acknowledge}
+
+\tableofcontents
+
+\listof{fig}{Figures}
+
+\mainmatter
+
+\chapter{Introduction}
+\input{chapters/introduction}
+
+\chapter{Conclusions}
+\input{chapters/conclusion}
+
+\backmatter
+
+\printbibliography
+
+\appendix
+
+%\chapter{Appendix title}
+%\input{appendices/filename}
+
+\end{document}
