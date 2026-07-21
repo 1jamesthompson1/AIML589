@@ -1,6 +1,6 @@
 import marimo
 
-__generated_with = "0.23.9"
+__generated_with = "0.23.14"
 app = marimo.App(width="medium")
 
 
@@ -79,11 +79,7 @@ def _(input_dir, pd):
     text_file = input_dir / "WVS_Wave_7_New_Zealand_CsvText_v5.1.csv"
     wvs_df = pd.read_csv(data_file, sep=";", index_col=False)
 
-    # CSVText has semicolons inside quoted text values (e.g.,
-    # "Other missing; Multiple answers Mail (EVS) {other missing}")
-    # so pd.read_csv misaligns columns. Use csv.reader instead.
-    # Data rows have a trailing semicolon, creating an extra empty field;
-    # trim to match header count.
+    # CSVText has semicolons inside quoted text values (e.g., "Other missing; Multiple answers Mail (EVS) {other missing}"). Using a read of the csv module to handle this and ge the cleaned column names.
     import csv as csv_mod
 
     with open(text_file, "r", encoding="utf-8-sig") as f:
@@ -95,18 +91,6 @@ def _(input_dir, pd):
 
     print(f"Loaded {wvs_df.shape[0]} rows, {wvs_df.shape[1]} columns from main CSV")
     return wvs_df, wvs_text_df
-
-
-@app.cell(hide_code=True)
-def _(mo):
-    mo.md(r"""
-    ### Output integrity hash
-
-    Compute a SHA-256 hash of the final output CSV so users can verify they
-    produced the exact same dataset (raw WVS data cannot be redistributed due to
-    licensing, but the output hash serves as a shared reference).
-    """)
-    return
 
 
 @app.cell(hide_code=True)
@@ -214,21 +198,21 @@ def _():
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    ### Handle missing values
+    #    ## Handle missing values
 
-    The WVS uses negative codes to indicate why a response is missing. The raw data
-    contains four codes, which we consolidate into two categories.
+    The WVS uses negative codes to indicate why a response is missing.
 
-    | Code | Meaning | Recoded to | Rationale |
-    |------|---------|------------|-----------|
-    | `-1` | **Don't know** | `-1` (kept) | Respondent engaged but couldn't choose |
-    | `-2` | **Refused** | `-1` (merged) | Also an active non-response |
-    | `-3` | **Not applicable** | `-5` (merged) | Structural — question didn't apply |
-    | `-5` | **Missing / Not asked** | `-5` (kept) | Structural — question never shown |
+    | Code | Official meaning | Treatment | Rationale |
+    |------|-----------------|-----------|-----------|
+    | `-1` | **Don't know** | Kept as `-1` | Respondent engaged but couldn't choose. Value-relevant — kept as a valid response category for the LCA to learn patterns of uncertainty. |
+    | `-2` | **No answer / Refused** | → `-5` (missing) | Respondent skipped or refused. Structural — not value-relevant. |
+    | `-3` | **Not applicable** | → `-5` (missing) | Question didn't apply (e.g., spouse education for unmarried). Structural. |
+    | `-5` | **Not asked / Missing** | Kept as `-5` | Question was never shown (survey routing). Structural. |
+    | `-99` | **Other missing** | → `-5` (missing) | Composite indices / derived variables. Structural. |
 
     After consolidation:
-    - `-1` = **Don't know** — respondent engaged but couldn't or wouldn't answer
-    - `-5` = **Missing** — data was never collected (not asked or not applicable)
+    - `-1` = **Don't know** — a valid response expressing uncertainty
+    - `-5` = **Missing** — data was never collected for structural reasons (refused, not applicable, not asked, other)
     """)
     return
 
@@ -238,19 +222,23 @@ def _(wvs_df):
     numeric_cols = wvs_df.select_dtypes("number").columns
 
     counts_before = {}
-    for code in [-2, -3]:
+    for code in [-2, -3, -99]:
         counts_before[code] = (wvs_df[numeric_cols] == code).sum().sum()
 
-    wvs_df[numeric_cols] = wvs_df[numeric_cols].replace(-2.0, -1.0)
+    # -1 (Don't know) is kept as a valid response — NOT merged
+    # -2 (Refused), -3 (Not applicable), -99 (Other missing) → -5 (Missing)
+    wvs_df[numeric_cols] = wvs_df[numeric_cols].replace(-2.0, -5.0)
     wvs_df[numeric_cols] = wvs_df[numeric_cols].replace(-3.0, -5.0)
+    wvs_df[numeric_cols] = wvs_df[numeric_cols].replace(-99.0, -5.0)
 
     counts_neg1 = (wvs_df[numeric_cols] == -1.0).sum().sum()
     counts_neg5 = (wvs_df[numeric_cols] == -5.0).sum().sum()
 
-    print(f"Recoded -2 (Refused):      {counts_before[-2]:>6} cells → -1 (Don't know)")
-    print(f"Recoded -3 (Not applicable): {counts_before[-3]:>6} cells → -5 (Missing)")
+    print(f"Recoded -2  (Refused):       {counts_before[-2]:>6} cells → -5 (Missing)")
+    print(f"Recoded -3  (Not applicable): {counts_before[-3]:>6} cells → -5 (Missing)")
+    print(f"Recoded -99 (Other missing):  {counts_before[-99]:>6} cells → -5 (Missing)")
     print(
-        f"Final: -1 (Don't know): {counts_neg1:>6} cells  |  -5 (Missing): {counts_neg5:>6} cells"
+        f"Kept    -1  (Don't know):     {counts_neg1:>6} cells  |  -5 (Missing): {counts_neg5:>6} cells"
     )
     return
 

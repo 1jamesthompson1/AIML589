@@ -1,6 +1,6 @@
 import marimo
 
-__generated_with = "0.23.9"
+__generated_with = "0.23.14"
 app = marimo.App(width="medium")
 
 
@@ -69,13 +69,15 @@ def _(mo):
 
 
 @app.cell
-def _():
-    N_CLUSTERS = 2  # None -> BIC-optimal
+def _(mo):
+    N_CLUSTERS = None if mo.cli_args().get("run_sweep") else 2  # None -> BIC-optimal
     K_RANGE = range(1, 7)  # candidate cluster counts for the sweep
     N_INIT_SWEEP = 2  # EM restarts per k in the sweep (keeps sweep fast)
     N_INIT_FINAL = 10  # EM restarts for the final model (best log-likelihood)
     SEED = 42
-    USE_SAVED_MODEL = True  # if True, load model from disk instead of fitting
+    USE_SAVED_MODEL = not mo.cli_args().get(
+        "run_model"
+    )  # if True, load model from disk instead of fitting
     return (
         K_RANGE,
         N_CLUSTERS,
@@ -96,9 +98,11 @@ def _(mo):
     demographics (per the funding proposal).
 
     Preprocessing:
-    - Negative codes (`-1` Don't know/refused, `-5` Missing/not asked) become
-      `NaN` and are treated as missing by the model.
-    - Each question's observed codes are recoded to contiguous integers
+    - `-1` (Don't know) is kept as a valid response category — uncertainty
+      about values is itself value-relevant for clustering.
+    - `-5` (Missing / Refused / Not applicable / Not asked) becomes `NaN`
+      and is treated as missing by the model.
+    - Each column's observed codes are recoded to contiguous integers
       `0..K_j-1` (required by stepmix); the mapping is kept so results can be
       mapped back to the original WVS codes and word labels.
     """)
@@ -115,7 +119,7 @@ def _(Path, json, np, pd):
         c for c in wvs_df.columns if c.startswith("Q") and not c.startswith("resp_info")
     ]
 
-    X_raw = wvs_df[value_cols].mask(wvs_df[value_cols] < 0, np.nan)
+    X_raw = wvs_df[value_cols].mask(wvs_df[value_cols] == -5.0, np.nan)
 
     # Recode each column to 0..K_j-1, remembering the original codes
     category_codes = {c: sorted(X_raw[c].dropna().unique()) for c in value_cols}
@@ -163,8 +167,23 @@ def _(mo):
 
 
 @app.cell
-def _(K_RANGE, N_CLUSTERS, N_INIT_SWEEP, SEED, StepMix, X, output_dir, pd):
-    if N_CLUSTERS is None:
+def _(
+    K_RANGE,
+    N_CLUSTERS,
+    N_INIT_SWEEP,
+    Path,
+    SEED,
+    StepMix,
+    X,
+    output_dir,
+    pd,
+):
+
+    if (
+        N_CLUSTERS is None
+        or not Path(output_dir / "model_selection_sweep.csv").exists()
+    ):
+        print(f"Doing model selection sweep over k={list(K_RANGE)}")
         sweep_rows = []
         for _k in K_RANGE:
             _m = StepMix(
@@ -191,13 +210,13 @@ def _(K_RANGE, N_CLUSTERS, N_INIT_SWEEP, SEED, StepMix, X, output_dir, pd):
         sweep_df_temp.to_csv(output_dir / "model_selection_sweep.csv")
         print(f"Saved sweep results to {output_dir / 'model_selection_sweep.csv'}")
     else:
-        print(f"Skipping model selection, using k={N_CLUSTERS}")
-        sweep_df = pd.read_csv(output_dir / "model_selection_sweep.csv")
-    return (sweep_df,)
+        print(f"Skipping model selection using k={N_CLUSTERS} (already done)")
+    return
 
 
 @app.cell
-def _(N_CLUSTERS, plt, sweep_df):
+def _(N_CLUSTERS, output_dir, pd, plt):
+    sweep_df = pd.read_csv(output_dir / "model_selection_sweep.csv")
     fig, ax = plt.subplots(figsize=(6, 3.5))
     ax.plot(sweep_df.index, sweep_df["bic"], "o-", label="BIC")
     ax.plot(sweep_df.index, sweep_df["aic"], "s--", label="AIC")
@@ -320,7 +339,7 @@ def _(K, X_raw, category_codes, np, posteriors, value_cols):
                 dist[_k, j] = w[obs == v].sum()
             if dist[_k].sum() > 0:
                 dist[_k] /= dist[_k].sum()
-        # non-response rate per cluster (DK/refused/not asked)
+        # non-response rate per cluster (structural missing only: refused/not asked/not applicable)
         nonresponse = np.array(
             [
                 posteriors[obs.isna(), _k].sum() / max(posteriors[:, _k].sum(), 1e-12)
@@ -332,56 +351,6 @@ def _(K, X_raw, category_codes, np, posteriors, value_cols):
     distributions = {c: cluster_distributions(c) for c in value_cols}
     f"Computed distributions for {len(distributions)} questions × {K} clusters"
     return (distributions,)
-
-
-@app.cell
-def _(
-    K,
-    assignments,
-    category_codes,
-    distributions,
-    json,
-    output_dir,
-    posteriors,
-    question_mapping,
-    value_cols,
-):
-    word_labels = {}
-    for _entry in question_mapping:
-        _codes = [float(x) for x in _entry["numeric_response_types"]]
-        for _col in _entry["column_names"]:
-            _labels = {}
-            for _w, _c in zip(_entry["word_response_types"], _codes):
-                if _c >= 0:
-                    _labels[_c] = _w
-            word_labels[_col] = _labels
-
-    cluster_json = {
-        "method": "latent class analysis (stepmix, categorical_nan measurement)",
-        "n_clusters": K,
-        "clusters": {},
-    }
-    for _k in range(K):
-        _items = {}
-        for _col in value_cols:
-            _dist, _nonresponse = distributions[_col]
-            _catcodes = category_codes[_col]
-            _items[_col] = {
-                "numeric_codes": _catcodes,
-                "word_labels": [word_labels[_col].get(v, str(v)) for v in _catcodes],
-                "distribution": [round(float(p), 6) for p in _dist[_k]],
-                "nonresponse_rate": round(float(_nonresponse[_k]), 6),
-            }
-        cluster_json["clusters"][str(_k)] = {
-            "size": int((assignments == _k).sum()),
-            "weight": round(float(posteriors[:, _k].sum() / len(assignments)), 6),
-            "items": _items,
-        }
-
-    with open(output_dir / "cluster_response_distributions.json", "w") as f:
-        json.dump(cluster_json, f, indent=2)
-    print(f"Saved distributions → {output_dir / 'cluster_response_distributions.json'}")
-    return
 
 
 @app.cell(hide_code=True)

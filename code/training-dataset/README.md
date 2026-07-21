@@ -318,7 +318,7 @@ but this output file can be independently verified.
 
 | File | SHA-256 |
 |------|---------|
-| `wvs_value_survey.csv` | `<!-- HASH_START -->3b75f38e90f40d5ad023d7cc2150174dd871305209253111ac43861d7530a3e2<!-- HASH_END -->` |
+| `wvs_value_survey.csv` | `<!-- HASH_START -->5d5634f6601bdeb9592946709577965435d7ce04acc593fd862d03ea861e0cd6<!-- HASH_END -->` |
 
 ### Generated Training Datasets
 

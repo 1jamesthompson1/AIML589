@@ -1,295 +1,290 @@
 column,informativeness,type,question_text
-Q182,0.5,value,"Please indicate for each of the following statements whether you think it can always be justified, never be justified, or something in between. (1 = Never justifiable, 10 = Always justifiable) — Homosexuality"
-Q183,0.405,value,"Please indicate for each of the following statements whether you think it can always be justified, never be justified, or something in between. (1 = Never justifiable, 10 = Always justifiable) — Prostitution"
-Q168,0.402,value,"Which, if any, of the following do you believe in? — Heaven"
-Q123,0.397,value,"What have been the effects of immigration on the development of New Zealand? For each of the following statements, please indicate whether you agree or disagree with it. — Strengthens cultural diversity"
-Q186,0.397,value,"Please indicate for each of the following statements whether you think it can always be justified, never be justified, or something in between. (1 = Never justifiable, 10 = Always justifiable) — Sex before marriage"
-Q161,0.378,value,"Here are some statements about science and technology. How much do you agree or disagree with each of these statements? For these questions, a 1 means that you ""completely disagree"" and a 10 means that you ""completely agree."" — One of the bad effects of science is that it breaks down people's ideas of right and wrong"
-Q170,0.372,value,How much do you agree or disagree with the following statements? — The only acceptable religion is my religion
-Q160,0.369,value,"Here are some statements about science and technology. How much do you agree or disagree with each of these statements? For these questions, a 1 means that you ""completely disagree"" and a 10 means that you ""completely agree."" — We depend too much on science and not enough on faith"
-Q57,0.361,value,"Generally speaking, would you say that most people can be trusted or that you need to be very careful in dealing with people?"
-Q30,0.357,value,"People talk about the changing roles of men and women today. For each of the following statements, please indicate how much you agree or disagree. — A university education is more important for a boy than a girl"
-Q126,0.356,value,"What have been the effects of immigration on the development of New Zealand? For each of the following statements, please indicate whether you agree or disagree with it. — Increases the risk of terrorism"
-Q185,0.355,value,"Please indicate for each of the following statements whether you think it can always be justified, never be justified, or something in between. (1 = Never justifiable, 10 = Always justifiable) — Divorce"
-education_respondent_cs,0.3518648410779847,demographic,education_respondent_cs
-Q169,0.346,value,"How much do you agree or disagree with the following statements? — Whenever science and religion conflict, religion is always right"
-Q246,0.344,value,"Many things are desirable, but not all of them are essential characteristics of democracy. Please tell us, for each of the following things how essential you think it is as a characteristic of democracy? Use this scale where 1 means ""not at all an essential characteristic of democracy"" and 10 means it definitely is ""an essential characteristic of democracy"". — Civil rights protect people from state oppression"
-Q85,0.343,value,"Here are the names of a number of organisations. For each one, please indicate how much confidence you have in them: is it a great deal of confidence, quite a lot of confidence, not very much confidence or none at all? — International Criminal Court (ICC)"
-Q121,0.342,value,How would you evaluate the impact of immigrants on the development of New Zealand?
-Q33,0.34,value,"Do you agree or disagree with the following statements? — When jobs are scarce, men should have more right to a job than women"
-Q251,0.34,value,"And how democratically is this country being governed today? Again using a scale from 1 to 10, where 1 means that it is ""not at all democratic"" and 10 means that it is ""completely democratic,"" what position would you choose?"
-Q128,0.339,value,"What have been the effects of immigration on the development of New Zealand? For each of the following statements, please indicate whether you agree or disagree with it. — Increases unemployment"
-Q184,0.338,value,"Please indicate for each of the following statements whether you think it can always be justified, never be justified, or something in between. (1 = Never justifiable, 10 = Always justifiable) — Abortion"
-Q165,0.336,value,"Which, if any, of the following do you believe in? — God"
-Q125,0.336,value,"What have been the effects of immigration on the development of New Zealand? For each of the following statements, please indicate whether you agree or disagree with it. — Gives asylum to political refugees who are persecuted elsewhere"
-Q164,0.33,value,How important is God in your life? Please use this scale to indicate your strength of belief: 1 means not at all important and 10 means very important.
-Q76,0.33,value,"Here are the names of a number of organisations. For each one, please indicate how much confidence you have in them: is it a great deal of confidence, quite a lot of confidence, not very much confidence or none at all? — Elections"
-education_respondent,0.32854462522888506,demographic,education_respondent
-Q29,0.326,value,"People talk about the changing roles of men and women today. For each of the following statements, please indicate how much you agree or disagree. — Men make better political leaders than women do"
-Q211,0.324,value,"Here are some different forms of political action that people can take. For each one, please indicate whether you have actually done any of these things, whether you might do it or would never, under any circumstances, do it. — Attending peaceful demonstrations"
-Q240,0.323,value,"In political matters, people talk of ""the left"" and ""the right"". How would you place your views on this scale, generally speaking? (1 = Left, 10 = Right)"
-Q210,0.322,value,"Here are some different forms of political action that people can take. For each one, please indicate whether you have actually done any of these things, whether you might do it or would never, under any circumstances, do it. — Joining in boycotts"
-Q235,0.318,value,"Listed below are various types of political systems. Please think about each one as a way of governing this country. For each one, would you say it is a very good, fairly good, fairly bad or very bad way of governing this country? — Having a strong leader who does not have to bother with parliament and elections"
-Q193,0.317,value,"Please indicate for each of the following statements whether you think it can always be justified, never be justified, or something in between. (1 = Never justifiable, 10 = Always justifiable) — Having casual sex"
-Q79,0.316,value,"Here are the names of a number of organisations. For each one, please indicate how much confidence you have in them: is it a great deal of confidence, quite a lot of confidence, not very much confidence or none at all? — Environmental organisations"
-Q74,0.313,value,"Here are the names of a number of organisations. For each one, please indicate how much confidence you have in them: is it a great deal of confidence, quite a lot of confidence, not very much confidence or none at all? — The Public Service"
-Q71,0.312,value,"Here are the names of a number of organisations. For each one, please indicate how much confidence you have in them: is it a great deal of confidence, quite a lot of confidence, not very much confidence or none at all? — The government in Wellington"
-Q252,0.306,value,"How satisfied are you with how the political system is functioning in New Zealand these days? On the scale from 1 to 10 below, 1 means not satisfied at all and 10 means completely satisfied."
-Q243,0.302,value,"Many things are desirable, but not all of them are essential characteristics of democracy. Please tell us, for each of the following things how essential you think it is as a characteristic of democracy? Use this scale where 1 means ""not at all an essential characteristic of democracy"" and 10 means it definitely is ""an essential characteristic of democracy"". — People choose their leaders in free elections"
-Q217,0.302,value,"Listed below are some other forms of political action people can take using internet and social media tools like Facebook, Twitter, etc. For each one please indicate whether you have done any of these things, whether you might do it, would never under any circumstances do it. — Searching information about politics and political events"
-religion,0.30107681428087096,demographic,religion
-Q73,0.3,value,"Here are the names of a number of organisations. For each one, please indicate how much confidence you have in them: is it a great deal of confidence, quite a lot of confidence, not very much confidence or none at all? — Parliament"
-Q229,0.299,value,In your view how often do each of the following things occur in New Zealand's elections? — Election officials are fair
-Q219,0.298,value,"Listed below are some other forms of political action people can take using internet and social media tools like Facebook, Twitter, etc. For each one please indicate whether you have done any of these things, whether you might do it, would never under any circumstances do it. — Encouraging other people to take any form of political action"
-Q218,0.297,value,"Listed below are some other forms of political action people can take using internet and social media tools like Facebook, Twitter, etc. For each one please indicate whether you have done any of these things, whether you might do it, would never under any circumstances do it. — Signing an electronic petition"
-Q31,0.294,value,"People talk about the changing roles of men and women today. For each of the following statements, please indicate how much you agree or disagree. — Men make better business executives than women do"
-Q112,0.292,value,"How would you place your views on corruption in New Zealand on a 10-point scale where 1 means ""there is no corruption in New Zealand"" and 10 means ""there is abundant corruption in New Zealand""?"
-Q234A,0.289,value,How much does the political system allow you to have a say?
-occupation_respondent,0.28786062345352653,demographic,occupation_respondent
-Q83,0.286,value,"Here are the names of a number of organisations. For each one, please indicate how much confidence you have in them: is it a great deal of confidence, quite a lot of confidence, not very much confidence or none at all? — The United Nations"
-Q216,0.286,value,"For each social activism action, have you done it, might do it, or would never do it? — Encouraging others to vote"
-Q35,0.285,value,"Do you agree or disagree with the following statements? — If a woman earns more than her husband, it is almost certain to cause problems"
-Q157,0.285,value,"Here is another list. In your opinion, which one of these is most important? And which would be the next most important?"
-Q81,0.283,value,"Here are the names of a number of organisations. For each one, please indicate how much confidence you have in them: is it a great deal of confidence, quite a lot of confidence, not very much confidence or none at all? — Charitable or humanitarian organisations"
-Q238,0.283,value,"Listed below are various types of political systems. Please think about each one as a way of governing this country. For each one, would you say it is a very good, fairly good, fairly bad or very bad way of governing this country? — Having a democratic political system"
-Q130,0.283,value,How about people from other countries coming here to work. Which one of the following do you think the government should do?
-Q162,0.283,value,"Here are some statements about science and technology. How much do you agree or disagree with each of these statements? For these questions, a 1 means that you ""completely disagree"" and a 10 means that you ""completely agree."" — It is not important for me to know about science in my daily life"
-Q62,0.283,value,Here are some questions about how much you trust people from various groups. Please indicate how much you trust... — People of another religion
-education_spouse_cs,0.28230650649228917,demographic,education_spouse_cs
-Q212,0.282,value,"Here are some different forms of political action that people can take. For each one, please indicate whether you have actually done any of these things, whether you might do it or would never, under any circumstances, do it. — Joining strikes"
-Q63,0.281,value,Here are some questions about how much you trust people from various groups. Please indicate how much you trust... — People of another nationality
-Q124,0.28,value,"What have been the effects of immigration on the development of New Zealand? For each of the following statements, please indicate whether you agree or disagree with it. — Increases the crime rate"
-Q88,0.28,value,"Here are the names of a number of organisations. For each one, please indicate how much confidence you have in them: is it a great deal of confidence, quite a lot of confidence, not very much confidence or none at all? — The World Health Organisation (WHO)"
-Q34,0.279,value,"Do you agree or disagree with the following statements? — When jobs are scarce, employers should give priority to New Zealanders over immigrants"
-Q6,0.279,value,"Please indicate, for each of the following, how important it is in your life. — Religion"
-education_father_cs,0.27832015794530324,demographic,education_father_cs
-Q213,0.278,value,"For each social activism action, have you done it, might do it, or would never do it? — Donating to a group or campaign"
-Q249,0.278,value,"Many things are desirable, but not all of them are essential characteristics of democracy. Please tell us, for each of the following things how essential you think it is as a characteristic of democracy? Use this scale where 1 means ""not at all an essential characteristic of democracy"" and 10 means it definitely is ""an essential characteristic of democracy"". — Women have the same rights as men"
-education_spouse,0.2763399726473996,demographic,education_spouse
-Q167,0.276,value,"Which, if any, of the following do you believe in? — Hell"
-income_scale,0.273748418127831,demographic,income_scale
-Q61,0.271,value,Here are some questions about how much you trust people from various groups. Please indicate how much you trust... — People you meet for the first time
-education_mother_cs,0.26840763002358425,demographic,education_mother_cs
-Q172,0.268,value,"Apart from weddings and funerals, about how often do you pray?"
-Q68,0.268,value,"Here are the names of a number of organisations. For each one, please indicate how much confidence you have in them: is it a great deal of confidence, quite a lot of confidence, not very much confidence or none at all? — Trade unions"
-Q242,0.268,value,"Many things are desirable, but not all of them are essential characteristics of democracy. Please tell us, for each of the following things how essential you think it is as a characteristic of democracy? Use this scale where 1 means ""not at all an essential characteristic of democracy"" and 10 means it definitely is ""an essential characteristic of democracy"". — Religious authorities ultimately interpret the laws"
-occupation_father,0.26523779331362823,demographic,occupation_father
-Q111,0.265,value,Here are two statements people sometimes make when discussing the environment and economic growth. Which one comes closest to your own point of view?
-education_mother,0.26312611683078996,demographic,education_mother
-Q195,0.263,value,"Please indicate for each of the following statements whether you think it can always be justified, never be justified, or something in between. (1 = Never justifiable, 10 = Always justifiable) — Death penalty"
-Q215,0.263,value,"For each social activism action, have you done it, might do it, or would never do it? — Encouraging others to take action about political issues"
-age,0.26125479569636273,demographic,age
-birth_year,0.2612547956963627,demographic,birth_year
-Q250,0.26,value,"How important is it for you to live in a country that is governed democratically? On this scale where 1 means it is ""not at all important"" and 10 means ""absolutely important"" what position would you choose?"
-education_father,0.259614142615482,demographic,education_father
-Q187,0.259,value,"Please indicate for each of the following statements whether you think it can always be justified, never be justified, or something in between. (1 = Never justifiable, 10 = Always justifiable) — Suicide"
-Q14,0.257,value,"Here is a list of qualities that children can be encouraged to learn at home. Which, if any, do you consider to be especially important? — Determination, perseverance"
-Q41,0.256,value,"How much do you agree or disagree with the following statements? — Work should always come first, even if it means less spare time"
-Q245,0.251,value,"Many things are desirable, but not all of them are essential characteristics of democracy. Please tell us, for each of the following things how essential you think it is as a characteristic of democracy? Use this scale where 1 means ""not at all an essential characteristic of democracy"" and 10 means it definitely is ""an essential characteristic of democracy"". — The army takes over when government is incompetent"
-Q148,0.251,value,To what degree are you worried about the following situations? — A civil war
-Q36,0.25,value,How much do you agree or disagree with the following statements? — Homosexual couples are as good parents as other couples
-Q176,0.25,value,"How much do you agree or disagree with the statement that nowadays one often has trouble deciding which moral rules are the right ones to follow? (1 = Completely agree, 10 = Completely disagree)"
-Q140,0.25,value,Which of the following things have you done for reasons of security? — Preferred not to go out at night
-Q27,0.248,value,"People talk about the changing roles of men and women today. For each of the following statements, please indicate how much you agree or disagree. — One of my main goals in life has been to make my parents proud"
-Q122,0.247,value,"What have been the effects of immigration on the development of New Zealand? For each of the following statements, please indicate whether you agree or disagree with it. — Fills important job vacancies"
-Q225,0.246,value,In your view how often do each of the following things occur in New Zealand's elections? — Opposition candidates are prevented from running
-Q173,0.243,value,"Independently of whether you go to religious services or not, would you say you are:"
-Q80,0.241,value,"Here are the names of a number of organisations. For each one, please indicate how much confidence you have in them: is it a great deal of confidence, quite a lot of confidence, not very much confidence or none at all? — Women's organisations"
-Q39,0.238,value,How much do you agree or disagree with the following statements? — People who don't work turn lazy
-Q223,0.232,value,If there were a national election tomorrow which party would you vote for? And which Party would be your second choice?
-employment_respondent,0.23187651830747041,demographic,employment_respondent
-Q253,0.231,value,How much respect is there for individual human rights nowadays in New Zealand? Do you feel there is:
-Q84,0.228,value,"Here are the names of a number of organisations. For each one, please indicate how much confidence you have in them: is it a great deal of confidence, quite a lot of confidence, not very much confidence or none at all? — The International Monetary Fund (IMF)"
-employment_spouse,0.2265163816244238,demographic,employment_spouse
-Q171,0.226,value,"Apart from weddings, funerals and christenings, about how often do you attend religious services these days?"
-Q166,0.226,value,"Which, if any, of the following do you believe in? — Life after death"
-Q17,0.224,value,"Here is a list of qualities that children can be encouraged to learn at home. Which, if any, do you consider to be especially important? — Obedience"
-Q42,0.223,value,Listed below are three basic kinds of attitudes concerning the society we live in. Please choose the one that best describes your own opinion.
-Q147,0.223,value,To what degree are you worried about the following situations? — A terrorist attack
-Q163,0.222,value,"Here are some statements about science and technology. How much do you agree or disagree with each of these statements? For these questions, a 1 means that you ""completely disagree"" and a 10 means that you ""completely agree."" — The world is better off because of science and technology"
-Q89,0.221,value,"Here are the names of a number of organisations. For each one, please indicate how much confidence you have in them: is it a great deal of confidence, quite a lot of confidence, not very much confidence or none at all? — The World Trade Organisation (WTO)"
-Q178,0.22,value,"Please indicate for each of the following statements whether you think it can always be justified, never be justified, or something in between. (1 = Never justifiable, 10 = Always justifiable) — Avoiding a fare on public transport"
-social_class,0.21887195096719692,demographic,social_class
-Q109,0.216,value,How would you place your views on this scale? 1 means you agree completely with the statement on the left; 10 means you agree completely with the statement on the right. — Competition is good vs Competition is harmful
-Q188,0.214,value,"Please indicate for each of the following statements whether you think it can always be justified, never be justified, or something in between. (1 = Never justifiable, 10 = Always justifiable) — Euthanasia"
-occupation_spouse,0.21336061995781258,demographic,occupation_spouse
-Q75,0.212,value,"Here are the names of a number of organisations. For each one, please indicate how much confidence you have in them: is it a great deal of confidence, quite a lot of confidence, not very much confidence or none at all? — Universities"
-Q227,0.21,value,In your view how often do each of the following things occur in New Zealand's elections? — Voters are bribed
-Q45,0.21,value,"Listed below are various changes in our way of life that might take place in the near future. Please indicate whether you think each would be a good thing, a bad thing, or don't you mind? — Greater respect for authority"
-Q129,0.208,value,"What have been the effects of immigration on the development of New Zealand? For each of the following statements, please indicate whether you agree or disagree with it. — Leads to social conflict"
-Q117,0.208,value,"Among the following groups of people, how many do you believe are involved in corruption? — Journalists and media"
-Q11,0.208,value,"Here is a list of qualities that children can be encouraged to learn at home. Which, if any, do you consider to be especially important? — Imagination"
-Q94,0.205,value,"Listed below are different types of voluntary organisations. For each, are you an active member, an inactive member, or don't you belong? — Church or religious organisation"
-Q220,0.203,value,"Listed below are some other forms of political action people can take using internet and social media tools like Facebook, Twitter, etc. For each one please indicate whether you have done any of these things, whether you might do it, would never under any circumstances do it. — Organising political activities, events, protests"
-Q100,0.202,value,"Listed below are different types of voluntary organisations. For each, are you an active member, an inactive member, or don't you belong? — Professional association"
-Q52,0.201,value,"In the last 12 months, how often have you or your family: — Felt unsafe from crime in your own home"
-Q70,0.195,value,"Here are the names of a number of organisations. For each one, please indicate how much confidence you have in them: is it a great deal of confidence, quite a lot of confidence, not very much confidence or none at all? — The courts"
-Q90,0.193,value,"People sometimes say that international organisations should prioritise improving people's lives, even if this may imply that decisions are not made democratically. What do you think international organisations should prioritise, being effective or being democratic? If your views are somewhat mixed, choose the appropriate number in between. (1 = Being effective, 10 = Being democratic)"
-Q224,0.193,value,In your view how often do each of the following things occur in New Zealand's elections? — Votes are counted fairly
-Q131,0.193,value,Please tell us how secure you feel these days in your neighbourhood?
-Q50,0.19,value,"How satisfied are you with the financial situation of your household? Please use this scale where 1 means ""completely dissatisfied"" and 10 means ""completely satisfied""."
-Q108,0.19,value,How would you place your views on this scale? 1 means you agree completely with the statement on the left; 10 means you agree completely with the statement on the right. — Government should take more responsibility vs People should take more responsibility
-Q120,0.189,value,"How high is the risk in New Zealand of being held accountable for giving or receiving a bribe, gift or favour in return for public service? Please indicate your opinion on the 10 point scale below, where 1 means ""no risk at all"" and 10 means ""very high risk""."
-Q209,0.189,value,"Here are some different forms of political action that people can take. For each one, please indicate whether you have actually done any of these things, whether you might do it or would never, under any circumstances, do it. — Signing a petition"
-Q156,0.189,value,"Here is another list. In your opinion, which one of these is most important? And which would be the next most important?"
-Q66,0.184,value,"Here are the names of a number of organisations. For each one, please indicate how much confidence you have in them: is it a great deal of confidence, quite a lot of confidence, not very much confidence or none at all? — The press"
-Q226,0.183,value,In your view how often do each of the following things occur in New Zealand's elections? — TV news favours the governing party
-Q139,0.182,value,Which of the following things have you done for reasons of security? — Didn't carry much money
-Q110,0.178,value,How would you place your views on this scale? 1 means you agree completely with the statement on the left; 10 means you agree completely with the statement on the right. — Hard work brings a better life vs Hard work doesn't bring success
-Q87,0.178,value,"Here are the names of a number of organisations. For each one, please indicate how much confidence you have in them: is it a great deal of confidence, quite a lot of confidence, not very much confidence or none at all? — The World Bank"
-Q106,0.176,value,How would you place your views on this scale? 1 means you agree completely with the statement on the left; 10 means you agree completely with the statement on the right. — Incomes should be made more equal vs There should be greater incentives for individual effort
-Q248,0.174,value,"Many things are desirable, but not all of them are essential characteristics of democracy. Please tell us, for each of the following things how essential you think it is as a characteristic of democracy? Use this scale where 1 means ""not at all an essential characteristic of democracy"" and 10 means it definitely is ""an essential characteristic of democracy"". — People obey their rulers"
-Q199,0.172,value,How interested would you say you are in politics?
-Q158,0.172,value,"Here are some statements about science and technology. How much do you agree or disagree with each of these statements? For these questions, a 1 means that you ""completely disagree"" and a 10 means that you ""completely agree."" — Science and technology are making our lives healthier, easier, and more comfortable"
-Q180,0.171,value,"Please indicate for each of the following statements whether you think it can always be justified, never be justified, or something in between. (1 = Never justifiable, 10 = Always justifiable) — Cheating on taxes"
-Q241,0.17,value,"Many things are desirable, but not all of them are essential characteristics of democracy. Please tell us, for each of the following things how essential you think it is as a characteristic of democracy? Use this scale where 1 means ""not at all an essential characteristic of democracy"" and 10 means it definitely is ""an essential characteristic of democracy"". — Governments tax the rich and subsidize the poor"
-Q150,0.17,value,"Most people consider both freedom and security to be important, but if you had to choose between them, which one would you consider most important?"
-Q37,0.167,value,How much do you agree or disagree with the following statements? — It is a duty towards society to have children
-Q127,0.166,value,"What have been the effects of immigration on the development of New Zealand? For each of the following statements, please indicate whether you agree or disagree with it. — Offers people from poorer countries a better living"
-Q244,0.166,value,"Many things are desirable, but not all of them are essential characteristics of democracy. Please tell us, for each of the following things how essential you think it is as a characteristic of democracy? Use this scale where 1 means ""not at all an essential characteristic of democracy"" and 10 means it definitely is ""an essential characteristic of democracy"". — People receive state aid for unemployment"
-Q133,0.165,value,How frequently do the following things occur in your neighbourhood? — Alcohol consumption in the streets
-Q107,0.163,value,How would you place your views on this scale? 1 means you agree completely with the statement on the left; 10 means you agree completely with the statement on the right. — Private ownership should be increased vs Government ownership should be increased
-Q214,0.163,value,"For each social activism action, have you done it, might do it, or would never do it? — Contacting a government official"
-Q15,0.161,value,"Here is a list of qualities that children can be encouraged to learn at home. Which, if any, do you consider to be especially important? — Religious faith"
-region,0.16039138150709423,demographic,region
-Q5,0.158,value,"Please indicate, for each of the following, how important it is in your life. — Work"
-Q132,0.158,value,How frequently do the following things occur in your neighbourhood? — Robberies
-Q134,0.155,value,How frequently do the following things occur in your neighbourhood? — Police or military interference with people's private life
-Q247,0.154,value,"Many things are desirable, but not all of them are essential characteristics of democracy. Please tell us, for each of the following things how essential you think it is as a characteristic of democracy? Use this scale where 1 means ""not at all an essential characteristic of democracy"" and 10 means it definitely is ""an essential characteristic of democracy"". — The state makes people's incomes equal"
-Q48,0.152,value,"Some people feel they have completely free choice and control over their lives, while other people feel that what they do has no real effect on what happens to them. Please use this scale where 1 means ""none at all"" and 10 means ""a great deal"" to indicate how much freedom of choice and control you feel you have over the way your life turns out."
-Q28,0.151,value,"People talk about the changing roles of men and women today. For each of the following statements, please indicate how much you agree or disagree. — A preschool child suffers if their mother works"
-Q72,0.151,value,"Here are the names of a number of organisations. For each one, please indicate how much confidence you have in them: is it a great deal of confidence, quite a lot of confidence, not very much confidence or none at all? — Political parties"
-Q237,0.149,value,"Listed below are various types of political systems. Please think about each one as a way of governing this country. For each one, would you say it is a very good, fairly good, fairly bad or very bad way of governing this country? — Having the army rule"
-Q51,0.147,value,"In the last 12 months, how often have you or your family: — Gone without enough food to eat"
-Q200,0.147,value,"When you get together with friends, would you say you discuss political matters frequently, occasionally or never?"
-Q174,0.146,value,Meaning of religion: To follow religious norms and ceremonies vs To do good to other people
-Q146,0.144,value,To what degree are you worried about the following situations? — A war involving my country
-Q7,0.144,value,"Here is a list of qualities that children can be encouraged to learn at home. Which, if any, do you consider to be especially important? — Good manners"
-Q206,0.144,value,How often do you use each of the following information sources? — Internet
-Q49,0.144,value,"All things considered, how satisfied are you with your life as a whole these days? Please use this scale where 1 means you are ""completely dissatisfied"" and 10 means you are ""completely satisfied""."
-savings,0.14379953324981148,demographic,savings
-Q136,0.143,value,How frequently do the following things occur in your neighbourhood? — Drug sales in streets
-Q177,0.138,value,"Please indicate for each of the following statements whether you think it can always be justified, never be justified, or something in between. (1 = Never justifiable, 10 = Always justifiable) — Claiming government benefits to which you are not entitled"
-Q231,0.135,value,In your view how often do each of the following things occur in New Zealand's elections? — Voters are threatened with violence at the polls
-Q22,0.134,value,Here are various groups of people. Could you please tick any that you would not like to have as neighbours? — Homosexuals
-Q20,0.134,value,Here are various groups of people. Could you please tick any that you would not like to have as neighbours? — People who have AIDS
-Q47,0.133,value,"All in all, how would you describe your state of health these days? Would you say it is:"
-Q159,0.133,value,"Here are some statements about science and technology. How much do you agree or disagree with each of these statements? For these questions, a 1 means that you ""completely disagree"" and a 10 means that you ""completely agree."" — Because of science and technology, there will be more opportunities for the next generation"
-townsize,0.13080551831680068,demographic,townsize
-Q179,0.128,value,"Please indicate for each of the following statements whether you think it can always be justified, never be justified, or something in between. (1 = Never justifiable, 10 = Always justifiable) — Stealing property"
-Q54,0.128,value,"In the last 12 months, how often have you or your family: — Gone without a cash income"
-Q153,0.128,value,"People sometimes talk about what the aims of this country should be for the next ten years. Listed below are some of the goals which different people would give top priority. Would you please say which one of these you, yourself, consider the most important? And which would be the next most important?"
-Q96,0.128,value,"Listed below are different types of voluntary organisations. For each, are you an active member, an inactive member, or don't you belong? — Art, music or educational organisation"
-Q60,0.126,value,Here are some questions about how much you trust people from various groups. Please indicate how much you trust... — People you know personally
-Q239,0.123,value,"Listed below are various types of political systems. Please think about each one as a way of governing this country. For each one, would you say it is a very good, fairly good, fairly bad or very bad way of governing this country? — Having a system governed by religious law in which there are no political parties or elections"
-Q77,0.123,value,"Here are the names of a number of organisations. For each one, please indicate how much confidence you have in them: is it a great deal of confidence, quite a lot of confidence, not very much confidence or none at all? — Major companies"
-Q4,0.122,value,"Please indicate, for each of the following, how important it is in your life. — Politics"
-Q64,0.121,value,"Here are the names of a number of organisations. For each one, please indicate how much confidence you have in them: is it a great deal of confidence, quite a lot of confidence, not very much confidence or none at all? — The churches"
-Q228,0.121,value,In your view how often do each of the following things occur in New Zealand's elections? — Journalists provide fair coverage of elections
-Q137,0.118,value,How frequently do the following things occur in your neighbourhood? — Street violence and fights
-Q255,0.117,value,"People have different views about themselves and how they relate to the world. Please tell us how close you feel to... — Your village, town or city where you live"
-Q230,0.117,value,In your view how often do each of the following things occur in New Zealand's elections? — Rich people buy elections
-household_size,0.11643094403483231,demographic,household_size
-Q194,0.116,value,"Please indicate for each of the following statements whether you think it can always be justified, never be justified, or something in between. (1 = Never justifiable, 10 = Always justifiable) — Political violence"
-Q43,0.116,value,"Listed below are various changes in our way of life that might take place in the near future. Please indicate whether you think each would be a good thing, a bad thing, or don't you mind? — Less importance placed on work"
-Q259,0.115,value,People have different views about themselves and how they relate to the world. Please tell us how close you feel to... — The world as a whole
-Q99,0.115,value,"Listed below are different types of voluntary organisations. For each, are you an active member, an inactive member, or don't you belong? — Environmental organisation"
-Q95,0.115,value,"Listed below are different types of voluntary organisations. For each, are you an active member, an inactive member, or don't you belong? — Sport or recreational organisation"
-Q13,0.114,value,"Here is a list of qualities that children can be encouraged to learn at home. Which, if any, do you consider to be especially important? — Thrift, saving money and things"
-Q202,0.114,value,How often do you use each of the following information sources? — TV news
-Q154,0.114,value,"If you had to choose, which one of the things on this card would you say is most important? And which would be the next most important?"
-Q191,0.113,value,"Please indicate for each of the following statements whether you think it can always be justified, never be justified, or something in between. (1 = Never justifiable, 10 = Always justifiable) — Violence against other people"
-Q115,0.113,value,"Among the following groups of people, how many do you believe are involved in corruption? — Local authorities"
-Q44,0.111,value,"Listed below are various changes in our way of life that might take place in the near future. Please indicate whether you think each would be a good thing, a bad thing, or don't you mind? — More emphasis on the development of technology"
-Q113,0.111,value,"Among the following groups of people, how many do you believe are involved in corruption? — State authorities"
-Q53,0.111,value,"In the last 12 months, how often have you or your family: — Gone without needed medicine or medical treatment that you needed"
-Q114,0.111,value,"Among the following groups of people, how many do you believe are involved in corruption? — Business executives"
-Q143,0.11,value,To what degree are you worried about the following situations? — Not being able to give my children a good education
-Q142,0.108,value,To what degree are you worried about the following situations? — Losing my job or not finding a job
-marital_status,0.10640460733291786,demographic,marital_status
-employment_sector,0.10540331236737714,demographic,employment_sector
-Q155,0.104,value,"If you had to choose, which one of the things on this card would you say is most important? And which would be the next most important?"
-children,0.1031439825353749,demographic,children
-Q59,0.103,value,Here are some questions about how much you trust people from various groups. Please indicate how much you trust... — Your neighbourhood
-Q204,0.102,value,"How often do you use each of the following information sources? — Mobile phone (text, apps, alerts)"
-Q8,0.102,value,"Here is a list of qualities that children can be encouraged to learn at home. Which, if any, do you consider to be especially important? — Independence"
-Q3,0.101,value,"Please indicate, for each of the following, how important it is in your life. — Leisure time"
-Q58,0.099,value,Here are some questions about how much you trust people from various groups. Please indicate how much you trust... — Your family
-Q258,0.098,value,People have different views about themselves and how they relate to the world. Please tell us how close you feel to... — The South Pacific
-Q12,0.096,value,"Here is a list of qualities that children can be encouraged to learn at home. Which, if any, do you consider to be especially important? — Tolerance and respect for other people"
-Q152,0.093,value,"People sometimes talk about what the aims of this country should be for the next ten years. Listed below are some of the goals which different people would give top priority. Would you please say which one of these you, yourself, consider the most important? And which would be the next most important?"
-Q234,0.093,value,Some people think that having honest elections makes a lot of difference in their lives; other people think that it does not matter much. How important would you say is having honest elections for you?
-Q222,0.092,value,"When elections take place, do you always vote, usually vote, or never vote? Please tell us separately how often you vote at a local level, and at the national level. — National level"
-Q9,0.09,value,"Here is a list of qualities that children can be encouraged to learn at home. Which, if any, do you consider to be especially important? — Hard work"
-Q190,0.09,value,"Please indicate for each of the following statements whether you think it can always be justified, never be justified, or something in between. (1 = Never justifiable, 10 = Always justifiable) — Parents beating children"
-Q91,0.09,value,Five countries have permanent seats on the Security Council of the United Nations. Which one of the following is not a member? — Countries with permanent seats on UN Security Council
-Q205,0.089,value,How often do you use each of the following information sources? — Email
-Q69,0.088,value,"Here are the names of a number of organisations. For each one, please indicate how much confidence you have in them: is it a great deal of confidence, quite a lot of confidence, not very much confidence or none at all? — The police"
-Q257,0.085,value,People have different views about themselves and how they relate to the world. Please tell us how close you feel to... — New Zealand as a whole
-Q97,0.084,value,"Listed below are different types of voluntary organisations. For each, are you an active member, an inactive member, or don't you belong? — Labour union"
-Q203,0.083,value,How often do you use each of the following information sources? — Radio news
-Q197,0.083,value,Do you think that the New Zealand Government should or should not have the right to do each of the following? — Monitor all emails and any other information exchanged on the internet
-Q201,0.082,value,How often do you use each of the following information sources? — Daily newspaper
-mother_birth_country,0.07986499443931103,demographic,mother_birth_country
-birth_country,0.0772230138738697,demographic,birth_country
-Q208,0.075,value,How often do you use each of the following information sources? — Talk with friends or colleagues
-Q65,0.075,value,"Here are the names of a number of organisations. For each one, please indicate how much confidence you have in them: is it a great deal of confidence, quite a lot of confidence, not very much confidence or none at all? — The armed forces"
-Q67,0.075,value,"Here are the names of a number of organisations. For each one, please indicate how much confidence you have in them: is it a great deal of confidence, quite a lot of confidence, not very much confidence or none at all? — Television"
-Q116,0.074,value,"Among the following groups of people, how many do you believe are involved in corruption? — Civil service providers"
-Q40,0.073,value,How much do you agree or disagree with the following statements? — Work is a duty towards society
-Q236,0.072,value,"Listed below are various types of political systems. Please think about each one as a way of governing this country. For each one, would you say it is a very good, fairly good, fairly bad or very bad way of governing this country? — Having experts, not government, make decisions according to what they think is best for the country"
-Q21,0.071,value,Here are various groups of people. Could you please tick any that you would not like to have as neighbours? — Immigrants/foreign workers
-Q232,0.07,value,In your view how often do each of the following things occur in New Zealand's elections? — Voters are offered a genuine choice in the elections
-Q26,0.068,value,Here are various groups of people. Could you please tick any that you would not like to have as neighbours? — People who speak a different language
-Q101,0.068,value,"Listed below are different types of voluntary organisations. For each, are you an active member, an inactive member, or don't you belong? — Charitable/humanitarian organisation"
-Q207,0.067,value,"How often do you use each of the following information sources? — Social media (Facebook, Twitter, etc.)"
-Q55,0.064,value,"In the last 12 months, how often have you or your family: — Gone without a safe shelter over your head"
-father_immigrant,0.0637488093841731,demographic,father_immigrant
-Q198,0.063,value,Do you think that the New Zealand Government should or should not have the right to do each of the following? — Collect information about anyone living in New Zealand without their knowledge
-Q151,0.063,value,"Of course, we all hope there will not be another war, but if it were to come to that, would you be willing to fight for your country?"
-chief_wage_earner,0.06267491215502348,demographic,chief_wage_earner
-home_language,0.062251681139299644,demographic,home_language
-Q2,0.06,value,"Please indicate, for each of the following, how important it is in your life. — Friends"
-Q119,0.06,value,"How strongly do you agree or disagree with the following statement: ""On the whole, women are less corrupt than men""?"
-father_birth_country,0.05922923413362918,demographic,father_birth_country
-Q56,0.059,value,"Comparing your standard of living with your parents' standard of living when they were about your age, would you say that you are better off, worse off, or about the same?"
+Q88,0.419,value,"Here are the names of a number of organisations. For each one, please indicate how much confidence you have in them: is it a great deal of confidence, quite a lot of confidence, not very much confidence or none at all? — The World Health Organisation (WHO)"
+Q182,0.407,value,"Please indicate for each of the following statements whether you think it can always be justified, never be justified, or something in between. (1 = Never justifiable, 10 = Always justifiable) — Homosexuality"
+Q229,0.404,value,In your view how often do each of the following things occur in New Zealand's elections? — Election officials are fair
+Q123,0.402,value,"What have been the effects of immigration on the development of New Zealand? For each of the following statements, please indicate whether you agree or disagree with it. — Strengthens cultural diversity"
+Q76,0.402,value,"Here are the names of a number of organisations. For each one, please indicate how much confidence you have in them: is it a great deal of confidence, quite a lot of confidence, not very much confidence or none at all? — Elections"
+Q121,0.387,value,How would you evaluate the impact of immigrants on the development of New Zealand?
+Q74,0.383,value,"Here are the names of a number of organisations. For each one, please indicate how much confidence you have in them: is it a great deal of confidence, quite a lot of confidence, not very much confidence or none at all? — The Public Service"
+Q183,0.382,value,"Please indicate for each of the following statements whether you think it can always be justified, never be justified, or something in between. (1 = Never justifiable, 10 = Always justifiable) — Prostitution"
+Q73,0.381,value,"Here are the names of a number of organisations. For each one, please indicate how much confidence you have in them: is it a great deal of confidence, quite a lot of confidence, not very much confidence or none at all? — Parliament"
+Q251,0.378,value,"And how democratically is this country being governed today? Again using a scale from 1 to 10, where 1 means that it is ""not at all democratic"" and 10 means that it is ""completely democratic,"" what position would you choose?"
+Q238,0.374,value,"Listed below are various types of political systems. Please think about each one as a way of governing this country. For each one, would you say it is a very good, fairly good, fairly bad or very bad way of governing this country? — Having a democratic political system"
+Q235,0.363,value,"Listed below are various types of political systems. Please think about each one as a way of governing this country. For each one, would you say it is a very good, fairly good, fairly bad or very bad way of governing this country? — Having a strong leader who does not have to bother with parliament and elections"
+Q161,0.36,value,"Here are some statements about science and technology. How much do you agree or disagree with each of these statements? For these questions, a 1 means that you ""completely disagree"" and a 10 means that you ""completely agree."" — One of the bad effects of science is that it breaks down people's ideas of right and wrong"
+Q71,0.359,value,"Here are the names of a number of organisations. For each one, please indicate how much confidence you have in them: is it a great deal of confidence, quite a lot of confidence, not very much confidence or none at all? — The government in Wellington"
+Q57,0.354,value,"Generally speaking, would you say that most people can be trusted or that you need to be very careful in dealing with people?"
+Q225,0.351,value,In your view how often do each of the following things occur in New Zealand's elections? — Opposition candidates are prevented from running
+Q246,0.35,value,"Many things are desirable, but not all of them are essential characteristics of democracy. Please tell us, for each of the following things how essential you think it is as a characteristic of democracy? Use this scale where 1 means ""not at all an essential characteristic of democracy"" and 10 means it definitely is ""an essential characteristic of democracy"". — Civil rights protect people from state oppression"
+Q126,0.348,value,"What have been the effects of immigration on the development of New Zealand? For each of the following statements, please indicate whether you agree or disagree with it. — Increases the risk of terrorism"
+Q83,0.343,value,"Here are the names of a number of organisations. For each one, please indicate how much confidence you have in them: is it a great deal of confidence, quite a lot of confidence, not very much confidence or none at all? — The United Nations"
+education_respondent_cs,0.34256789938441257,demographic,education_respondent_cs
+Q186,0.341,value,"Please indicate for each of the following statements whether you think it can always be justified, never be justified, or something in between. (1 = Never justifiable, 10 = Always justifiable) — Sex before marriage"
+Q170,0.341,value,How much do you agree or disagree with the following statements? — The only acceptable religion is my religion
+Q210,0.341,value,"Here are some different forms of political action that people can take. For each one, please indicate whether you have actually done any of these things, whether you might do it or would never, under any circumstances, do it. — Joining in boycotts"
+Q85,0.34,value,"Here are the names of a number of organisations. For each one, please indicate how much confidence you have in them: is it a great deal of confidence, quite a lot of confidence, not very much confidence or none at all? — International Criminal Court (ICC)"
+Q79,0.339,value,"Here are the names of a number of organisations. For each one, please indicate how much confidence you have in them: is it a great deal of confidence, quite a lot of confidence, not very much confidence or none at all? — Environmental organisations"
+Q240,0.338,value,"In political matters, people talk of ""the left"" and ""the right"". How would you place your views on this scale, generally speaking? (1 = Left, 10 = Right)"
+Q125,0.338,value,"What have been the effects of immigration on the development of New Zealand? For each of the following statements, please indicate whether you agree or disagree with it. — Gives asylum to political refugees who are persecuted elsewhere"
+Q81,0.337,value,"Here are the names of a number of organisations. For each one, please indicate how much confidence you have in them: is it a great deal of confidence, quite a lot of confidence, not very much confidence or none at all? — Charitable or humanitarian organisations"
+Q211,0.335,value,"Here are some different forms of political action that people can take. For each one, please indicate whether you have actually done any of these things, whether you might do it or would never, under any circumstances, do it. — Attending peaceful demonstrations"
+Q215,0.332,value,"For each social activism action, have you done it, might do it, or would never do it? — Encouraging others to take action about political issues"
+Q185,0.327,value,"Please indicate for each of the following statements whether you think it can always be justified, never be justified, or something in between. (1 = Never justifiable, 10 = Always justifiable) — Divorce"
+Q160,0.326,value,"Here are some statements about science and technology. How much do you agree or disagree with each of these statements? For these questions, a 1 means that you ""completely disagree"" and a 10 means that you ""completely agree."" — We depend too much on science and not enough on faith"
+Q157,0.32,value,"Here is another list. In your opinion, which one of these is most important? And which would be the next most important?"
+Q117,0.319,value,"Among the following groups of people, how many do you believe are involved in corruption? — Journalists and media"
+Q227,0.319,value,In your view how often do each of the following things occur in New Zealand's elections? — Voters are bribed
+Q230,0.316,value,In your view how often do each of the following things occur in New Zealand's elections? — Rich people buy elections
+Q252,0.315,value,"How satisfied are you with how the political system is functioning in New Zealand these days? On the scale from 1 to 10 below, 1 means not satisfied at all and 10 means completely satisfied."
+Q111,0.314,value,Here are two statements people sometimes make when discussing the environment and economic growth. Which one comes closest to your own point of view?
+education_respondent,0.31353294071240134,demographic,education_respondent
+Q224,0.313,value,In your view how often do each of the following things occur in New Zealand's elections? — Votes are counted fairly
+Q216,0.312,value,"For each social activism action, have you done it, might do it, or would never do it? — Encouraging others to vote"
+Q243,0.309,value,"Many things are desirable, but not all of them are essential characteristics of democracy. Please tell us, for each of the following things how essential you think it is as a characteristic of democracy? Use this scale where 1 means ""not at all an essential characteristic of democracy"" and 10 means it definitely is ""an essential characteristic of democracy"". — People choose their leaders in free elections"
+Q29,0.307,value,"People talk about the changing roles of men and women today. For each of the following statements, please indicate how much you agree or disagree. — Men make better political leaders than women do"
+Q217,0.306,value,"Listed below are some other forms of political action people can take using internet and social media tools like Facebook, Twitter, etc. For each one please indicate whether you have done any of these things, whether you might do it, would never under any circumstances do it. — Searching information about politics and political events"
+Q112,0.304,value,"How would you place your views on corruption in New Zealand on a 10-point scale where 1 means ""there is no corruption in New Zealand"" and 10 means ""there is abundant corruption in New Zealand""?"
+Q162,0.304,value,"Here are some statements about science and technology. How much do you agree or disagree with each of these statements? For these questions, a 1 means that you ""completely disagree"" and a 10 means that you ""completely agree."" — It is not important for me to know about science in my daily life"
+Q30,0.303,value,"People talk about the changing roles of men and women today. For each of the following statements, please indicate how much you agree or disagree. — A university education is more important for a boy than a girl"
+Q169,0.303,value,"How much do you agree or disagree with the following statements? — Whenever science and religion conflict, religion is always right"
+Q63,0.302,value,Here are some questions about how much you trust people from various groups. Please indicate how much you trust... — People of another nationality
+Q231,0.301,value,In your view how often do each of the following things occur in New Zealand's elections? — Voters are threatened with violence at the polls
+Q128,0.301,value,"What have been the effects of immigration on the development of New Zealand? For each of the following statements, please indicate whether you agree or disagree with it. — Increases unemployment"
+occupation_respondent,0.30007732621651095,demographic,occupation_respondent
+Q153,0.3,value,"People sometimes talk about what the aims of this country should be for the next ten years. Listed below are some of the goals which different people would give top priority. Would you please say which one of these you, yourself, consider the most important? And which would be the next most important?"
+Q89,0.3,value,"Here are the names of a number of organisations. For each one, please indicate how much confidence you have in them: is it a great deal of confidence, quite a lot of confidence, not very much confidence or none at all? — The World Trade Organisation (WTO)"
+Q75,0.3,value,"Here are the names of a number of organisations. For each one, please indicate how much confidence you have in them: is it a great deal of confidence, quite a lot of confidence, not very much confidence or none at all? — Universities"
+Q124,0.297,value,"What have been the effects of immigration on the development of New Zealand? For each of the following statements, please indicate whether you agree or disagree with it. — Increases the crime rate"
+Q184,0.296,value,"Please indicate for each of the following statements whether you think it can always be justified, never be justified, or something in between. (1 = Never justifiable, 10 = Always justifiable) — Abortion"
+Q250,0.293,value,"How important is it for you to live in a country that is governed democratically? On this scale where 1 means it is ""not at all important"" and 10 means ""absolutely important"" what position would you choose?"
+Q147,0.287,value,To what degree are you worried about the following situations? — A terrorist attack
+Q148,0.287,value,To what degree are you worried about the following situations? — A civil war
+Q61,0.287,value,Here are some questions about how much you trust people from various groups. Please indicate how much you trust... — People you meet for the first time
+Q163,0.286,value,"Here are some statements about science and technology. How much do you agree or disagree with each of these statements? For these questions, a 1 means that you ""completely disagree"" and a 10 means that you ""completely agree."" — The world is better off because of science and technology"
+Q219,0.285,value,"Listed below are some other forms of political action people can take using internet and social media tools like Facebook, Twitter, etc. For each one please indicate whether you have done any of these things, whether you might do it, would never under any circumstances do it. — Encouraging other people to take any form of political action"
+Q168,0.283,value,"Which, if any, of the following do you believe in? — Heaven"
+Q122,0.282,value,"What have been the effects of immigration on the development of New Zealand? For each of the following statements, please indicate whether you agree or disagree with it. — Fills important job vacancies"
+Q62,0.281,value,Here are some questions about how much you trust people from various groups. Please indicate how much you trust... — People of another religion
+occupation_father,0.2805071406954151,demographic,occupation_father
+education_spouse_cs,0.2798886697499292,demographic,education_spouse_cs
+education_spouse,0.2783507238519208,demographic,education_spouse
+Q195,0.278,value,"Please indicate for each of the following statements whether you think it can always be justified, never be justified, or something in between. (1 = Never justifiable, 10 = Always justifiable) — Death penalty"
+Q155,0.276,value,"If you had to choose, which one of the things on this card would you say is most important? And which would be the next most important?"
+Q253,0.275,value,How much respect is there for individual human rights nowadays in New Zealand? Do you feel there is:
+Q176,0.275,value,"How much do you agree or disagree with the statement that nowadays one often has trouble deciding which moral rules are the right ones to follow? (1 = Completely agree, 10 = Completely disagree)"
+Q193,0.274,value,"Please indicate for each of the following statements whether you think it can always be justified, never be justified, or something in between. (1 = Never justifiable, 10 = Always justifiable) — Having casual sex"
+education_father_cs,0.27367429368032986,demographic,education_father_cs
+Q234A,0.272,value,How much does the political system allow you to have a say?
+Q80,0.272,value,"Here are the names of a number of organisations. For each one, please indicate how much confidence you have in them: is it a great deal of confidence, quite a lot of confidence, not very much confidence or none at all? — Women's organisations"
+Q34,0.271,value,"Do you agree or disagree with the following statements? — When jobs are scarce, employers should give priority to New Zealanders over immigrants"
+Q249,0.268,value,"Many things are desirable, but not all of them are essential characteristics of democracy. Please tell us, for each of the following things how essential you think it is as a characteristic of democracy? Use this scale where 1 means ""not at all an essential characteristic of democracy"" and 10 means it definitely is ""an essential characteristic of democracy"". — Women have the same rights as men"
+Q70,0.266,value,"Here are the names of a number of organisations. For each one, please indicate how much confidence you have in them: is it a great deal of confidence, quite a lot of confidence, not very much confidence or none at all? — The courts"
+Q140,0.265,value,Which of the following things have you done for reasons of security? — Preferred not to go out at night
+Q68,0.264,value,"Here are the names of a number of organisations. For each one, please indicate how much confidence you have in them: is it a great deal of confidence, quite a lot of confidence, not very much confidence or none at all? — Trade unions"
+education_mother_cs,0.26110879408739274,demographic,education_mother_cs
+Q92,0.26,value,Where are the headquarters of the International Monetary Fund (IMF) located? — Where are the headquarters of the IMF located?
+Q91,0.259,value,Five countries have permanent seats on the Security Council of the United Nations. Which one of the following is not a member? — Countries with permanent seats on UN Security Council
+Q164,0.256,value,How important is God in your life? Please use this scale to indicate your strength of belief: 1 means not at all important and 10 means very important.
+Q93,0.256,value,"Which one of the following problems does the organisation, Amnesty International, deal with? — Which problem does Amnesty International deal with?"
+Q113,0.254,value,"Among the following groups of people, how many do you believe are involved in corruption? — State authorities"
+Q212,0.253,value,"Here are some different forms of political action that people can take. For each one, please indicate whether you have actually done any of these things, whether you might do it or would never, under any circumstances, do it. — Joining strikes"
+Q226,0.253,value,In your view how often do each of the following things occur in New Zealand's elections? — TV news favours the governing party
+Q84,0.251,value,"Here are the names of a number of organisations. For each one, please indicate how much confidence you have in them: is it a great deal of confidence, quite a lot of confidence, not very much confidence or none at all? — The International Monetary Fund (IMF)"
+Q214,0.249,value,"For each social activism action, have you done it, might do it, or would never do it? — Contacting a government official"
+Q199,0.247,value,How interested would you say you are in politics?
+Q130,0.245,value,How about people from other countries coming here to work. Which one of the following do you think the government should do?
+Q245,0.244,value,"Many things are desirable, but not all of them are essential characteristics of democracy. Please tell us, for each of the following things how essential you think it is as a characteristic of democracy? Use this scale where 1 means ""not at all an essential characteristic of democracy"" and 10 means it definitely is ""an essential characteristic of democracy"". — The army takes over when government is incompetent"
+education_mother,0.2431440018734788,demographic,education_mother
+education_father,0.24273164164844246,demographic,education_father
+Q31,0.242,value,"People talk about the changing roles of men and women today. For each of the following statements, please indicate how much you agree or disagree. — Men make better business executives than women do"
+Q87,0.242,value,"Here are the names of a number of organisations. For each one, please indicate how much confidence you have in them: is it a great deal of confidence, quite a lot of confidence, not very much confidence or none at all? — The World Bank"
+Q131,0.242,value,Please tell us how secure you feel these days in your neighbourhood?
+Q33,0.24,value,"Do you agree or disagree with the following statements? — When jobs are scarce, men should have more right to a job than women"
+Q115,0.24,value,"Among the following groups of people, how many do you believe are involved in corruption? — Local authorities"
+Q14,0.238,value,"Here is a list of qualities that children can be encouraged to learn at home. Which, if any, do you consider to be especially important? — Determination, perseverance"
+Q218,0.238,value,"Listed below are some other forms of political action people can take using internet and social media tools like Facebook, Twitter, etc. For each one please indicate whether you have done any of these things, whether you might do it, would never under any circumstances do it. — Signing an electronic petition"
+Q129,0.237,value,"What have been the effects of immigration on the development of New Zealand? For each of the following statements, please indicate whether you agree or disagree with it. — Leads to social conflict"
+Q237,0.237,value,"Listed below are various types of political systems. Please think about each one as a way of governing this country. For each one, would you say it is a very good, fairly good, fairly bad or very bad way of governing this country? — Having the army rule"
+Q213,0.233,value,"For each social activism action, have you done it, might do it, or would never do it? — Donating to a group or campaign"
+Q242,0.233,value,"Many things are desirable, but not all of them are essential characteristics of democracy. Please tell us, for each of the following things how essential you think it is as a characteristic of democracy? Use this scale where 1 means ""not at all an essential characteristic of democracy"" and 10 means it definitely is ""an essential characteristic of democracy"". — Religious authorities ultimately interpret the laws"
+Q167,0.232,value,"Which, if any, of the following do you believe in? — Hell"
+Q114,0.232,value,"Among the following groups of people, how many do you believe are involved in corruption? — Business executives"
+Q109,0.228,value,How would you place your views on this scale? 1 means you agree completely with the statement on the left; 10 means you agree completely with the statement on the right. — Competition is good vs Competition is harmful
+Q27,0.227,value,"People talk about the changing roles of men and women today. For each of the following statements, please indicate how much you agree or disagree. — One of my main goals in life has been to make my parents proud"
+occupation_spouse,0.2250966162361024,demographic,occupation_spouse
+Q187,0.224,value,"Please indicate for each of the following statements whether you think it can always be justified, never be justified, or something in between. (1 = Never justifiable, 10 = Always justifiable) — Suicide"
+Q6,0.224,value,"Please indicate, for each of the following, how important it is in your life. — Religion"
+Q158,0.222,value,"Here are some statements about science and technology. How much do you agree or disagree with each of these statements? For these questions, a 1 means that you ""completely disagree"" and a 10 means that you ""completely agree."" — Science and technology are making our lives healthier, easier, and more comfortable"
+Q35,0.221,value,"Do you agree or disagree with the following statements? — If a woman earns more than her husband, it is almost certain to cause problems"
+social_class,0.21680235298219042,demographic,social_class
+Q42,0.214,value,Listed below are three basic kinds of attitudes concerning the society we live in. Please choose the one that best describes your own opinion.
+Q165,0.214,value,"Which, if any, of the following do you believe in? — God"
+Q36,0.213,value,How much do you agree or disagree with the following statements? — Homosexual couples are as good parents as other couples
+income_scale,0.21159126474552697,demographic,income_scale
+Q100,0.208,value,"Listed below are different types of voluntary organisations. For each, are you an active member, an inactive member, or don't you belong? — Professional association"
+Q220,0.208,value,"Listed below are some other forms of political action people can take using internet and social media tools like Facebook, Twitter, etc. For each one please indicate whether you have done any of these things, whether you might do it, would never under any circumstances do it. — Organising political activities, events, protests"
+Q146,0.207,value,To what degree are you worried about the following situations? — A war involving my country
+Q116,0.204,value,"Among the following groups of people, how many do you believe are involved in corruption? — Civil service providers"
+Q90,0.204,value,"People sometimes say that international organisations should prioritise improving people's lives, even if this may imply that decisions are not made democratically. What do you think international organisations should prioritise, being effective or being democratic? If your views are somewhat mixed, choose the appropriate number in between. (1 = Being effective, 10 = Being democratic)"
+Q209,0.203,value,"Here are some different forms of political action that people can take. For each one, please indicate whether you have actually done any of these things, whether you might do it or would never, under any circumstances, do it. — Signing a petition"
+Q200,0.203,value,"When you get together with friends, would you say you discuss political matters frequently, occasionally or never?"
+Q172,0.203,value,"Apart from weddings and funerals, about how often do you pray?"
+religion,0.1987371642834529,demographic,religion
+Q139,0.198,value,Which of the following things have you done for reasons of security? — Didn't carry much money
+Q228,0.197,value,In your view how often do each of the following things occur in New Zealand's elections? — Journalists provide fair coverage of elections
+Q41,0.195,value,"How much do you agree or disagree with the following statements? — Work should always come first, even if it means less spare time"
+Q223,0.195,value,If there were a national election tomorrow which party would you vote for? And which Party would be your second choice?
+Q127,0.194,value,"What have been the effects of immigration on the development of New Zealand? For each of the following statements, please indicate whether you agree or disagree with it. — Offers people from poorer countries a better living"
+Q17,0.194,value,"Here is a list of qualities that children can be encouraged to learn at home. Which, if any, do you consider to be especially important? — Obedience"
+Q66,0.191,value,"Here are the names of a number of organisations. For each one, please indicate how much confidence you have in them: is it a great deal of confidence, quite a lot of confidence, not very much confidence or none at all? — The press"
+age,0.1897674912562541,demographic,age
+birth_year,0.18976749125625408,demographic,birth_year
+Q77,0.188,value,"Here are the names of a number of organisations. For each one, please indicate how much confidence you have in them: is it a great deal of confidence, quite a lot of confidence, not very much confidence or none at all? — Major companies"
+Q72,0.187,value,"Here are the names of a number of organisations. For each one, please indicate how much confidence you have in them: is it a great deal of confidence, quite a lot of confidence, not very much confidence or none at all? — Political parties"
+Q244,0.183,value,"Many things are desirable, but not all of them are essential characteristics of democracy. Please tell us, for each of the following things how essential you think it is as a characteristic of democracy? Use this scale where 1 means ""not at all an essential characteristic of democracy"" and 10 means it definitely is ""an essential characteristic of democracy"". — People receive state aid for unemployment"
+Q133,0.183,value,How frequently do the following things occur in your neighbourhood? — Alcohol consumption in the streets
+Q50,0.183,value,"How satisfied are you with the financial situation of your household? Please use this scale where 1 means ""completely dissatisfied"" and 10 means ""completely satisfied""."
+Q239,0.181,value,"Listed below are various types of political systems. Please think about each one as a way of governing this country. For each one, would you say it is a very good, fairly good, fairly bad or very bad way of governing this country? — Having a system governed by religious law in which there are no political parties or elections"
+Q107,0.18,value,How would you place your views on this scale? 1 means you agree completely with the statement on the left; 10 means you agree completely with the statement on the right. — Private ownership should be increased vs Government ownership should be increased
+Q120,0.18,value,"How high is the risk in New Zealand of being held accountable for giving or receiving a bribe, gift or favour in return for public service? Please indicate your opinion on the 10 point scale below, where 1 means ""no risk at all"" and 10 means ""very high risk""."
+Q178,0.178,value,"Please indicate for each of the following statements whether you think it can always be justified, never be justified, or something in between. (1 = Never justifiable, 10 = Always justifiable) — Avoiding a fare on public transport"
+Q134,0.176,value,How frequently do the following things occur in your neighbourhood? — Police or military interference with people's private life
+Q132,0.175,value,How frequently do the following things occur in your neighbourhood? — Robberies
+Q188,0.173,value,"Please indicate for each of the following statements whether you think it can always be justified, never be justified, or something in between. (1 = Never justifiable, 10 = Always justifiable) — Euthanasia"
+Q232,0.171,value,In your view how often do each of the following things occur in New Zealand's elections? — Voters are offered a genuine choice in the elections
+employment_spouse,0.17042266955472352,demographic,employment_spouse
+Q96,0.17,value,"Listed below are different types of voluntary organisations. For each, are you an active member, an inactive member, or don't you belong? — Art, music or educational organisation"
+Q108,0.17,value,How would you place your views on this scale? 1 means you agree completely with the statement on the left; 10 means you agree completely with the statement on the right. — Government should take more responsibility vs People should take more responsibility
+Q48,0.17,value,"Some people feel they have completely free choice and control over their lives, while other people feel that what they do has no real effect on what happens to them. Please use this scale where 1 means ""none at all"" and 10 means ""a great deal"" to indicate how much freedom of choice and control you feel you have over the way your life turns out."
+Q241,0.169,value,"Many things are desirable, but not all of them are essential characteristics of democracy. Please tell us, for each of the following things how essential you think it is as a characteristic of democracy? Use this scale where 1 means ""not at all an essential characteristic of democracy"" and 10 means it definitely is ""an essential characteristic of democracy"". — Governments tax the rich and subsidize the poor"
+Q60,0.169,value,Here are some questions about how much you trust people from various groups. Please indicate how much you trust... — People you know personally
+Q110,0.168,value,How would you place your views on this scale? 1 means you agree completely with the statement on the left; 10 means you agree completely with the statement on the right. — Hard work brings a better life vs Hard work doesn't bring success
+Q180,0.167,value,"Please indicate for each of the following statements whether you think it can always be justified, never be justified, or something in between. (1 = Never justifiable, 10 = Always justifiable) — Cheating on taxes"
+savings,0.16544556018813747,demographic,savings
+Q45,0.164,value,"Listed below are various changes in our way of life that might take place in the near future. Please indicate whether you think each would be a good thing, a bad thing, or don't you mind? — Greater respect for authority"
+Q259,0.162,value,People have different views about themselves and how they relate to the world. Please tell us how close you feel to... — The world as a whole
+Q106,0.16,value,How would you place your views on this scale? 1 means you agree completely with the statement on the left; 10 means you agree completely with the statement on the right. — Incomes should be made more equal vs There should be greater incentives for individual effort
+employment_respondent,0.15753504073641222,demographic,employment_respondent
+Q173,0.154,value,"Independently of whether you go to religious services or not, would you say you are:"
+Q156,0.153,value,"Here is another list. In your opinion, which one of these is most important? And which would be the next most important?"
+Q4,0.151,value,"Please indicate, for each of the following, how important it is in your life. — Politics"
+Q142,0.151,value,To what degree are you worried about the following situations? — Losing my job or not finding a job
+Q7,0.149,value,"Here is a list of qualities that children can be encouraged to learn at home. Which, if any, do you consider to be especially important? — Good manners"
+Q47,0.149,value,"All in all, how would you describe your state of health these days? Would you say it is:"
+Q39,0.149,value,How much do you agree or disagree with the following statements? — People who don't work turn lazy
+Q99,0.149,value,"Listed below are different types of voluntary organisations. For each, are you an active member, an inactive member, or don't you belong? — Environmental organisation"
+Q247,0.148,value,"Many things are desirable, but not all of them are essential characteristics of democracy. Please tell us, for each of the following things how essential you think it is as a characteristic of democracy? Use this scale where 1 means ""not at all an essential characteristic of democracy"" and 10 means it definitely is ""an essential characteristic of democracy"". — The state makes people's incomes equal"
+Q150,0.148,value,"Most people consider both freedom and security to be important, but if you had to choose between them, which one would you consider most important?"
+Q49,0.147,value,"All things considered, how satisfied are you with your life as a whole these days? Please use this scale where 1 means you are ""completely dissatisfied"" and 10 means you are ""completely satisfied""."
+Q248,0.146,value,"Many things are desirable, but not all of them are essential characteristics of democracy. Please tell us, for each of the following things how essential you think it is as a characteristic of democracy? Use this scale where 1 means ""not at all an essential characteristic of democracy"" and 10 means it definitely is ""an essential characteristic of democracy"". — People obey their rulers"
+Q136,0.145,value,How frequently do the following things occur in your neighbourhood? — Drug sales in streets
+household_size,0.1440488869468398,demographic,household_size
+Q159,0.143,value,"Here are some statements about science and technology. How much do you agree or disagree with each of these statements? For these questions, a 1 means that you ""completely disagree"" and a 10 means that you ""completely agree."" — Because of science and technology, there will be more opportunities for the next generation"
+Q137,0.143,value,How frequently do the following things occur in your neighbourhood? — Street violence and fights
+Q5,0.142,value,"Please indicate, for each of the following, how important it is in your life. — Work"
+Q43,0.142,value,"Listed below are various changes in our way of life that might take place in the near future. Please indicate whether you think each would be a good thing, a bad thing, or don't you mind? — Less importance placed on work"
+Q11,0.141,value,"Here is a list of qualities that children can be encouraged to learn at home. Which, if any, do you consider to be especially important? — Imagination"
+townsize,0.13905547813077027,demographic,townsize
+Q166,0.139,value,"Which, if any, of the following do you believe in? — Life after death"
+Q154,0.138,value,"If you had to choose, which one of the things on this card would you say is most important? And which would be the next most important?"
+Q101,0.138,value,"Listed below are different types of voluntary organisations. For each, are you an active member, an inactive member, or don't you belong? — Charitable/humanitarian organisation"
+region,0.13744520793605727,demographic,region
+Q143,0.137,value,To what degree are you worried about the following situations? — Not being able to give my children a good education
+Q236,0.136,value,"Listed below are various types of political systems. Please think about each one as a way of governing this country. For each one, would you say it is a very good, fairly good, fairly bad or very bad way of governing this country? — Having experts, not government, make decisions according to what they think is best for the country"
+Q59,0.135,value,Here are some questions about how much you trust people from various groups. Please indicate how much you trust... — Your neighbourhood
+Q171,0.134,value,"Apart from weddings, funerals and christenings, about how often do you attend religious services these days?"
+Q13,0.133,value,"Here is a list of qualities that children can be encouraged to learn at home. Which, if any, do you consider to be especially important? — Thrift, saving money and things"
+Q37,0.133,value,How much do you agree or disagree with the following statements? — It is a duty towards society to have children
+marital_status,0.13268421338724296,demographic,marital_status
+Q201,0.132,value,How often do you use each of the following information sources? — Daily newspaper
+Q28,0.131,value,"People talk about the changing roles of men and women today. For each of the following statements, please indicate how much you agree or disagree. — A preschool child suffers if their mother works"
+Q44,0.127,value,"Listed below are various changes in our way of life that might take place in the near future. Please indicate whether you think each would be a good thing, a bad thing, or don't you mind? — More emphasis on the development of technology"
+Q194,0.127,value,"Please indicate for each of the following statements whether you think it can always be justified, never be justified, or something in between. (1 = Never justifiable, 10 = Always justifiable) — Political violence"
+Q22,0.126,value,Here are various groups of people. Could you please tick any that you would not like to have as neighbours? — Homosexuals
+Q191,0.121,value,"Please indicate for each of the following statements whether you think it can always be justified, never be justified, or something in between. (1 = Never justifiable, 10 = Always justifiable) — Violence against other people"
+Q255,0.121,value,"People have different views about themselves and how they relate to the world. Please tell us how close you feel to... — Your village, town or city where you live"
+Q206,0.12,value,How often do you use each of the following information sources? — Internet
+Q20,0.118,value,Here are various groups of people. Could you please tick any that you would not like to have as neighbours? — People who have AIDS
+Q205,0.117,value,How often do you use each of the following information sources? — Email
+Q258,0.117,value,People have different views about themselves and how they relate to the world. Please tell us how close you feel to... — The South Pacific
+Q234,0.116,value,Some people think that having honest elections makes a lot of difference in their lives; other people think that it does not matter much. How important would you say is having honest elections for you?
+Q94,0.115,value,"Listed below are different types of voluntary organisations. For each, are you an active member, an inactive member, or don't you belong? — Church or religious organisation"
+Q179,0.115,value,"Please indicate for each of the following statements whether you think it can always be justified, never be justified, or something in between. (1 = Never justifiable, 10 = Always justifiable) — Stealing property"
+Q177,0.112,value,"Please indicate for each of the following statements whether you think it can always be justified, never be justified, or something in between. (1 = Never justifiable, 10 = Always justifiable) — Claiming government benefits to which you are not entitled"
+Q15,0.111,value,"Here is a list of qualities that children can be encouraged to learn at home. Which, if any, do you consider to be especially important? — Religious faith"
+Q97,0.11,value,"Listed below are different types of voluntary organisations. For each, are you an active member, an inactive member, or don't you belong? — Labour union"
+Q174,0.11,value,Meaning of religion: To follow religious norms and ceremonies vs To do good to other people
+Q233,0.105,value,In your view how often do each of the following things occur in New Zealand's elections? — Women have equal opportunities to run for office
+Q222,0.105,value,"When elections take place, do you always vote, usually vote, or never vote? Please tell us separately how often you vote at a local level, and at the national level. — National level"
+Q69,0.104,value,"Here are the names of a number of organisations. For each one, please indicate how much confidence you have in them: is it a great deal of confidence, quite a lot of confidence, not very much confidence or none at all? — The police"
+employment_sector,0.10218520649696264,demographic,employment_sector
+Q58,0.101,value,Here are some questions about how much you trust people from various groups. Please indicate how much you trust... — Your family
+Q257,0.101,value,People have different views about themselves and how they relate to the world. Please tell us how close you feel to... — New Zealand as a whole
+Q256,0.1,value,People have different views about themselves and how they relate to the world. Please tell us how close you feel to... — Your region of the country where you live
+Q198,0.097,value,Do you think that the New Zealand Government should or should not have the right to do each of the following? — Collect information about anyone living in New Zealand without their knowledge
+Q46,0.095,value,"Taking all things together, would you say you are:"
+Q203,0.091,value,How often do you use each of the following information sources? — Radio news
+Q208,0.089,value,How often do you use each of the following information sources? — Talk with friends or colleagues
+Q221,0.089,value,"When elections take place, do you always vote, usually vote, or never vote? Please tell us separately how often you vote at a local level, and at the national level. — Local level"
+Q64,0.085,value,"Here are the names of a number of organisations. For each one, please indicate how much confidence you have in them: is it a great deal of confidence, quite a lot of confidence, not very much confidence or none at all? — The churches"
+Q67,0.085,value,"Here are the names of a number of organisations. For each one, please indicate how much confidence you have in them: is it a great deal of confidence, quite a lot of confidence, not very much confidence or none at all? — Television"
+Q202,0.081,value,How often do you use each of the following information sources? — TV news
+Q204,0.081,value,"How often do you use each of the following information sources? — Mobile phone (text, apps, alerts)"
+Q21,0.08,value,Here are various groups of people. Could you please tick any that you would not like to have as neighbours? — Immigrants/foreign workers
+Q9,0.079,value,"Here is a list of qualities that children can be encouraged to learn at home. Which, if any, do you consider to be especially important? — Hard work"
+mother_birth_country,0.07808652457869085,demographic,mother_birth_country
+Q152,0.078,value,"People sometimes talk about what the aims of this country should be for the next ten years. Listed below are some of the goals which different people would give top priority. Would you please say which one of these you, yourself, consider the most important? And which would be the next most important?"
+birth_country,0.07642353415192754,demographic,birth_country
+Q190,0.075,value,"Please indicate for each of the following statements whether you think it can always be justified, never be justified, or something in between. (1 = Never justifiable, 10 = Always justifiable) — Parents beating children"
+Q95,0.075,value,"Listed below are different types of voluntary organisations. For each, are you an active member, an inactive member, or don't you belong? — Sport or recreational organisation"
+Q8,0.074,value,"Here is a list of qualities that children can be encouraged to learn at home. Which, if any, do you consider to be especially important? — Independence"
+Q119,0.074,value,"How strongly do you agree or disagree with the following statement: ""On the whole, women are less corrupt than men""?"
+father_immigrant,0.0729470340979749,demographic,father_immigrant
+Q38,0.072,value,How much do you agree or disagree with the following statements? — It is children's duty to take care of ill parents
+Q181,0.067,value,"Please indicate for each of the following statements whether you think it can always be justified, never be justified, or something in between. (1 = Never justifiable, 10 = Always justifiable) — Someone accepting a bribe in the course of their duties"
+Q40,0.065,value,How much do you agree or disagree with the following statements? — Work is a duty towards society
+Q56,0.064,value,"Comparing your standard of living with your parents' standard of living when they were about your age, would you say that you are better off, worse off, or about the same?"
+Q105,0.064,value,"Listed below are different types of voluntary organisations. For each, are you an active member, an inactive member, or don't you belong? — Other organisation"
+children,0.06395985026420521,demographic,children
+Q3,0.063,value,"Please indicate, for each of the following, how important it is in your life. — Leisure time"
+Q65,0.063,value,"Here are the names of a number of organisations. For each one, please indicate how much confidence you have in them: is it a great deal of confidence, quite a lot of confidence, not very much confidence or none at all? — The armed forces"
+Q26,0.062,value,Here are various groups of people. Could you please tick any that you would not like to have as neighbours? — People who speak a different language
+chief_wage_earner,0.06073984557612552,demographic,chief_wage_earner
+father_birth_country,0.05933563023967079,demographic,father_birth_country
 Q118,0.058,value,"How often do you think ordinary people like yourself or people from your neighbourhood have to pay a bribe, give a gift or do a favour to these people in order to get the services needed? Does it happen never, rarely, frequently or always?"
-Q256,0.056,value,People have different views about themselves and how they relate to the world. Please tell us how close you feel to... — Your region of the country where you live
-Q104,0.052,value,"Listed below are different types of voluntary organisations. For each, are you an active member, an inactive member, or don't you belong? — Women's group"
-Q181,0.05,value,"Please indicate for each of the following statements whether you think it can always be justified, never be justified, or something in between. (1 = Never justifiable, 10 = Always justifiable) — Someone accepting a bribe in the course of their duties"
-Q46,0.045,value,"Taking all things together, would you say you are:"
-Q38,0.044,value,How much do you agree or disagree with the following statements? — It is children's duty to take care of ill parents
-Q16,0.044,value,"Here is a list of qualities that children can be encouraged to learn at home. Which, if any, do you consider to be especially important? — Unselfishness"
-live_with_parents,0.043621730994849596,demographic,live_with_parents
-Q19,0.043,value,Here are various groups of people. Could you please tick any that you would not like to have as neighbours? — People of a different race
-Q141,0.042,value,"Which of the following things have you done for reasons of security? — Carried a knife, gun or other weapon"
-Q138,0.04,value,How frequently do the following things occur in your neighbourhood? — Sexual harassment
-Q92,0.04,value,Where are the headquarters of the International Monetary Fund (IMF) located? — Where are the headquarters of the IMF located?
-Q135,0.039,value,How frequently do the following things occur in your neighbourhood? — Racist behaviour
-Q196,0.037,value,Do you think that the New Zealand Government should or should not have the right to do each of the following? — Keep people under video surveillance in public areas
-Q192,0.037,value,"Please indicate for each of the following statements whether you think it can always be justified, never be justified, or something in between. (1 = Never justifiable, 10 = Always justifiable) — Terrorism as a political, ideological, or religious means"
-Q189,0.035,value,"Please indicate for each of the following statements whether you think it can always be justified, never be justified, or something in between. (1 = Never justifiable, 10 = Always justifiable) — For a man to beat his wife"
-settlement,0.03417569418781291,demographic,settlement
-immigrant,0.03402371905247306,demographic,immigrant
-Q105,0.034,value,"Listed below are different types of voluntary organisations. For each, are you an active member, an inactive member, or don't you belong? — Other organisation"
-mother_immigrant,0.03333919463392676,demographic,mother_immigrant
-Q221,0.033,value,"When elections take place, do you always vote, usually vote, or never vote? Please tell us separately how often you vote at a local level, and at the national level. — Local level"
-Q32,0.033,value,"People talk about the changing roles of men and women today. For each of the following statements, please indicate how much you agree or disagree. — Being a housewife is just as fulfilling as working for pay"
-Q98,0.03,value,"Listed below are different types of voluntary organisations. For each, are you an active member, an inactive member, or don't you belong? — Political party"
-Q103,0.029,value,"Listed below are different types of voluntary organisations. For each, are you an active member, an inactive member, or don't you belong? — Self-help group, mutual aid group"
-Q24,0.027,value,Here are various groups of people. Could you please tick any that you would not like to have as neighbours? — Heavy drinkers
-sex,0.024043130922734666,demographic,sex
-Q233,0.023,value,In your view how often do each of the following things occur in New Zealand's elections? — Women have equal opportunities to run for office
-Q254,0.023,value,How proud are you to be a New Zealander?
-Q25,0.022,value,Here are various groups of people. Could you please tick any that you would not like to have as neighbours? — Unmarried couples living together
-Q23,0.021,value,Here are various groups of people. Could you please tick any that you would not like to have as neighbours? — People of a different religion
-Q78,0.021,value,"Here are the names of a number of organisations. For each one, please indicate how much confidence you have in them: is it a great deal of confidence, quite a lot of confidence, not very much confidence or none at all? — Banks"
-Q93,0.018,value,"Which one of the following problems does the organisation, Amnesty International, deal with? — Which problem does Amnesty International deal with?"
-Q102,0.016,value,"Listed below are different types of voluntary organisations. For each, are you an active member, an inactive member, or don't you belong? — Consumer organisation"
-citizen,0.0141949834751882,demographic,citizen
-Q1,0.013,value,"Please indicate, for each of the following, how important it is in your life. — Family"
-Q18,0.009,value,Here are various groups of people. Could you please tick any that you would not like to have as neighbours? — Drug addicts
-Q149,0.007,value,"Most people consider both freedom and equality to be important, but if you had to choose between them, which one would you consider most important?"
-Q175,0.006,value,Meaning of religion: To make sense of life after death vs To make sense of life in this world
-Q10,0.006,value,"Here is a list of qualities that children can be encouraged to learn at home. Which, if any, do you consider to be especially important? — Feeling of responsibility"
-settlement_type,0.004549444975571144,demographic,settlement_type
+Q197,0.058,value,Do you think that the New Zealand Government should or should not have the right to do each of the following? — Monitor all emails and any other information exchanged on the internet
+Q12,0.057,value,"Here is a list of qualities that children can be encouraged to learn at home. Which, if any, do you consider to be especially important? — Tolerance and respect for other people"
+live_with_parents,0.055314228659411935,demographic,live_with_parents
+Q196,0.054,value,Do you think that the New Zealand Government should or should not have the right to do each of the following? — Keep people under video surveillance in public areas
+Q78,0.054,value,"Here are the names of a number of organisations. For each one, please indicate how much confidence you have in them: is it a great deal of confidence, quite a lot of confidence, not very much confidence or none at all? — Banks"
+home_language,0.05338113579689391,demographic,home_language
+Q207,0.053,value,"How often do you use each of the following information sources? — Social media (Facebook, Twitter, etc.)"
+Q16,0.052,value,"Here is a list of qualities that children can be encouraged to learn at home. Which, if any, do you consider to be especially important? — Unselfishness"
+Q192,0.049,value,"Please indicate for each of the following statements whether you think it can always be justified, never be justified, or something in between. (1 = Never justifiable, 10 = Always justifiable) — Terrorism as a political, ideological, or religious means"
+Q189,0.049,value,"Please indicate for each of the following statements whether you think it can always be justified, never be justified, or something in between. (1 = Never justifiable, 10 = Always justifiable) — For a man to beat his wife"
+Q2,0.049,value,"Please indicate, for each of the following, how important it is in your life. — Friends"
+Q254,0.047,value,How proud are you to be a New Zealander?
+Q151,0.045,value,"Of course, we all hope there will not be another war, but if it were to come to that, would you be willing to fight for your country?"
+Q19,0.044,value,Here are various groups of people. Could you please tick any that you would not like to have as neighbours? — People of a different race
+sex,0.043168919315998595,demographic,sex
+Q10,0.042,value,"Here is a list of qualities that children can be encouraged to learn at home. Which, if any, do you consider to be especially important? — Feeling of responsibility"
+Q149,0.042,value,"Most people consider both freedom and equality to be important, but if you had to choose between them, which one would you consider most important?"
+Q24,0.042,value,Here are various groups of people. Could you please tick any that you would not like to have as neighbours? — Heavy drinkers
+immigrant,0.0416125202094358,demographic,immigrant
+Q135,0.037,value,How frequently do the following things occur in your neighbourhood? — Racist behaviour
+mother_immigrant,0.035861710431683555,demographic,mother_immigrant
+Q141,0.035,value,"Which of the following things have you done for reasons of security? — Carried a knife, gun or other weapon"
+Q103,0.034,value,"Listed below are different types of voluntary organisations. For each, are you an active member, an inactive member, or don't you belong? — Self-help group, mutual aid group"
+Q104,0.03,value,"Listed below are different types of voluntary organisations. For each, are you an active member, an inactive member, or don't you belong? — Women's group"
+Q1,0.029,value,"Please indicate, for each of the following, how important it is in your life. — Family"
+Q102,0.027,value,"Listed below are different types of voluntary organisations. For each, are you an active member, an inactive member, or don't you belong? — Consumer organisation"
+Q25,0.025,value,Here are various groups of people. Could you please tick any that you would not like to have as neighbours? — Unmarried couples living together
+settlement,0.022939369191014445,demographic,settlement
+Q98,0.022,value,"Listed below are different types of voluntary organisations. For each, are you an active member, an inactive member, or don't you belong? — Political party"
+Q138,0.019,value,How frequently do the following things occur in your neighbourhood? — Sexual harassment
+Q18,0.016,value,Here are various groups of people. Could you please tick any that you would not like to have as neighbours? — Drug addicts
+Q23,0.016,value,Here are various groups of people. Could you please tick any that you would not like to have as neighbours? — People of a different religion
+citizen,0.01312397246531102,demographic,citizen
+Q175,0.01,value,Meaning of religion: To make sense of life after death vs To make sense of life in this world
+Q32,0.009,value,"People talk about the changing roles of men and women today. For each of the following statements, please indicate how much you agree or disagree. — Being a housewife is just as fulfilling as working for pay"
+settlement_type,0.0014657552831008822,demographic,settlement_type

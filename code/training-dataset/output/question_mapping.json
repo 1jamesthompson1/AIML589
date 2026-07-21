@@ -454,8 +454,8 @@
       "3.0",
       "4.0"
     ],
-    "survey_section": "The community and you",
-    "question_type": "value survey",
+    "survey_section": "Respondent information",
+    "question_type": "respondent information",
     "question_format": "matrix_single_select",
     "id": 14
   },
@@ -1026,9 +1026,9 @@
       "Q129"
     ],
     "word_response_types": [
-      "Agree",
+      "Disagree",
       "Hard to say",
-      "Disagree"
+      "Agree"
     ],
     "numeric_response_types": [
       "0.0",
