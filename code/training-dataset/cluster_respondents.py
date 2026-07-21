@@ -37,7 +37,7 @@ def _():
     from stepmix.stepmix import StepMix
     import joblib
 
-    output_dir = Path("output/clusters")
+    output_dir = Path("output")
     figures_dir = Path("../figures")
 
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -514,16 +514,6 @@ def _(X, all_items, figures_dir, model, np, pd, plt):
         bbox_inches="tight",
     )
     _fig
-    return
-
-
-@app.cell
-def _(all_items, output_dir, pd):
-    _combined_df = pd.DataFrame(
-        all_items, columns=["column", "informativeness", "type", "question_text"]
-    )
-    _combined_df.to_csv(output_dir / "question_informativeness.csv", index=False)
-    print(f"Saved combined ranking → {output_dir / 'question_informativeness.csv'}")
     return
 
 

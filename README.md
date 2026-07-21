@@ -1,8 +1,7 @@
 # Aligning LLM to NZ public values and evaluation through public consultation
 
-> [!NOTE] Project status
-> This project is a 4 month research project. Starting July 2026 ending in November 2026. It is being conducted by James Thompson as a Master project under the supervision of Dr Andrew Lensen.
-> This repo will not be considered 'presentation' ready until the end. Regardless though it is public as that seem like the right way to do things.
+> [!NOTE]  
+> **Work in Progress**<br>This project is a 4 month research project. Starting July 2026 ending in November 2026. It is being conducted by James Thompson as a Master project under the supervision of Dr Andrew Lensen. This repo will not be considered 'presentation' ready until the end. Regardless though it is public as that seem like the right way to do things.
 
 A simple introduction of the project can be found in the [two-pager](docs/output/James-Thompson-LLM-NZ-Value-Alignment-Funding-Request.pdf). This project is a continuation of the work done over summer 25/26 in [AIML501](https://raw.githubusercontent.com/1jamesthompson1/AIML501/main/output/AIML501_James_Thompson.pdf).
 

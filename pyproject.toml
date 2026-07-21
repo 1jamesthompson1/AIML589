@@ -2,7 +2,7 @@
 name = "aiml589"
 version = "0.1.0"
 description = "Aligning LLMs to NZ Public Values — mono repo for research, papers, and experiments."
-license = { text = "GPL-3.0-only (code) and CC-BY-SA-4.0 (docs)" }
+license = { text = "GPL-3.0-only (code) and CC-BY-SA-4.0 (docs, datasets, models)" }
 readme = "README.md"
 requires-python = ">=3.13"
 authors = [
@@ -17,6 +17,7 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
 ]
 dependencies = [
+    "datasets>=5.0.0",
     "marimo>=0.23.14",
     "matplotlib>=3.11.1",
     "numpy>=2.5.1",

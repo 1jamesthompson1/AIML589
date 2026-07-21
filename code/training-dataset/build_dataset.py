@@ -1,6 +1,6 @@
 import marimo
 
-__generated_with = "0.23.9"
+__generated_with = "0.23.14"
 app = marimo.App(width="medium")
 
 
@@ -25,24 +25,72 @@ def _(mo):
     return
 
 
-@app.cell(hide_code=True)
-def _(mo):
-    mo.md("""
-    ## Imports
-    """)
-    return
-
-
 @app.cell
 def _():
+    import json
     import marimo as mo
     import pandas as pd
-    import json
     import random
     import numpy as np
     from pathlib import Path
 
     return Path, json, mo, np, pd, random
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md("""
+    ## Train/Test Split
+
+    A naive 5% random sample of items (question_id × column_name) is held out
+    for testing. The split keys are computed once and reused across all three
+    modeling approaches and all subpopulations, ensuring consistent partitions.
+
+    The test set is used to add an `expected_distribution` column marking each
+    row as train or test.
+    """)
+    return
+
+
+@app.cell
+def _(items, random):
+    random.seed(42)
+
+    all_item_keys = sorted({(item["id"], item["column_name"]) for item in items})
+    n_test = max(1, len(all_item_keys) * 5 // 100)
+    test_keys = set(random.sample(all_item_keys, n_test))
+    train_keys = set(all_item_keys) - test_keys
+
+    print(
+        f"Train items: {len(train_keys)}, Test items: {len(test_keys)} ({n_test / len(all_item_keys) * 100:.1f}%)"
+    )
+    return test_keys, train_keys
+
+
+@app.cell
+def _(items, test_keys, train_keys):
+    def split_rows(rows):
+        train_rows = []
+        test_rows = []
+        for r in rows:
+            key = (r["question_id"], r["column_name"])
+            if key in train_keys:
+                train_rows.append(r)
+            else:
+                test_rows.append(r)
+        return train_rows, test_rows
+
+    # Verify consistency across all items
+    all_train = 0
+    all_test = 0
+    for _item in items:
+        _key = (_item["id"], _item["column_name"])
+        if _key in train_keys:
+            all_train += 1
+        elif _key in test_keys:
+            all_test += 1
+    print(f"Split covers {all_train + all_test}/{len(items)} item expansions")
+    return (split_rows,)
 
 
 @app.cell(hide_code=True)
@@ -63,7 +111,7 @@ def _(Path, json):
     with open(output_dir / "prompt_templates.json") as f:
         prompt_templates = json.load(f)
 
-    system_prompts = list(prompt_templates["system_prompts"].values())
+    system_prompts = prompt_templates["system_prompts"]
     question_templates = prompt_templates["question_templates"]
 
     f"Loaded {len(question_mapping)} question entries and {len(system_prompts)} system prompts"
@@ -189,52 +237,184 @@ def _(items, question_templates):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md("""
-    ## Generate Placeholder Cluster Responses
+    ## Compute Empirical Response Distributions
 
-    Until real WVS cluster data is available, we generate placeholder response
-    distributions. For each item, we create a cluster entry with:
-    - `mode`: the most common word response (modal response)
-    - `distribution`: probability over each word response category
-    - `sample`: a draw from the distribution
+    Cluster assignments from LCA are used to split respondents into groups.
+    Per-cluster and overall response distributions are computed **empirically**
+    from the processed WVS value survey data — the actual proportion of each
+    response category for each question among respondents in each group.
+
+    **Why empirical instead of model-implied?** The LCA model estimates
+    conditional item probabilities per cluster (its best guess of the response
+    profile). But since we have hard cluster assignments for every respondent,
+    we can simply compute the empirical proportions directly from their actual
+    answers. This gives us the true observed distribution for each cluster,
+    which is more faithful to the data.
+
+    The empirical distributions are also saved to `empirical_cluster_distributions.json`
+    for downstream use (replacing the old LCA model-implied distributions from
+    `cluster_response_distributions.json`). The JSON structure is identical so
+    any downstream code that reads the old file can seamlessly switch to the new one.
     """)
     return
 
 
 @app.cell
-def _(items, np, random):
-    random.seed(42)
-    np.random.seed(42)
+def _(output_dir):
+    """Load processed WVS survey data and merge with LCA cluster assignments."""
+    import pandas as _pd
 
-    def generate_placeholder_clusters(items):
-        clusters = {}
+    # Load the already-processed value survey data (numeric response codes,
+    # with -1 for "Don't know" and -5 for missing, handled by wrangle_response_data.py)
+    wvs_value_survey = _pd.read_csv(output_dir / "wvs_value_survey.csv")
+    wvs_value_survey["respondent_id"] = wvs_value_survey["id"].astype(int)
+
+    # Load cluster assignments from the LCA model (id -> cluster label)
+    cluster_assignments = _pd.read_csv(output_dir / "cluster_assignments.csv")
+    cluster_assignments["respondent_id"] = cluster_assignments["id"].astype(int)
+
+    # Merge so each row has both the survey responses and its cluster label
+    respondents_with_clusters = wvs_value_survey.merge(
+        cluster_assignments[["respondent_id", "cluster"]],
+        on="respondent_id",
+        how="inner",
+    )
+
+    unique_cluster_ids = sorted(respondents_with_clusters["cluster"].unique())
+    total_respondents = len(respondents_with_clusters)
+
+    print(
+        f"Merged {total_respondents} respondents into "
+        f"{len(unique_cluster_ids)} clusters: {unique_cluster_ids}"
+    )
+    return respondents_with_clusters, total_respondents, unique_cluster_ids
+
+
+@app.cell
+def _(
+    items,
+    json,
+    np,
+    output_dir,
+    respondents_with_clusters,
+    total_respondents,
+    unique_cluster_ids,
+):
+    """
+    For a given subset of respondents, compute the empirical proportion of
+    each valid response category for a single survey question column.
+
+    Only responses matching the known numeric codes (defined in the question
+    mapping) are counted — missing codes (-1, -5) are excluded since the
+    distribution should only reflect valid responses.
+    """
+
+    def _category_proportions(respondent_subset, column_name, known_numeric_codes):
+        valid_responses = respondent_subset[column_name].dropna()
+        valid_responses = valid_responses[valid_responses.isin(known_numeric_codes)]
+        counts = [
+            float((valid_responses == code).sum()) for code in known_numeric_codes
+        ]
+        total = sum(counts)
+        return [count / total for count in counts] if total else None
+
+    def _build_distribution_lookup(respondent_subset, items):
+        """
+        Build a lookup dict keyed by (question_id, column_name) containing
+        the empirical distribution, mode index, and response options.
+        """
+        distribution_lookup = {}
         for item in items:
-            key = (item["id"], item["column_name"])
-            n_opts = len(item["word_options"])
-            # Random Dirichlet distribution
-            probs = np.random.dirichlet(np.ones(n_opts) * 0.5)
-            mode_idx = int(np.argmax(probs))
-            clusters[key] = {
-                "distribution": probs.tolist(),
-                "mode": mode_idx,
+            column_name = item["column_name"]
+            lookup_key = (item["id"], column_name)
+            known_codes = [float(n) for n in item["numeric_options"]]
+
+            proportions = _category_proportions(
+                respondent_subset, column_name, known_codes
+            )
+            if proportions is None:
+                num_categories = len(known_codes)
+                proportions = [1.0 / num_categories] * num_categories
+
+            distribution_lookup[lookup_key] = {
+                "distribution": proportions,
+                "mode": int(np.argmax(proportions)),
                 "word_options": item["word_options"],
                 "numeric_options": item["numeric_options"],
             }
-        return clusters
+        return distribution_lookup
 
-    placeholder_clusters = generate_placeholder_clusters(items)
-    f"Generated placeholder data for {len(placeholder_clusters)} items"
-    return (placeholder_clusters,)
+    # Build per-cluster and overall distribution lookups
+    cluster_distribution_lookups = {}
+    per_cluster_json_output = {}
+
+    for cluster_id in unique_cluster_ids:
+        cluster_subset = respondents_with_clusters[
+            respondents_with_clusters["cluster"] == cluster_id
+        ]
+        cluster_lookup = _build_distribution_lookup(cluster_subset, items)
+        lookup_name = f"cluster_{cluster_id}"
+        cluster_distribution_lookups[lookup_name] = cluster_lookup
+
+        # Build JSON-serializable version for the saved file
+        cluster_items_json = {}
+        for item in items:
+            column_name = item["column_name"]
+            lookup_key = (item["id"], column_name)
+            entry = cluster_lookup[lookup_key]
+            cluster_items_json[column_name] = {
+                "numeric_codes": [float(n) for n in entry["numeric_options"]],
+                "word_labels": entry["word_options"],
+                "distribution": entry["distribution"],
+            }
+
+        per_cluster_json_output[str(cluster_id)] = {
+            "size": len(cluster_subset),
+            "weight": len(cluster_subset) / total_respondents,
+            "items": cluster_items_json,
+        }
+
+    # Overall population distribution (all respondents, no cluster split)
+    cluster_distribution_lookups["overall"] = _build_distribution_lookup(
+        respondents_with_clusters, items
+    )
+
+    # Save to JSON with the same structure as the original LCA model file
+    empirical_distributions_file = output_dir / "empirical_cluster_distributions.json"
+    with open(empirical_distributions_file, "w") as fh:
+        json.dump(
+            {
+                "method": "empirical (computed from WVS data using LCA cluster assignments)",
+                "n_clusters": len(unique_cluster_ids),
+                "total_respondents": total_respondents,
+                "clusters": per_cluster_json_output,
+            },
+            fh,
+            indent=2,
+        )
+
+    print(
+        f"Built {len(cluster_distribution_lookups)} distribution lookups "
+        f"(clusters {unique_cluster_ids} + overall)"
+    )
+    print(f"Saved empirical distributions to {empirical_distributions_file.name}")
+    return (cluster_distribution_lookups,)
 
 
 @app.cell(hide_code=True)
 def _(mo):
     mo.md("""
-    ## Build Single Response Dataset
+    ## Build Single Response Datasets
 
     Each example has a single expected response (text + numeric).
     This is used for standard SFT. Two sampling strategies are available:
     - `mode`: the modal (most common) response from the cluster
     - `sample`: a random draw from the cluster distribution
+
+    Each item is replicated across all system prompt templates,
+    producing multiple training examples per question with different
+    framing instructions. This augments the dataset and improves
+    robustness to prompt variation at inference time.
     """)
     return
 
@@ -242,19 +422,18 @@ def _(mo):
 @app.cell
 def _(
     build_user_prompt,
+    cluster_distribution_lookups,
     items,
-    pd,
-    placeholder_clusters,
     random,
     system_prompts,
 ):
     random.seed(42)
 
-    def build_single_dataset(items, clusters, strategy="mode"):
+    def build_single_dataset(items, lookup, strategy="mode"):
         dataset = []
         for item in items:
             key = (item["id"], item["column_name"])
-            cluster = clusters[key]
+            cluster = lookup[key]
 
             if strategy == "mode":
                 idx = cluster["mode"]
@@ -264,101 +443,161 @@ def _(
 
             word_answer = cluster["word_options"][idx]
             num_answer = cluster["numeric_options"][idx]
-
             user_prompt = build_user_prompt(item)
-            system = system_prompts[item["id"] % len(system_prompts)]
 
-            dataset.append(
-                {
-                    "system_prompt": system,
-                    "user_prompt": user_prompt,
-                    "expected_text": word_answer,
-                    "expected_numeric": num_answer,
-                    "question_id": item["id"],
-                    "sub_question": item["sub_question"],
-                    "column_name": item["column_name"],
-                    "question_format": item["question_format"],
-                }
-            )
+            for sp_idx, (sp_name, sp_text) in enumerate(system_prompts.items()):
+                dataset.append(
+                    {
+                        "system_prompt": sp_text,
+                        "system_prompt_id": sp_name,
+                        "user_prompt": user_prompt,
+                        "expected_text": word_answer,
+                        "expected_numeric": num_answer,
+                        "question_id": item["id"],
+                        "sub_question": item["sub_question"],
+                        "column_name": item["column_name"],
+                        "question_format": item["question_format"],
+                    }
+                )
         return dataset
 
-    ds_mode = build_single_dataset(items, placeholder_clusters, "mode")
-    ds_sample = build_single_dataset(items, placeholder_clusters, "sample")
+    mode_sets = {}
+    sample_sets = {}
+    for _vs_name, _lookup in cluster_distribution_lookups.items():
+        mode_sets[_vs_name] = build_single_dataset(items, _lookup, "mode")
+        sample_sets[_vs_name] = build_single_dataset(items, _lookup, "sample")
 
-    df_sample = pd.DataFrame(ds_sample)
-
-    df_mode = pd.DataFrame(ds_mode)
-
-    df_mode
-    return df_mode, df_sample
+    _example_count = len(next(iter(mode_sets.values())))
+    f"Built single-response datasets for {len(mode_sets)} value sets ({_example_count} rows each, {len(system_prompts)} system prompts × {len(items)} items)"
+    return mode_sets, sample_sets
 
 
 @app.cell(hide_code=True)
 def _(mo):
     mo.md("""
-    ## Build Distributional Response Dataset
+    ## Build Distributional Response Datasets
 
     Each example has an expected probability distribution over the response
     categories. This is used for distribution-matching fine-tuning approaches
-    (e.g., soft cross-entropy loss).
+    (e.g., soft cross-entropy loss). Datasets are generated for each value set
+    (cluster_0, cluster_1, overall).
+
+    Each item is replicated across all system prompt templates.
     """)
     return
 
 
 @app.cell
-def _(build_user_prompt, items, pd, placeholder_clusters, system_prompts):
-    def build_distributional_dataset(items, clusters):
+def _(build_user_prompt, cluster_distribution_lookups, items, system_prompts):
+    def build_distributional_dataset(items, lookup):
         dataset = []
         for item in items:
             key = (item["id"], item["column_name"])
-            cluster = clusters[key]
+            cluster = lookup[key]
             user_prompt = build_user_prompt(item)
-            system = system_prompts[item["id"] % len(system_prompts)]
 
-            dataset.append(
-                {
-                    "system_prompt": system,
-                    "user_prompt": user_prompt,
-                    "expected_distribution": cluster["distribution"],
-                    "categories": cluster["word_options"],
-                    "question_id": item["id"],
-                    "sub_question": item["sub_question"],
-                    "column_name": item["column_name"],
-                    "question_format": item["question_format"],
-                }
-            )
+            for sp_idx, (sp_name, sp_text) in enumerate(system_prompts.items()):
+                dataset.append(
+                    {
+                        "system_prompt": sp_text,
+                        "system_prompt_id": sp_name,
+                        "user_prompt": user_prompt,
+                        "expected_distribution": cluster["distribution"],
+                        "categories": cluster["word_options"],
+                        "question_id": item["id"],
+                        "sub_question": item["sub_question"],
+                        "column_name": item["column_name"],
+                        "question_format": item["question_format"],
+                    }
+                )
         return dataset
 
-    ds_distribution = build_distributional_dataset(items, placeholder_clusters)
-    f"Distributional dataset: {len(ds_distribution)} rows"
+    dist_sets = {}
+    for _vs_name, _lookup in cluster_distribution_lookups.items():
+        dist_sets[_vs_name] = build_distributional_dataset(items, _lookup)
 
-    df_dist = pd.DataFrame(ds_distribution)
-
-    df_dist
-    return (df_dist,)
+    _example_count = len(next(iter(dist_sets.values())))
+    f"Distributional datasets: {sum(len(v) for v in dist_sets.values())} total rows across {len(dist_sets)} value sets ({_example_count} rows each, {len(system_prompts)} system prompts × {len(items)} items)"
+    return (dist_sets,)
 
 
 @app.cell(hide_code=True)
 def _(mo):
     mo.md("""
     ## Export Datasets
+
+    ### Hugging Face dataset structure
+    The same data is organized under `output/dataset/` as a Hugging Face
+    `datasets` repository. Each modeling approach (distributional,
+    single_sample, single_modal) is a **config** with `train` and `test`
+    splits. Each split references the per-subpopulation files.
+
+    **Repository structure:**
+    ```
+    output/dataset/
+      README.md
+      distributional/
+        train/
+          cluster_0.parquet
+          cluster_1.parquet
+          overall.parquet
+        test/
+          cluster_0.parquet
+          cluster_1.parquet
+          overall.parquet
+      single_sample/
+        train/  (same layout)
+        test/
+      single_modal/
+        train/
+        test/
+    ```
     """)
     return
 
 
 @app.cell
-def _(df_dist, df_mode, df_sample, output_dir):
-    df_mode.to_parquet(output_dir / "training_single_modal.parquet")
-    df_sample.to_parquet(output_dir / "training_single_sample.parquet")
-    df_dist.to_parquet(output_dir / "training_distributional.parquet")
+def _(dist_sets, mode_sets, output_dir, pd, sample_sets, split_rows):
+    _dataset_dir = output_dir / "dataset"
 
-    for name in [
-        "training_single_modal",
-        "training_single_sample",
-        "training_distributional",
-    ]:
-        size = (output_dir / f"{name}.parquet").stat().st_size
-        print(f"  {name}.parquet: {size / 1024:.1f} KB")
+    _variants = {
+        "single_modal": mode_sets,
+        "single_sample": sample_sets,
+        "distributional": dist_sets,
+    }
+    _subpops = ["cluster_0", "cluster_1", "overall"]
+
+    for _config_name, _sets in _variants.items():
+        for _subpop in _subpops:
+            _all_rows = _sets[_subpop]
+            for _r in _all_rows:
+                _r["subpopulation"] = _subpop
+            _train_rows, _test_rows = split_rows(_all_rows)
+
+            _train_df = pd.DataFrame(_train_rows)
+            _train_path = _dataset_dir / _config_name / "train" / f"{_subpop}.parquet"
+            _train_path.parent.mkdir(parents=True, exist_ok=True)
+            _train_df.to_parquet(_train_path)
+
+            _test_df = pd.DataFrame(_test_rows)
+            _test_path = _dataset_dir / _config_name / "test" / f"{_subpop}.parquet"
+            _test_path.parent.mkdir(parents=True, exist_ok=True)
+            _test_df.to_parquet(_test_path)
+
+        # Log sizes
+        for _split in ["train", "test"]:
+            _total = 0
+            for _subpop in _subpops:
+                _path = _dataset_dir / _config_name / _split / f"{_subpop}.parquet"
+                _size = _path.stat().st_size
+                _n = len(pd.read_parquet(_path))
+                _total += _n
+                print(
+                    f"  {_config_name}/{_split}/{_subpop}.parquet: {_size / 1024:.1f} KB ({_n} rows)"
+                )
+            print(f"  -> {_config_name}/{_split} total: {_total} rows")
+
+    f"Exported {len(_variants)} configs to {_dataset_dir}"
     return
 
 

@@ -320,57 +320,20 @@ but this output file can be independently verified.
 |------|---------|
 | `wvs_value_survey.csv` | `<!-- HASH_START -->5d5634f6601bdeb9592946709577965435d7ce04acc593fd862d03ea861e0cd6<!-- HASH_END -->` |
 
-### Generated Training Datasets
 
-The `build_dataset.py` notebook produces three datasets in Parquet format:
+### Clustering respondents
 
-| File | Description |
-|------|-------------|
-| `training_single_modal.parquet` | Single expected response (modal from cluster). Use for standard SFT. |
-| `training_single_sample.parquet` | Single expected response (sampled from cluster distribution). Use for SFT with distribution matching in expectation. |
-| `training_distributional.parquet` | Full probability distribution over response categories. Use for soft/distributional loss functions. |
-
-Each dataset has the same row structure: every sub-question in every matrix/battery question is expanded into its own row, and demographic questions (`question_type: "respondent information"`) are excluded.
-
-**Common columns:**
-
-| Column | Description |
-|--------|-------------|
-| `system_prompt` | One of the system prompt variants from `prompt_templates.json`. |
-| `user_prompt` | For template-based questions: the question text, a blank line, the pipe-separated response options, another blank line, then the sub-question followed by a colon. For verbatim questions: the original question text only. |
-| `question_id` | The `id` from `question_mapping.json` this example originates from. |
-| `sub_question` | The specific sub-question text (e.g. "Family"). `None` for single questions. |
-| `column_name` | The WVS column name (e.g. "Q1"). |
-| `question_format` | The structural type (e.g. `matrix_single_select`). |
-
-**Single response datasets** additionally contain:
-
-| Column | Description |
-|--------|-------------|
-| `expected_text` | The word-format expected response (e.g. "Very important"). |
-| `expected_numeric` | The numeric code of the expected response (e.g. "1.0"). |
-
-**Distributional dataset** additionally contains:
-
-| Column | Description |
-|--------|-------------|
-| `expected_distribution` | An array of probabilities (summing to 1) over the response categories, aligned with `word_response_types` in `question_mapping.json`. |
-| `categories` | The response category labels (copy of `word_response_types`). |
-
-The cluster data is currently a placeholder (random Dirichlet-sampled distributions). When real WVS cluster data is available, replace the stub in the `Generate Placeholder Cluster Responses` cell to load actual response distributions per cluster.
-
-## Clustering respondents
-
-`cluster_respondents.py` partitions respondents into value subgroups using **Latent Class Analysis** (LCA, via `stepmix` with the `categorical_nan` measurement model, which handles missing responses inside EM). Only value survey columns are used — demographics are excluded so subgroups are value-based. The number of clusters is chosen by BIC (currently k=3); override via the `N_CLUSTERS` config cell.
+`cluster_respondents.py` partitions respondents into value subgroups using **Latent Class Analysis** (LCA, via `stepmix` with the `categorical_nan` measurement model, which handles missing responses inside EM). Only value survey columns are used — demographics are excluded so subgroups are value-based. The number of clusters is chosen by BIC (currently k=2); override via the `N_CLUSTERS` config cell.
 
 Outputs (consumed by `build_dataset.py` and the public consultation design):
 
 | File | Description |
 |------|-------------|
-| `cluster_assignments.csv` | Respondent id, modal cluster, and per-cluster membership probabilities. |
-| `cluster_response_distributions.json` | Per cluster × question: response distribution over WVS codes (with word labels) and non-response rate. Replaces the placeholder clusters. |
-| `question_informativeness.csv` | Questions ranked by how differently clusters answer them — the shortlist for the consultation survey's subgroup-assignment questions. |
-| `cluster_model_selection.csv` | BIC/AIC/log-likelihood per candidate k. |
+| `cluster_assignments.csv` | Each row is a respondent with their predicted cluster (0 or 1), plus the posterior probability of belonging to each cluster (`prob_cluster_0`, `prob_cluster_1`). High probability indicates a clean assignment. |
+| `empirical_cluster_distributions.json` | Same structure as above, but computed empirically from actual respondent data within each LCA-assigned cluster rather than model-implied probabilities. |
+| `model_selection_sweep.csv` | Model fit statistics (log-likelihood, AIC, BIC) for k = 1–6. Lower AIC/BIC indicate better fit; used to justify the chosen number of clusters. |
+| `stepmix_model_k2.joblib` | Serialized fitted StepMix model, saved via `joblib.dump()`. Load with `joblib.load()` to reproduce assignments or apply to new data without refitting. |
+
 
 ## Input data
 
@@ -392,3 +355,22 @@ To verify manually:
 ```bash
 sha256sum input/WVS_Wave_7_New_Zealand_Csv_v5.1.csv
 sha256sum input/WVS_Wave_7_New_Zealand_CsvText_v5.1.csv
+```
+
+### Generated Training Datasets
+
+The `build_dataset.py` notebook produces three dataset configs (single_modal, single_sample, distributional), each with train/test splits and three subpopulations (cluster_0, cluster_1, overall). The datasets are stored in `output/dataset/` — see the [dataset README](output/dataset/README.md) for full details.
+
+The dataset is also published on the Hugging Face Hub:
+- **Repository:** [`1jamesthompson1/wvs-nz-value-alignment`](https://huggingface.co/datasets/1jamesthompson1/wvs-nz-value-alignment)
+
+```python
+from datasets import load_dataset
+ds = load_dataset("1jamesthompson1/wvs-nz-value-alignment", "single_modal")
+```
+
+Re-upload after regeneration:
+
+```bash
+hf upload 1jamesthompson1/wvs-nz-value-alignment output/dataset --type dataset
+```
