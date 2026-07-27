@@ -78,21 +78,28 @@ Three modeling configs, each with train/test splits and three subpopulations:
 
 | Config | Description | Train rows | Test rows |
 |--------|-------------|-----------|----------|
-| `single_modal` | Single modal response | 239 items × 3 subpops × 5 prompts | 12 items × 3 subpops × 5 prompts |
-| `single_sample` | Single sampled response | 239 items × 3 subpops × 5 prompts | 12 items × 3 subpops × 5 prompts |
-| `distributional` | Full probability distribution | 239 items × 3 subpops × 5 prompts | 12 items × 3 subpops × 5 prompts |
+| `single_modal` | Single modal response | 3,585 | 180 |
+| `single_sample` | Single sampled response | 3,585 | 180 |
+| `distributional` | Full probability distribution | 3,585 | 180 |
+
+All configs share the same 251 question items (after filtering demographics),
+each replicated across 3 subpopulations × 5 system prompts = 3,585 train rows.
+A 5% holdout of 12 question items forms the 180 test rows.
 
 Each row contains:
 - `system_prompt`: Instruction template framing the task
 - `system_prompt_id`: Name/key of the system prompt
-- `user_prompt`: The survey question text
+- `user_prompt`: The survey question with options appended
 - `subpopulation`: Which value group (cluster_0, cluster_1, or overall)
-- `question_id`: Numeric question identifier
-- `column_name`: WVS column name (e.g., Q1, Q2)
-- `sub_question`: Sub-question text for matrix/battery items
-
-For single-response configs: `expected_text` (word answer) and `expected_numeric` (numeric code).
-For distributional config: `expected_distribution` (probability array) and `categories` (word labels).
+- `question_id`: Numeric question identifier (from question_mapping.json)
+- `column_name`: WVS column name (e.g., Q10, Q173)
+- `sub_question`: Sub-question text for matrix/battery items (null for single questions)
+- `question`: Full question text
+- `question_format`: Format type (single_select, matrix_single_select, etc.)
+- `categories`: List of word response options (all configs)
+- `expected_distribution`: Empirical probability distribution over categories (all configs)
+- `expected_text`: Expected word answer (single-response configs only)
+- `expected_numeric`: Expected numeric code (single-response configs only)
 
 ## System Prompts
 

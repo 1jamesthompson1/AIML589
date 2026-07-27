@@ -446,6 +446,8 @@ def _(
             word_answer = cluster["word_options"][idx]
             num_answer = cluster["numeric_options"][idx]
             user_prompt = build_user_prompt(item)
+            word_options = cluster["word_options"]
+            true_dist = cluster["distribution"]
 
             for sp_idx, (sp_name, sp_text) in enumerate(system_prompts.items()):
                 dataset.append(
@@ -455,7 +457,10 @@ def _(
                         "user_prompt": user_prompt,
                         "expected_text": word_answer,
                         "expected_numeric": num_answer,
+                        "categories": word_options,
+                        "expected_distribution": true_dist,
                         "question_id": item["id"],
+                        "question": item["question"],
                         "sub_question": item["sub_question"],
                         "column_name": item["column_name"],
                         "question_format": item["question_format"],
@@ -507,6 +512,7 @@ def _(build_user_prompt, cluster_distribution_lookups, items, system_prompts):
                         "expected_distribution": cluster["distribution"],
                         "categories": cluster["word_options"],
                         "question_id": item["id"],
+                        "question": item["question"],
                         "sub_question": item["sub_question"],
                         "column_name": item["column_name"],
                         "question_format": item["question_format"],
