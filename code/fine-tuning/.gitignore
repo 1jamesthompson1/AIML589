@@ -1,1 +1,2 @@
 .ssh_config
+output/eval/**/figures/**
