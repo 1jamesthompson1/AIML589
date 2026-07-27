@@ -5,3 +5,5 @@ workbench/**
 
 **/__marimo__/
 **/__pycache__/
+
+.env
