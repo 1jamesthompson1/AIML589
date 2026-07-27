@@ -222,10 +222,14 @@ def _(items, question_templates):
         eid = str(item["id"])
         tmpl_data = question_templates.get(eid)
 
+        options_text = "\n\nOptions:\n" + "\n".join(
+            f"{i + 1}. {o}" for i, o in enumerate(item["word_options"])
+        )
+
         if tmpl_data is not None and item["sub_question"] is not None:
-            prompt = tmpl_data + "\n\n" + f"{item['sub_question']}:"
+            prompt = tmpl_data + options_text + "\n\n" + f"{item['sub_question']}:"
         else:
-            prompt = item["question"]
+            prompt = item["question"] + options_text
 
         return prompt
 
