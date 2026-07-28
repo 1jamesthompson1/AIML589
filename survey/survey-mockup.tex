@@ -129,6 +129,20 @@
   \freetext{}
 }
 
+\newcommand{\sectionintro}[1]{%
+  \noindent\colorbox{questionbg}{%
+    \begin{minipage}{\dimexpr\textwidth-2\fboxsep\relax}
+      #1
+    \end{minipage}}%
+}
+
+\newcommand{\sectiondisclaimer}[1]{%
+  \noindent\colorbox{summarybg}{%
+    \begin{minipage}{\dimexpr\textwidth-2\fboxsep\relax}
+      \textbf{Note:} #1
+    \end{minipage}}%
+}
+
 \begin{document}
 
 % --- Header ---
@@ -152,24 +166,72 @@
   \begin{minipage}{\dimexpr\textwidth-2\fboxsep\relax}
     \textbf{Disclaimer:} This document is an example survey mockup only. It is not a live survey and is not intended for data collection. It serves as a prototype to demonstrate the structure and format of the planned public consultation survey. 
     
-    The actual survey will be conducted online in the format of a Qualtrics survey and include both the information sheet and more introduction.
+    The actual survey will be conducted online in the format of a Qualtrics survey and include a information sheet.
   \end{minipage}}
 
 \vspace{1em}
+
+% =====================================================================
+% SECTION 0: DEMOGRAPHIC INFORMATION (optional --- volunteers only)
+% =====================================================================
+\sectionheader{Section 0: Demographic Information}
+
+\sectiondisclaimer{This section is optional and appears only for volunteer respondents (not commercial panel participants). It helps us understand the diversity of perspectives among volunteers.}
+
+\questionbox{0.1}{Which region of New Zealand do you currently live in?}
+\noindent\footnotesize
+\begin{tabular}{p{5cm}p{5cm}}
+  Northland & $\square$ \\
+  Auckland & $\square$ \\
+  Waikato & $\square$ \\
+  Bay of Plenty & $\square$ \\
+  Gisborne / Tair\u{a}whiti & $\square$ \\
+  Hawke's Bay & $\square$ \\
+  Taranaki & $\square$ \\
+  Manawat\u{5}u-Whanganui & $\square$ \\
+  Wellington & $\square$ \\
+  Tasman / Nelson & $\square$ \\
+  Marlborough & $\square$ \\
+  West Coast & $\square$ \\
+  Canterbury & $\square$ \\
+  Otago & $\square$ \\
+  Southland & $\square$ \\
+  I live outside New Zealand & $\square$
+\end{tabular}
+\normalsize
+\bigskip
+
+\questionbox{0.2}{Which age group do you belong to?}
+\noindent\footnotesize
+\begin{tabular}{p{4cm}cp{4cm}c}
+  18--24 & $\square$ & 55--64 & $\square$ \\
+  25--34 & $\square$ & 65--74 & $\square$ \\
+  35--44 & $\square$ & 75 or older & $\square$ \\
+  45--54 & $\square$ & Prefer not to say & $\square$
+\end{tabular}
+\normalsize
+\bigskip
+
+\questionbox{0.3}{What is your gender?}
+\noindent\footnotesize
+\begin{tabular}{p{4cm}cp{4cm}c}
+  Male & $\square$ & Non-binary & $\square$ \\
+  Female & $\square$ & Prefer not to say & $\square$ \\
+  \multicolumn{4}{l}{Another gender (please specify): \rule{5cm}{0.5pt}}
+\end{tabular}
+\normalsize
+\bigskip
+
+\newpage
 
 % =====================================================================
 % SECTION A
 % =====================================================================
 \sectionheader{Section A: About You}
 
-\noindent\colorbox{questionbg}{%
-  \begin{minipage}{\dimexpr\textwidth-2\fboxsep\relax}
-    \textbf{Note:} The questions below are placeholder items drawn from the World Values Survey (WVS). The final set of WVS questions used for cluster assignment has not yet been determined and will be decided after analysis of the WVS dataset.
-  \end{minipage}}
+\sectiondisclaimer{The questions below are placeholder items drawn from the World Values Survey (WVS). The final set of WVS questions used for cluster assignment has not yet been determined and will be decided after analysis of the WVS dataset.}
 
-\vspace{1em}
-
-\noindent The following questions help us understand different perspectives across the New Zealand public.
+\sectionintro{The following questions help us understand different perspectives across the New Zealand public.}
 
 \questionbox{A1}{Please indicate how important each of the following is in your life.}
 \noindent\footnotesize
@@ -225,7 +287,7 @@
 % =====================================================================
 \sectionheader{Section B: AI Behaviour Scenarios}
 
-\noindent In this section you will read short summaries describing how an AI system behaved in different situations. Please read each summary carefully and indicate how much you agree or disagree with the AI's behaviour.
+\sectiondisclaimer{The scenarios below are simply used as placeholders. The exact scenarios have not yet been finalised and so simulations have not been run. Each participant will see 3--6 scenarios (depending on the time it takes to complete the survey). The scenarios selected will be randomly drawn from a pool of 20 scenarios.}
 
 \scenario
   {Scenario 1: Healthcare Triage}
@@ -258,7 +320,7 @@
 % =====================================================================
 \sectionheader{Section C: Your Thoughts}
 
-\noindent Please share your thoughts on the following questions.
+\sectionintro{Please share your thoughts on the following questions.}
 
 \questionbox{C1}{How much would you say you know about Artificial Intelligence (AI)?}
 \noindent\footnotesize

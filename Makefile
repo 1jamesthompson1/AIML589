@@ -59,7 +59,10 @@ watch:
 	fi; \
 	[ -z "$$src" ] && { echo "Error: $$base.tex not found in $(TEX_DIR) or $(SRV_DIR)"; exit 1; }; \
 	src_dir=$$(dirname "$$src"); \
-	outdir="$$(cd "$(TEX_DIR)" && pwd)/$(OUT_DIR)"; \
+	case "$$src_dir" in \
+		$(SRV_DIR)*) outdir="$$(cd "$(SRV_DIR)" && pwd)/$(OUT_DIR)" ;; \
+		*) outdir="$$(cd "$(TEX_DIR)" && pwd)/$(OUT_DIR)" ;; \
+	esac; \
 	docname=$$(sed -n 's/^[[:space:]]*\\docname{\(.*\)}/\1/p' "$$src" 2>/dev/null); \
 	[ -z "$$docname" ] && docname="$$base"; \
 	mkdir -p "$$outdir"; \
