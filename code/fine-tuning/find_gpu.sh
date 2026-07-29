@@ -90,13 +90,13 @@ if [[ -n "$JUMP_HOST" ]]; then
   [[ "$MIN_GPUS" != 1 ]] && REMOTE_ARGS+=(--min-gpus "$MIN_GPUS")
   if $UPDATE_CONFIG; then
     # Run remotely but write to a temp file, then SCP it back locally
-    ssh -o StrictHostKeyChecking=accept-new "$JUMP_HOST" \
+    ssh -F "$SCRIPT_DIR/.ssh_config" -o StrictHostKeyChecking=accept-new "$JUMP_HOST" \
       "cat > /tmp/find_gpu.sh && chmod +x /tmp/find_gpu.sh && CONFIG_OUT=/tmp/ssh_config_update /tmp/find_gpu.sh --update-config ${REMOTE_ARGS[*]}" \
       < "$0"
-    scp -o StrictHostKeyChecking=accept-new "$JUMP_HOST":/tmp/ssh_config_update "$SSH_CONFIG"
+    scp -F "$SCRIPT_DIR/.ssh_config" -o StrictHostKeyChecking=accept-new "$JUMP_HOST":/tmp/ssh_config_update "$SSH_CONFIG"
     echo "Wrote config to $SSH_CONFIG"
   else
-    ssh -o StrictHostKeyChecking=accept-new "$JUMP_HOST" \
+    ssh -F "$SCRIPT_DIR/.ssh_config" -o StrictHostKeyChecking=accept-new "$JUMP_HOST" \
       "cat > /tmp/find_gpu.sh && chmod +x /tmp/find_gpu.sh && /tmp/find_gpu.sh ${REMOTE_ARGS[*]}" \
       < "$0"
   fi

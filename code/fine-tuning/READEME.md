@@ -32,9 +32,61 @@ The `find_gpu.sh` script can help with this it outputs a list of available machi
 
 When you run the script it will update your project `code/fine-tuning/.ssh_config` with the best three available machine it finds. You can then ssh into that machine and run the fine-tuning or serving scripts using `uni-gpuX` as the host name.
 
-## Fine-tuning
+## CLI
 
-Not yet completed...
+All remote operations go through a single `run.sh` script:
+
+```bash
+# Fine-tune a model
+./code/fine-tuning/run.sh finetune <ssh-host> [-- finetune args...]
+
+# Serve a model for evaluation
+./code/fine-tuning/run.sh serve <ssh-host> [--port PORT] [-- serve args...]
+```
+
+The `--` separator is optional if you don't need to pass flags that conflict with `run.sh` options.
+
+### Fine-tuning
+
+Fine tuning is done on a GPU machine. It copies the `finetune.py` script to the remote and runs it there.
+
+The finetuning is depending on parameters either a simple SFT or a slightly more complex distributional fine-tuning. In all cases it is LoRA fine-tuning on top of a base model.
+
+```bash
+./code/fine-tuning/run.sh finetune uni-gpu1 -- \
+    --dataset single_modal --subpopulation cluster_0 --upload-to-hf
+```
+
+### Uploading adapters
+
+Each fine-tuning run produces a LoRA adapter (a few MB) which gets uploaded to its own Hugging Face Hub repo:
+
+```
+{HF_ORG}/{model_slug}-nz-wvs-{dataset}-{subpopulation}
+```
+
+e.g. `1jamesthompson1/Qwen3.6-27B-nz-wvs-single_modal-cluster_0`
+
+To upload, set the `HF_ORG` environment variable in `.env` and pass `--upload-to-hf`:
+
+```bash
+./code/fine-tuning/run_finetune.sh uni-gpu1 \
+    --dataset single_modal --subpopulation cluster_0 \
+    --upload-to-hf
+```
+
+You can also auto-add each new adapter repo to a HF Collection for easy browsing:
+
+```bash
+./code/fine-tuning/run_finetune.sh uni-gpu1 \
+    --dataset single_modal --subpopulation cluster_0 \
+    --upload-to-hf \
+    --hf-collection "1jamesthompson1/wvs-nz-lora-adapters"
+```
+
+### Run metadata
+
+Every run saves a `finetune_config.json` alongside the adapter with all hyperparameters, timestamp, and git commit hash.
 
 ## Evaluation
 
@@ -42,21 +94,69 @@ To do evaluation you load the model you want to evaluate on a GPU machine and th
 
 ### Serving the model
 
-Sipmly run `serve.sh` on the GPU machine to start a vLLM server. This will make the model available at `localhost:8087` on your dev machine. You can change the port if you want to run multiple servers.
-
-The following command will serve the model `Qwen/Qwen3.6-27B-FP8` with gpu machine `uni-gpu1` on port `8087`:
+Simply run `run.sh serve` to start a vLLM server on a GPU machine and tunnel the port back to your dev machine.
 
 ```bash
-./code/fine-tuning/serve.sh uni-gpu1 --model Qwen/Qwen3.6-27B-FP8 --host 0.0.0.0 --port 8087
+# Base model only (no adapters)
+./code/fine-tuning/run.sh serve uni-gpu1 --port 8087 -- \
+    --model Qwen/Qwen3.6-27B
+
+# With a LoRA adapter
+./code/fine-tuning/run.sh serve uni-gpu1 --port 8087 -- \
+    --model Qwen/Qwen3.6-27B \
+    --adapter cluster_0=1jamesthompson1/Qwen3.6-27B-nz-wvs-single_modal-cluster_0
+```
+
+`--port` sets the port on your laptop (default `8080`). `run.sh` handles random free port allocation on the remote and SSH tunnel setup automatically.
+
+### Legacy scripts
+
+The individual `serve.sh` and `run_finetune.sh` scripts still work as before, but `run.sh` is the recommended entry point.
+
+#### Serving with LoRA adapters
+
+Each fine-tuned adapter lives in its own HF Hub repo. Load one or more adapters on top of a base model:
+
+```bash
+# Single adapter
+./code/fine-tuning/serve.sh uni-gpu1 --port 8087 \
+    --model Qwen/Qwen3.6-27B \
+    --adapter cluster_0=1jamesthompson1/Qwen3.6-27B-nz-wvs-single_modal-cluster_0
+
+# Multiple adapters loaded simultaneously (clients select via model param)
+./code/fine-tuning/serve.sh uni-gpu1 --port 8087 \
+    --model Qwen/Qwen3.6-27B \
+    --adapter cluster_0=1jamesthompson1/Qwen3.6-27B-nz-wvs-single_modal-cluster_0 \
+    --adapter cluster_1=1jamesthompson1/Qwen3.6-27B-nz-wvs-single_modal-cluster_1 \
+    --adapter overall=1jamesthompson1/Qwen3.6-27B-nz-wvs-distributional-overall
+```
+
+##### Auto-construct adapter from dataset + subpopulation
+
+`serve.sh` can auto-construct the adapter repo name for you using `--dataset` and `--subpopulation`:
+
+```bash
+./code/fine-tuning/serve.sh uni-gpu1 --port 8087 \
+    --model Qwen/Qwen3.6-27B \
+    --dataset single_modal --subpopulation cluster_0
+```
+
+This looks up `HF_ORG` from your `.env`, builds the repo name `{HF_ORG}/Qwen3.6-27B-nz-wvs-single_modal-cluster_0`, and passes `--adapter cluster_0=<repo>` to `serve.py`.
+
+**Client usage:** In your evaluation script, set `--model <adapter_name>` to target a specific fine-tuned version:
+
+```bash
+uv run evaluate.py --port 8087 --model cluster_0 \
+    --dataset single_modal --subpopulation cluster_0
 ```
 
 ### Running evaluation
 
-Once the model is being served you can run the evaluation script from your dev machine. This will send requests to the model and save the results in `output/eval/<model>_<dataset>_<subpopulation>/` by default (e.g. `output/eval/Qwen_Qwen3.6-27B-FP8_distributional_overall/`).
+Once the model is being served you can run the evaluation script from your dev machine. This will send requests to the model and save the results in `output/eval/<model>_<dataset>_<subpopulation>/` by default.
 
 ```bash
-uv run code/fine-tuning/evaluate_model.py \
-    --model Qwen/Qwen3.6-27B-FP8 \
+uv run code/fine-tuning/evaluate.py \
+    --model Qwen/Qwen3.6-27B \
     --port 8087 \
     --dataset distributional \
     --subpopulation overall

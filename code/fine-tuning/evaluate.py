@@ -21,7 +21,7 @@ test split of the dataset, and reports:
   3. Optional per-question distribution comparison plots
 
 Usage:
-    uv run evaluate_model.py \
+    uv run evaluate.py \
         --port 8087 \
         --model Qwen/Qwen3.6-27B-FP8 \
         --dataset distributional \
@@ -40,6 +40,7 @@ Usage:
 import argparse
 import math
 import os
+import sys
 from pathlib import Path
 
 import numpy as np
@@ -392,15 +393,6 @@ def main():
     if args.api_url is None:
         args.api_url = f"http://localhost:{args.port}"
 
-    if args.output_dir is None:
-        safe_name = _model_safe_name(args.model)
-        output_dir = (
-            Path("output") / "eval" / f"{safe_name}_{args.dataset}_{args.subpopulation}"
-        )
-    else:
-        output_dir = Path(args.output_dir)
-    output_dir.mkdir(parents=True, exist_ok=True)
-
     print("=" * 60)
     print("Evaluation configuration")
     print("=" * 60)
@@ -410,6 +402,38 @@ def main():
 
     import json
     from datetime import datetime
+    import urllib.request
+
+    # Query server for available models (fail fast if model doesn't exist)
+    models_url = f"{args.api_url}/v1/models"
+    try:
+        with urllib.request.urlopen(models_url, timeout=5) as resp:
+            models_data = json.loads(resp.read().decode())
+        available = [m["id"] for m in models_data.get("data", [])]
+    except Exception as e:
+        print(f"[eval] could not fetch model list from {models_url}: {e}")
+        available = []
+
+    if available and args.model not in available:
+        print(f"\n[error] Model '{args.model}' not found on server.")
+        print(f"Available models ({len(available)}):")
+        for m in available:
+            print(f"  - {m}")
+        print("\nSet --model to one of the above.")
+        sys.exit(1)
+    elif available:
+        print(
+            f"[eval] model '{args.model}' found on server ({len(available)} total models)"
+        )
+
+    if args.output_dir is None:
+        safe_name = _model_safe_name(args.model)
+        output_dir = (
+            Path("output") / "eval" / f"{safe_name}_{args.dataset}_{args.subpopulation}"
+        )
+    else:
+        output_dir = Path(args.output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
 
     config = {
         "target": args.model,

@@ -1,0 +1,13 @@
+{
+  "target": "Qwen3.5-2B-nz-wvs-single_modal-overall",
+  "dataset": "single_modal",
+  "population": "overall",
+  "timestamp": "2026-07-29T13:22:11.880977",
+  "output_dir": "/home/james/code/AIML589/code/fine-tuning/output/eval/Qwen3.5-2B-nz-wvs-single_modal-overall_single_modal_overall",
+  "api_url": "http://localhost:8087",
+  "api_key": "EMPTY",
+  "max_tokens": 1000,
+  "top_logprobs": 20,
+  "num_test_examples": null,
+  "no_plots": false
+}
