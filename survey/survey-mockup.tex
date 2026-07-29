@@ -183,20 +183,20 @@
 \begin{tabular}{p{5cm}p{5cm}}
   Northland & $\square$ \\
   Auckland & $\square$ \\
-  Waikato & $\square$ \\
+  W\={a}ikato & $\square$ \\
   Bay of Plenty & $\square$ \\
-  Gisborne / Tair\u{a}whiti & $\square$ \\
-  Hawke's Bay & $\square$ \\
-  Taranaki & $\square$ \\
-  Manawat\u{5}u-Whanganui & $\square$ \\
+  Gisborne & $\square$ \\
+  Hawkes Bay & $\square$ \\
+  T\={a}ranaki & $\square$ \\
+  Manawat\={u}-Whanganui & $\square$ \\
   Wellington & $\square$ \\
-  Tasman / Nelson & $\square$ \\
+  Tasman & $\square$ \\
+  Nelson Bays & $\square$ \\
   Marlborough & $\square$ \\
   West Coast & $\square$ \\
   Canterbury & $\square$ \\
-  Otago & $\square$ \\
-  Southland & $\square$ \\
-  I live outside New Zealand & $\square$
+  Clutha-Central Otago & $\square$ \\
+  Southland & $\square$
 \end{tabular}
 \normalsize
 \bigskip
@@ -229,56 +229,91 @@
 % =====================================================================
 \sectionheader{Section A: About You}
 
-\sectiondisclaimer{The questions below are placeholder items drawn from the World Values Survey (WVS). The final set of WVS questions used for cluster assignment has not yet been determined and will be decided after analysis of the WVS dataset.}
+\sectiondisclaimer{The questions below are drawn from the World Values Survey (WVS) Wave 7. They are the most informative non-controversial questions for distinguishing between value-based subgroups in the New Zealand population, selected via latent class analysis of the WVS dataset. Expected assignment certainty: 91.5\% mean, 74.3\% of respondents with >0.9 certainty.}
 
-\sectionintro{The following questions help us understand different perspectives across the New Zealand public.}
+\sectionintro{The following questions are drawn from the World Values Survey. They have been selected as the most informative questions for understanding different value perspectives across the New Zealand public.}
 
-\questionbox{A1}{Please indicate how important each of the following is in your life.}
+\questionbox{A1}{Here are the names of a number of organisations. For each one, please indicate how much confidence you have in them: is it a great deal of confidence, quite a lot of confidence, not very much confidence or none at all?\\
+\medskip
 \noindent\footnotesize
-\begin{tabular}{p{4cm}p{1.8cm}p{1.8cm}p{1.8cm}p{1.8cm}}
-  & \textbf{Very} & \textbf{Rather} & \textbf{Not very} & \textbf{Not at all} \\
-  & \textbf{important} & \textbf{important} & \textbf{important} & \textbf{important} \\
-  Family & $\square$ & $\square$ & $\square$ & $\square$ \\
-  Friends & $\square$ & $\square$ & $\square$ & $\square$ \\
-  Work & $\square$ & $\square$ & $\square$ & $\square$
+\begin{tabular}{p{3.5cm}*{5}{>{\centering\arraybackslash}p{1.7cm}}}
+  & \textbf{A great deal} & \textbf{Quite a lot} & \textbf{Not very much} & \textbf{None at all} & \textbf{Don't know} \\
+  \textbf{The World Health Organisation (WHO)} & $\square$ & $\square$ & $\square$ & $\square$ & $\square$ \\
+  \textbf{Elections} & $\square$ & $\square$ & $\square$ & $\square$ & $\square$ \\
+  \textbf{The Public Service} & $\square$ & $\square$ & $\square$ & $\square$ & $\square$ \\
+  \textbf{Parliament} & $\square$ & $\square$ & $\square$ & $\square$ & $\square$ \\
+  \textbf{The government in Wellington} & $\square$ & $\square$ & $\square$ & $\square$ & $\square$
 \end{tabular}
-\normalsize
-\bigskip
+\normalsize}
 
-\questionbox{A2}{Generally speaking, would you say that most people can be trusted or that you need to be very careful in dealing with people?}
-\noindent
-\footnotesize
-\begin{tabular}{p{5cm}cp{5cm}ccc}
-  Most people can be trusted & $\square$ & Need to be very careful & $\square$ & Don't know & $\square$
-\end{tabular}
-\normalsize
-\bigskip
-
-\questionbox{A3}{How much do you agree or disagree with the following statements?}
+\questionbox{A2}{In your view how often do each of the following things occur in New Zealand's elections?\\
+\medskip
+\noindent\textbf{Election officials are fair}\par
+\medskip
 \noindent\footnotesize
-\begin{tabular}{p{4.5cm}p{1.5cm}p{1.5cm}p{1.5cm}p{1.5cm}p{1.5cm}}
-  & \textbf{Agree} & \textbf{Agree} & \textbf{Neither} & \textbf{Disagree} & \textbf{Strongly} \\
-  & \textbf{strongly} & & & & \textbf{disagree} \\
-  When jobs are scarce, men should have more right to a job than women & $\square$ & $\square$ & $\square$ & $\square$ & $\square$ \\
-  When jobs are scarce, employers should give priority to NZers over immigrants & $\square$ & $\square$ & $\square$ & $\square$ & $\square$ \\
-  If a woman earns more than her husband, it is almost certain to cause problems & $\square$ & $\square$ & $\square$ & $\square$ & $\square$
+\begin{tabular}{>{\centering\arraybackslash}p{2cm}
+                >{\centering\arraybackslash}p{2cm}
+                >{\centering\arraybackslash}p{2cm}
+                >{\centering\arraybackslash}p{2cm}
+                >{\centering\arraybackslash}p{2cm}}
+  \textbf{Very often} & \textbf{Fairly often} & \textbf{Not often} & \textbf{Not at all often} & \textbf{Don't know} \\
+  $\square$ & $\square$ & $\square$ & $\square$ & $\square$
 \end{tabular}
-\normalsize
-\bigskip
+\normalsize}
 
-\questionbox{A4}{Listed below are various changes in our way of life that might take place in the near future. Please indicate whether you think each would be a good thing, a bad thing, or don't you mind?}
+\questionbox{A3}{And how democratically is this country being governed today? Again using a scale from 1 to 10, where 1 means that it is ``not at all democratic'' and 10 means that it is ``completely democratic.''\\
+\medskip
 \noindent\footnotesize
-\begin{tabular}{p{5cm}p{2.5cm}p{2.5cm}p{2.5cm}}
-  & \textbf{Good thing} & \textbf{Don't mind} & \textbf{Bad thing} \\
-  Less importance placed on work & $\square$ & $\square$ & $\square$ \\
-  More emphasis on the development of technology & $\square$ & $\square$ & $\square$ \\
-  Greater respect for authority & $\square$ & $\square$ & $\square$
+\begin{tabular}{>{\centering\arraybackslash}p{0.8cm}
+                >{\centering\arraybackslash}p{0.8cm}
+                >{\centering\arraybackslash}p{0.8cm}
+                >{\centering\arraybackslash}p{0.8cm}
+                >{\centering\arraybackslash}p{0.8cm}
+                >{\centering\arraybackslash}p{0.8cm}
+                >{\centering\arraybackslash}p{0.8cm}
+                >{\centering\arraybackslash}p{0.8cm}
+                >{\centering\arraybackslash}p{0.8cm}
+                >{\centering\arraybackslash}p{0.8cm}
+                >{\centering\arraybackslash}p{1.2cm}}
+  \textbf{1} & \textbf{2} & \textbf{3} & \textbf{4} & \textbf{5} & \textbf{6} & \textbf{7} & \textbf{8} & \textbf{9} & \textbf{10} & \textbf{Don't know} \\
+  $\square$ & $\square$ & $\square$ & $\square$ & $\square$ & $\square$ & $\square$ & $\square$ & $\square$ & $\square$ & $\square$
 \end{tabular}
-\normalsize
-\bigskip
+\par\noindent
+\hfill\small(1 = Not at all democratic~$\leftarrow$~---~$\rightarrow$~10 = Completely democratic)\hfill
+\par\normalsize\medskip}
 
-\questionbox{A5}{All things considered, how satisfied are you with your life as a whole these days?}
-\numberscale{Completely dissatisfied}{Completely satisfied}
+\questionbox{A4}{Listed below are various types of political systems. Please think about each one as a way of governing this country. For each one, would you say it is a very good, fairly good, fairly bad or very bad way of governing this country?\\
+\medskip
+\noindent\footnotesize
+\begin{tabular}{p{5.5cm}*{5}{>{\centering\arraybackslash}p{1.7cm}}}
+  & \textbf{Very good} & \textbf{Fairly good} & \textbf{Fairly bad} & \textbf{Very bad} & \textbf{Don't know} \\
+  \textbf{Having a democratic political system} & $\square$ & $\square$ & $\square$ & $\square$ & $\square$ \\
+  \textbf{Having a strong leader who does not have to bother with parliament and elections} & $\square$ & $\square$ & $\square$ & $\square$ & $\square$
+\end{tabular}
+\normalsize}
+
+\questionbox{A5}{Here are some statements about science and technology. How much do you agree or disagree with each of these statements? For these questions, a 1 means that you ``completely disagree'' and a 10 means that you ``completely agree.''\\
+\medskip
+\noindent\textbf{One of the bad effects of science is that it breaks down people's ideas of right and wrong}\par
+\medskip
+\noindent\footnotesize
+\begin{tabular}{>{\centering\arraybackslash}p{0.8cm}
+                >{\centering\arraybackslash}p{0.8cm}
+                >{\centering\arraybackslash}p{0.8cm}
+                >{\centering\arraybackslash}p{0.8cm}
+                >{\centering\arraybackslash}p{0.8cm}
+                >{\centering\arraybackslash}p{0.8cm}
+                >{\centering\arraybackslash}p{0.8cm}
+                >{\centering\arraybackslash}p{0.8cm}
+                >{\centering\arraybackslash}p{0.8cm}
+                >{\centering\arraybackslash}p{0.8cm}
+                >{\centering\arraybackslash}p{1.2cm}}
+  \textbf{1} & \textbf{2} & \textbf{3} & \textbf{4} & \textbf{5} & \textbf{6} & \textbf{7} & \textbf{8} & \textbf{9} & \textbf{10} & \textbf{Don't know} \\
+  $\square$ & $\square$ & $\square$ & $\square$ & $\square$ & $\square$ & $\square$ & $\square$ & $\square$ & $\square$ & $\square$
+\end{tabular}
+\par\noindent
+\hfill\small(1 = Completely disagree~$\leftarrow$~---~$\rightarrow$~10 = Completely agree)\hfill
+\par\normalsize\medskip}
 
 \newpage
 
@@ -324,17 +359,18 @@
 
 \questionbox{C1}{How much would you say you know about Artificial Intelligence (AI)?}
 \noindent\footnotesize
-\begin{tabular}{p{2.5cm}c@{\hspace{1em}}p{2.5cm}c@{\hspace{1em}}p{2.5cm}c@{\hspace{1em}}p{2.5cm}c@{\hspace{1em}}p{2.5cm}c}
-  \textbf{Nothing} & $\square$ &
-  \textbf{A little} & $\square$ &
-  \textbf{A moderate amount} & $\square$ &
-  \textbf{A lot} & $\square$ &
-  \textbf{A great deal} & $\square$
+\begin{tabular}{>{\centering\arraybackslash}p{2.2cm}
+                >{\centering\arraybackslash}p{2.2cm}
+                >{\centering\arraybackslash}p{2.2cm}
+                >{\centering\arraybackslash}p{2.2cm}
+                >{\centering\arraybackslash}p{2.2cm}}
+  \textbf{Nothing} & \textbf{A little} & \textbf{A moderate amount} & \textbf{A lot} & \textbf{A great deal} \\
+  $\square$ & $\square$ & $\square$ & $\square$ & $\square$
 \end{tabular}
 \normalsize
 \bigskip
 
-\questionbox{C2}{How optimistic are you that further AI development will bring about a better future?}
+\questionbox{C2}{How much do you believe that further AI development will bring about a better future?}
 \likertseven{}
 
 \questionbox{C3}{What causes your optimism or pessimism about AI? Please explain in a few sentences.}

@@ -367,7 +367,7 @@ def _(mo):
 
 
 @app.cell
-def _(K, col2question, distributions, np, pd):
+def _(K, col2question, distributions, np, output_dir, pd, question_mapping):
     def informativeness(col):
         d = distributions[col][0]
         return float(
@@ -381,15 +381,62 @@ def _(K, col2question, distributions, np, pd):
         )
 
     sorted_cols = sorted(distributions, key=informativeness, reverse=True)
+
+    _word_responses = {}
+    for _entry in question_mapping:
+        for _col in _entry["column_names"]:
+            _word_responses[_col] = _entry["word_response_types"]
+
+    _sub_questions = {}
+    for _entry in question_mapping:
+        _sqs = _entry.get("sub_questions") or [None] * len(_entry["column_names"])
+        for _i, _col in enumerate(_entry["column_names"]):
+            _sub_questions[_col] = _sqs[_i] if _i < len(_sqs) else None
+
+    # Identify controversial questions
+    _exclude_keywords = [
+        "homosexual",
+        "immig",
+        "abortion",
+        "prostitution",
+        "divorce",
+        "sex before marriage",
+        "casual sex",
+        "wife",
+        "husband",
+        "women",
+        "gender",
+    ]
+    _controversial = set()
+    for _entry in question_mapping:
+        _sqs = _entry.get("sub_questions") or [None] * len(_entry["column_names"])
+        _qtext = _entry["question"].lower()
+        for _i, _col in enumerate(_entry["column_names"]):
+            _sq = (_sqs[_i] or "") if _i < len(_sqs) else ""
+            _combined = _qtext + " " + _sq.lower()
+            if any(k in _combined for k in _exclude_keywords):
+                _controversial.add(_col)
+    _controversial.update(
+        {"Q189", "Q190", "Q22", "Q36", "Q119", "Q263", "Q264", "Q265"}
+    )
+
     informativeness_df = pd.DataFrame(
         {
             "column": sorted_cols,
             "informativeness": [informativeness(c) for c in sorted_cols],
             "question": [col2question.get(c, "") for c in sorted_cols],
+            "sub_question": [_sub_questions.get(c, "") for c in sorted_cols],
+            "response_options": [_word_responses.get(c, []) for c in sorted_cols],
+            "controversial": [c in _controversial for c in sorted_cols],
         }
     ).round(3)
 
-    informativeness_df.head(15)
+    informativeness_df.to_csv(output_dir / "question_informativeness.csv", index=False)
+    print(
+        f"Saved informativeness rankings → {output_dir / 'question_informativeness.csv'}"
+    )
+    print()
+    print(informativeness_df.head(15).to_string())
     return (informativeness_df,)
 
 
@@ -459,59 +506,167 @@ def _(K, informativeness_df, np, posteriors, wvs_df):
 
 
 @app.cell
-def _(X, all_items, figures_dir, model, np, pd, plt):
+def _(X, informativeness_df, model, np, question_mapping):
+    from collections import defaultdict
+
+    # ── Tweakable settings ──────────────────────────────────────
+    TOTAL_QUESTIONS = 10  # number of question groups to show
+    EXCLUDE_CONTROVERSIAL = True  # filter out controversial questions?
+    # ─────────────────────────────────────────────────────────────
+
+    _qid_by_col = {}
+    for _entry in question_mapping:
+        for _col in _entry["column_names"]:
+            _qid_by_col[_col] = _entry["id"]
+
+    _pool = (
+        informativeness_df[~informativeness_df["controversial"]][:TOTAL_QUESTIONS]
+        if EXCLUDE_CONTROVERSIAL
+        else informativeness_df[:TOTAL_QUESTIONS]
+    )
+    _groups = defaultdict(list)
+    for _, _row in _pool.iterrows():
+        _gid = _qid_by_col.get(_row["column"])
+        _groups[_gid].append(_row)
+
+    _ranked = sorted(
+        _groups.items(),
+        key=lambda x: max(i["informativeness"] for i in x[1]),
+        reverse=True,
+    )
+
+    _selected = []
+    print(
+        f"Top {TOTAL_QUESTIONS} question groups{' (non-controversial only)' if EXCLUDE_CONTROVERSIAL else ''}:\n"
+    )
+    for _gid, _items in _ranked:
+        _entry = next((e for e in question_mapping if e["id"] == _gid), None)
+        _qtext = _entry["question"] if _entry else "?"
+        _n_subs = len(_items)
+        _tops = sorted(_items, key=lambda i: i["informativeness"], reverse=True)
+        _selected.extend(_s["column"] for _s in _tops)
+
+        print(f"  {_qtext}  ({_n_subs} sub-questions)")
+        for _s in _tops:
+            _sq = _s.get("sub_question", "") or ""
+            _tag = " [CONTROVERSIAL]" if _s.get("controversial", False) else ""
+            print(
+                f"    {_s['column']:5s}  info={_s['informativeness']:.3f}  {_sq}{_tag}"
+            )
+        print()
+
+    _Xp = X.copy()
+    _Xp[[c for c in X.columns if c not in _selected]] = np.nan
+    _cert = model.predict_proba(_Xp).max(axis=1)
+    print(
+        f"Expected certainty (all {len(_selected)} sub-questions from {TOTAL_QUESTIONS} questions):"
+    )
+    print(
+        f"  Mean: {_cert.mean():.3f}  Median: {np.median(_cert):.3f}  >0.9: {(_cert > 0.9).mean():.1%}"
+    )
+    return
+
+
+@app.cell
+def _(X, all_items, figures_dir, informativeness_df, model, np, pd, plt):
     value_only = [c for c, _, t, _ in all_items if t == "value"]
+    clean_only = informativeness_df[~informativeness_df["controversial"]][
+        "column"
+    ].tolist()
+
     n_list = range(1, 16)
 
-    rows = []
-    for n_q in n_list:
-        top_n = value_only[:n_q]
-        X_partial = X.copy()
-        X_partial[[c for c in X.columns if c not in top_n]] = np.nan
-        partial_post = model.predict_proba(X_partial)
-        cert = partial_post.max(axis=1)
-        rows.append(
-            {
-                "n_questions": n_q,
-                "avg_certainty": round(cert.mean(), 3),
-                "med_certainty": round(float(np.median(cert)), 3),
-                "n_>0.9": int((cert > 0.9).sum()),
-            }
-        )
+    def _compute_certs(cols):
+        _rows = []
+        for n_q in n_list:
+            _top_n = cols[:n_q]
+            _Xp = X.copy()
+            _Xp[[c for c in X.columns if c not in _top_n]] = np.nan
+            _cert = model.predict_proba(_Xp).max(axis=1)
+            _rows.append(
+                {
+                    "n_questions": n_q,
+                    "avg_certainty": round(_cert.mean(), 3),
+                    "med_certainty": round(float(np.median(_cert)), 3),
+                    "frac_gt_0.9": (_cert > 0.9).mean(),
+                }
+            )
+        return pd.DataFrame(_rows)
 
-    _results = pd.DataFrame(rows)
+    _all = _compute_certs(value_only)
+    _clean = _compute_certs(clean_only)
+
+    # Print top 5 comparison table
+    print("Metric" + " " * 12 + "Top 5 (all)" + " " * 5 + "Top 5 (non-controversial)")
+    _r_all = _all[_all["n_questions"] == 5].iloc[0]
+    _r_clean = _clean[_clean["n_questions"] == 5].iloc[0]
     print(
-        "Assignment confidence for NEW respondents (using top-N value survey questions):"
+        f"Mean certainty       {_r_all['avg_certainty']:<15.3f} {_r_clean['avg_certainty']:.3f}"
     )
-    print(_results.to_string(index=False))
+    print(
+        f"Median certainty     {_r_all['med_certainty']:<15.3f} {_r_clean['med_certainty']:.3f}"
+    )
+    print(
+        f"p(cert > 0.9)        {_r_all['frac_gt_0.9']:<15.1%} {_r_clean['frac_gt_0.9']:.1%}"
+    )
 
-    _fig, _ax = plt.subplots(figsize=(7, 4))
+    # Plot
+    _fig, _ax = plt.subplots(figsize=(8, 5))
     _ax.plot(
-        _results["n_questions"], _results["avg_certainty"], "o-", label="avg certainty"
+        _all["n_questions"],
+        _all["avg_certainty"],
+        "o-",
+        color="#1f77b4",
+        label="avg — top value questions",
     )
     _ax.plot(
-        _results["n_questions"],
-        _results["med_certainty"],
+        _all["n_questions"],
+        _all["med_certainty"],
         "s--",
-        label="median certainty",
+        color="#1f77b4",
+        label="median — top value questions",
+    )
+    _ax.plot(
+        _clean["n_questions"],
+        _clean["avg_certainty"],
+        "o-",
+        color="#ff7f0e",
+        label="avg — top non-controversial",
+    )
+    _ax.plot(
+        _clean["n_questions"],
+        _clean["med_certainty"],
+        "s--",
+        color="#ff7f0e",
+        label="median — top non-controversial",
+    )
+
+    _ax.fill_between(
+        _all["n_questions"],
+        0,
+        _all["frac_gt_0.9"],
+        alpha=0.08,
+        color="#1f77b4",
+        label="frac > 0.9 — all",
     )
     _ax.fill_between(
-        _results["n_questions"],
+        _clean["n_questions"],
         0,
-        _results["n_>0.9"] / len(X),
-        alpha=0.15,
-        label="frac > 0.9",
+        _clean["frac_gt_0.9"],
+        alpha=0.08,
+        color="#ff7f0e",
+        label="frac > 0.9 — non-controversial",
     )
+
     _ax.axhline(0.9, color="grey", ls=":", alpha=0.5)
-    _ax.set_xlabel("Number of value survey questions asked")
+    _ax.set_xlabel("Number of questions asked")
     _ax.set_ylabel("Posterior certainty")
-    _ax.set_title("Assignment confidence for new respondents")
-    _ax.legend(fontsize=9)
+    _ax.set_title("Assignment confidence: top value questions vs non-controversial")
+    _ax.legend(fontsize=8, loc="lower right")
     _ax.set_xticks(list(n_list))
+    _fig.tight_layout()
     _fig.savefig(
-        figures_dir / "survey_questions_cluster_assignment_confidence.png",
-        dpi=150,
-        bbox_inches="tight",
+        figures_dir / "certainty_by_n_questions.png", dpi=150, bbox_inches="tight"
     )
     _fig
     return
@@ -586,6 +741,184 @@ def _(
             bbox_inches="tight",
         )
         _fig
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md("""
+    ## PCA 2D Reduction — Sanity Check
+
+    A 2D PCA projection of the one-hot-encoded response data, coloured by
+    cluster assignment, to visually confirm that the clusters separate in a
+    simple linear subspace.
+    """)
+    return
+
+
+@app.cell
+def _(X_raw, assignments, figures_dir, pd, plt):
+    from sklearn.decomposition import PCA
+    from sklearn.preprocessing import StandardScaler
+
+    # One-hot encode all categorical value columns
+    _X_str = X_raw.astype(str).replace("nan", "Missing")
+    _X_encoded = pd.get_dummies(_X_str, prefix_sep="=")
+
+    _scaler = StandardScaler()
+    _X_scaled = _scaler.fit_transform(_X_encoded)
+
+    _pca = PCA(n_components=2, random_state=42)
+    _coords = _pca.fit_transform(_X_scaled)
+
+    _fig, _ax = plt.subplots(figsize=(8, 6))
+    _colors = ["#1f77b4", "#ff7f0e"]
+    for _k in sorted(set(assignments)):
+        _mask = assignments == _k
+        _ax.scatter(
+            _coords[_mask, 0],
+            _coords[_mask, 1],
+            c=_colors[_k % len(_colors)],
+            label=f"Cluster {_k}",
+            alpha=0.6,
+            s=15,
+            edgecolors="none",
+        )
+    _ax.set_xlabel(f"PC1 ({_pca.explained_variance_ratio_[0]:.1%} variance)")
+    _ax.set_ylabel(f"PC2 ({_pca.explained_variance_ratio_[1]:.1%} variance)")
+    _ax.set_title("PCA projection of WVS responses coloured by cluster")
+    _ax.legend(markerscale=3)
+    _fig.tight_layout()
+    _fig.savefig(
+        figures_dir / "pca_cluster_sanity_check.png", dpi=150, bbox_inches="tight"
+    )
+    _fig
+
+    print(
+        "PCA: {:.1%} + {:.1%} = {:.1%} variance in 2 components".format(
+            _pca.explained_variance_ratio_[0],
+            _pca.explained_variance_ratio_[1],
+            _pca.explained_variance_ratio_[:2].sum(),
+        )
+    )
+    return PCA, StandardScaler
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md("""
+    ## t-SNE 2D Reduction
+
+    t-SNE is a non-linear method that often reveals more structure than PCA
+    for high-dimensional categorical data. Here it is applied to the same
+    one-hot-encoded responses.
+    """)
+    return
+
+
+@app.cell
+def _(StandardScaler, X_raw, assignments, figures_dir, pd, plt):
+    from sklearn.manifold import TSNE
+
+    _X_str = X_raw.astype(str).replace("nan", "Missing")
+    _X_encoded = pd.get_dummies(_X_str, prefix_sep="=")
+
+    _scaler = StandardScaler()
+    _X_scaled = _scaler.fit_transform(_X_encoded)
+
+    _tsne = TSNE(
+        n_components=2,
+        random_state=42,
+        perplexity=30,
+        learning_rate="auto",
+        init="random",
+    )
+    _coords = _tsne.fit_transform(_X_scaled)
+
+    _fig, _ax = plt.subplots(figsize=(8, 6))
+    _colors = ["#1f77b4", "#ff7f0e"]
+    for _k in sorted(set(assignments)):
+        _mask = assignments == _k
+        _ax.scatter(
+            _coords[_mask, 0],
+            _coords[_mask, 1],
+            c=_colors[_k % len(_colors)],
+            label=f"Cluster {_k}",
+            alpha=0.6,
+            s=15,
+            edgecolors="none",
+        )
+    _ax.set_xlabel("t-SNE dim 1")
+    _ax.set_ylabel("t-SNE dim 2")
+    _ax.set_title("t-SNE projection of WVS responses coloured by cluster")
+    _ax.legend(markerscale=3)
+    _fig.tight_layout()
+    _fig.savefig(
+        figures_dir / "tsne_cluster_sanity_check.png", dpi=150, bbox_inches="tight"
+    )
+    _fig
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md("""
+    ## K-Means Sanity Check
+
+    A simple K-Means (K=2) on the same one-hot-encoded data. The Adjusted Rand
+    Index (ARI) quantifies agreement with the LCA cluster labels; the
+    cross-tabulation shows where they differ.
+    """)
+    return
+
+
+@app.cell
+def _(PCA, StandardScaler, X_raw, assignments, figures_dir, pd, plt):
+    from sklearn.cluster import KMeans
+    from sklearn.metrics import adjusted_rand_score
+
+    _X_str = X_raw.astype(str).replace("nan", "Missing")
+    _X_encoded = pd.get_dummies(_X_str, prefix_sep="=")
+    _scaler = StandardScaler()
+    _X_scaled = _scaler.fit_transform(_X_encoded)
+
+    _kmeans = KMeans(n_clusters=2, random_state=42, n_init=10)
+    _km_labels = _kmeans.fit_predict(_X_scaled)
+
+    _ari = adjusted_rand_score(assignments, _km_labels)
+    _ct = pd.crosstab(
+        pd.Series(assignments, name="LCA cluster"),
+        pd.Series(_km_labels, name="K-Means cluster"),
+    )
+
+    print(f"Adjusted Rand Index (LCA vs K-Means): {_ari:.3f}")
+    print("Cross-tabulation:")
+    print(_ct.to_string())
+    print()
+
+    _pca = PCA(n_components=2, random_state=42)
+    _coords = _pca.fit_transform(_X_scaled)
+
+    _fig, _ax = plt.subplots(figsize=(8, 6))
+    _colors = ["#1f77b4", "#ff7f0e"]
+    for _k in sorted(set(_km_labels)):
+        _mask = _km_labels == _k
+        _ax.scatter(
+            _coords[_mask, 0],
+            _coords[_mask, 1],
+            c=_colors[_k % len(_colors)],
+            label=f"K-Means cluster {_k}",
+            alpha=0.6,
+            s=15,
+            edgecolors="none",
+        )
+    _ax.set_xlabel(f"PC1 ({_pca.explained_variance_ratio_[0]:.1%} variance)")
+    _ax.set_ylabel(f"PC2 ({_pca.explained_variance_ratio_[1]:.1%} variance)")
+    _ax.set_title("PCA projection coloured by K-Means (K=2) labels")
+    _ax.legend(markerscale=3)
+    _fig.tight_layout()
+    _fig.savefig(figures_dir / "kmeans_sanity_check.png", dpi=150, bbox_inches="tight")
+    _fig
     return
 
 
