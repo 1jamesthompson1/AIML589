@@ -1,4 +1,4 @@
-import { readFileSync, writeFileSync, existsSync, readdirSync, statSync } from 'fs';
+import { readFileSync, writeFileSync, existsSync, readdirSync, statSync, mkdirSync } from 'fs';
 import { join } from 'path';
 import papa from 'papaparse';
 
@@ -116,6 +116,7 @@ function main() {
   console.log('Building eval data...');
   const data = buildEvals();
 
+  mkdirSync(OUT_DIR, { recursive: true });
   writeFileSync(OUT_FILE, JSON.stringify(data, null, 2));
   console.log(`Wrote ${OUT_FILE} (${Object.keys(data.models).length} models)`);
 }
