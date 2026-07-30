@@ -6,7 +6,9 @@ Fine-tune open-weight LLMs on the [WVS NZ value alignment dataset](https://huggi
 
 ## Workflow
 
-This project is setup to work from a lightweight dev machine and ssh into gpu machines to both do the fine-tuning and serve the model for evaluation.
+This project is setup to work from a lightweight dev machine and ssh into gpu machines to both do the fine-tuning and serve the model for evaluation. The evaluation code (i.e calling API endpoints) and analysis is done on the dev machine.
+
+There is a single `run.sh` script that handles most of GPU machine workflow see [CLI](#cli) below.
 
 ## GPU machines
 
@@ -88,6 +90,17 @@ You can also auto-add each new adapter repo to a HF Collection for easy browsing
 
 Every run saves a `finetune_config.json` alongside the adapter with all hyperparameters, timestamp, and git commit hash.
 
+## Dataset configs for evaluation
+
+Two dataset configs are available. Both share the **same input prompts**; only the expected answer differs:
+
+| Config | Expected answer | What it measures |
+|---|---|---|
+| `single_modal` | Mode (most common response) | Accuracy (exact match vs majority) + KL/CE vs true distribution |
+| `single_sample` | Random sample from cluster | Accuracy (exact match vs a typical individual) + KL/CE vs true distribution |
+
+Each eval run covers **all subpopulations** (cluster_0, cluster_1, overall) in a single pass. The `subpopulation` column in `per_question_results.csv` identifies which subpopulation each row belongs to.
+
 ## Evaluation
 
 To do evaluation you load the model you want to evaluate on a GPU machine and then run the evaluation script from your dev machine. The evaluation script will send requests to the GPU machine to get the model's responses.
@@ -108,56 +121,3 @@ Simply run `run.sh serve` to start a vLLM server on a GPU machine and tunnel the
 ```
 
 `--port` sets the port on your laptop (default `8080`). `run.sh` handles random free port allocation on the remote and SSH tunnel setup automatically.
-
-### Legacy scripts
-
-The individual `serve.sh` and `run_finetune.sh` scripts still work as before, but `run.sh` is the recommended entry point.
-
-#### Serving with LoRA adapters
-
-Each fine-tuned adapter lives in its own HF Hub repo. Load one or more adapters on top of a base model:
-
-```bash
-# Single adapter
-./code/fine-tuning/serve.sh uni-gpu1 --port 8087 \
-    --model Qwen/Qwen3.6-27B \
-    --adapter cluster_0=1jamesthompson1/Qwen3.6-27B-nz-wvs-single_modal-cluster_0
-
-# Multiple adapters loaded simultaneously (clients select via model param)
-./code/fine-tuning/serve.sh uni-gpu1 --port 8087 \
-    --model Qwen/Qwen3.6-27B \
-    --adapter cluster_0=1jamesthompson1/Qwen3.6-27B-nz-wvs-single_modal-cluster_0 \
-    --adapter cluster_1=1jamesthompson1/Qwen3.6-27B-nz-wvs-single_modal-cluster_1 \
-    --adapter overall=1jamesthompson1/Qwen3.6-27B-nz-wvs-distributional-overall
-```
-
-##### Auto-construct adapter from dataset + subpopulation
-
-`serve.sh` can auto-construct the adapter repo name for you using `--dataset` and `--subpopulation`:
-
-```bash
-./code/fine-tuning/serve.sh uni-gpu1 --port 8087 \
-    --model Qwen/Qwen3.6-27B \
-    --dataset single_modal --subpopulation cluster_0
-```
-
-This looks up `HF_ORG` from your `.env`, builds the repo name `{HF_ORG}/Qwen3.6-27B-nz-wvs-single_modal-cluster_0`, and passes `--adapter cluster_0=<repo>` to `serve.py`.
-
-**Client usage:** In your evaluation script, set `--model <adapter_name>` to target a specific fine-tuned version:
-
-```bash
-uv run evaluate.py --port 8087 --model cluster_0 \
-    --dataset single_modal --subpopulation cluster_0
-```
-
-### Running evaluation
-
-Once the model is being served you can run the evaluation script from your dev machine. This will send requests to the model and save the results in `output/eval/<model>_<dataset>_<subpopulation>/` by default.
-
-```bash
-uv run code/fine-tuning/evaluate.py \
-    --model Qwen/Qwen3.6-27B \
-    --port 8087 \
-    --dataset distributional \
-    --subpopulation overall
-```

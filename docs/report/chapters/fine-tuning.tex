@@ -6,3 +6,65 @@ prompts and format of the data
 finetuning methods
 finetuning evaluations (survey modelling and response distributions)
 
+The goal of this chapter is to show that the an open weight model can be fine-tuned with value survey data to produce a model that responds more like the respondents it is aligned to when answering survey questions.
+
+In section \ref{sec:ft-results} we wil find that ...
+
+In section \ref{sec:ft-dataset} and section \ref{sec:ft-methods} I describe the methods used ot create the dataset and fine-tune the model.
+
+\section{Fine-tuning on diverse clusters with appreciable training}
+
+\section{The clusters of survey respondents}
+
+To test for inter group differences we need to cluster the survey respondents.
+
+The clusters are distinct
+
+We can assign to the clusters with a high level of confidence
+
+
+\subsection{Efficacy of fine-tuning}
+
+Discuss the various methods of evaluating the efficacy of fine-tuning, including:
+- Survey modelling (how well the model predicts survey responses)
+- Response distributions (how well the model's response distributions match the survey data)
+
+Also explore other concepts of:
+- Is fine-tuning robust to reasoning on and off?
+- Does system prompt matter?
+
+
+\section{Creating the training dataset}
+
+We choose the WVS dataset (free, open and sufficient).
+
+\subsection{Clustering of survey data}
+We did clustering using LCA method
+
+This is what the clustering looked like...
+
+\subsection{Structure of the training data}
+
+System prompts and user prompts, how they were selected.
+
+
+\section{Fine-tuning methods}
+
+To better understand the effects on downstream behaviour 2 types of fine-tuning were done. First is modal fine-tuning where the goal is to have a model that responds in a way that is like the most common response in the survey data for that sub population. The second is distributional fine-tuning where the goal is to have a model that responds in a way that is like the distribution of responses in the survey data for that sub population.
+
+Given the use of LLM reasoning in downstream applications allows for more uncertainty (citation needed, i.e the intuition that the reasoning gives it more chance of randomness and therefore can better model uncertainty.
+
+\subsection{Modal fine-tuning}
+
+To do modal fine-tuning the model is trained used SFT with the expected text response being the most common response in the survey data for that sub population.
+
+A description of SFT
+
+\subsection{Distributional fine-tuning}
+
+To do distributional fine-tuning two methods were used. Firstly was SFT with the expected text response being a random sample from the distribution of responses in the survey data for that sub population. Secondly was using a loss function that is based on the difference between the model's response distribution and the survey data response distribution. This loss function is based on cross-entropy
+
+Description of the fine-tuning process and the loss function used.
+
+
+

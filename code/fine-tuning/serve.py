@@ -128,6 +128,12 @@ def parse_args(argv=None):
         default=True,
         help="Trust remote code when loading model",
     )
+    p.add_argument(
+        "--max-num-seqs",
+        type=int,
+        default=512,
+        help="Maximum number of sequences per batch. Lower this if OOM with Mamba models.",
+    )
 
     # ── LoRA multi-adapter options ──────────────────────────────────
     p.add_argument(
@@ -205,6 +211,8 @@ def main():
         "qwen3",
         "--enable-prefix-caching",
         "--language-model-only",
+        "--max-num-seqs",
+        str(args.max_num_seqs),
     ]
 
     # ── Build adapter list ──────────────────────────────────────────
@@ -242,8 +250,9 @@ def main():
     if adapter_modules:
         cmd.append("--enable-lora")
         cmd.extend(["--max-lora-rank", str(args.max_lora_rank)])
-        for name, path in adapter_modules:
-            cmd.extend(["--lora-modules", f"{name}={path}"])
+        cmd.extend(
+            ["--lora-modules"] + [f"{name}={path}" for name, path in adapter_modules]
+        )
         print(f"[adapters] total adapters loaded: {len(adapter_modules)}")
 
     if args.dtype and args.dtype != "auto":
@@ -296,10 +305,22 @@ def main():
 
     print(f"[serve] vLLM listening on http://{args.host}:{args.port}")
 
+    shutdown = threading.Event()
+
     def _handle_sig(*_):
+        if shutdown.is_set():
+            return
+        shutdown.set()
         print("\n[serve] shutting down...")
-        os.killpg(os.getpgid(proc.pid), signal.SIGTERM)
-        proc.wait()
+        if proc.poll() is None:
+            os.killpg(os.getpgid(proc.pid), signal.SIGTERM)
+        if proc.stdout:
+            proc.stdout.close()
+        try:
+            proc.wait(timeout=30)
+        except subprocess.TimeoutExpired:
+            os.killpg(os.getpgid(proc.pid), signal.SIGKILL)
+            proc.wait()
         sys.exit(0)
 
     signal.signal(signal.SIGINT, _handle_sig)

@@ -1,0 +1,17 @@
+{
+  "target": "Qwen/Qwen3.5-2B",
+  "dataset": "single_modal",
+  "population": "overall",
+  "run_name": "single_modal-overall-20260729_132441",
+  "timestamp": "2026-07-29T13:24:41.357113",
+  "output_dir": "/home/james/code/AIML589/output/evals/Qwen3.5-2B/single_modal-overall-20260729_132441",
+  "api_url": "http://localhost:8087",
+  "api_key": "EMPTY",
+  "max_tokens": 1000,
+  "top_logprobs": 20,
+  "num_test_examples": null,
+  "no_plots": false,
+  "reasoning": false,
+  "dataset_sha": "f6923d9824dbb6162b5de3f262901ff1e245146d",
+  "model_sha": "15852e8c16360a2fea060d615a32b45270f8a8fc"
+}

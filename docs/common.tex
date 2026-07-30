@@ -11,8 +11,8 @@
 \usetikzlibrary{arrows.meta, positioning, shapes.geometric, shadows.blur}
 \usepackage{pgfgantt}
 \usepackage{pgfplots}
-\setlength{\marginparwidth}{2cm}
-\usepackage{todonotes}
+\setlength{\marginparwidth}{2.5cm}
+\usepackage[colorinlistoftodos, textwidth=2.3cm]{todonotes}
 \usepackage[backend=biber,style=numeric]{biblatex}
 
 % Build system: override output PDF name
@@ -23,6 +23,20 @@
 \newcommand{\term}[1]{\textbf{#1}}
 
 \newtheorem{definition}{Definition}
+
+% --- Sticky-note fixme system ---
+% Usage: \fixme{text to fix} or \fixme[inline]{longer note}
+% When all \fixme commands are removed, the WORKING DRAFT notice no longer appears.
+% Comment out the line below to force-hide draft notice even with fixmes present.
+\newif\ifdraftmode
+\draftmodetrue
+
+\newcommand{\fixme}[2][]{%
+  \todo[color=orange!30, size=\small, #1]{#2}%
+}
+\newcommand{\fixmeinline}[1]{%
+  \todo[color=orange!30, inline, size=\small]{#1}%
+}
 
 % Figure convenience: \cfigure[placement]{filename}{caption}
 \newcommand{\cfigure}[3][htbp]{%

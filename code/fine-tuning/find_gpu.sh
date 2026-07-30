@@ -42,6 +42,12 @@ UPDATE_CONFIG=false
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 SSH_CONFIG="$SCRIPT_DIR/.ssh_config"
 
+# Detect if we are running on the jump host (script was piped to /tmp/)
+# and disable the jump to prevent infinite recursion.
+if [[ "$SCRIPT_DIR" == "/tmp" ]] || [[ "$0" == /tmp/* ]]; then
+  JUMP_HOST=""
+fi
+
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --gpu-mem) MIN_GPU_MEM="$2"; shift 2 ;;

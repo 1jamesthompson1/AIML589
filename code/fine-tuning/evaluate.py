@@ -24,15 +24,13 @@ Usage:
     uv run evaluate.py \
         --port 8087 \
         --model Qwen/Qwen3.6-27B-FP8 \
-        --dataset distributional \
-        --subpopulation overall
+        --dataset single_modal
 
     # For quick checks without plots:
-    uv run code/fine-tuning/evaluate_model_cli.py \
+    uv run evaluate.py \
         --port 8000 \
         --model Qwen/Qwen3.6-27B \
-        --dataset distributional \
-        --subpopulation overall \
+        --dataset single_modal \
         --no-plots \
         --num-test-examples 20
 """
@@ -47,8 +45,95 @@ import numpy as np
 import pandas as pd
 
 
+def _model_short_name(model: str) -> str:
+    return model.split("/", 1)[-1]
+
+
 def _model_safe_name(model: str) -> str:
     return model.replace("/", "_").replace(":", "_").replace(" ", "_")
+
+
+def _model_sha(
+    model_id: str, hf_token: str | None = None, server_created: int | None = None
+) -> str | None:
+    import os
+    from datetime import datetime, timezone
+
+    lookup = model_id
+    if "/" not in lookup:
+        hf_org = os.environ.get("HF_ORG")
+        if not hf_org:
+            return None
+        lookup = f"{hf_org}/{lookup}"
+    try:
+        from huggingface_hub import model_info
+
+        info = model_info(lookup, token=hf_token)
+        if server_created and info.lastModified:
+            if isinstance(info.lastModified, str):
+                hub_updated = datetime.fromisoformat(
+                    info.lastModified.replace("Z", "+00:00")
+                )
+            else:
+                hub_updated = info.lastModified
+            server_dt = datetime.fromtimestamp(int(server_created), tz=timezone.utc)
+            diff = abs((hub_updated - server_dt).total_seconds())
+            if diff < 300:
+                print()
+                print("!" * 60)
+                print("WARNING: Model may have changed since server started!")
+                print(
+                    f"  Server loaded:     {server_dt.strftime('%Y-%m-%d %H:%M:%S UTC')}"
+                )
+                print(
+                    f"  Hub last modified: {hub_updated.strftime('%Y-%m-%d %H:%M:%S UTC')}"
+                )
+                print(f"  Gap:               {diff:.0f}s")
+                print("  If you just uploaded a new version, restart the server.")
+                print("!" * 60)
+                print()
+        model_sha = info.sha
+        if model_sha:
+            print(f"[eval] model commit: {model_sha}")
+        else:
+            print(f"[eval] model commit: Not found for '{lookup}'")
+        return model_sha
+    except Exception as e:
+        print(f"  [warn] could not fetch SHA for model '{lookup}': {e}")
+        return None
+
+
+def _load_dataset_and_sha(
+    dataset_id: str,
+    config_name: str,
+    hf_token: str | None = None,
+    num_test_examples: int | None = None,
+):
+    from datasets import load_dataset
+    from huggingface_hub import dataset_info
+
+    dataset_sha = None
+    try:
+        repo_info = dataset_info(dataset_id, token=hf_token)
+        dataset_sha = repo_info.sha
+    except Exception:
+        print("[data] could not fetch dataset SHA from Hub")
+
+    ds = load_dataset(dataset_id, config_name, split="test", token=hf_token or None)
+    if num_test_examples:
+        ds = ds.select(range(min(num_test_examples, len(ds))))
+
+    subpops = (
+        set(ds["subpopulation"]) if "subpopulation" in ds.features else {"unknown"}
+    )
+    print(
+        f"[data] loaded {len(ds)} test examples"
+        f" (config={config_name}, subpops={', '.join(sorted(subpops))})"
+    )
+    if dataset_sha:
+        print(f"[data] dataset commit: {dataset_sha}")
+
+    return ds, dataset_sha
 
 
 def parse_args(argv=None):
@@ -76,15 +161,11 @@ def parse_args(argv=None):
     )
     p.add_argument(
         "--dataset",
-        default="distributional",
-        choices=["single_modal", "single_sample", "distributional"],
-        help="Dataset config to evaluate on",
-    )
-    p.add_argument(
-        "--subpopulation",
-        default="overall",
-        choices=["cluster_0", "cluster_1", "overall"],
-        help="Subpopulation to evaluate",
+        default="single_modal",
+        choices=["single_modal", "single_sample"],
+        help="Dataset config to evaluate on. "
+        "Note: distributional has been removed as it is redundant — "
+        "single_modal gives both accuracy and KL/CE.",
     )
     p.add_argument(
         "--hf-token",
@@ -95,10 +176,14 @@ def parse_args(argv=None):
         "--output-dir",
         default=None,
         help="Directory to save evaluation results. "
-        "Default: output/eval/<model>_<dataset>_<subpopulation>/",
+        "Default: output/evals/<model>/<dataset>-<timestamp>/",
     )
     p.add_argument(
-        "--max-tokens", type=int, default=1000, help="Max tokens for each query"
+        "--max-tokens",
+        type=int,
+        default=None,
+        help="Max total tokens for each query (thinking + answer). "
+        "Default: 1000 (no reasoning) / 4096 (reasoning).",
     )
     p.add_argument(
         "--top-logprobs", type=int, default=20, help="Number of top logprobs to request"
@@ -114,6 +199,12 @@ def parse_args(argv=None):
         action="store_true",
         default=False,
         help="Skip generating per-question distribution plots",
+    )
+    p.add_argument(
+        "--reasoning",
+        action="store_true",
+        default=False,
+        help="Enable reasoning mode (chain-of-thought)",
     )
 
     return p.parse_args(argv)
@@ -378,16 +469,219 @@ def plot_distribution_comparison(
     print(f"[plots] saved plots to {figs_dir}")
 
 
-def main():
-    from dotenv import load_dotenv
+def _load_question_options():
+    import json
+    from pathlib import Path
 
-    load_dotenv()
+    qm_path = (
+        Path(__file__).resolve().parent.parent
+        / "training-dataset"
+        / "output"
+        / "question_mapping.json"
+    )
+    lookup = {}
+    if qm_path.exists():
+        with open(qm_path) as f:
+            for entry in json.load(f):
+                for cn in entry["column_names"]:
+                    lookup[cn] = entry["word_response_types"]
+    return lookup
+
+
+def _run_evaluation(
+    client, ds, model, max_tokens, top_logprobs, reasoning, output_dir, no_plots
+):
+    import json
+    import time
+
+    start = time.time()
+    has_expected_text = "expected_text" in ds.features
+    has_categories = "categories" in ds.features
+
+    options_lookup = _load_question_options()
+
+    results = []
+    total_ce = 0.0
+    total_kl = 0.0
+    correct_count = 0
+    nan_count = 0
+
+    print("[eval] running test set...")
+    for i, example in enumerate(ds):
+        if (i + 1) % 10 == 0:
+            print(f"  [{i + 1}/{len(ds)}]...")
+
+        messages = [
+            {"role": "system", "content": example["system_prompt"]},
+            {"role": "user", "content": example["user_prompt"]},
+        ]
+
+        try:
+            resp = client.chat.completions.create(
+                model=model,
+                messages=messages,
+                max_tokens=max_tokens,
+                logprobs=True,
+                top_logprobs=top_logprobs,
+                temperature=0.7,
+                top_p=0.8,
+                presence_penalty=1.5,
+                extra_body={
+                    "top_k": 20,
+                    "chat_template_kwargs": {"enable_thinking": reasoning},
+                },
+            )
+        except Exception as e:
+            print(f"  [error] query failed at example {i}: {e}")
+            nan_count += 1
+            continue
+
+        choice = resp.choices[0]
+        msg = choice.message
+        logprobs_data = choice.logprobs
+
+        answer_text = ""
+        reasoning_text = ""
+        answer_start_found = False
+        if logprobs_data and logprobs_data.content:
+            toks = logprobs_data.content
+            ans_start = 0
+            for k, t in enumerate(toks):
+                if t.token == "</think>":
+                    ans_start = k + 1
+                    answer_start_found = True
+                    break
+            if ans_start > 0 or not msg.content:
+                if ans_start > 0:
+                    reasoning_text = "".join(
+                        t.token for t in toks[: ans_start - 1]
+                    ).strip()
+                answer_text = "".join(t.token for t in toks[ans_start:]).strip()
+                if answer_text.endswith("<|im_end|>"):
+                    answer_text = answer_text[: -len("<|im_end|>")].strip()
+        if not answer_text and msg.content:
+            content = msg.content
+            think_end = content.find("</think>")
+            if think_end >= 0:
+                reasoning_text = content[:think_end].strip()
+                answer_text = content[think_end + len("</think>") :].strip()
+                answer_start_found = True
+            if not answer_text:
+                answer_text = content.strip()
+        if not answer_text:
+            print(f"  [error] empty response at example {i}")
+            nan_count += 1
+            continue
+        if reasoning and not answer_start_found:
+            print(
+                "  [warn] answer start not found (</think> missing) — response may be truncated"
+            )
+
+        option_probs = {}
+        categories = list(example.get("categories", [])) if has_categories else []
+        if not categories:
+            col = example.get("column_name", "")
+            categories = options_lookup.get(col, [])
+        if categories:
+            if reasoning and not answer_start_found:
+                pass
+            else:
+                option_probs = compute_option_probs(categories, logprobs_data)
+
+        row = {
+            "question_id": example["question_id"],
+            "question": example.get("question", ""),
+            "sub_question": example.get("sub_question", ""),
+            "column_name": example.get("column_name", ""),
+            "question_format": example.get("question_format", ""),
+            "system_prompt_id": example.get("system_prompt_id", ""),
+            "subpopulation": example.get("subpopulation", ""),
+            "model_answer": answer_text,
+            "model_reasoning": reasoning_text if reasoning else "",
+        }
+
+        if categories:
+            row["categories"] = categories
+            cat_probs = {c: option_probs.get(c, 0.0) for c in categories}
+            total_prob = sum(cat_probs.values())
+            if total_prob > 0:
+                for k in cat_probs:
+                    cat_probs[k] /= total_prob
+            model_dist = [cat_probs.get(c, 0.0) for c in categories]
+            row["model_distribution"] = model_dist
+
+            if "expected_distribution" in example:
+                true_dist = list(example["expected_distribution"])
+                row["true_distribution"] = true_dist
+            else:
+                true_dist = None
+
+            if true_dist:
+                p_clamped = [max(p, 1e-10) for p in true_dist]
+                q_clamped = [max(p, 1e-10) for p in model_dist]
+                kl = kl_divergence(p_clamped, q_clamped)
+                row["kl_divergence"] = kl
+                total_kl += kl
+                ce_dist = sum(
+                    -tp * math.log(max(mp, 1e-10))
+                    for tp, mp in zip(true_dist, model_dist)
+                )
+                row["cross_entropy"] = ce_dist
+                total_ce += ce_dist
+
+        if has_expected_text:
+            expected_text = example["expected_text"]
+            row["expected_text"] = expected_text
+            if expected_text.strip().lower() == answer_text.strip().lower():
+                correct_count += 1
+
+        results.append(row)
+
+    df = pd.DataFrame(results)
+    df.to_csv(output_dir / "per_question_results.csv", index=False)
+    print(f"[save] per-question results -> {output_dir / 'per_question_results.csv'}")
+
+    if not no_plots and any("categories" in r for r in results):
+        plot_distribution_comparison(df, output_dir)
+
+    print()
+    print("=" * 60)
+    print("Evaluation Summary")
+    print("=" * 60)
+    print(f"  Examples evaluated:  {len(results)}")
+    print(f"  Nan / failures:      {nan_count}")
+
+    if len(results) > nan_count:
+        avg_ce = total_ce / max(len(results) - nan_count, 1)
+        print(f"  Avg cross-entropy:   {avg_ce:.4f}")
+    if has_expected_text and len(results) > nan_count:
+        accuracy = correct_count / max(len(results) - nan_count, 1) * 100
+        print(f"  Accuracy (exact):    {accuracy:.1f}%")
+        print(f"  Correct:             {correct_count}/{len(results) - nan_count}")
+    if total_kl > 0 and len(results) > 0:
+        avg_kl = total_kl / max(len(results), 1)
+        print(f"  Avg KL-divergence:   {avg_kl:.4f}")
+
+    elapsed = time.time() - start
+    config_path = output_dir / "config.json"
+    if config_path.exists():
+        config = json.loads(config_path.read_text())
+        config["elapsed_seconds"] = round(elapsed)
+        config_path.write_text(json.dumps(config, indent=2))
+    print()
+    print(f"[done] evaluation complete ({elapsed:.0f}s)")
+    print(f"       Results saved to {output_dir.resolve()}")
+
+
+def main():
+    from dotenv import load_dotenv, find_dotenv
+
+    load_dotenv(find_dotenv())
     args = parse_args()
 
     if args.hf_token is None:
         args.hf_token = os.environ.get("HF_TOKEN")
 
-    from datasets import load_dataset
     from openai import OpenAI
 
     if args.api_url is None:
@@ -426,19 +720,39 @@ def main():
             f"[eval] model '{args.model}' found on server ({len(available)} total models)"
         )
 
+    run_name = f"{args.dataset}-{datetime.now().strftime('%Y%m%d_%H%M%S')}"
     if args.output_dir is None:
-        safe_name = _model_safe_name(args.model)
-        output_dir = (
-            Path("output") / "eval" / f"{safe_name}_{args.dataset}_{args.subpopulation}"
-        )
+        model_name = _model_short_name(args.model)
+        output_dir = Path("output") / "evals" / model_name / run_name
     else:
         output_dir = Path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 
+    ds, dataset_sha = _load_dataset_and_sha(
+        "1jamesthompson1/wvs-nz-value-alignment",
+        args.dataset,
+        hf_token=args.hf_token,
+        num_test_examples=args.num_test_examples,
+    )
+
+    server_created = None
+    if available:
+        for m in models_data.get("data", []):
+            if m["id"] == args.model:
+                server_created = m["created"]
+                break
+
+    if args.max_tokens is None:
+        args.max_tokens = 4096 if args.reasoning else 1000
+
+    model_sha = _model_sha(
+        args.model, hf_token=args.hf_token, server_created=server_created
+    )
+
     config = {
         "target": args.model,
         "dataset": args.dataset,
-        "population": args.subpopulation,
+        "run_name": run_name,
         "timestamp": datetime.now().isoformat(),
         "output_dir": str(output_dir.resolve()),
         "api_url": args.api_url,
@@ -447,198 +761,28 @@ def main():
         "top_logprobs": args.top_logprobs,
         "num_test_examples": args.num_test_examples,
         "no_plots": args.no_plots,
+        "reasoning": args.reasoning,
+        "dataset_sha": dataset_sha,
+        "model_sha": model_sha,
     }
     (output_dir / "config.json").write_text(json.dumps(config, indent=2))
     print(f"[save] config -> {output_dir / 'config.json'}")
 
-    print("[data] loading test split...")
-    ds = load_dataset(
-        "1jamesthompson1/wvs-nz-value-alignment",
-        args.dataset,
-        split="test",
-        token=args.hf_token or None,
-    )
-    ds = ds.filter(lambda x: x["subpopulation"] == args.subpopulation)
-    if args.num_test_examples:
-        ds = ds.select(range(min(args.num_test_examples, len(ds))))
-    print(
-        f"[data] loaded {len(ds)} test examples"
-        f" (config={args.dataset}, subpop={args.subpopulation})"
-    )
-
-    has_expected_text = "expected_text" in ds.features
-    has_categories = "categories" in ds.features
-
-    print("[eval] connecting to server...")
     client = OpenAI(
         base_url=f"{args.api_url}/v1",
         api_key=args.api_key,
     )
 
-    # Load response options from question mapping (used for all dataset configs)
-    _qm_path = (
-        Path(__file__).resolve().parent.parent
-        / "training-dataset"
-        / "output"
-        / "question_mapping.json"
+    _run_evaluation(
+        client=client,
+        ds=ds,
+        model=args.model,
+        max_tokens=args.max_tokens,
+        top_logprobs=args.top_logprobs,
+        reasoning=args.reasoning,
+        output_dir=output_dir,
+        no_plots=args.no_plots,
     )
-    _options_lookup = {}
-    if _qm_path.exists():
-        with open(_qm_path) as _f:
-            for _entry in json.load(_f):
-                for _cn in _entry["column_names"]:
-                    _options_lookup[_cn] = _entry["word_response_types"]
-
-    results = []
-    total_ce = 0.0
-    total_kl = 0.0
-    correct_count = 0
-    nan_count = 0
-
-    print("[eval] running test set...")
-    for i, example in enumerate(ds):
-        if (i + 1) % 10 == 0:
-            print(f"  [{i + 1}/{len(ds)}]...")
-
-        messages = [
-            {"role": "system", "content": example["system_prompt"]},
-            {"role": "user", "content": example["user_prompt"]},
-        ]
-
-        try:
-            resp = client.chat.completions.create(
-                model=args.model,
-                messages=messages,
-                max_tokens=args.max_tokens,
-                logprobs=True,
-                top_logprobs=args.top_logprobs,
-                temperature=0.7,
-                top_p=0.8,
-                presence_penalty=1.5,
-                extra_body={
-                    "top_k": 20,
-                    "chat_template_kwargs": {"enable_thinking": False},
-                },
-            )
-        except Exception as e:
-            print(f"  [error] query failed at example {i}: {e}")
-            nan_count += 1
-            continue
-
-        choice = resp.choices[0]
-        msg = choice.message
-        logprobs_data = choice.logprobs
-
-        # Extract answer text, handling thinking mode
-        answer_text = ""
-        if logprobs_data and logprobs_data.content:
-            toks = logprobs_data.content
-            ans_start = 0
-            for k, t in enumerate(toks):
-                if t.token == "</think>":
-                    ans_start = k + 1
-                    break
-            if ans_start > 0 or not msg.content:
-                answer_text = "".join(t.token for t in toks[ans_start:]).strip()
-                # Strip trailing EOS token
-                if answer_text.endswith("<|im_end|>"):
-                    answer_text = answer_text[: -len("<|im_end|>")].strip()
-        if not answer_text:
-            answer_text = (msg.content or "").strip()
-        if not answer_text:
-            print(f"  [error] empty response at example {i}")
-            nan_count += 1
-            continue
-
-        # Compute full option probabilities
-        option_probs = {}
-        categories = list(example.get("categories", [])) if has_categories else []
-        if not categories:
-            _col = example.get("column_name", "")
-            categories = _options_lookup.get(_col, [])
-        if categories:
-            option_probs = compute_option_probs(categories, logprobs_data)
-
-        row = {
-            "question_id": example["question_id"],
-            "question": example.get("question", ""),
-            "sub_question": example.get("sub_question", ""),
-            "column_name": example.get("column_name", ""),
-            "question_format": example.get("question_format", ""),
-            "system_prompt_id": example.get("system_prompt_id", ""),
-            "model_answer": answer_text,
-        }
-
-        # Always compute distributional metrics when options are available
-        if categories:
-            row["categories"] = categories
-
-            cat_probs = {c: option_probs.get(c, 0.0) for c in categories}
-            _total_prob = sum(cat_probs.values())
-            if _total_prob > 0:
-                for k in cat_probs:
-                    cat_probs[k] /= _total_prob
-            model_dist = [cat_probs.get(c, 0.0) for c in categories]
-            row["model_distribution"] = model_dist
-
-            # Load true distribution from dataset (all configs have it now)
-            if "expected_distribution" in example:
-                true_dist = list(example["expected_distribution"])
-                row["true_distribution"] = true_dist
-            else:
-                true_dist = None
-
-            if true_dist:
-                _p_clamped = [max(p, 1e-10) for p in true_dist]
-                _q_clamped = [max(p, 1e-10) for p in model_dist]
-                kl = kl_divergence(_p_clamped, _q_clamped)
-                row["kl_divergence"] = kl
-                total_kl += kl
-
-                ce_dist = sum(
-                    -tp * math.log(max(mp, 1e-10))
-                    for tp, mp in zip(true_dist, model_dist)
-                )
-                row["cross_entropy"] = ce_dist
-                total_ce += ce_dist
-
-        # Accuracy for single-response configs
-        if has_expected_text:
-            expected_text = example["expected_text"]
-            row["expected_text"] = expected_text
-            if expected_text.strip().lower() == answer_text.strip().lower():
-                correct_count += 1
-
-        results.append(row)
-
-    df = pd.DataFrame(results)
-    df.to_csv(output_dir / "per_question_results.csv", index=False)
-    print(f"[save] per-question results -> {output_dir / 'per_question_results.csv'}")
-
-    if not args.no_plots and any("categories" in r for r in results):
-        plot_distribution_comparison(df, output_dir)
-
-    print()
-    print("=" * 60)
-    print("Evaluation Summary")
-    print("=" * 60)
-    print(f"  Examples evaluated:  {len(results)}")
-    print(f"  Nan / failures:      {nan_count}")
-
-    if len(results) > nan_count:
-        avg_ce = total_ce / max(len(results) - nan_count, 1)
-        print(f"  Avg cross-entropy:   {avg_ce:.4f}")
-    if has_expected_text and len(results) > nan_count:
-        accuracy = correct_count / max(len(results) - nan_count, 1) * 100
-        print(f"  Accuracy (exact):    {accuracy:.1f}%")
-        print(f"  Correct:             {correct_count}/{len(results) - nan_count}")
-    if total_kl > 0 and len(results) > 0:
-        avg_kl = total_kl / max(len(results), 1)
-        print(f"  Avg KL-divergence:   {avg_kl:.4f}")
-
-    print()
-    print("[done] evaluation complete")
-    print(f"       Results saved to {output_dir.resolve()}")
 
 
 if __name__ == "__main__":
