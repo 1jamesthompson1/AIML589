@@ -131,7 +131,7 @@ def parse_args(argv=None):
     p.add_argument(
         "--max-num-seqs",
         type=int,
-        default=512,
+        default=256,
         help="Maximum number of sequences per batch. Lower this if OOM with Mamba models.",
     )
 

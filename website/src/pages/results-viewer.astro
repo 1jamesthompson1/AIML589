@@ -1,0 +1,15 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import TabbedResults from '../components/TabbedResults';
+import evalsData from '../data/evals.json' with { type: 'json' };
+---
+
+<BaseLayout title="Results Viewer — NZ Value Alignment">
+  <section style="padding-top:calc(var(--nav-height) + 2rem);">
+    <div class="container">
+      <p class="section-label">Explore</p>
+      <h1>Results Viewer</h1>
+    </div>
+    <TabbedResults data={evalsData} client:load />
+  </section>
+</BaseLayout>

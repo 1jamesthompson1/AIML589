@@ -1,0 +1,119 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import PipelineAnimation from '../components/PipelineAnimation';
+---
+
+<BaseLayout title="NZ Value Alignment — Aligning LLMs with Aotearoa">
+  <section class="hero">
+    <div class="container">
+      <div class="draft-note">⚡ Work in progress — expected completion November 2026 · content may change as the project develops</div>
+      <h1>Aligning LLMs with<br />New Zealand Values</h1>
+      <p class="hero__sub">
+        Can we fine-tune open-weight language models to reflect the values
+        of Aotearoa? We're using the World Values Survey and public
+        consultation to find out.
+      </p>
+      <div class="hero__actions">
+        <a href="/join-survey" class="btn btn-primary">Take part in the study</a>
+      </div>
+    </div>
+  </section>
+
+  <section id="research">
+    <div class="container" style="max-width:48rem;">
+      <p class="section-label">Research questions</p>
+      <h2>What we want to know</h2>
+      <p style="margin-top:1.5rem;color:var(--color-muted);line-height:1.8;">
+        The purpose of this project is to investigate how fine-tuning of
+        Large Language Models (LLMs) using Value Survey data will affect
+        its behaviour in simulated scenarios and if the public has a
+        preference for the original or fine-tuned model.
+      </p>
+      <p style="margin-top:1rem;color:var(--color-muted);line-height:1.8;">
+        This project will do this by:
+      </p>
+      <ul style="margin-top:0.5rem;color:var(--color-muted);line-height:1.8;padding-left:1.5rem;">
+        <li>fine-tuning an LLM on the World Value Survey data for New Zealand</li>
+        <li>run behavioural simulations of the LLM in an Agentic harness</li>
+        <li>run an anonymous online questionnaire to ask the NZ public to review summaries of the behavioural simulations and provide feedback on how well the LLM acted in alignment with their values (i.e what they would have done).</li>
+      </ul>
+      <p style="margin-top:1.5rem;color:var(--color-muted);line-height:1.8;font-weight:600;">
+        Specifically this project sets out to answer two research questions:
+      </p>
+      <p style="margin-top:1rem;color:var(--color-muted);line-height:1.8;">
+        <strong>1.</strong> Can we use publicly collected value survey data to modify the behaviour of LLMs in downstream applications?<br />
+        <span style="font-size:0.875rem;">We expect that fine-tuning an LLM on publicly available value survey data will produce measurable differences in behaviour on downstream simulated tasks compared with the base model.</span>
+      </p>
+      <p style="margin-top:1rem;color:var(--color-muted);line-height:1.8;">
+        <strong>2.</strong> Will users prefer the behaviour of models aligned to their values compared to unaligned models?<br />
+        <span style="font-size:0.875rem;">We expect that participants will prefer decisions produced by a model aligned to their values over those produced by the baseline model. This hypothesis assumes that fine-tuning produces measurable behavioural differences.</span>
+      </p>
+    </div>
+  </section>
+
+  <section id="pipeline" style="background:var(--color-surface);">
+    <div class="container">
+      <p class="section-label">What we will do</p>
+      <h2>The process</h2>
+      <p style="margin-bottom:1rem;color:var(--color-muted);max-width:48rem;">
+        To answer these questions we will do an end-to-end process from survey
+        data to public evaluation.
+      </p>
+      <p style="margin-bottom:3rem;font-size:0.8rem;color:var(--color-muted);font-style:italic;">
+        Clusters and scenarios shown below are draft examples and will be
+        refined as the project progresses.
+      </p>
+      <PipelineAnimation client:load />
+    </div>
+  </section>
+
+  <section id="get-involved" style="text-align:center;">
+    <div class="container" style="max-width:36rem;">
+      <p class="section-label">Get involved</p>
+      <h2>Have your say</h2>
+      <p style="margin-top:1rem;color:var(--color-muted);line-height:1.8;">
+        Public consultation is a core part of this research. The study is
+        awaiting ethics approval — check the Join Survey page to register
+        your interest.
+      </p>
+      <a href="/join-survey" class="btn btn-primary" style="margin-top:1.5rem;">Join the study</a>
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  .hero {
+    min-height: 80vh;
+    display: flex;
+    align-items: center;
+    padding-top: var(--nav-height);
+  }
+
+  .hero__sub {
+    margin-top: 1.5rem;
+    font-size: 1.125rem;
+    color: var(--color-muted);
+    max-width: 36rem;
+    line-height: 1.7;
+  }
+
+  .hero__actions {
+    display: flex;
+    gap: 1rem;
+    margin-top: 2rem;
+    flex-wrap: wrap;
+  }
+
+  .draft-note {
+    display: inline-block;
+    background: #fef9c3;
+    color: #854d0e;
+    font-size: 0.8rem;
+    font-weight: 600;
+    padding: 0.4rem 1rem;
+    border-radius: 0.5rem;
+    border: 1.5px solid #eab308;
+    box-shadow: 0 1px 3px rgba(234, 179, 8, 0.2);
+    margin-bottom: 1.5rem;
+  }
+</style>

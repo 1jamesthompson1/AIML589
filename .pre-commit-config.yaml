@@ -33,7 +33,7 @@ repos:
         stages: [commit-msg]
         args:
           - --scopes
-          - report,ethics,survey,dataset,fine-tune
+          - report,misc,survey,dataset,fine-tune,simulation,
           - docs
           - code
           - dev
