@@ -1,0 +1,17 @@
+{
+  "target": "Qwen3.6-27B-nz-wvs-single_sample-overall",
+  "dataset": "single_sample",
+  "run_name": "single_sample-20260731_120222",
+  "timestamp": "2026-07-31T12:02:27.528202",
+  "output_dir": "/home/james/code/AIML589/code/fine-tuning/output/evals/Qwen3.6-27B-nz-wvs-single_sample-overall/single_sample-20260731_120222",
+  "api_url": "http://localhost:8087",
+  "api_key": "EMPTY",
+  "max_tokens": 1000,
+  "top_logprobs": 20,
+  "num_test_examples": null,
+  "no_plots": true,
+  "reasoning": false,
+  "dataset_sha": "f6923d9824dbb6162b5de3f262901ff1e245146d",
+  "model_sha": "30731fa09cc9d27e7e3a7e921f1eba097a0f4274",
+  "elapsed_seconds": 69
+}

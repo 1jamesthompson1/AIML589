@@ -1,0 +1,17 @@
+{
+  "target": "Qwen3.6-27B-nz-wvs-single_modal-cluster_0",
+  "dataset": "single_modal",
+  "run_name": "single_modal-20260731_203154",
+  "timestamp": "2026-07-31T20:31:59.459002",
+  "output_dir": "/home/james/code/AIML589/code/fine-tuning/output/evals/Qwen3.6-27B-nz-wvs-single_modal-cluster_0/single_modal-20260731_203154",
+  "api_url": "http://localhost:8087",
+  "api_key": "EMPTY",
+  "max_tokens": 4096,
+  "top_logprobs": 20,
+  "num_test_examples": null,
+  "no_plots": true,
+  "reasoning": true,
+  "dataset_sha": "f6923d9824dbb6162b5de3f262901ff1e245146d",
+  "model_sha": "17d916a0515ee503d02ce1935e568f0d7d03ba8e",
+  "elapsed_seconds": 19058
+}
