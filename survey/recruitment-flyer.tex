@@ -1,0 +1,135 @@
+\documentclass[11pt, a4paper]{article}
+
+\input{../docs/common}
+\usepackage[left=1.5cm, right=1.5cm, top=1.2cm, bottom=1.2cm]{geometry}
+\usepackage{xcolor}
+\usepackage{booktabs}
+\usepackage{enumitem}
+\usepackage[scaled=0.92]{helvet}
+\renewcommand{\familydefault}{\sfdefault}
+
+\docname{recruitment-flyer}
+
+\definecolor{teal}{HTML}{1A5276}
+\definecolor{teallight}{HTML}{E8F4F8}
+\definecolor{accent}{HTML}{DA291C}
+
+\pagestyle{empty}
+
+\begin{document}
+
+\noindent
+\begin{minipage}{0.2\textwidth}
+  \includegraphics[width=\textwidth]{vuw-logo.pdf}
+\end{minipage}
+\hfill
+\begin{minipage}{0.75\textwidth}
+  \raggedleft
+  \textbf{\large Have your say on AI in Aotearoa} \\
+  \small Te Herenga Waka --- Victoria University of Wellington
+\end{minipage}
+
+\vspace{0.8em}
+\noindent\textcolor{accent}{\rule{\textwidth}{0.5pt}}
+
+\vspace{0.8em}
+
+\begin{center}
+  \textbf{\Large AI decisions should reflect Kiwi values.}\\[4pt]
+  \large We're asking the New Zealand public to help us find out if they do.
+\end{center}
+
+\vspace{0.8em}
+
+\noindent
+\begin{minipage}[t]{0.58\textwidth}
+  \textcolor{teal}{\textbf{What's this about?}} \\[4pt]
+  \small
+  AI systems like ChatGPT are making more decisions that affect our lives.
+  But whose values do they follow? We've trained an AI on New Zealand value
+  data. Now we need your help to see if it makes better decisions.
+\end{minipage}
+\hfill
+\begin{minipage}[t]{0.36\textwidth}
+  \colorbox{teallight}{
+    \begin{minipage}{\dimexpr\textwidth-2\fboxsep\relax}
+      \small
+      \textbf{\textcolor{teal}{Quick details}} \\[2pt]
+      \textbullet\ 15-minute survey \\[2pt]
+      \textbullet\ Anonymous \\[2pt]
+      \textbullet\ 18+ \\[2pt]
+    \end{minipage}}
+\end{minipage}
+
+\vspace{0.6em}
+
+\noindent\textcolor{teal}{\textbf{What would you do?}}
+\small
+
+\noindent You'll read short scenarios where an AI makes a real-world decision like prioritising patients in an emergency room or screening job
+applicants. You'll rate how much you agree with each decision and answer a
+few quick questions about your values. That's it.
+
+\vspace{0.4em}
+
+\noindent\textcolor{teal}{\textbf{Why participate?}}
+\small
+
+\noindent Your voice will directly shape research on how AI should behave in
+Aotearoa. Right now most AI models are developed by for-profit companies
+overseas. We want to show how public institutions can create AI that reflects the values of the communities they
+serve. Whether you're excited about AI, sceptical, or somewhere in between—we need your perspective.
+
+\vspace{0.6em}
+
+\noindent\colorbox{teallight}{
+  \begin{minipage}{\dimexpr\textwidth-2\fboxsep\relax}
+    \centering
+    \textbf{\large Take the survey:}\\[4pt]
+    \large [survey link] \\[2pt]
+    \small Learn more at \textbf{https://nz-llm.sjhl.nz}
+  \end{minipage}}
+
+\vspace{0.6em}
+
+\noindent\textcolor{teal}{\textbf{How your responses will be used}}
+\small
+
+\noindent Your answers are completely anonymous. We'll analyse them to see
+which AI model outputs the public prefers, then release the anonymised data
+into the public domain so the global research community can benefit too. The
+end goal is a practical, repeatable way for public institutions to align AI
+with community values.
+
+\vspace{0.6em}
+
+\noindent\textcolor{teal}{\textbf{How the project works}}
+\small
+
+\noindent We started with New Zealand data from the World Values Survey a global research project that asks people about their beliefs and values. We
+used this data to fine-tune an open-weight Large Language Model (the AI behind ChatGPT, Claude, Copilot etc.), then ran behavioural
+simulations in an agentic framework, asking the model to make decisions in
+real-world scenarios. Now, we're asking the New Zealand public to compare
+the aligned and unaligned model outputs and tell us which feels more right.
+
+\vspace{0.6em}
+
+\noindent\textcolor{teal}{\textbf{Contact}}
+\small
+
+\noindent
+James Thompson (thompsjame1@myvuw.ac.nz) \\
+Dr Andrew Lensen, Supervisor (andrew.lensen@vuw.ac.nz)
+
+\vspace{0.3em}
+\noindent\textcolor{accent}{\rule{\textwidth}{0.3pt}}
+
+\noindent\scriptsize
+This research has been approved by the Te Herenga Waka --- Victoria University
+of Wellington Human Ethics Committee [reference number]. If you have concerns
+about ethical conduct, contact \texttt{human-ethics@vuw.ac.nz} or 0800 04 04 04. \\[4pt]
+\noindent\scriptsize
+\textit{Disclaimer: This project is part of the researcher's university study
+and does not represent the views of any employer or affiliated organisation.}
+
+\end{document}

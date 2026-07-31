@@ -1,0 +1,57 @@
+This post is suitable for emails and forum posts. Minor tweaks expected for exact location.
+
+Subject: Have your say on AI values — 15-min survey for New Zealanders
+
+Kia ora,
+
+We're a research team at Te Herenga Waka — Victoria University of Wellington
+studying how AI systems like ChatGPT make decisions. Right now, these systems
+reflect values set by overseas tech companies, not New Zealanders.
+
+We want to change that.
+
+We've trained an AI model on New Zealand value data from the World Values
+Survey. Now we need the public's help to evaluate it. We're looking for
+people aged 18+ living in New Zealand to complete a short anonymous survey.
+
+Whether you love AI, hate it, or haven't given it much thought—we want to
+hear from you. Different perspectives make the research stronger.
+
+What's involved?
+- You'll read a few short scenarios where an AI makes a decision
+- You'll rate how much you agree with each decision
+- You'll answer a few questions about your own values
+- Takes about 15 minutes
+
+Your responses are completely anonymous. No personal information is collected.
+
+How your responses will be used
+- We'll analyse the data to see which AI models people prefer
+- All data will be made public in anonymised form so the global research
+  community can use it
+- The goal is to develop a practical method for aligning AI to public values—a way for governments and communities to shape AI behaviour rather than
+  leaving it to private companies alone
+
+The survey is open now at:
+[survey link]
+
+Learn more about the project at:
+https://nz-llm.sjhl.nz
+
+This research has been approved by the Victoria University of Wellington Human
+Ethics Committee [reference number].
+
+If you have any questions, please contact:
+
+James Thompson — thompsjame1@myvuw.ac.nz
+Dr Andrew Lensen (Supervisor) — andrew.lensen@vuw.ac.nz
+
+Ngā mihi,
+James Thompson
+Master of Artificial Intelligence candidate
+Te Herenga Waka — Victoria University of Wellington
+
+---
+
+Disclaimer: This project is part of the researcher's university study and
+does not represent the views of any employer or affiliated organisation.
