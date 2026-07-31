@@ -47,7 +47,7 @@ function trimResult(row, runName) {
     system_prompt_id: row.system_prompt_id,
     subpopulation: subpop,
     model_answer: row.model_answer?.slice(0, 200) || '',
-    model_reasoning: '', // trimmed to save space
+    model_reasoning: row.model_reasoning || '',
     categories: pyListToJSON(row.categories || ''),
     model_distribution: pyListToJSON(row.model_distribution || ''),
     true_distribution: pyListToJSON(row.true_distribution || ''),
@@ -97,6 +97,7 @@ function buildEvals() {
           run_name: config.run_name,
           timestamp: config.timestamp,
           model_sha: config.model_sha,
+          reasoning: config.reasoning === true,
         },
         results,
       });

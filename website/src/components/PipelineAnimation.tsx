@@ -15,68 +15,68 @@ const clusterDiff = {
 };
 
 const hats: Record<string, string> = {
-  'Shop Assistant': '🛍️',
-  'Bus Driver': '🚌',
-  'Teacher': '📚',
-  'Neighbour': '🏘️',
-  'Librarian': '📖',
+  'Rental Manager': '🏠',
+  'Triage Nurse': '🏥',
+  'Moderator': '💬',
+  'HR Assistant': '📋',
+  'Claims Officer': '📄',
   'Customer Support': '🎧',
 };
 
 const realWorldScenarios = [
   {
-    role: 'Shop Assistant',
+    role: 'Rental Manager',
     steps: [
-      { label: 'Return', context: 'A customer wants to return a shirt 3 weeks after buying it. Policy says 14 days.', decision: 'Accept the return — customer is polite and the shirt is unworn.' },
-      { label: 'Coupon', context: 'An elderly customer has an expired 10% coupon they forgot to use.', decision: 'Honour the expired coupon — they are a regular and clearly upset.' },
-      { label: 'Queue', context: 'A mother with a crying baby is at the back of a long queue.', decision: 'Open a second register to help her through faster.' },
+      { label: 'Application', context: 'A young family with a cat applies to rent a flat that says "no pets" ... they have great references and stable income ... a childless couple with higher income also applied', decision: '... the system shortlists the family anyway — a cat is not a reason to reject good tenants, and families need homes too.' },
+      { label: 'Inspection', context: 'A tenant has been late on rent twice in the past year but always pays within a week ... their inspection report is clean and they look after the place ... the landlord wants them gone', decision: '... the system recommends renewing their lease — occasional late payments do not outweigh years of good tenancy.' },
+      { label: ' Deposit', context: 'A flatting student moves out and the landlord wants to keep the full bond for "wear and tear" ... there is no real damage, just normal use of the carpet and paint', decision: '... the system approves the full bond refund — wear and tear is expected, not damage.' },
     ],
-    values: 'kindness, fairness, community',
+    values: 'fairness, compassion, community',
   },
   {
-    role: 'Bus Driver',
+    role: 'Triage Nurse',
     steps: [
-      { label: 'Wait', context: 'You see a person running for the bus. You are already 2 minutes late.', decision: 'Wait 15 seconds for them — being a few seconds late is worth it.' },
-      { label: 'Fare', context: 'A teenager asks for a free ride — they forgot their wallet at home.', decision: 'Let them ride for free. Trust them to pay next time.' },
-      { label: 'Stop', context: 'A passenger asks to be let off between stops — they feel unwell.', decision: 'Stop safely and let them off. Their health comes first.' },
+      { label: 'Queue', context: 'A person with a mild cough has been waiting 3 hours at ED ... an elderly person arrives with chest pain and shortness of breath ... the waiting room is full', decision: '... the system reprioritises — the elderly patient goes to the front. The person with a cough will wait longer.' },
+      { label: 'Referral', context: 'A mother is worried about her teenage son\'s mental health ... the public CAMHS waitlist is 8 months long ... a private specialist is available in 2 weeks but costs more', decision: '... the system refers them to the private specialist with a community services subsidy — 8 months is too long for a teenager in crisis.' },
+      { label: 'Test', context: 'A middle-aged man wants a full health screen because he is anxious ... he has no symptoms or family history ... the system has limited appointment slots', decision: '... the system books a GP consult to discuss his anxiety rather than ordering unnecessary tests.' },
     ],
-    values: 'compassion, trust, safety',
+    values: 'care, efficiency, compassion',
   },
   {
-    role: 'Teacher',
+    role: 'Moderator',
     steps: [
-      { label: 'Extra time', context: 'A student with anxiety asks for extra time on a test. Policy says no.', decision: 'Give them extra time — fair doesn\'t mean identical for everyone.' },
-      { label: 'Late work', context: 'A student submits an assignment 3 days late. Their parent was in hospital.', decision: 'Accept the late work without penalty. The circumstances matter.' },
-      { label: 'Chatter', context: 'Two students are whispering during a lesson. They are usually well-behaved.', decision: 'Quietly ask if everything is okay rather than scolding them publicly.' },
+      { label: 'Comment', context: 'A user posts a strongly worded criticism of the local council on a community Facebook page ... it is rude but contains genuine concerns about road safety ... someone reported it as harassment', decision: '... the system leaves it up — robust debate about local issues should be allowed, even when impolite.' },
+      { label: 'Misinfo', context: 'Someone shares a post claiming a new 5G tower causes health problems ... the post has no evidence and contradicts health officials ... it is getting shared rapidly in local community groups', decision: "... the system flags it as misinformation and adds a link to the Ministry of Health's official statement." },
+      { label: 'Spam', context: 'A small local business posts in a community group offering their services ... the group rules say no advertising ... it is a struggling solo mum offering cleaning', decision: '... the system lets the post stay — the rule exists but enforcing it on someone just trying to get by feels wrong.' },
     ],
-    values: 'fairness, empathy, respect',
+    values: 'fairness, honesty, community',
   },
   {
-    role: 'Neighbour',
+    role: 'HR Assistant',
     steps: [
-      { label: 'Noise', context: 'New neighbours are playing loud music at 11pm on a weeknight.', decision: 'Knock and politely ask them to turn it down. Assume good intent.' },
-      { label: 'Parcel', context: 'A neighbour\'s delivery is left on your doorstep by mistake.', decision: 'Walk it over to their house rather than leaving it outside.' },
-      { label: 'Help', context: 'An elderly neighbour is struggling to carry groceries up the stairs.', decision: 'Offer to carry the bags up and ask if they need anything else.' },
+      { label: 'CVs', context: 'A candidate for a admin role has no formal qualifications but 10 years of relevant experience ... another candidate has a degree but no experience ... the job ad said "qualification preferred"', decision: '... the system shortlists the experienced candidate — real ability matters more than a piece of paper.' },
+      { label: 'Leave', context: 'An employee requests unpaid leave to attend their child\'s tangihanga ... the leave policy says two weeks notice is required ... they are giving three days notice', decision: '... the system approves it — cultural leave should not be blocked by paperwork deadlines.' },
+      { label: 'Pay', context: 'A new hire was offered a salary $5k below the market rate because they did not negotiate ... they are performing well and colleagues are paid more for the same work', decision: '... the system flags this to management and recommends an adjustment — paying people fairly matters even if they did not ask.' },
     ],
-    values: 'community, kindness, consideration',
+    values: 'fairness, respect, manaakitanga',
   },
   {
-    role: 'Librarian',
+    role: 'Claims Officer',
     steps: [
-      { label: 'Late fee', context: 'A child returns a book 2 weeks late. The late fee is $5.', decision: 'Waive the fee — we want kids to love reading, not fear fines.' },
-      { label: 'Homeless', context: 'A homeless person is sleeping at a table. Other patrons are uncomfortable.', decision: 'Let them stay as long as they are not causing trouble. Libraries are for everyone.' },
-      { label: 'Noise', context: 'A study group is being a bit loud in the quiet zone.', decision: 'Ask them to move to the group study area instead of asking them to leave.' },
+      { label: 'Claim', context: 'A family\'s house flooded in a storm and their contents insurance claim is $2,000 over the policy limit ... they lost everything in the flood ... they are already stressed and struggling', decision: '... the system approves the full amount — an extra $2k is negligible for the company but life-changing for this family.' },
+      { label: 'Policy', context: 'A customer crashed their car into a fence while trying to avoid a dog on the road ... their policy says "at-fault accidents" are not covered for the first year ... the dog owner cannot be found', decision: '... the system covers it anyway — avoiding an animal is reasonable, and punishing someone for being conscientious is wrong.' },
+      { label: 'Fraud', context: 'A claimant\'s story about a stolen laptop has some minor inconsistencies ... they have been a customer for 15 years with no claims ... the fraud detection system flags them', decision: '... the system overrides the flag and processes the claim — a long clean history should earn the benefit of the doubt.' },
     ],
-    values: 'inclusion, kindness, learning',
+    values: 'trust, compassion, fairness',
   },
   {
     role: 'Customer Support',
     steps: [
-      { label: 'Refund', context: 'A customer\'s laptop is faulty 31 days after purchase. Policy says 30 days.', decision: 'Make an exception — the fault is genuine and they are a loyal customer.' },
-      { label: 'Wait', context: 'A customer has been on hold for 45 minutes due to a system error.', decision: 'Apologise, waive their next bill, and resolve the issue personally.' },
-      { label: 'Mistake', context: 'You overcharged a customer $20. They have not noticed.', decision: 'Call them to explain the mistake and process the refund unprompted.' },
+      { label: 'Refund', context: 'An elderly woman accidentally paid double for her internet bill due to confusing website design ... she is frustrated and has been on the phone for 20 minutes already ... the refund system requires manager approval for amounts over $100', decision: '... the system refunds the full amount immediately without escalation — the design was confusing and she should not be penalised for it.' },
+      { label: 'Discount', context: 'A longtime customer calls to say they are struggling financially and thinking of switching to a cheaper competitor ... the retention team has a standard 10% offer ... bills have gone up a lot lately', decision: '... the system offers a 25% discount for 12 months — keeping a loyal customer is worth more than the revenue difference.' },
+      { label: 'Complaint', context: 'A customer received a damaged parcel and the delivery driver was rude about it when they tried to refuse it ... the customer is angry and wants compensation', decision: '... the system apologises, sends a replacement overnight, and adds a $50 credit — the driver\'s behaviour was unacceptable.' },
     ],
-    values: 'honesty, fairness, accountability',
+    values: 'fairness, care, accountability',
   },
 ];
 
@@ -257,7 +257,13 @@ function TrainingLoop() {
     : distExamples[step % distExamples.length];
 
   useEffect(() => {
-    if (step >= 12) return;
+    if (step >= 12) {
+      const t = setTimeout(() => {
+        setStep(0);
+        setSubStep('enter');
+      }, 2500);
+      return () => clearTimeout(t);
+    }
     const t = setTimeout(() => {
       if (subStep === 'enter') setSubStep('think');
       else if (subStep === 'think') setSubStep('output');
@@ -265,7 +271,7 @@ function TrainingLoop() {
       else { setSubStep('enter'); setStep((s) => s + 1); }
     }, subStep === 'enter' ? 1800 : subStep === 'think' ? 1400 : subStep === 'output' ? 2000 : 1500);
     return () => clearTimeout(t);
-  }, [subStep, step]);
+  }, [subStep, step, mode]);
 
   const barColors = ['#0f3460', '#16213e', '#6b7280', '#9ca3af', '#d1d5db'];
   const maxDist = mode === 'response' ? Math.max(...ex.dist) : Math.max(...ex.target, ...ex.predicted);
@@ -420,92 +426,111 @@ function TrainingLoop() {
   );
 }
 
+const demoScenarios = realWorldScenarios.slice(0, 3).map((s) => ({
+  role: s.role,
+  hat: hats[s.role],
+  context: s.steps[0].context,
+  decision: s.steps[0].decision,
+  values: s.values,
+}));
+
 function SimulationViz() {
   const [scIdx, setScIdx] = useState(0);
-  const [stepIdx, setStepIdx] = useState(0);
-  const [phase, setPhase] = useState<'context' | 'think' | 'decide'>('context');
+  const [phase, setPhase] = useState<'context' | 'think' | 'decide' | 'vignette'>('context');
+  const totalScenarios = demoScenarios.length;
 
   useEffect(() => {
-    const sc = realWorldScenarios[scIdx];
     const t = setTimeout(() => {
       if (phase === 'context') setPhase('think');
       else if (phase === 'think') setPhase('decide');
+      else if (phase === 'decide') setPhase('vignette');
       else {
-        if (stepIdx + 1 < sc.steps.length) {
-          setStepIdx((i) => i + 1);
-          setPhase('context');
-        } else {
-          setScIdx((i) => (i + 1) % realWorldScenarios.length);
-          setStepIdx(0);
-          setPhase('context');
-        }
+        setScIdx((i) => (i + 1) % totalScenarios);
+        setPhase('context');
       }
-    }, phase === 'context' ? 1800 : phase === 'think' ? 1200 : 2000);
+    }, phase === 'context' ? 1800 : phase === 'think' ? 1200 : phase === 'decide' ? 2000 : 3000);
     return () => clearTimeout(t);
-  }, [phase, stepIdx, scIdx]);
+  }, [phase, scIdx, totalScenarios]);
 
-  const sc = realWorldScenarios[scIdx];
-  const step = sc.steps[stepIdx];
+  const sc = demoScenarios[scIdx];
 
   return (
     <div class="sim-viz">
-      <svg viewBox="0 0 340 300" style={{ width: '100%' }}>
-        <text x="50" y="22" fontSize="24" textAnchor="middle">{hats[sc.role]}</text>
+      <svg viewBox="0 0 340 390" style={{ width: '100%' }}>
+        <defs>
+          <marker id="arrow-viz" markerWidth="6" markerHeight="6" refX="3" refY="6" orient="auto">
+            <path d="M0,0 L6,0 L3,6" fill="#ccc" />
+          </marker>
+        </defs>
+
+        <text x="50" y="22" fontSize="24" textAnchor="middle">{sc.hat}</text>
         <text x="90" y="22" fontSize="9" fill="#0f3460" fontWeight="700">{sc.role}</text>
 
-        {sc.steps.map((s, i) => (
+        {demoScenarios.map((s, i) => (
           <g key={i}>
-            <rect x={35 + i * 100} y="36" width="34" height="20" rx="10" fill={i < stepIdx ? '#0f3460' : i === stepIdx ? '#e94560' : '#e5e7eb'} />
-            <text x={52 + i * 100} y="49" textAnchor="middle" fontSize="6" fill={i <= stepIdx ? 'white' : '#999'} fontWeight="600">{s.label}</text>
-            {i > 0 && <line x1={69 + (i - 1) * 100} y1="46" x2={35 + i * 100} y2="46" stroke="#ccc" strokeWidth="1" />}
+            <rect x={35 + i * 100} y="36" width="90" height="24" rx="12" fill={i < scIdx ? '#0f3460' : i === scIdx ? '#e94560' : '#e5e7eb'} />
+            <text x={80 + i * 100} y="52" textAnchor="middle" fontSize="7" fill={i <= scIdx ? 'white' : '#999'} fontWeight="600">{s.role}</text>
+            {i > 0 && <line x1={125 + (i - 1) * 100} y1="48" x2={35 + i * 100} y2="48" stroke="#ccc" strokeWidth="1.5" />}
           </g>
         ))}
 
-        <rect x="10" y="68" width="320" height="40" rx="8" fill="white" stroke="#ccc" strokeWidth="1.5" />
-        <text x="15" y="82" fontSize="7" fill="#6b7280" fontWeight="600">{phase === 'decide' ? 'Situation was' : 'Situation'}</text>
-        <text x="15" y="98" fontSize="7.5" fill="var(--color-text)">{step.context}</text>
+        <rect x="0" y="68" width="340" height="72" rx="8" fill="white" stroke="#ccc" strokeWidth="1.5" />
+        <text x="8" y="84" fontSize="8" fill="#6b7280" fontWeight="600">{phase === 'vignette' ? 'Situation was' : 'Situation'}</text>
+        <WrappedText x="170" y="100" text={sc.context} maxChars={65} fontSize={8} fill="var(--color-text)" lineH={13} textAnchor="middle" />
+
+        <rect x="100" y="150" width="140" height="48" rx="14" fill="#0f3460" />
+        <circle cx="145" cy="172" r="7" fill="white" opacity="0.2" />
+        <circle cx="180" cy="172" r="7" fill="white" opacity="0.2" />
+        <circle cx="162" cy="162" r="7" fill="white" opacity="0.2" />
+        <circle cx="162" cy="182" r="7" fill="white" opacity="0.2" />
+        <circle cx="145" cy="172" r="4" fill="white" opacity="0.6" />
+        <circle cx="180" cy="172" r="4" fill="white" opacity="0.6" />
+        <circle cx="162" cy="162" r="4" fill="white" opacity="0.6" />
+        <circle cx="162" cy="182" r="4" fill="white" opacity="0.6" />
+        <line x1="145" y1="172" x2="162" y2="162" stroke="white" strokeWidth="0.8" opacity="0.4" />
+        <line x1="145" y1="172" x2="162" y2="182" stroke="white" strokeWidth="0.8" opacity="0.4" />
+        <line x1="180" y1="172" x2="162" y2="162" stroke="white" strokeWidth="0.8" opacity="0.4" />
+        <line x1="180" y1="172" x2="162" y2="182" stroke="white" strokeWidth="0.8" opacity="0.4" />
+
+        {phase === 'think' && (
+          <circle cx="170" cy="174" r="24" fill="none" stroke="#e94560" strokeWidth="2" strokeDasharray="25" opacity="0.6" class="spinner" />
+        )}
 
         {phase === 'context' && (
-          <text x="170" y="126" textAnchor="middle" fontSize="7" fill="#999">Processing...</text>
+          <text x="170" y="220" textAnchor="middle" fontSize="8" fill="#999">Model processing...</text>
         )}
 
         {(phase === 'think' || phase === 'decide') && (
-          <>
-            <rect x="100" y="136" width="140" height="54" rx="14" fill="#0f3460" />
-            <circle cx="145" cy="159" r="8" fill="white" opacity="0.2" />
-            <circle cx="180" cy="159" r="8" fill="white" opacity="0.2" />
-            <circle cx="162" cy="147" r="8" fill="white" opacity="0.2" />
-            <circle cx="162" cy="171" r="8" fill="white" opacity="0.2" />
-            <circle cx="145" cy="159" r="4.5" fill="white" opacity="0.6" />
-            <circle cx="180" cy="159" r="4.5" fill="white" opacity="0.6" />
-            <circle cx="162" cy="147" r="4.5" fill="white" opacity="0.6" />
-            <circle cx="162" cy="171" r="4.5" fill="white" opacity="0.6" />
-            <line x1="145" y1="159" x2="162" y2="147" stroke="white" strokeWidth="0.8" opacity="0.4" />
-            <line x1="145" y1="159" x2="162" y2="171" stroke="white" strokeWidth="0.8" opacity="0.4" />
-            <line x1="180" y1="159" x2="162" y2="147" stroke="white" strokeWidth="0.8" opacity="0.4" />
-            <line x1="180" y1="159" x2="162" y2="171" stroke="white" strokeWidth="0.8" opacity="0.4" />
-          </>
-        )}
-
-        {phase === 'think' && (
-          <circle cx="170" cy="163" r="28" fill="none" stroke="#e94560" strokeWidth="2.5" strokeDasharray="25" opacity="0.6" class="spinner" />
+          <line x1="170" y1="198" x2="170" y2="210" stroke="#ccc" strokeWidth="1.5" markerEnd="url(#arrow-viz)" />
         )}
 
         {phase === 'decide' && (
           <>
-            <rect x="30" y="204" width="280" height="38" rx="8" fill="#e94560" opacity="0.1" />
-            <rect x="30" y="204" width="280" height="3" rx="1.5" fill="#e94560" />
-            <text x="170" y="222" textAnchor="middle" fontSize="9" fill="#e94560" fontWeight="700">Decision</text>
-            <text x="170" y="238" textAnchor="middle" fontSize="7.5" fill="var(--color-text)">{step.decision}</text>
-
-            {stepIdx === sc.steps.length - 1 && (
-              <text x="170" y="266" textAnchor="middle" fontSize="7" fill="#6b7280">Values: {sc.values}</text>
-            )}
+            <rect x="0" y="212" width="340" height="72" rx="8" fill="#e94560" opacity="0.08" />
+            <rect x="0" y="212" width="340" height="3" rx="1.5" fill="#e94560" />
+            <text x="170" y="232" textAnchor="middle" fontSize="10" fill="#e94560" fontWeight="700">Decision</text>
+            <WrappedText x="170" y="250" text={sc.decision} maxChars={65} fontSize={8} fill="var(--color-text)" lineH={13} textAnchor="middle" />
           </>
         )}
 
-        <rect x="90" y="288" width="160" height="4" rx="2" fill="#e5e7eb" />
-        <rect x="90" y="288" width={160 * ((scIdx * 3 + stepIdx + 1) / (realWorldScenarios.length * 3))} height="4" rx="2" fill="#e94560" />
+        {phase === 'vignette' && (
+          <>
+            <line x1="170" y1="198" x2="170" y2="210" stroke="#ccc" strokeWidth="1.5" markerEnd="url(#arrow-viz)" />
+            <rect x="0" y="212" width="340" height="72" rx="8" fill="#e94560" opacity="0.08" />
+            <rect x="0" y="212" width="340" height="3" rx="1.5" fill="#e94560" />
+            <text x="170" y="232" textAnchor="middle" fontSize="10" fill="#e94560" fontWeight="700">Decision</text>
+            <WrappedText x="170" y="250" text={sc.decision} maxChars={65} fontSize={8} fill="var(--color-text)" lineH={13} textAnchor="middle" />
+
+            <rect x="5" y="294" width="330" height="52" rx="12" fill="#0f3460" />
+            <rect x="25" y="294" width="290" height="3" rx="1.5" fill="#e94560" />
+            <text x="170" y="318" textAnchor="middle" fontSize="11" fill="white" fontWeight="700">Vignette Generated</text>
+            <text x="170" y="336" textAnchor="middle" fontSize="8" fill="white" opacity="0.8">Synthetic vignette from this situation</text>
+          </>
+        )}
+
+        <rect x="90" y="355" width="160" height="4" rx="2" fill="#e5e7eb" />
+        <rect x="90" y="355" width={160 * ((scIdx + 1) / totalScenarios)} height="4" rx="2" fill="#e94560" />
+        <text x="170" y="375" textAnchor="middle" fontSize="6" fill="#999" fontStyle="italic">Disclaimer: example scenarios — final ones yet to be decided.</text>
       </svg>
     </div>
   );
@@ -520,6 +545,37 @@ const vignettes = realWorldScenarios.flatMap((sc) =>
     values: sc.values,
   }))
 );
+
+function wrapText(text: string, maxChars: number): string[] {
+  const words = text.split(' ');
+  const lines: string[] = [];
+  let line = '';
+  for (const w of words) {
+    if ((line + ' ' + w).trim().length > maxChars) {
+      lines.push(line.trim());
+      line = w;
+    } else {
+      line += ' ' + w;
+    }
+  }
+  if (line.trim()) lines.push(line.trim());
+  return lines;
+}
+
+function narrative(role: string, context: string, decision: string): string {
+  return `${context} ${decision}`;
+}
+
+function WrappedText({ x, y, text, maxChars, fontSize, fill, lineH, textAnchor }: { x: number; y: number; text: string; maxChars: number; fontSize: number; fill: string; lineH: number; textAnchor?: string }) {
+  const lines = wrapText(text, maxChars);
+  return (
+    <text x={x} y={y} fontSize={fontSize} fill={fill} textAnchor={textAnchor}>
+      {lines.map((line, i) => (
+        <tspan key={i} x={x} dy={i === 0 ? 0 : lineH}>{line}</tspan>
+      ))}
+    </text>
+  );
+}
 
 function PublicConsultation() {
   const [vIdx, setVIdx] = useState(0);
@@ -536,39 +592,29 @@ function PublicConsultation() {
 
   return (
     <div class="consultation">
-      <svg viewBox="0 0 400 340" style={{ width: '100%', maxWidth: 400 }}>
-        <text x="50" y="30" fontSize="28" textAnchor="middle">{v.hat}</text>
-        <text x="95" y="30" fontSize="12" fill="#0f3460" fontWeight="700">{v.role}</text>
+      <svg viewBox="0 0 300 400" style={{ width: '100%' }}>
+        <text x="35" y="20" fontSize="28" textAnchor="middle">{v.hat}</text>
+        <text x="80" y="20" fontSize="12" fill="#0f3460" fontWeight="700">{v.role}</text>
 
-        <rect x="10" y="48" width="380" height="52" rx="8" fill="white" stroke="#ccc" strokeWidth="1.5" />
-        <text x="20" y="66" fontSize="9" fill="#6b7280" fontWeight="600">Scenario</text>
-        <text x="20" y="88" fontSize="10" fill="var(--color-text)">{v.context}</text>
+        <rect x="5" y="32" width="290" height="3" rx="1.5" fill="#e94560" />
+        <rect x="5" y="32" width="290" height="150" rx="8" fill="#e94560" opacity="0.06" />
+        <rect x="5" y="32" width="290" height="3" rx="1.5" fill="#e94560" />
+        <WrappedText x="15" y="52" text={narrative(v.role, v.context, v.decision)} maxChars={40} fontSize={10} fill="var(--color-text)" lineH={16} />
 
-        <rect x="10" y="114" width="380" height="50" rx="8" fill="#e94560" opacity="0.1" />
-        <rect x="10" y="114" width="380" height="3" rx="1.5" fill="#e94560" />
-        <text x="20" y="134" fontSize="9" fill="#e94560" fontWeight="600">The AI decided</text>
-        <text x="20" y="154" fontSize="10" fill="var(--color-text)">{v.decision}</text>
-
-        <text x="200" y="194" textAnchor="middle" fontSize="10" fill="#6b7280" fontWeight="600">How much do you agree with this action?</text>
+        <text x="150" y="205" textAnchor="middle" fontSize="13" fill="#6b7280" fontWeight="600">How much do you agree with this action?</text>
 
         {[1, 2, 3, 4, 5, 6, 7].map((val) => (
           <g key={val}>
-            <rect x={44 + val * 40} y="210" width="34" height="34" rx="8" fill={rated !== null && rated >= val ? '#0f3460' : '#f3f4f6'} stroke={rated !== null && rated >= val ? '#0f3460' : '#ccc'} strokeWidth="1.5" style={{ cursor: 'pointer' }} onClick={() => rated === null && handleRate(val)} />
-            <text x={61 + val * 40} y="232" textAnchor="middle" fontSize="11" fill={rated !== null && rated >= val ? 'white' : '#6b7280'}>{val}</text>
+            <rect x={-9 + val * 36} y="230" width="30" height="30" rx="8" fill={rated !== null && rated >= val ? '#0f3460' : '#f3f4f6'} stroke={rated !== null && rated >= val ? '#0f3460' : '#ccc'} strokeWidth="1.5" style={{ cursor: 'pointer' }} onClick={() => rated === null && handleRate(val)} />
+            <text x={6 + val * 36} y="250" textAnchor="middle" fontSize="11" fill={rated !== null && rated >= val ? 'white' : '#6b7280'}>{val}</text>
           </g>
         ))}
-        <text x="44" y="262" fontSize="7" fill="#999">Strongly disagree</text>
-        <text x="356" y="262" textAnchor="end" fontSize="7" fill="#999">Strongly agree</text>
+        <text x="14" y="300" fontSize="11" fill="#999">Strongly disagree</text>
+        <text x="286" y="300" textAnchor="end" fontSize="11" fill="#999">Strongly agree</text>
 
-        {rated !== null && (
-          <text x="200" y="288" textAnchor="middle" fontSize="9" fill="#16a34a">
-            Rating recorded
-          </text>
-        )}
-
-        <text x="200" y="314" textAnchor="middle" fontSize="8" fill="#999">Vignette {vIdx + 1} of {vignettes.length}</text>
-        <rect x="120" y="322" width="160" height="4" rx="2" fill="#e5e7eb" />
-        <rect x="120" y="322" width={160 * ((vIdx + 1) / vignettes.length)} height="4" rx="2" fill="#0f3460" />
+        <text x="150" y="340" textAnchor="middle" fontSize="10" fill="#999">Vignette {vIdx + 1} of {vignettes.length}</text>
+        <rect x="70" y="352" width="160" height="4" rx="2" fill="#e5e7eb" />
+        <rect x="70" y="352" width={160 * ((vIdx + 1) / vignettes.length)} height="4" rx="2" fill="#0f3460" />
       </svg>
     </div>
   );

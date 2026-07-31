@@ -1,85 +1,51 @@
 # Project website
 
-Static site for the NZ Value Alignment research project, hosted at [nz-value-llm.sjhl.nz](https://nz-value-llm.sjhl.nz).
+Static site for the NZ Value Alignment research project, hosted at [nz-llm.sjhl.nz](https://nz-llm.sjhl.nz).
 
 Built with [Astro](https://astro.build) + React for interactive components.
 
-## Structure
+## Source layout
 
 ```
 src/
-├── pages/
-│   └── index.astro          # One-page site (participate, methodology, findings)
-├── components/
-│   ├── PipelineAnimation.astro   # Pipeline graphic
-│   ├── ResultsViewer.tsx         # Eval results browser (React island)
-│   └── Nav.astro                 # Top navigation
-├── layouts/
-│   └── BaseLayout.astro          # Page shell with nav + footer
+├── pages/          # Routes — each file maps to a URL path
+│   ├── index.astro            # / — landing (hero, methodology pipeline, call to action)
+│   ├── join-survey.astro      # /join-survey
+│   ├── results-viewer.astro   # /results-viewer — eval data browser
+│   └── about.astro            # /about — project background and team
+├── components/     # Reusable UI
+│   ├── Nav.astro                # Top navigation bar
+│   ├── PipelineAnimation.tsx    # Interactive pipeline graphic (React island)
+│   └── ResultsViewer.tsx        # Eval results browser (React island)
+├── layouts/        # Page shell components
+│   └── BaseLayout.astro        # Shared header/footer wrapper
 ├── styles/
-│   └── global.css                # Design tokens and base styles
+│   └── global.css              # Design tokens and base styles
 ├── scripts/
-│   └── build-data.mjs           # Processes eval CSVs → JSON at build time
+│   └── build-data.mjs          # Reads eval CSVs → writes src/data/evals.json
 └── data/
-    └── evals.json                # Generated eval data (do not edit)
+    └── evals.json              # Generated eval data (do not edit by hand)
 ```
 
-## Workflow
-
-### Data refresh
-
-The site reads evaluation data from `../code/fine-tuning/output/evals/`. Run this whenever new eval runs appear:
+## Commands
 
 ```bash
-cd website
-npm run data
+npm run dev       # Dev server with hot reload
+npm run data      # Refresh eval data from code/fine-tuning/output/evals/
+npm run build     # data + Astro build → dist/
+npm run preview   # Serve built site locally
 ```
 
-This walks all model/run directories, parses `per_question_results.csv`, and writes structured JSON to `src/data/evals.json`.
+## Data flow
 
-### Development
-
-```bash
-cd website
-npm run dev        # Starts dev server with hot reload
-```
-
-### Build
-
-```bash
-npm run build      # Runs build-data + Astro build → dist/
-```
-
-### Preview
-
-```bash
-npm run preview    # Serves the built site locally
-```
+1. Eval CSVs live in `../code/fine-tuning/output/evals/<model>/<run>/`
+2. `npm run data` runs `scripts/build-data.mjs` → writes `src/data/evals.json`
+3. Astro imports the JSON at build time; site is fully static
 
 ## Deployment
 
-### GitHub Pages
+Pushing to `main` triggers a GitHub Action that builds and deploys to GitHub Pages. DNS for `nz-llm.sjhl.nz` is a `CNAME` pointing to `1jamesthompson1.github.io`.
 
-The site is built and deployed automatically. Push to `main` and a GitHub Action (see `.github/workflows/` if one exists) will build and deploy to GitHub Pages configured at `nz-value-llm.sjhl.nz`.
+## Adding eval runs
 
-To set up from scratch:
-
-1. Go to repo Settings → Pages
-2. Source: **GitHub Actions**
-3. The repo may already have a deploy workflow; if not, add one.
-
-### Custom domain
-
-The DNS for `nz-value-llm.sjhl.nz` should be a `CNAME` pointing to `1jamesthompson1.github.io`. Set the custom domain in the repo Pages settings.
-
-## Data processing
-
-The build pipeline (`npm run build`) runs the data script first, then Astro. This means:
-
-1. Eval CSVs are read and reshaped into a queryable JSON tree
-2. Astro imports the JSON at build time and passes it to the ResultsViewer component
-3. The site is fully static — no API calls at runtime
-
-## Adding evaluation runs
-
-Any new run directory under `code/fine-tuning/output/evals/<model>/<run>/` with a `config.json` and `per_question_results.csv` will automatically be picked up by the build-data script. Just run `npm run data` (or `npm run build`) and redeploy.
+Drop a new run directory under `code/fine-tuning/output/evals/<model>/<run>/` with `config.json` and `per_question_results.csv`, run `npm run data`, then rebuild.

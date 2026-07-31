@@ -125,6 +125,12 @@ section {
   border-radius: 1rem;
   border: 1px solid var(--color-border);
   padding: 1.5rem;
+  order: 2;
+}
+
+.methodology-scene__text {
+  max-width: 36rem;
+  order: 1;
 }
 
 .methodology-scene--wide .methodology-scene__graphic {
@@ -138,15 +144,21 @@ section {
   }
 }
 
-.methodology-scene__text {
-  max-width: 36rem;
-}
-
 .methodology-scene__text p {
   color: var(--color-muted);
   line-height: 1.8;
   margin-bottom: 1rem;
   font-size: 0.9375rem;
+}
+
+#scene-consult .methodology-scene__graphic {
+  min-height: 360px;
+}
+
+@media (min-width: 768px) {
+  #scene-consult .methodology-scene__graphic {
+    min-height: 500px;
+  }
 }
 
 .methodology__step-title {
@@ -159,6 +171,11 @@ section {
   .methodology-scene {
     grid-template-columns: 1fr 1fr;
     gap: 3rem;
+  }
+
+  .methodology-scene__graphic,
+  .methodology-scene__text {
+    order: 0;
   }
 
   .methodology-scene:nth-child(even) {
