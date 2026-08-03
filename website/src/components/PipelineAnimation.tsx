@@ -241,7 +241,7 @@ function TrainingLoop() {
 
   const respExamples = [
     { q: 'How important is family?', dist: [92, 6, 1, 1], labels: ['Very\nimportant', 'Rather\nimportant', 'Not very', 'Not at all'], answer: 'Very important', picked: 'Rather important' },
-    { q: 'Confidence in WHO?', dist: [55, 27, 10, 3, 5], labels: ['Great\ndeal', 'Quite\na lot', 'Not much', 'None', 'DK'], answer: 'Quite a lot', picked: 'Not very much' },
+    { q: 'Confidence in WHO?', dist: [55, 27, 10, 3, 5], labels: ['Great\ndeal', 'Quite\na lot', 'Not much', 'None', 'DK'], answer: 'Quite a lot', picked: 'Not much' },
     { q: 'Immigration: strengthens diversity?', dist: [90, 10, 0], labels: ['Agree', 'Hard\nto say', 'Disagree'], answer: 'Agree', picked: 'Hard to say' },
     { q: 'Trust in parliament?', dist: [49, 16, 25, 5, 5], labels: ['Great\ndeal', 'Quite\na lot', 'Not much', 'None', 'DK'], answer: 'Quite a lot', picked: 'Quite a lot' },
   ];
@@ -626,7 +626,7 @@ export default function PipelineAnimation() {
       <Scene id="scene-survey" graphic={<SurveyPreview />}>
         <h3 class="methodology__step-title">1. The World Values Survey</h3>
         <p>Wave 7 of the World Values Survey captures responses from <strong><AnimatedCounter end={1057} /></strong> New Zealanders across <strong><AnimatedCounter end={251} /></strong> item-level questions — from family values to political trust.</p>
-        <p>Each question has a fixed set of response options (Likert scale, multiple choice, etc.). Click through some examples on the right to see the kinds of questions respondents answered.</p>
+        <p>Each question has a fixed set of response options (Likert scale, multiple choice, etc.). Click through some examples on the left to see the kinds of questions respondents answered.</p>
       </Scene>
 
       <Scene id="scene-cluster" graphic={<ClusterViz />}>
