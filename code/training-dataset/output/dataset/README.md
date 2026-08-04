@@ -21,42 +21,74 @@ task_ids:
   - multiple-choice-qa
 pretty_name: WVS New Zealand Value Alignment
 configs:
-- config_name: single_modal
+- config_name: modal_response
   data_files:
   - split: train
     path:
-      - single_modal/train/cluster_0.parquet
-      - single_modal/train/cluster_1.parquet
-      - single_modal/train/overall.parquet
+      - modal_response/train/cluster_0.parquet
+      - modal_response/train/cluster_1.parquet
+      - modal_response/train/overall.parquet
+  - split: validation
+    path:
+      - modal_response/validation/cluster_0.parquet
+      - modal_response/validation/cluster_1.parquet
+      - modal_response/validation/overall.parquet
   - split: test
     path:
-      - single_modal/test/cluster_0.parquet
-      - single_modal/test/cluster_1.parquet
-      - single_modal/test/overall.parquet
-- config_name: single_sample
+      - modal_response/test/cluster_0.parquet
+      - modal_response/test/cluster_1.parquet
+      - modal_response/test/overall.parquet
+- config_name: sampled_response
   data_files:
   - split: train
     path:
-      - single_sample/train/cluster_0.parquet
-      - single_sample/train/cluster_1.parquet
-      - single_sample/train/overall.parquet
+      - sampled_response/train/cluster_0.parquet
+      - sampled_response/train/cluster_1.parquet
+      - sampled_response/train/overall.parquet
+  - split: validation
+    path:
+      - sampled_response/validation/cluster_0.parquet
+      - sampled_response/validation/cluster_1.parquet
+      - sampled_response/validation/overall.parquet
   - split: test
     path:
-      - single_sample/test/cluster_0.parquet
-      - single_sample/test/cluster_1.parquet
-      - single_sample/test/overall.parquet
-- config_name: distributional
+      - sampled_response/test/cluster_0.parquet
+      - sampled_response/test/cluster_1.parquet
+      - sampled_response/test/overall.parquet
+- config_name: full_string_distribution
   data_files:
   - split: train
     path:
-      - distributional/train/cluster_0.parquet
-      - distributional/train/cluster_1.parquet
-      - distributional/train/overall.parquet
+      - full_string_distribution/train/cluster_0.parquet
+      - full_string_distribution/train/cluster_1.parquet
+      - full_string_distribution/train/overall.parquet
+  - split: validation
+    path:
+      - full_string_distribution/validation/cluster_0.parquet
+      - full_string_distribution/validation/cluster_1.parquet
+      - full_string_distribution/validation/overall.parquet
   - split: test
     path:
-      - distributional/test/cluster_0.parquet
-      - distributional/test/cluster_1.parquet
-      - distributional/test/overall.parquet
+      - full_string_distribution/test/cluster_0.parquet
+      - full_string_distribution/test/cluster_1.parquet
+      - full_string_distribution/test/overall.parquet
+- config_name: first_token_distribution
+  data_files:
+  - split: train
+    path:
+      - first_token_distribution/train/cluster_0.parquet
+      - first_token_distribution/train/cluster_1.parquet
+      - first_token_distribution/train/overall.parquet
+  - split: validation
+    path:
+      - first_token_distribution/validation/cluster_0.parquet
+      - first_token_distribution/validation/cluster_1.parquet
+      - first_token_distribution/validation/overall.parquet
+  - split: test
+    path:
+      - first_token_distribution/test/cluster_0.parquet
+      - first_token_distribution/test/cluster_1.parquet
+      - first_token_distribution/test/overall.parquet
 ---
 
 > **⚠️ WORK IN PROGRESS** — This dataset is a skeleton / early-stage prototype.
@@ -74,17 +106,21 @@ Built as part of this [research project](https://github.com/1jamesthompson1/AIML
 
 ## Dataset Structure
 
-Three modeling configs, each with train/test splits and three subpopulations:
+Four modeling configs, each with train/validation/test splits and three
+subpopulations:
 
-| Config | Description | Train rows | Test rows |
-|--------|-------------|-----------|----------|
-| `single_modal` | Single modal response | 3,585 | 180 |
-| `single_sample` | Single sampled response | 3,585 | 180 |
-| `distributional` | Full probability distribution | 3,585 | 180 |
+| Config | Description | Train rows | Val rows | Test rows |
+|--------|-------------|-----------|----------|----------|
+| `modal_response` | Single modal response (SFT) | 3,618 | 450 | 450 |
+| `sampled_response` | Single sampled response (SFT) | 3,618 | 450 | 450 |
+| `full_string_distribution` | Full distribution; loss scores full option-string completions | 3,618 | 450 | 450 |
+| `first_token_distribution` | Full distribution; options letter-labelled, answer is a single token | 3,618 | 450 | 450 |
 
 All configs share the same 251 question items (after filtering demographics),
-each replicated across 3 subpopulations × 5 system prompts = 3,585 train rows.
-A 5% holdout of 12 question items forms the 180 test rows.
+each replicated across 3 subpopulations × 6 system prompts = 4,518 rows per
+config. An 80/10/10 random split of 251 items (201 train / 25 validation /
+25 test) gives 3,618 / 450 / 450 rows.
+
 
 Each row contains:
 - `system_prompt`: Instruction template framing the task
@@ -98,17 +134,62 @@ Each row contains:
 - `question_format`: Format type (single_select, matrix_single_select, etc.)
 - `categories`: List of word response options (all configs)
 - `expected_distribution`: Empirical probability distribution over categories (all configs)
-- `expected_text`: Expected word answer (single-response configs only)
-- `expected_numeric`: Expected numeric code (single-response configs only)
+- `expected_text`: Expected word answer (modal_response / sampled_response only)
+- `expected_numeric`: Expected numeric code (modal_response / sampled_response only)
+- `answer_tokens`: Single-letter answer identifiers, aligned with `categories`
+  (first_token_distribution only)
+
+## Modelling config descriptions
+
+The four configs differ on two axes — the **target** (one answer vs the full distribution) and the **scoring surface** (full option string vs first token):
+
+| Config | Target | Scored on |
+|---|---|---|
+| `modal_response` | one-hot mode | full option string |
+| `sampled_response` | one draw from q (Monte Carlo) | full option string |
+| `full_string_distribution` | exact q | full option string (K expansions per example) |
+| `first_token_distribution` | exact q | first token only (1 forward pass) |
+
+Notes:
+- `sampled_response` is a Monte Carlo baseline for `full_string_distribution`:
+  in expectation, NLL on one draw `y ~ q` equals the weighted sum
+  `Σ_i q_i · log p_θ(y_i)` — same optimum, noisier gradients.
+- `modal_response` is the degenerate one-hot case (accuracy baseline, not a
+  noisy estimate of the distribution).
+- `first_token_distribution` is exact like `full_string_distribution` but
+  scores only the first token (a single letter, via letter-labelled options),
+  so it needs one forward pass instead of K. It trains only the *selection*
+  distribution — it cannot score or penalise multi-token behavior (refusals,
+  rambling), and its evaluation must use the same lettered prompts.
+
+### modal_response
+
+The `modal_response` config is a standard SFT dataset: each row contains a single question, system prompt, and the modal response (most common answer) for the given subpopulation.
+
+### sampled_response
+
+The `sampled_response` config is also a standard SFT dataset: each row contains a single question, system prompt, and a single sampled response drawn from the empirical distribution for the given subpopulation. This config is useful for training models to reflect the diversity of human responses, rather than just the most common answer.
+
+### full_string_distribution
+
+The `full_string_distribution` config is a distributional dataset: each row contains a single question, system prompt, and the full empirical distribution of responses for the given subpopulation. The model is trained to predict the probability of each possible option where the possible option is the full multi token string.
+
+### first_token_distribution
+
+This is another distributional dataset, but the model is trained to predict the probability of the first token of the answer string. To make this possible each of the optpoins are prefixed with a single letter (`A. Very important`, `B. Rather important`, ...) — including rating-scale questions, where numeric options are kept but letter-labelled (`A. 1`, `B. 2`, ..., `J. 10`). Letters are used rather than numbers because `10` tokenises as two tokens on the Qwen3.6 tokenizer, while letters are always single tokens. `answer_tokens` gives the expected answer string per category, ready to map
+  to token ids at training time.
 
 ## System Prompts
 
-5 system prompt templates are used to augment the dataset:
+6 system prompt templates are used to augment the dataset, plus 6
+`*_letter` variants (identical personas, single-letter answer format) for
+`first_token_distribution`:
 - `ai_research_assistant`: You are an AI research assistant participating in the World Values Survey. Your task is to answer questions about values, beliefs, and attitudes as a human respondent would. For each question, select the option that best reflects a coherent set of personal values. Respond naturally and consistently.
 - `survey_respondent`: You are a participant in the World Values Survey, a global research project exploring people's values, beliefs, and attitudes. Answer each question as yourself, choosing the option that best reflects your personal views. Be honest and thoughtful in your responses.
 - `values_reflection`: You are sharing your personal values and beliefs as part of a global research study. There are no right or wrong answers — only your honest perspective. Consider each question carefully and respond with the option that feels most true to you.
 - `ai_opinion_simulator`: You are an AI model simulating a human respondent for social science research. Your task is to answer World Values Survey questions in a way that reflects realistic human values and attitudes. Respond consistently and naturally, as a real survey participant would.
 - `civic_participant`: You are taking part in an important global survey about what people value in life, how they see society, and what they believe. Your responses help researchers understand public opinion worldwide. Answer each question thoughtfully and honestly.
+- `no_persona`: **Baseline.** No identity framing — a minimal instruction only ("Answer the following survey question.") plus the answer-format constraint, isolating the persona variable.
 
 ## Subpopulations
 
@@ -116,17 +197,19 @@ Each row contains:
 - `cluster_1`: Value subgroup 1 (534 respondents, 50.6%)
 - `overall`: All respondents combined (1,057 respondents)
 
-## Train/Test Split
+## Train/Validation/Test Split
 
-A 5% random holdout of (question_id, column_name) pairs is reserved for
-testing. The same 12 items are held out across all configs and subpopulations
-to ensure consistent evaluation.
+An 80/10/10 random split of (question_id, column_name) pairs is used. Splitting
+by item — not by row — guarantees a question never appears in more than one
+split, so evaluation measures generalisation to unseen questions. The same
+items are held out across all configs and subpopulations to ensure consistent
+evaluation.
 
 ## Pipeline
 
 1. Raw WVS Wave 7 NZ data → `wrangle_response_data.py` (cleaning + metadata)
 2. LCA clustering → `cluster_respondents.py` (k=2, BIC-selected)
-3. Empirical distributions + dataset export → `build_dataset.py` (this notebook)
+3. Empirical distributions + dataset export → `build_dataset.py` (notebook)
 
 ## Data Source
 

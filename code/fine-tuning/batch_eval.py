@@ -28,7 +28,7 @@ import urllib.request
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
-DATASETS = ["single_modal", "single_sample"]
+DATASETS = ["modal_response", "sampled_response"]
 # Each eval run covers all subpopulations (cluster_0, cluster_1, overall)
 # in a single pass — the per_question_results.csv includes a subpopulation
 # column for downstream filtering.

@@ -10,14 +10,19 @@ def _(mo):
     # Building the Value Alignment Training Dataset
 
     This notebook takes the `question_mapping.json`, placeholder cluster responses and
-    `prompt_templates.json` to produce two training dataset variants:
+    `prompt_templates.json` to produce four training dataset variants:
 
-    1. **Single response dataset** — each example has one expected answer (text + numeric).
-       Used for supervised fine-tuning (SFT) with a cross-entropy loss, either using the
-       modal response or by sampling from the response distribution.
-
-    2. **Distributional response dataset** — each example has an expected probability
-       distribution over response categories. Used for distribution-matching fine-tuning.
+    1. **modal_response** — each example has one expected answer (text + numeric):
+       the modal (most common) response from the cluster. Used for SFT.
+    2. **sampled_response** — each example has one expected answer: a random draw
+       from the cluster response distribution. Used for SFT.
+    3. **full_string_distribution** — each example has an expected probability
+       distribution over response categories; the training loss scores full
+       option-string completions (weighted NLL). Used for distribution matching.
+    4. **first_token_distribution** — like (3) but options are labelled with
+       single letters (A., B., ...) and the prompts ask for the single letter,
+       so the expected completion is one token. Used for first-token losses
+       (Cao et al., NAACL 2025).
 
     Each sub-question in a matrix/battery is expanded into its own training example.
     Demographic questions are excluded as they are not relevant for value alignment.
@@ -40,14 +45,17 @@ def _():
 @app.cell(hide_code=True)
 def _(mo):
     mo.md("""
-    ## Train/Test Split
+    ## Train/Validation/Test Split
 
-    A naive 5% random sample of items (question_id × column_name) is held out
-    for testing. The split keys are computed once and reused across all three
-    modeling approaches and all subpopulations, ensuring consistent partitions.
+    A random 80/10/10 split of items (question_id × column_name) is held out
+    for validation and testing. Splitting by item — not by row — guarantees a
+    question never appears in more than one split, so evaluation measures
+    generalisation to unseen questions (as in Cao et al. 2025). The split keys
+    are computed once and reused across all four modeling approaches and all
+    subpopulations, ensuring consistent partitions.
 
-    The test set is used to add an `expected_distribution` column marking each
-    row as train or test.
+    The split adds `expected_distribution`-labelled rows to train, validation
+    and test splits of every config.
     """)
     return
 
@@ -57,39 +65,55 @@ def _(items, random):
     random.seed(42)
 
     all_item_keys = sorted({(item["id"], item["column_name"]) for item in items})
-    n_test = max(1, len(all_item_keys) * 5 // 100)
-    test_keys = set(random.sample(all_item_keys, n_test))
-    train_keys = set(all_item_keys) - test_keys
+    n_items = len(all_item_keys)
+    n_val = max(1, n_items * 10 // 100)
+    n_test = max(1, n_items * 10 // 100)
+    n_train = n_items - n_val - n_test
+    shuffled = random.sample(all_item_keys, n_items)
+    train_keys = set(shuffled[:n_train])
+    val_keys = set(shuffled[n_train : n_train + n_val])
+    test_keys = set(shuffled[n_train + n_val :])
 
     print(
-        f"Train items: {len(train_keys)}, Test items: {len(test_keys)} ({n_test / len(all_item_keys) * 100:.1f}%)"
+        f"Train items: {len(train_keys)}, Validation items: {len(val_keys)}, "
+        f"Test items: {len(test_keys)} "
+        f"({n_val / n_items * 100:.1f}% val, {n_test / n_items * 100:.1f}% test)"
     )
-    return test_keys, train_keys
+    return train_keys, val_keys, test_keys
 
 
 @app.cell
-def _(items, test_keys, train_keys):
+def _(items, train_keys, val_keys, test_keys):
     def split_rows(rows):
         train_rows = []
+        val_rows = []
         test_rows = []
         for r in rows:
             key = (r["question_id"], r["column_name"])
             if key in train_keys:
                 train_rows.append(r)
+            elif key in val_keys:
+                val_rows.append(r)
             else:
                 test_rows.append(r)
-        return train_rows, test_rows
+        return train_rows, val_rows, test_rows
 
     # Verify consistency across all items
     all_train = 0
+    all_val = 0
     all_test = 0
     for _item in items:
         _key = (_item["id"], _item["column_name"])
         if _key in train_keys:
             all_train += 1
+        elif _key in val_keys:
+            all_val += 1
         elif _key in test_keys:
             all_test += 1
-    print(f"Split covers {all_train + all_test}/{len(items)} item expansions")
+    print(
+        f"Split covers {all_train + all_val + all_test}/{len(items)} item expansions "
+        f"(train={all_train}, val={all_val}, test={all_test})"
+    )
     return (split_rows,)
 
 
@@ -112,10 +136,17 @@ def _(Path, json):
         prompt_templates = json.load(f)
 
     system_prompts = prompt_templates["system_prompts"]
+    first_token_system_prompts = prompt_templates["system_prompts_first_token"]
     question_templates = prompt_templates["question_templates"]
 
-    f"Loaded {len(question_mapping)} question entries and {len(system_prompts)} system prompts"
-    return output_dir, question_mapping, question_templates, system_prompts
+    f"Loaded {len(question_mapping)} question entries, {len(system_prompts)} system prompts, {len(first_token_system_prompts)} first-token system prompts"
+    return (
+        first_token_system_prompts,
+        output_dir,
+        question_mapping,
+        question_templates,
+        system_prompts,
+    )
 
 
 @app.cell(hide_code=True)
@@ -218,6 +249,16 @@ def _(mo):
 
 @app.cell
 def _(items, question_templates):
+    def option_identifier(idx):
+        """Single-letter identifier for option index 0..25 (A..Z).
+
+        Letters are used for every question format — not numbers — because
+        single-token-ness must be guaranteed: verified on the Qwen3.6-27B
+        tokenizer, digits 1-9 are single tokens but "10" (the top rating-scale
+        option) tokenises as two tokens. Letters A-K are always single tokens.
+        """
+        return chr(ord("A") + idx)
+
     def build_user_prompt(item):
         eid = str(item["id"])
         tmpl_data = question_templates.get(eid)
@@ -231,9 +272,32 @@ def _(items, question_templates):
 
         return prompt
 
+    def build_user_prompt_lettered(item):
+        """Same prompt, but options prefixed with single-letter identifiers
+        (A., B., C., ...) so the expected answer can be a single token.
+
+        For rating-scale questions the numeric options are kept intact and
+        still get letter prefixes (e.g. "A. 1", "B. 2", ..., "J. 10") so the
+        answer token is always a single letter.
+        """
+        eid = str(item["id"])
+        tmpl_data = question_templates.get(eid)
+
+        options_text = "\n\nOptions:\n" + "\n".join(
+            f"{option_identifier(i)}. {opt}"
+            for i, opt in enumerate(item["word_options"])
+        )
+
+        if tmpl_data is not None and item["sub_question"] is not None:
+            prompt = tmpl_data + options_text + "\n\n" + f"{item['sub_question']}:"
+        else:
+            prompt = item["question"] + options_text
+
+        return prompt
+
     sample = [(i["id"], i["sub_question"], build_user_prompt(i)) for i in items[:4]]
     f"Example prompts: {sample}"
-    return (build_user_prompt,)
+    return build_user_prompt, build_user_prompt_lettered, option_identifier
 
 
 @app.cell(hide_code=True)
@@ -532,68 +596,131 @@ def _(build_user_prompt, cluster_distribution_lookups, items, system_prompts):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md("""
+    ## Build First-Token Distributional Response Datasets
+
+    Same empirical distribution as `full_string_distribution`, but optimised
+    for first-token training (Cao et al., NAACL 2025): options are labelled
+    with single letters (A., B., ...) and the system prompts instruct the
+    model to answer with ONLY the letter, so the expected completion is a
+    single token. Each row stores `answer_tokens` (the letter for each
+    category, aligned with `categories`) for the training loop to map to
+    token ids.
+    """)
+    return
+
+
+@app.cell
+def _(
+    build_user_prompt_lettered,
+    cluster_distribution_lookups,
+    first_token_system_prompts,
+    items,
+    option_identifier,
+):
+    def build_first_token_dataset(items, lookup):
+        dataset = []
+        for item in items:
+            key = (item["id"], item["column_name"])
+            cluster = lookup[key]
+            user_prompt = build_user_prompt_lettered(item)
+            answer_tokens = [
+                option_identifier(i) for i in range(len(cluster["word_options"]))
+            ]
+
+            for sp_idx, (sp_name, sp_text) in enumerate(
+                first_token_system_prompts.items()
+            ):
+                dataset.append(
+                    {
+                        "system_prompt": sp_text,
+                        "system_prompt_id": sp_name,
+                        "user_prompt": user_prompt,
+                        "expected_distribution": cluster["distribution"],
+                        "categories": cluster["word_options"],
+                        "answer_tokens": answer_tokens,
+                        "question_id": item["id"],
+                        "question": item["question"],
+                        "sub_question": item["sub_question"],
+                        "column_name": item["column_name"],
+                        "question_format": item["question_format"],
+                    }
+                )
+        return dataset
+
+    ft_dist_sets = {}
+    for _vs_name, _lookup in cluster_distribution_lookups.items():
+        ft_dist_sets[_vs_name] = build_first_token_dataset(items, _lookup)
+
+    _example_count = len(next(iter(ft_dist_sets.values())))
+    f"First-token datasets: {sum(len(v) for v in ft_dist_sets.values())} total rows across {len(ft_dist_sets)} value sets ({_example_count} rows each, {len(first_token_system_prompts)} system prompts × {len(items)} items)"
+    return (ft_dist_sets,)
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md("""
     ## Export Datasets
 
     ### Hugging Face dataset structure
     The same data is organized under `output/dataset/` as a Hugging Face
-    `datasets` repository. Each modeling approach (distributional,
-    single_sample, single_modal) is a **config** with `train` and `test`
-    splits. Each split references the per-subpopulation files.
+    `datasets` repository. Each modeling approach (modal_response,
+    sampled_response, full_string_distribution, first_token_distribution) is a
+    **config** with `train`, `validation` and `test` splits. Each split
+    references the per-subpopulation files.
 
     **Repository structure:**
     ```
     output/dataset/
       README.md
-      distributional/
-        train/
+      modal_response/
+        {train,validation,test}/
           cluster_0.parquet
           cluster_1.parquet
           overall.parquet
-        test/
-          cluster_0.parquet
-          cluster_1.parquet
-          overall.parquet
-      single_sample/
-        train/  (same layout)
-        test/
-      single_modal/
-        train/
-        test/
+      sampled_response/   (same layout)
+      full_string_distribution/   (same layout)
+      first_token_distribution/   (same layout, adds answer_tokens column)
     ```
     """)
     return
 
 
 @app.cell
-def _(dist_sets, mode_sets, output_dir, pd, sample_sets, split_rows):
+def _(
+    dist_sets,
+    ft_dist_sets,
+    mode_sets,
+    output_dir,
+    pd,
+    sample_sets,
+    split_rows,
+):
     _dataset_dir = output_dir / "dataset"
 
     _variants = {
-        "single_modal": mode_sets,
-        "single_sample": sample_sets,
-        "distributional": dist_sets,
+        "modal_response": mode_sets,
+        "sampled_response": sample_sets,
+        "full_string_distribution": dist_sets,
+        "first_token_distribution": ft_dist_sets,
     }
     _subpops = ["cluster_0", "cluster_1", "overall"]
+    _splits = ["train", "validation", "test"]
 
     for _config_name, _sets in _variants.items():
         for _subpop in _subpops:
             _all_rows = _sets[_subpop]
             for _r in _all_rows:
                 _r["subpopulation"] = _subpop
-            _train_rows, _test_rows = split_rows(_all_rows)
+            _train_rows, _val_rows, _test_rows = split_rows(_all_rows)
 
-            _train_df = pd.DataFrame(_train_rows)
-            _train_path = _dataset_dir / _config_name / "train" / f"{_subpop}.parquet"
-            _train_path.parent.mkdir(parents=True, exist_ok=True)
-            _train_df.to_parquet(_train_path)
-
-            _test_df = pd.DataFrame(_test_rows)
-            _test_path = _dataset_dir / _config_name / "test" / f"{_subpop}.parquet"
-            _test_path.parent.mkdir(parents=True, exist_ok=True)
-            _test_df.to_parquet(_test_path)
+            for _split, _rows in zip(_splits, [_train_rows, _val_rows, _test_rows]):
+                _df = pd.DataFrame(_rows)
+                _path = _dataset_dir / _config_name / _split / f"{_subpop}.parquet"
+                _path.parent.mkdir(parents=True, exist_ok=True)
+                _df.to_parquet(_path)
 
         # Log sizes
-        for _split in ["train", "test"]:
+        for _split in _splits:
             _total = 0
             for _subpop in _subpops:
                 _path = _dataset_dir / _config_name / _split / f"{_subpop}.parquet"

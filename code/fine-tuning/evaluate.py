@@ -24,13 +24,13 @@ Usage:
     uv run evaluate.py \
         --port 8087 \
         --model Qwen/Qwen3.6-27B-FP8 \
-        --dataset single_modal
+        --dataset modal_response
 
     # For quick checks without plots:
     uv run evaluate.py \
         --port 8000 \
         --model Qwen/Qwen3.6-27B \
-        --dataset single_modal \
+        --dataset modal_response \
         --no-plots \
         --num-test-examples 20
 """
@@ -161,11 +161,12 @@ def parse_args(argv=None):
     )
     p.add_argument(
         "--dataset",
-        default="single_modal",
-        choices=["single_modal", "single_sample"],
+        default="modal_response",
+        choices=["modal_response", "sampled_response"],
         help="Dataset config to evaluate on. "
-        "Note: distributional has been removed as it is redundant — "
-        "single_modal gives both accuracy and KL/CE.",
+        "The distributional configs (full_string_distribution, "
+        "first_token_distribution) are not evaluable via served logprobs yet — "
+        "modal_response gives both accuracy and KL/CE.",
     )
     p.add_argument(
         "--hf-token",

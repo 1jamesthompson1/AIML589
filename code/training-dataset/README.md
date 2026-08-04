@@ -7,10 +7,11 @@ This phase is about building a training dataset. This is done by
 - Creating templates for the question
   - Creating a mapping from the question response to the actual question asked (i.e in the right format).
   - Create system prompt templates for the different question styles
-- Generating dataset by merging templates with the clusters responses in one of three ways
-  - For each template question response simply use the most common response from the cluster
-  - For each template question response sample from the cluster responses
-  - For each template question response the answer is the response distribution of the cluster.
+- Generating dataset by merging templates with the clusters responses in one of four ways
+  - For each template question response simply use the most common response from the cluster (`modal_response`)
+  - For each template question response sample from the cluster responses (`sampled_response`)
+  - For each template question response the answer is the response distribution of the cluster, scored over full option-string completions (`full_string_distribution`)
+  - Same distribution, but options are labelled with single letters and the answer is a single token, for first-token losses (`first_token_distribution`)
 
 ## Survey question formats
 
@@ -298,6 +299,8 @@ Contains system prompts and per-question user prompt templates used by the datas
 
 **`system_prompts`** — A dict of system prompt variants. Each prompt sets context for the AI model to respond as a survey participant. One is chosen per training example.
 
+**`system_prompts_first_token`** — A parallel dict of `*_letter` variants (same personas) for `first_token_distribution`. Options are labelled with single letters (A., B., ...) and the model is instructed to answer with ONLY the letter, so the expected completion is a single token. Letters are used (not numbers) because `10` tokenises as two tokens on the Qwen3.6 tokenizer while letters are always single tokens.
+
 **`question_templates`** — A dict keyed by the `id` field (as a string) from each entry in `question_mapping.json`. Each value is either:
 - `null` — the original question text from `question_mapping.json` is used verbatim (used for single‑select, rating scale, ranking, binary, and demographic questions).
 - The question text template with the `{{sub_question}}` placeholder.
@@ -359,14 +362,19 @@ sha256sum input/WVS_Wave_7_New_Zealand_CsvText_v5.1.csv
 
 ### Generated Training Datasets
 
-The `build_dataset.py` notebook produces three dataset configs (single_modal, single_sample, distributional), each with train/test splits and three subpopulations (cluster_0, cluster_1, overall). The datasets are stored in `output/dataset/` — see the [dataset README](output/dataset/README.md) for full details.
+The `build_dataset.py` notebook produces four dataset configs
+(modal_response, sampled_response, full_string_distribution,
+first_token_distribution), each with train/validation/test splits and three
+subpopulations (cluster_0, cluster_1, overall). Splits are 80/10/10 by
+(question_id, column_name) so a question never spans splits. The datasets are
+stored in `output/dataset/` — see the [dataset README](output/dataset/README.md) for full details.
 
 The dataset is also published on the Hugging Face Hub:
 - **Repository:** [`1jamesthompson1/wvs-nz-value-alignment`](https://huggingface.co/datasets/1jamesthompson1/wvs-nz-value-alignment)
 
 ```python
 from datasets import load_dataset
-ds = load_dataset("1jamesthompson1/wvs-nz-value-alignment", "single_modal")
+ds = load_dataset("1jamesthompson1/wvs-nz-value-alignment", "modal_response")
 ```
 
 Re-upload after regeneration:

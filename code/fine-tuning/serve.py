@@ -17,7 +17,7 @@ Serve a model via vLLM for evaluation, optionally with LoRA adapters.
 
 Each fine-tuned adapter lives in its own HF Hub repo following the
 naming convention ``{model_slug}-nz-wvs-{dataset}-{population}``
-(e.g. ``Qwen3.6-27B-nz-wvs-single_modal-cluster_0``).
+(e.g. ``Qwen3.6-27B-nz-wvs-modal_response-cluster_0``).
 
 Usage:
     # Base model only (no adapters)
@@ -29,7 +29,7 @@ Usage:
 
     # Individual adapters
     uv run serve.py --model Qwen/Qwen3.6-27B \
-        --adapter cluster_0=1jamesthompson1/Qwen3.6-27B-nz-wvs-single_modal-cluster_0
+        --adapter cluster_0=1jamesthompson1/Qwen3.6-27B-nz-wvs-modal_response-cluster_0
 
     # Remote usage
     scp serve.py user@host:~
@@ -144,7 +144,7 @@ def parse_args(argv=None):
         metavar="NAME=PATH",
         help="LoRA adapter as name=path (repeatable). "
         "Path can be local or a HF repo, "
-        "e.g. Qwen3.6-27B-nz-wvs-single_modal-cluster_0=my-org/Qwen3.6-27B-nz-wvs-single_modal-cluster_0",
+        "e.g. Qwen3.6-27B-nz-wvs-modal_response-cluster_0=my-org/Qwen3.6-27B-nz-wvs-modal_response-cluster_0",
     )
     p.add_argument(
         "--hf-collection",

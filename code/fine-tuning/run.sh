@@ -10,10 +10,10 @@ set -euo pipefail
 #
 # Examples:
 #   ./code/fine-tuning/run.sh finetune uni-gpu1 \
-#       -- --dataset single_modal --subpopulation cluster_0 --upload-to-hf
+#       -- --dataset modal_response --subpopulation cluster_0 --upload-to-hf
 #
 #   ./code/fine-tuning/run.sh serve uni-gpu1 --port 8087 \
-#       -- --model Qwen/Qwen3.6-27B --dataset single_modal --subpopulation cluster_0
+#       -- --model Qwen/Qwen3.6-27B --dataset modal_response --subpopulation cluster_0
 #
 # Environment:
 #   REMOTE_DIR   Remote working directory (default: llm-ft)

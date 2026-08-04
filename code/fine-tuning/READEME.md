@@ -56,7 +56,7 @@ The finetuning is depending on parameters either a simple SFT or a slightly more
 
 ```bash
 ./code/fine-tuning/run.sh finetune uni-gpu1 -- \
-    --dataset single_modal --subpopulation cluster_0 --upload-to-hf
+    --dataset modal_response --subpopulation cluster_0 --upload-to-hf
 ```
 
 ### Uploading adapters
@@ -67,13 +67,13 @@ Each fine-tuning run produces a LoRA adapter (a few MB) which gets uploaded to i
 {HF_ORG}/{model_slug}-nz-wvs-{dataset}-{subpopulation}
 ```
 
-e.g. `1jamesthompson1/Qwen3.6-27B-nz-wvs-single_modal-cluster_0`
+e.g. `1jamesthompson1/Qwen3.6-27B-nz-wvs-modal_response-cluster_0`
 
 To upload, set the `HF_ORG` environment variable in `.env` and pass `--upload-to-hf`:
 
 ```bash
 ./code/fine-tuning/run_finetune.sh uni-gpu1 \
-    --dataset single_modal --subpopulation cluster_0 \
+    --dataset modal_response --subpopulation cluster_0 \
     --upload-to-hf
 ```
 
@@ -81,7 +81,7 @@ You can also auto-add each new adapter repo to a HF Collection for easy browsing
 
 ```bash
 ./code/fine-tuning/run_finetune.sh uni-gpu1 \
-    --dataset single_modal --subpopulation cluster_0 \
+    --dataset modal_response --subpopulation cluster_0 \
     --upload-to-hf \
     --hf-collection "1jamesthompson1/wvs-nz-lora-adapters"
 ```
@@ -96,8 +96,10 @@ Two dataset configs are available. Both share the **same input prompts**; only t
 
 | Config | Expected answer | What it measures |
 |---|---|---|
-| `single_modal` | Mode (most common response) | Accuracy (exact match vs majority) + KL/CE vs true distribution |
-| `single_sample` | Random sample from cluster | Accuracy (exact match vs a typical individual) + KL/CE vs true distribution |
+| `modal_response` | Mode (most common response) | Accuracy (exact match vs majority) + KL/CE vs true distribution |
+| `sampled_response` | Random sample from cluster | Accuracy (exact match vs a typical individual) + KL/CE vs true distribution |
+| `full_string_distribution` | Empirical distribution over categories | KL/CE vs true distribution (train: weighted NLL over option strings; eval: served logprobs — not yet implemented) |
+| `first_token_distribution` | Empirical distribution; single-letter answers | First-token loss (Cao et al. 2025); dataset ready, training loop not yet implemented |
 
 Each eval run covers **all subpopulations** (cluster_0, cluster_1, overall) in a single pass. The `subpopulation` column in `per_question_results.csv` identifies which subpopulation each row belongs to.
 
@@ -117,7 +119,7 @@ Simply run `run.sh serve` to start a vLLM server on a GPU machine and tunnel the
 # With a LoRA adapter
 ./code/fine-tuning/run.sh serve uni-gpu1 --port 8087 -- \
     --model Qwen/Qwen3.6-27B \
-    --adapter cluster_0=1jamesthompson1/Qwen3.6-27B-nz-wvs-single_modal-cluster_0
+    --adapter cluster_0=1jamesthompson1/Qwen3.6-27B-nz-wvs-modal_response-cluster_0
 ```
 
 `--port` sets the port on your laptop (default `8080`). `run.sh` handles random free port allocation on the remote and SSH tunnel setup automatically.
