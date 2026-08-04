@@ -14,20 +14,22 @@ We've trained an AI model on New Zealand value data from the World Values
 Survey. Now we need the public's help to evaluate it. We're looking for
 people aged 18+ living in New Zealand to complete a short anonymous survey.
 
-Whether you love AI, hate it, or haven't given it much thought—we want to
-hear from you. Different perspectives make the research stronger.
+Regardless on your views of AI (Love, Hate or indifference) we are keen to hear from you. Different perspectives make the research stronger.
 
 What's involved?
-- You'll read a few short scenarios where an AI makes a decision
-- You'll rate how much you agree with each decision
+- You'll read a few short scenarios where AI makes decisions
+- You'll rate how much you agree with the actions of the AI
 - You'll answer a few questions about your own values
 - Takes about 15 minutes
 
 Your responses are completely anonymous. No personal information is collected.
+You can optionally enter a separate prize draw for one of two $50 Prezzy Cards.
+To enter, you will provide an email address in a separate form. This email
+address will not be linked to your survey responses.
 
 How your responses will be used
 - We'll analyse the data to see which AI models people prefer
-- All data will be made public in anonymised form so the global research
+- All data will be made public in anonymised form so the research
   community can use it
 - The goal is to develop a practical method for aligning AI to public values—a way for governments and communities to shape AI behaviour rather than
   leaving it to private companies alone
