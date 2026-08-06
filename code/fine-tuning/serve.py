@@ -120,7 +120,15 @@ def parse_args(argv=None):
         help="Model dtype",
     )
     p.add_argument(
-        "--max-model-len", type=int, default=32768, help="Maximum sequence length"
+        "--gpu",
+        default="0",
+        help="Comma-separated CUDA device(s) for vLLM, e.g. '0' for a single "
+        "GPU or '0,1' to spread across two. 'auto' leaves vLLM to use every "
+        "visible GPU. Defaults to a single GPU (set via CUDA_VISIBLE_DEVICES "
+        "before the vLLM subprocess starts).",
+    )
+    p.add_argument(
+        "--max-model-len", type=int, default=8196, help="Maximum sequence length"
     )
     p.add_argument(
         "--trust-remote-code",
@@ -260,6 +268,14 @@ def main():
     if args.vllm_args:
         cmd.extend(args.vllm_args)
 
+    # Pin CUDA devices for the vLLM subprocess (it inherits our environment;
+    # nothing in this script initialises CUDA, so setting the variable here is
+    # safe). Without this, vLLM spreads tensor-parallel workers across every
+    # visible GPU.
+    if args.gpu != "auto":
+        os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu
+        print(f"[serve] CUDA_VISIBLE_DEVICES={args.gpu}")
+
     print("=" * 60)
     print("[serve] vLLM command:")
     print(f"  {' '.join(cmd)}")
@@ -273,6 +289,11 @@ def main():
         bufsize=1,
         text=True,
     )
+
+    # Give vLLM a head start before the health poll below begins — model
+    # loading takes a while, and early probes just race the bind (showing up
+    # as "channel 2: open failed: Connection refused" through the tunnel).
+    time.sleep(10)
 
     print("[serve] vLLM output:")
     print("=" * 60)

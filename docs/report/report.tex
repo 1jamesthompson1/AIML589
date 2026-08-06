@@ -4,6 +4,10 @@
 
 \usepackage{url}
 
+\usepackage{spreadtab}
+
+\usepackage{amsmath}
+
 \usepackage[font,ecs]{vuwproject}
 
 \input{../common.tex}
@@ -71,18 +75,23 @@ A short description of the project goes here.
 \input{chapters/introduction}
 
 \chapter{Background}
+\label{chap:background}
 \input{chapters/background}
 
 \chapter{Fine-tuning}
+\label{chap:finetuning}
 \input{chapters/fine-tuning}
 
 \chapter{Simulation}
+\label{chap:simulation}
 \input{chapters/simluation}
 
 \chapter{Survey}
+\label{chap:survey}
 \input{chapters/survey}
 
 \chapter{Conclusions}
+\label{chap:conclusion}
 \input{chapters/conclusion}
 
 
@@ -92,5 +101,7 @@ A short description of the project goes here.
 
 \appendix
 
+\chapter{Project details}
+\input{appendices/project-details}
 
 \end{document}

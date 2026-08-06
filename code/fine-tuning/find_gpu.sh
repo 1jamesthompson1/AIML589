@@ -19,7 +19,7 @@
 #
 # What it does:
 #   1. Checks known ECS GPU servers via SSH + nvidia-smi
-#   2. Filters by GPU memory and free GPU count (util < 5%)
+#   2. Filters by GPU memory and free GPU count (GPUs with no running processes)
 #   3. Sorts candidates (highest mem → lowest avg util → most free GPUs)
 #   4. Prints results
 #   5. With --update-config: writes the top 3 to .ssh_config
@@ -95,6 +95,12 @@ if [[ -n "$JUMP_HOST" ]]; then
   [[ "$MIN_GPU_MEM" != 24 ]] && REMOTE_ARGS+=(--gpu-mem "$MIN_GPU_MEM")
   [[ "$MIN_GPUS" != 1 ]] && REMOTE_ARGS+=(--min-gpus "$MIN_GPUS")
   if $UPDATE_CONFIG; then
+    # Seed the remote with our current config so the marker-replacement
+    # branch runs there. Without this, the remote builds a file containing
+    # ONLY the auto-generated block and the SCP-back overwrites the local
+    # config — wiping the manual entries section.
+    scp -F "$SCRIPT_DIR/.ssh_config" -o StrictHostKeyChecking=accept-new \
+      "$SSH_CONFIG" "$JUMP_HOST":/tmp/ssh_config_update
     # Run remotely but write to a temp file, then SCP it back locally
     ssh -F "$SCRIPT_DIR/.ssh_config" -o StrictHostKeyChecking=accept-new "$JUMP_HOST" \
       "cat > /tmp/find_gpu.sh && chmod +x /tmp/find_gpu.sh && CONFIG_OUT=/tmp/ssh_config_update /tmp/find_gpu.sh --update-config ${REMOTE_ARGS[*]}" \
@@ -126,7 +132,7 @@ for server in "${SERVERS[@]}"; do
   fi
 
   output=$(ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=accept-new "$server" \
-    nvidia-smi --query-gpu=index,memory.total,utilization.gpu --format=csv,noheader 2>/dev/null || true)
+    nvidia-smi --query-gpu=index,memory.total,memory.used,utilization.gpu --format=csv,noheader 2>/dev/null || true)
 
   if [[ -z "$output" ]]; then
     continue
@@ -135,12 +141,14 @@ for server in "${SERVERS[@]}"; do
   free_count=0
   total_gpus=0
   total_util=0
-  while IFS=',' read -r idx mem_mb util; do
+  while IFS=',' read -r idx mem_total mem_used util; do
     idx="$(echo "$idx" | xargs)"
+    mem_used="$(echo "$mem_used" | xargs | sed 's/ MiB//')"
     util="$(echo "$util" | xargs | sed 's/ %//')"
     total_gpus=$((total_gpus + 1))
     total_util=$((total_util + util))
-    if [[ "$util" -lt 5 ]]; then
+    # A GPU is free only if no processes are using it, i.e. memory.used is 0
+    if [[ "$mem_used" -eq 0 ]]; then
       free_count=$((free_count + 1))
     fi
   done <<< "$output"
@@ -202,10 +210,13 @@ if $UPDATE_CONFIG; then
   done
 
   if [[ -f "$CONFIG_OUT" ]] && grep -q "^# BEGIN AUTO-GENERATED uni-gpu" "$CONFIG_OUT"; then
-    # Replace content between markers
-    awk -v block="$BLOCK" '
+    # Replace content between markers. The block is passed via an environment
+    # variable (ENVIRON) rather than `-v`: awk rejects literal newlines in
+    # command-line -v assignments ("newline in string"). The END marker is
+    # reprinted so it survives the rewrite and later runs can find it.
+    BLOCK="$BLOCK" awk '
       /^# BEGIN AUTO-GENERATED uni-gpu/ { print; printing = 1; next }
-      /^# END AUTO-GENERATED uni-gpu/   { print block; printing = 0; next }
+      /^# END AUTO-GENERATED uni-gpu/   { print ENVIRON["BLOCK"]; print; printing = 0; next }
       !printing                           { print }
     ' "$CONFIG_OUT" > "${CONFIG_OUT}.tmp" && mv "${CONFIG_OUT}.tmp" "$CONFIG_OUT"
   else

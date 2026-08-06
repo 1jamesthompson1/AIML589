@@ -72,7 +72,7 @@ e.g. `1jamesthompson1/Qwen3.6-27B-nz-wvs-modal_response-cluster_0`
 To upload, set the `HF_ORG` environment variable in `.env` and pass `--upload-to-hf`:
 
 ```bash
-./code/fine-tuning/run_finetune.sh uni-gpu1 \
+./code/fine-tuning/run.sh finetune uni-gpu1 \
     --dataset modal_response --subpopulation cluster_0 \
     --upload-to-hf
 ```
@@ -80,11 +80,28 @@ To upload, set the `HF_ORG` environment variable in `.env` and pass `--upload-to
 You can also auto-add each new adapter repo to a HF Collection for easy browsing:
 
 ```bash
-./code/fine-tuning/run_finetune.sh uni-gpu1 \
+./code/fine-tuning/run.sh finetune uni-gpu1 \
     --dataset modal_response --subpopulation cluster_0 \
     --upload-to-hf \
     --hf-collection "1jamesthompson1/wvs-nz-lora-adapters"
 ```
+
+### Batch run (full config grid)
+
+`run_all.py` drives the whole grid — all 4 dataset configs (finetuning
+methods) x 3 subpopulations — using finetune.py's default hyperparameters
+(see `uv run finetune.py --help`):
+
+```bash
+uv run ./code/fine-tuning/run_all.py uni-gpu1 Qwen/Qwen3.5-9B              # finetune + evaluate all 12
+uv run ./code/fine-tuning/run_all.py uni-gpu1 Qwen/Qwen3.5-9B --skip-finetune   # evaluate only
+uv run ./code/fine-tuning/run_all.py uni-gpu1 Qwen/Qwen3.5-9B --skip-eval       # finetune only
+```
+
+It fine-tunes each `(dataset, subpopulation)` pair (uploading the adapter to
+HF), then starts a single multi-LoRA vLLM server with all 12 adapters and
+runs `batch_eval.py` to evaluate every adapter on the validation split.
+Set `EVAL_PORT` or `HF_COLLECTION` env vars to override defaults.
 
 ### Run metadata
 
@@ -92,14 +109,15 @@ Every run saves a `finetune_config.json` alongside the adapter with all hyperpar
 
 ## Dataset configs for evaluation
 
-Two dataset configs are available. Both share the **same input prompts**; only the expected answer differs:
+Four dataset configs are available (all share the same input prompts; only
+the expected answer differs):
 
 | Config | Expected answer | What it measures |
 |---|---|---|
 | `modal_response` | Mode (most common response) | Accuracy (exact match vs majority) + KL/CE vs true distribution |
 | `sampled_response` | Random sample from cluster | Accuracy (exact match vs a typical individual) + KL/CE vs true distribution |
 | `full_string_distribution` | Empirical distribution over categories | KL/CE vs true distribution (train: weighted NLL over option strings; eval: served logprobs — not yet implemented) |
-| `first_token_distribution` | Empirical distribution; single-letter answers | First-token loss (Cao et al. 2025); dataset ready, training loop not yet implemented |
+| `first_token_distribution` | Empirical distribution; single-letter answers | First-token soft CE (Cao et al. 2025) — one forward pass, loss on the K answer-token logits at the answer position |
 
 Each eval run covers **all subpopulations** (cluster_0, cluster_1, overall) in a single pass. The `subpopulation` column in `per_question_results.csv` identifies which subpopulation each row belongs to.
 

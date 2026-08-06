@@ -1,0 +1,34 @@
+\section{Budget and Resources}
+\label{app:resources}
+
+% Budget line items: edit the numbers and the totals/balance are recalculated
+% automatically by spreadtab at compile time. tag(name) names a cell's value;
+% cell(name) refers to it later. Note: tags on computed cells must use the
+% direct formula form (formula then tag, no :=) or the tag is not registered.
+\begin{table}[h]
+	\centering
+	\begin{spreadtab}{{tabular}{l r}}
+		\hline
+		\multicolumn{2}{l}{\textbf{Funding (received)}:={}} \\
+		\hline
+		@Blue dot impact rapid grant & 2542tag(grant) \\
+		@VUW programme & 500tag(programme) \\
+		@VUW AI centre & 1000tag(aicentre) \\
+		\hline
+		@\textbf{Total funding} & :={cell(grant)+cell(programme)+cell(aicentre)} \\
+		\hline
+		\multicolumn{2}{l}{\textbf{Expenses}:={}} \\
+		\hline
+		@GPU compute (160 hours at \$2.00/hour) & 160*2tag(gpu) \\
+		@Participant compensation (500 participants at \$5.25 each) & 500*5.25tag(participants) \\
+		@Participant recruitment admin fee & 500tag(admin) \\
+		@Contingency (20\% of direct costs) & (cell(gpu)+cell(participants)+cell(admin))*0.2tag(contingency) \\
+		\hline
+		@\textbf{Total expenses} & :={cell(gpu)+cell(participants)+cell(admin)+cell(contingency)} \\
+		\hline
+		@\textbf{Balance (funding $-$ expenses)} & :={cell(grant)+cell(programme)+cell(aicentre)-cell(gpu)-cell(participants)-cell(admin)-cell(contingency)} \\
+		\hline
+	\end{spreadtab}
+	\caption{Detailed project budget in New Zealand Dollars (NZD).}
+	\label{tab:budget-detail}
+\end{table}

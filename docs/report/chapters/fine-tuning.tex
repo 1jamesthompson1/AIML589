@@ -13,8 +13,9 @@ In section \ref{sec:ft-results} we wil find that ...
 In section \ref{sec:ft-dataset} and section \ref{sec:ft-methods} I describe the methods used ot create the dataset and fine-tune the model.
 
 \section{Fine-tuning on diverse clusters with appreciable training}
+\label{sec:ft-results}
 
-\section{The clusters of survey respondents}
+\subsection{The clusters of survey respondents}
 
 To test for inter group differences we need to cluster the survey respondents.
 
@@ -35,6 +36,7 @@ Also explore other concepts of:
 
 
 \section{Creating the training dataset}
+\label{sec:ft-dataset}
 
 We choose the WVS dataset (free, open and sufficient).
 
@@ -49,22 +51,99 @@ System prompts and user prompts, how they were selected.
 
 
 \section{Fine-tuning methods}
+\label{sec:ft-methods}
 
 To better understand the effects on downstream behaviour 2 types of fine-tuning were done. First is modal fine-tuning where the goal is to have a model that responds in a way that is like the most common response in the survey data for that sub population. The second is distributional fine-tuning where the goal is to have a model that responds in a way that is like the distribution of responses in the survey data for that sub population.
 
 Given the use of LLM reasoning in downstream applications allows for more uncertainty (citation needed, i.e the intuition that the reasoning gives it more chance of randomness and therefore can better model uncertainty.
 
-\subsection{Modal fine-tuning}
+There are ways of doing finetuning of a LLM. We will only explore simple fine-tuning methods (SFT) and vary the method on two axes: what the target is (modal response, sampled response or the distribution of responses) and what the response representation is (full option string or just single token representing the option).
 
-To do modal fine-tuning the model is trained used SFT with the expected text response being the most common response in the survey data for that sub population.
-
-A description of SFT
-
-\subsection{Distributional fine-tuning}
-
-To do distributional fine-tuning two methods were used. Firstly was SFT with the expected text response being a random sample from the distribution of responses in the survey data for that sub population. Secondly was using a loss function that is based on the difference between the model's response distribution and the survey data response distribution. This loss function is based on cross-entropy
-
-Description of the fine-tuning process and the loss function used.
+The modal response fine tuning is conducted as a baseline as it is a straight forward application of SFT. The rest of the methods are various ways of trying to have the model learn the distribution of responses in the survey data. However in an implementation sense there are three methods (SFT, full option string distributional fine-tuning and single token distributional fine-tuning).
 
 
+\subsection{SFT fine-tuning: Modal & Sampled response}
 
+To do modal fine-tuning the model is trained used SFT with the expected text response being the full option string of a response. For modal fine-tuning the expected text response is the most common response in the survey data for that sub population. For sampled response fine-tuning the expected text response is a randomly sampled response from the survey data for that sub population.
+
+\cite{ouyangTrainingLanguageModels2022} shows SFT used before RLHF
+
+\cite{zhouLIMALessMore2023} shows that SFT is good enough.
+
+
+
+\subsection{LLM models}
+
+Definitions:
+$V$ is the vocabulary size, The model parameters are $\theta$. The model is a function $f_\theta$ that maps a prompt and a completion prefix to logits over the vocabulary. 
+
+Let a training example consist of a prompt (system + user) tokenised as
+$x = (x_1, \dots, x_P)$ and a completion (assistant answer) tokenised as
+$y = (y_1, \dots, y_T)$, with $T$ the completion length.
+
+The model is
+autoregressive, so the probability of the completion factorises over tokens:
+
+\begin{equation}
+  p_\theta(y \mid x) = \prod_{t=1}^{T} p_\theta\left(y_t \mid x, y_{<t}\right),
+  \qquad y_{<t} = (y_1, \dots, y_{t-1}).
+\end{equation}
+The probability of the next token is given by a softmax over the logits:
+\begin{equation}
+  p_\theta\left(y_t \mid x, y_{<t}\right)
+  = \frac{\exp f_\theta(x, y_{<t})_{y_t}}{\sum_{v=1}^{V} \exp f_\theta(x, y_{<t})_v}.
+\end{equation}
+
+\subsection{Supervised fine tuning loss function}
+
+SFT fits the model by \emph{maximum likelihood} on the demonstration data:
+maximising $\log p_\theta(y \mid x)$ is equivalent to minimising the
+negative log-likelihood (NLL),
+\begin{equation}
+  \mathcal{L}_{\mathrm{SFT}}(\theta; x, y)
+  = -\log p_\theta(y \mid x)
+  = -\!\sum_{t=1}^{T} \log p_\theta\!\left(y_t \mid x, y_{<t}\right),
+  \label{eq:nll}
+\end{equation}
+and the objective over the dataset $\mathcal{D}$ is
+$\theta^\star = \arg\min_\theta \sum_{(x,y)\in\mathcal{D}} \mathcal{L}_{\mathrm{SFT}}(\theta; x, y)$.
+
+Each per-token term in \eqref{eq:nll} is a categorical cross-entropy: with
+$z_t = f_\theta(x, y_{<t}) \in \mathbb{R}^V$ the logits over the vocabulary
+of size $V$,
+\begin{equation}
+  -\log p_\theta\!\left(y_t \mid x, y_{<t}\right)
+  = -z_{t, y_t} + \log\!\sum_{v=1}^{V} \exp(z_{t, v}).
+  \label{eq:ce}
+\end{equation}
+
+\subsection{Distributional loss functions}
+
+Rather than modelling a single completion $y$ instead we can model distributions over the $K$ possible completions of a prompt\footnote{This is possible as the task is a classification task with a finite number of possible completions.}. Therefore the objective is to minimise the difference between the models predicted distribution $p$ and the expected distribution $q$.
+
+
+\begin{equation}
+    \mathcal{L}_{\mathrm{distributional}}(\theta; x, y) = - \sum_{i=1}^{K} q_i * \log\tilde{p}_\theta(y_i \mid x)
+    \label{eq:distributional}
+\end{equation}
+where $\tilde{p}_i$ is the softmax  over the K completions of the options log-probs.
+
+\begin{equation}
+    \tilde{p}_\theta(y_i \mid x) = \frac{\exp(\log p_\theta(y_i \mid x))}{\sum_{j=1}^{K} \exp(\log p_\theta(y_j \mid x))}
+\end{equation}
+
+There are two waysin which we use this loss function. The first is that $y$ is a full string of the response and the second is that $y$ is a single token representing the response.
+
+We can see that the distributional loss function is a generalisation of the SFT loss function. If we have a single expected response that is one-hot encoded the distributional loss function reduces to the SFT loss function \eqref{eq:nll} with an constant offset of $\log \sum_{j=1}^{K} \exp(\log p_\theta(y_j \mid x))$.
+
+
+\subsubsection{Full option string distributional fine-tuning}
+
+When $T>1$ to get the $p_\theta(y_i \mid x)$ for each of the $K$ completion each example per batch is expanded to $K$ examples with the same prompt and each of the $K$ completions. The loss function is then calculated as in \eqref{eq:distributional}.
+
+
+\subsubsection{Single token distributional fine-tuning}
+
+Rather than using the full option string we can instead augment the training data to make the expected response a single token (e.g. A, B, C, D, E) representing the response. The model is then trained to predict the distribution of responses over the single token representation of the responses.
+
+This is the simpler of the two and used in other research \cite{fornaciariBlackWhiteLeveraging2021,caoSpecializingLargeLanguage2025}\dots

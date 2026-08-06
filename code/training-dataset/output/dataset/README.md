@@ -141,14 +141,33 @@ Each row contains:
 
 ## Modelling config descriptions
 
-The four configs differ on two axes — the **target** (one answer vs the full distribution) and the **scoring surface** (full option string vs first token):
+The configs vary along two dimensions:
 
-| Config | Target | Scored on |
+1. **Target response** — what the model is trained to reproduce:
+   - `modal`: one-hot on the most common response (accuracy-oriented SFT)
+   - `sampled`: one-hot on a random draw from the response distribution (Monte Carlo)
+   - `full distribution`: the exact empirical distribution q over all K options (soft labels)
+2. **Scoring surface** — what the loss scores:
+   - `full string`: the complete option-string completion (`category ⊕ <|im_end|>`)
+   - `first token`: a single token — options are letter-labelled (`A.`, `B.`, ...) and
+     the system prompts ask for the letter, so the answer is one token
+
+The target axis is fully crossed on the full-string surface (3 configs); the
+first-token surface carries only the exact-q variant:
+
+| Config | Target response | Scored on |
 |---|---|---|
 | `modal_response` | one-hot mode | full option string |
 | `sampled_response` | one draw from q (Monte Carlo) | full option string |
 | `full_string_distribution` | exact q | full option string (K expansions per example) |
 | `first_token_distribution` | exact q | first token only (1 forward pass) |
+
+This is 4 configs rather than a 2×3 grid of 6 because the two axes are not
+fully orthogonal: the first-token surface also changes the prompt format
+(lettered options, `*_letter` system prompts), so modal/sampled first-token
+variants would be degenerate baselines (one-hot targets that cannot match a
+distribution — already demonstrated on the full-string surface) trained on
+confounded prompts.
 
 Notes:
 - `sampled_response` is a Monte Carlo baseline for `full_string_distribution`:
@@ -176,8 +195,13 @@ The `full_string_distribution` config is a distributional dataset: each row cont
 
 ### first_token_distribution
 
-This is another distributional dataset, but the model is trained to predict the probability of the first token of the answer string. To make this possible each of the optpoins are prefixed with a single letter (`A. Very important`, `B. Rather important`, ...) — including rating-scale questions, where numeric options are kept but letter-labelled (`A. 1`, `B. 2`, ..., `J. 10`). Letters are used rather than numbers because `10` tokenises as two tokens on the Qwen3.6 tokenizer, while letters are always single tokens. `answer_tokens` gives the expected answer string per category, ready to map
-  to token ids at training time.
+This is another distributional dataset, but the model is trained to predict the probability of the first token of the answer string. To make this possible each of the options are prefixed with a single letter (`A. Very important`, `B. Rather important`, ...) — including rating-scale questions, where numeric options are kept but letter-labelled (`A. 1`, `B. 2`, ..., `J. 10`). Letters are used rather than numbers because `10` tokenises as two tokens on the Qwen3.6 tokenizer, while letters are always single tokens.
+
+The expected answer is the **bare letter**, not the label: for the options
+`A. Very important`, `B. Rather important`, ..., the expected answer for
+option 1 is `A` — no period (the label `A.` would tokenise as two tokens).
+`answer_tokens` gives this expected answer string per category, aligned with
+`categories`, ready to map to token ids at training time.
 
 ## System Prompts
 
