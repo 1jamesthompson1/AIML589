@@ -1,0 +1,18 @@
+{
+  "target": "Qwen3.5-9B-nz-wvs-modal_response-cluster_0",
+  "dataset": "modal_response",
+  "split": "validation",
+  "run_name": "modal_response-validation-20260806_101644",
+  "timestamp": "2026-08-06T10:16:49.338392",
+  "output_dir": "/home/james/code/AIML589/code/fine-tuning/output/evals/Qwen3.5-9B-nz-wvs-modal_response-cluster_0/modal_response-validation-20260806_101644",
+  "api_url": "http://localhost:8087",
+  "api_key": "EMPTY",
+  "max_tokens": 1000,
+  "top_logprobs": 20,
+  "num_test_examples": null,
+  "no_plots": true,
+  "reasoning": false,
+  "dataset_sha": "38f42265e06d60afd0a5d2d45808202e60e95103",
+  "model_sha": "673d9323b405acc07638de1038aa9f7b04cc5fd7",
+  "elapsed_seconds": 10550
+}
