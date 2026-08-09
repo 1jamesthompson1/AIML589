@@ -33,11 +33,6 @@ configs:
       - modal_response/validation/cluster_0.parquet
       - modal_response/validation/cluster_1.parquet
       - modal_response/validation/overall.parquet
-  - split: test
-    path:
-      - modal_response/test/cluster_0.parquet
-      - modal_response/test/cluster_1.parquet
-      - modal_response/test/overall.parquet
 - config_name: sampled_response
   data_files:
   - split: train
@@ -50,11 +45,6 @@ configs:
       - sampled_response/validation/cluster_0.parquet
       - sampled_response/validation/cluster_1.parquet
       - sampled_response/validation/overall.parquet
-  - split: test
-    path:
-      - sampled_response/test/cluster_0.parquet
-      - sampled_response/test/cluster_1.parquet
-      - sampled_response/test/overall.parquet
 - config_name: full_string_distribution
   data_files:
   - split: train
@@ -67,11 +57,6 @@ configs:
       - full_string_distribution/validation/cluster_0.parquet
       - full_string_distribution/validation/cluster_1.parquet
       - full_string_distribution/validation/overall.parquet
-  - split: test
-    path:
-      - full_string_distribution/test/cluster_0.parquet
-      - full_string_distribution/test/cluster_1.parquet
-      - full_string_distribution/test/overall.parquet
 - config_name: first_token_distribution
   data_files:
   - split: train
@@ -84,11 +69,6 @@ configs:
       - first_token_distribution/validation/cluster_0.parquet
       - first_token_distribution/validation/cluster_1.parquet
       - first_token_distribution/validation/overall.parquet
-  - split: test
-    path:
-      - first_token_distribution/test/cluster_0.parquet
-      - first_token_distribution/test/cluster_1.parquet
-      - first_token_distribution/test/overall.parquet
 ---
 
 > **⚠️ WORK IN PROGRESS** — This dataset is a skeleton / early-stage prototype.
@@ -106,20 +86,20 @@ Built as part of this [research project](https://github.com/1jamesthompson1/AIML
 
 ## Dataset Structure
 
-Four modeling configs, each with train/validation/test splits and three
+Four modeling configs, each with train/validation splits and three
 subpopulations:
 
-| Config | Description | Train rows | Val rows | Test rows |
-|--------|-------------|-----------|----------|----------|
-| `modal_response` | Single modal response (SFT) | 3,618 | 450 | 450 |
-| `sampled_response` | Single sampled response (SFT) | 3,618 | 450 | 450 |
-| `full_string_distribution` | Full distribution; loss scores full option-string completions | 3,618 | 450 | 450 |
-| `first_token_distribution` | Full distribution; options letter-labelled, answer is a single token | 3,618 | 450 | 450 |
+| Config | Description | Train rows | Val rows |
+|--------|-------------|-----------|----------|
+| `modal_response` | Single modal response (SFT) | 3,690 | 828 |
+| `sampled_response` | Single sampled response (SFT) | 3,690 | 828 |
+| `full_string_distribution` | Full distribution; loss scores full option-string completions | 3,690 | 828 |
+| `first_token_distribution` | Full distribution; options letter-labelled, answer is a single token | 3,690 | 828 |
 
 All configs share the same 251 question items (after filtering demographics),
 each replicated across 3 subpopulations × 6 system prompts = 4,518 rows per
-config. An 80/10/10 random split of 251 items (201 train / 25 validation /
-25 test) gives 3,618 / 450 / 450 rows.
+config. The validation split holds out 5 questions (one per redundancy
+cluster/battery) plus one system prompt; everything else is training.
 
 
 Each row contains:
@@ -221,13 +201,24 @@ option 1 is `A` — no period (the label `A.` would tokenise as two tokens).
 - `cluster_1`: Value subgroup 1 (534 respondents, 50.6%)
 - `overall`: All respondents combined (1,057 respondents)
 
-## Train/Validation/Test Split
+## Train/Validation Split
 
-An 80/10/10 random split of (question_id, column_name) pairs is used. Splitting
-by item — not by row — guarantees a question never appears in more than one
-split, so evaluation measures generalisation to unseen questions. The same
-items are held out across all configs and subpopulations to ensure consistent
-evaluation.
+The validation split is deliberately **out of distribution** and serves two
+sanity checks:
+
+1. **Held-out questions** — 5 questions, one per redundancy cluster and
+   battery, whose responses are most predictable from the *other* questions
+   (max cross-battery Cramer's V). The model has the value-relevant
+   information to answer them but never sees the exact question text, so
+   reproducing their empirical distributions shows it learned values rather
+   than memorised question→answer pairs.
+2. **Held-out system prompt** — the prompt least similar to the other five
+   (mean token-Jaccard), never used in training, so any behaviour difference
+   under it measures genuine prompt sensitivity.
+
+There is no test split: everything not held out goes to training.
+
+
 
 ## Pipeline
 

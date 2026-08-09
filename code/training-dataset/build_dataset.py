@@ -1,6 +1,6 @@
 import marimo
 
-__generated_with = "0.23.14"
+__generated_with = "0.23.16"
 app = marimo.App(width="medium")
 
 
@@ -37,83 +37,229 @@ def _():
     import pandas as pd
     import random
     import numpy as np
+    import shutil
     from pathlib import Path
 
-    return Path, json, mo, np, pd, random
+    return Path, json, mo, np, pd, random, shutil
 
 
 @app.cell(hide_code=True)
 def _(mo):
     mo.md("""
-    ## Train/Validation/Test Split
+    ## Train/Validation Split
 
-    A random 80/10/10 split of items (question_id × column_name) is held out
-    for validation and testing. Splitting by item — not by row — guarantees a
-    question never appears in more than one split, so evaluation measures
-    generalisation to unseen questions (as in Cao et al. 2025). The split keys
-    are computed once and reused across all four modeling approaches and all
-    subpopulations, ensuring consistent partitions.
+    The validation set is deliberately **out of distribution** and serves two
+    sanity checks:
 
-    The split adds `expected_distribution`-labelled rows to train, validation
-    and test splits of every config.
+    1. **Held-out questions** — 5 questions, one per redundancy cluster and
+       battery, whose responses are most predictable from the *other*
+       questions (max cross-battery Cramer's V). The model has the
+       value-relevant information to answer them but never sees the exact
+       question text, so reproducing their empirical distributions shows it
+       learned values rather than memorised question→answer pairs.
+    2. **Held-out system prompt** — the prompt least similar to the other
+       five (mean token-Jaccard), never used in training, so any behaviour
+       difference under it measures genuine prompt sensitivity.
+
+    There is no test split: everything not held out goes to training.
+    Splits are keyed by item (question_id × column_name) and reused across
+    all four modeling approaches and all subpopulations, ensuring consistent
+    partitions.
     """)
     return
 
 
 @app.cell
-def _(items, random):
-    random.seed(42)
+def _(items, np, pd, random, respondents_with_clusters, system_prompts):
+    """Select the held-out questions + system prompt, then build the splits.
 
-    all_item_keys = sorted({(item["id"], item["column_name"]) for item in items})
-    n_items = len(all_item_keys)
-    n_val = max(1, n_items * 10 // 100)
-    n_test = max(1, n_items * 10 // 100)
-    n_train = n_items - n_val - n_test
-    shuffled = random.sample(all_item_keys, n_items)
-    train_keys = set(shuffled[:n_train])
-    val_keys = set(shuffled[n_train : n_train + n_val])
-    test_keys = set(shuffled[n_train + n_val :])
+    All intermediate computation lives inside functions so the global
+    namespace only receives the final artifacts:
 
-    print(
-        f"Train items: {len(train_keys)}, Validation items: {len(val_keys)}, "
-        f"Test items: {len(test_keys)} "
-        f"({n_val / n_items * 100:.1f}% val, {n_test / n_items * 100:.1f}% test)"
+    - ``held_out_questions`` — DataFrame of the 5 picked questions
+    - ``held_out_prompt`` — name of the held-out system prompt
+    - ``train_keys / val_keys`` — item keys per split
+    - ``split_rows`` — assigns any config's rows to train/validation
+    """
+
+    import re as _re
+    from itertools import combinations
+    from scipy.stats import chi2_contingency
+
+    def select_held_out(items, respondents_with_clusters, system_prompts):
+        """Pick 5 questions (most redundant, one per battery/cluster) and
+        the least-similar system prompt. Returns (questions_df, prompt)."""
+        value_cols = [it["column_name"] for it in items]
+        survey = respondents_with_clusters[value_cols].replace(-5.0, np.nan)
+
+        def cramers_v(c1, c2):
+            pair = survey[[c1, c2]].dropna()
+            if len(pair) < 50:
+                return float("nan")
+            ct = pd.crosstab(pair[c1], pair[c2])
+            if min(ct.shape) < 2:
+                return float("nan")
+            chi2, *_ = chi2_contingency(ct)
+            n = ct.values.sum()
+            return float(np.sqrt(chi2 / (n * (min(ct.shape) - 1))))
+
+        scores = {}
+        all_pairs = list(combinations(value_cols, 2))
+        for i, (c1, c2) in enumerate(all_pairs):
+            if i % 5000 == 0:
+                print(f"  [redundancy] {i}/{len(all_pairs)} pairs...")
+            scores[(c1, c2)] = cramers_v(c1, c2)
+
+        col2battery = {it["column_name"]: it["id"] for it in items}
+        col2sub = {it["column_name"]: it["sub_question"] for it in items}
+        col2q = {it["column_name"]: it["question"] for it in items}
+
+        # Per-question redundancy: max V against a question from another
+        # battery (same-battery pairs are trivially related).
+        rows = []
+        for c in value_cols:
+            rel = [(o, v) for (a, o), v in scores.items() if a == c] + [
+                (a, v) for (a, o), v in scores.items() if o == c
+            ]
+            cross = [(o, v) for o, v in rel if col2battery[c] != col2battery[o]]
+            if not cross:
+                continue
+            rows.append(
+                {
+                    "column": c,
+                    "sub_question": col2sub.get(c),
+                    "battery_id": col2battery[c],
+                    "question": col2q.get(c),
+                    "max_cross_v": round(max(v for _, v in cross), 3),
+                    "top_partner": max(cross, key=lambda x: x[1])[0],
+                }
+            )
+        redundancy = pd.DataFrame(rows).sort_values("max_cross_v", ascending=False)
+
+        # Redundancy clusters via union-find: questions linked when strongly
+        # associated cross-battery (V > 0.5) measure the same value dimension.
+        def parent(x, _p):
+            while _p[x] != x:
+                _p[x] = _p[_p[x]]
+                x = _p[x]
+            return x
+
+        parent_map = {c: c for c in value_cols}
+        for (c1, c2), v in scores.items():
+            if v > 0.5 and col2battery[c1] != col2battery[c2]:
+                r1, r2 = parent(c1, parent_map), parent(c2, parent_map)
+                if r1 != r2:
+                    parent_map[r1] = r2
+
+        # One pick per battery AND per redundancy cluster, up to 5 — spans
+        # distinct value dimensions.
+        picked, seen_batts, seen_comps = [], set(), set()
+        for r in redundancy.itertuples():
+            comp_root = parent(r.column, parent_map)
+            if r.battery_id in seen_batts or comp_root in seen_comps:
+                continue
+            picked.append(r)
+            seen_batts.add(r.battery_id)
+            seen_comps.add(comp_root)
+            if len(picked) >= 5:
+                break
+        held_out_questions = pd.DataFrame(picked)
+
+        # Top cross-battery partners per question (for display: which
+        # *training* questions are most similar to each held-out one).
+        partner_rows = []
+        for c in value_cols:
+            rel = [(o, v) for (a, o), v in scores.items() if a == c] + [
+                (a, v) for (a, o), v in scores.items() if o == c
+            ]
+            cross = sorted(
+                [(o, v) for o, v in rel if col2battery[c] != col2battery[o]],
+                key=lambda x: -x[1],
+            )[:3]
+            for o, v in cross:
+                partner_rows.append(
+                    {
+                        "column": c,
+                        "similar_to": o,
+                        "similar_sub": col2sub.get(o),
+                        "similar_question": col2q.get(o),
+                        "similar_battery": col2battery[o],
+                        "v": round(v, 3),
+                    }
+                )
+        top_partners = pd.DataFrame(partner_rows)
+
+        # System-prompt distinctness: mean token-Jaccard vs the others.
+        def tokens(s):
+            return set(_re.findall(r"[a-z]+", s.lower()))
+
+        prompt_names = list(system_prompts.keys())
+        sim = pd.DataFrame(index=prompt_names, columns=prompt_names, dtype=float)
+        for a in prompt_names:
+            for b in prompt_names:
+                ta, tb = tokens(system_prompts[a]), tokens(system_prompts[b])
+                sim.loc[a, b] = len(ta & tb) / max(len(ta | tb), 1)
+        held_out_prompt = sim.mean(axis=1).idxmin()
+
+        return held_out_questions, held_out_prompt, redundancy, sim, top_partners
+
+    def make_splits(items, held_out_questions):
+        """Item keys per split.
+
+        Validation = held-out questions (any prompt) + every item under the
+        held-out prompt. Train = everything else (no test split).
+        """
+        all_item_keys = sorted({(item["id"], item["column_name"]) for item in items})
+        held_out_keys = set(
+            (int(row.battery_id), row.column) for row in held_out_questions.itertuples()
+        )
+        train_keys = set(all_item_keys) - held_out_keys
+        return held_out_keys, train_keys
+
+    held_out_questions, held_out_prompt, redundancy, prompt_sim, top_partners = (
+        select_held_out(items, respondents_with_clusters, system_prompts)
     )
-    return train_keys, val_keys, test_keys
+    val_keys, train_keys = make_splits(items, held_out_questions)
 
-
-@app.cell
-def _(items, train_keys, val_keys, test_keys):
     def split_rows(rows):
-        train_rows = []
-        val_rows = []
-        test_rows = []
+        train_rows, val_rows = [], []
         for r in rows:
             key = (r["question_id"], r["column_name"])
-            if key in train_keys:
-                train_rows.append(r)
-            elif key in val_keys:
+            if key in val_keys or r.get("system_prompt_id") == held_out_prompt:
                 val_rows.append(r)
             else:
-                test_rows.append(r)
-        return train_rows, val_rows, test_rows
+                train_rows.append(r)
+        return train_rows, val_rows
 
-    # Verify consistency across all items
-    all_train = 0
-    all_val = 0
-    all_test = 0
-    for _item in items:
-        _key = (_item["id"], _item["column_name"])
-        if _key in train_keys:
-            all_train += 1
-        elif _key in val_keys:
-            all_val += 1
-        elif _key in test_keys:
-            all_test += 1
+    def print_held_out_similarity(held_out_questions, top_partners):
+        """Show, for each held-out question, the training questions most
+        similar to it (cross-battery Cramer's V, top 3, kept in train)."""
+        held_cols = set(held_out_questions["column"])
+        for r in held_out_questions.itertuples():
+            print("\n" + "=" * 70)
+            print(f"HELD OUT: {r.column} — {r.sub_question}")
+            print(f"  Q: {r.question}")
+            print(f"  (max cross-battery V={r.max_cross_v})")
+            print("-" * 70)
+            print("  Most similar TRAINING questions:")
+            sims = top_partners[
+                (top_partners["column"] == r.column)
+                & (~top_partners["similar_to"].isin(held_cols))
+            ]
+            for s in sims.itertuples():
+                print(f"\n    ~ {s.similar_to} — {s.similar_sub}  (V={s.v})")
+                print(f"      Q: {s.similar_question}")
+
+    print(f"Validation items (held out): {len(val_keys)}  (one per battery/cluster)")
     print(
-        f"Split covers {all_train + all_val + all_test}/{len(items)} item expansions "
-        f"(train={all_train}, val={all_val}, test={all_test})"
+        held_out_questions[["column", "sub_question", "max_cross_v"]].to_string(
+            index=False
+        )
     )
+    print(f"Held-out system prompt: {held_out_prompt}")
+    print(f"Train items: {len(train_keys)}, Validation items: {len(val_keys)}")
+    print("\nMost similar training questions per held-out question:")
+    print_held_out_similarity(held_out_questions, top_partners)
     return (split_rows,)
 
 
@@ -665,15 +811,15 @@ def _(mo):
     The same data is organized under `output/dataset/` as a Hugging Face
     `datasets` repository. Each modeling approach (modal_response,
     sampled_response, full_string_distribution, first_token_distribution) is a
-    **config** with `train`, `validation` and `test` splits. Each split
-    references the per-subpopulation files.
+    **config** with `train` and `validation` splits. Each split references the
+    per-subpopulation files.
 
     **Repository structure:**
     ```
     output/dataset/
       README.md
       modal_response/
-        {train,validation,test}/
+        {train,validation}/
           cluster_0.parquet
           cluster_1.parquet
           overall.parquet
@@ -693,6 +839,7 @@ def _(
     output_dir,
     pd,
     sample_sets,
+    shutil,
     split_rows,
 ):
     _dataset_dir = output_dir / "dataset"
@@ -704,16 +851,27 @@ def _(
         "first_token_distribution": ft_dist_sets,
     }
     _subpops = ["cluster_0", "cluster_1", "overall"]
-    _splits = ["train", "validation", "test"]
+    _splits = ["train", "validation"]
 
     for _config_name, _sets in _variants.items():
+        _config_dir = _dataset_dir / _config_name
+
+        # Remove stale split directories (e.g. the old test split) so the
+        # exported dataset only ever contains the current splits.
+        for _existing in _config_dir.iterdir():
+            if _existing.is_dir() and _existing.name not in _splits:
+                shutil.rmtree(_existing)
+                print(
+                    f"  removed stale split dir: {_existing.relative_to(_dataset_dir)}"
+                )
+
         for _subpop in _subpops:
             _all_rows = _sets[_subpop]
             for _r in _all_rows:
                 _r["subpopulation"] = _subpop
-            _train_rows, _val_rows, _test_rows = split_rows(_all_rows)
+            _train_rows, _val_rows = split_rows(_all_rows)
 
-            for _split, _rows in zip(_splits, [_train_rows, _val_rows, _test_rows]):
+            for _split, _rows in zip(_splits, [_train_rows, _val_rows]):
                 _df = pd.DataFrame(_rows)
                 _path = _dataset_dir / _config_name / _split / f"{_subpop}.parquet"
                 _path.parent.mkdir(parents=True, exist_ok=True)
