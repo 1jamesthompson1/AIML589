@@ -4,15 +4,22 @@
 # dependencies = []
 # ///
 """
-Batch-run all missing evaluations for models served on a vLLM server.
+Batch-run missing evaluations for models served on a vLLM server.
 
 Queries the server for available models, checks which evaluation runs
-(model × dataset × reasoning) are already complete in
-output/evals/, and runs the missing ones in parallel.
+(model × dataset) are already complete in output/evals/, and runs the
+missing ones in parallel. Each evaluation is ONE inference pass over the
+TRAIN + VALIDATION splits of the dataset config (all subpopulations
+together, rows tagged with their split).
+
+  --datasets   eval dataset configs (default: modal_response,
+               sampled_response, first_token_distribution)
 
 Usage:
     uv run code/fine-tuning/batch_eval.py --port 8000
     uv run code/fine-tuning/batch_eval.py --port 8000 --model Qwen/Qwen3.6-27B
+    uv run code/fine-tuning/batch_eval.py --port 8000 \
+        --datasets modal_response,sampled_response
     uv run code/fine-tuning/batch_eval.py --api-url http://localhost:8000 --concurrency 3
     uv run code/fine-tuning/batch_eval.py --port 8000 --dry-run
 """
@@ -28,20 +35,23 @@ import urllib.request
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
-DATASETS = ["modal_response", "sampled_response"]
-# Each eval run covers all subpopulations (cluster_0, cluster_1, overall)
-# in a single pass — the per_question_results.csv includes a subpopulation
-# column for downstream filtering.
-REASONING_MODES = [False, True]
+DATASETS = ["modal_response", "sampled_response", "first_token_distribution"]
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 EVALS_DIR = SCRIPT_DIR / "output" / "evals"
 
-# Observed per-eval durations on RTX 6000 Pro Blackwell (Qwen3.6-27B):
-#   no_reasoning: ~30s  (mainly prompt processing + API round-trip)
-#   reasoning:    ~30m = 1800s  (long CoT generation)
-TIME_NO_REASONING = 30
-TIME_REASONING = 1800
+# Observed per-eval durations on RTX 6000 Pro Blackwell (Qwen3.6-27B), for a
+# full train+validation pass (~2050 examples, no reasoning):
+#   27B:  ~40-60 min
+#   9B:   ~20-35 min
+TIME_NO_REASONING = 3600
+
+
+def parse_list_arg(raw: str | None, default: list) -> list:
+    """Parse a comma-separated CLI list, falling back to ``default``."""
+    if not raw:
+        return list(default)
+    return [item.strip() for item in raw.split(",") if item.strip()]
 
 
 def parse_args(argv=None):
@@ -53,6 +63,18 @@ def parse_args(argv=None):
     p.add_argument("--api-url", default=None, help="Full API URL (overrides --port)")
     p.add_argument("--api-key", default="EMPTY", help="API key for the vLLM server")
     p.add_argument("--model", default=None, help="Only evaluate this specific model")
+    p.add_argument(
+        "--datasets",
+        default=None,
+        help=f"Comma-separated eval dataset configs (default: {','.join(DATASETS)})",
+    )
+    p.add_argument(
+        "--subpopulation",
+        default=None,
+        choices=["cluster_0", "cluster_1", "overall"],
+        help="Only evaluate this subpopulation (default: all subpopulations "
+        "in a single pass). Forwarded to evaluate.py.",
+    )
     p.add_argument(
         "--concurrency",
         type=int,
@@ -121,8 +143,14 @@ def model_short_name(model: str) -> str:
     return model.split("/", 1)[-1]
 
 
-def existing_completed_runs(model_short: str) -> set[tuple[str, bool]]:
-    """Return set of (dataset, reasoning) tuples for runs that cover all subpops."""
+def existing_completed_runs(model_short: str) -> set[tuple]:
+    """Return set of (dataset, subpopulation-or-None) tuples with completed runs.
+
+    ``subpopulation=None`` means a full-set pass over both train and
+    validation splits with all subpopulations. A run only counts as complete
+    if it covered BOTH splits: runs with reasoning enabled or an old
+    validation-only pass don't stop new evals from running.
+    """
     completed = set()
     model_dir = EVALS_DIR / model_short
     if not model_dir.exists():
@@ -140,10 +168,15 @@ def existing_completed_runs(model_short: str) -> set[tuple[str, bool]]:
             config = json.loads(config_path.read_text())
         except Exception:
             continue
+        if config.get("reasoning"):
+            continue  # reasoning run — not the standard single-pass eval
+        splits = config.get("splits") or []
+        if not {"train", "validation"}.issubset(splits):
+            continue  # must cover both splits
         completed.add(
             (
                 config.get("dataset"),
-                config.get("reasoning"),
+                config.get("subpopulation"),  # None = all-subpop pass
             )
         )
     return completed
@@ -158,12 +191,6 @@ def _fmt_duration(seconds: int) -> str:
     elif minutes > 0:
         return f"{minutes}m {secs}s"
     return f"{secs}s"
-
-
-def _parallel_estimate(n_reasoning: int, n_no_reasoning: int, concurrency: int) -> int:
-    reasoning_batches = (n_reasoning + concurrency - 1) // concurrency
-    no_reasoning_batches = (n_no_reasoning + concurrency - 1) // concurrency
-    return reasoning_batches * TIME_REASONING + no_reasoning_batches * TIME_NO_REASONING
 
 
 def main():
@@ -208,15 +235,16 @@ def main():
         print(f"[error] evaluate.py not found at {evaluate_script}")
         sys.exit(1)
 
+    datasets = parse_list_arg(args.datasets, DATASETS)
+
     jobs = []
     for model in model_ids:
         short = model_short_name(model)
         completed = existing_completed_runs(short)
-        for ds in DATASETS:
-            for reasoning in REASONING_MODES:
-                if (ds, reasoning) in completed:
-                    continue
-                jobs.append((model, ds, reasoning))
+        for ds in datasets:
+            if (ds, args.subpopulation) in completed:
+                continue
+            jobs.append((model, ds))
 
     if not jobs:
         print("\n[batch] all evaluations complete — nothing to run.")
@@ -228,23 +256,21 @@ def main():
 
     for model in model_ids:
         short = model_short_name(model)
-        model_jobs = [(ds, r) for (m, ds, r) in jobs if m == model]
-        n_reasoning = sum(1 for _, r in model_jobs if r)
-        n_no_reasoning = len(model_jobs) - n_reasoning
-        total_s = n_reasoning * TIME_REASONING + n_no_reasoning * TIME_NO_REASONING
+        model_jobs = [j for j in jobs if j[0] == model]
+        total_s = len(model_jobs) * TIME_NO_REASONING
         print(f"  {short}")
         print(
-            f"    missing: {n_reasoning} reasoning + {n_no_reasoning} no_reasoning = {len(model_jobs)} total"
+            f"    missing: {len(model_jobs)} full-set eval(s)"
+            f"  est. sequential time: {_fmt_duration(total_s)}"
         )
-        print(f"    est. sequential time: {_fmt_duration(total_s)}")
         print()
 
-    total_reasoning = sum(1 for _, _, r in jobs if r)
-    total_no_reasoning = len(jobs) - total_reasoning
-
     print(
-        f"  Totals: {total_reasoning} reasoning + {total_no_reasoning} no_reasoning = {len(jobs)} jobs"
+        f"  Totals: {len(jobs)} full-set eval(s) "
+        "(one pass over the whole train + validation split each)"
     )
+    if args.subpopulation:
+        print(f"  Subpopulation filter: {args.subpopulation}")
     print()
 
     # Server capacity section
@@ -252,8 +278,7 @@ def main():
         optimal = min(8, int(kv_conc))
         print(f"  Server KV cache capacity: {kv_conc:.1f} concurrent sequences")
         print(f"  Recommended --concurrency: {optimal}")
-        print("    (higher concurrency risks queueing on KV cache)")
-        print("    (non-reasoning jobs are ~30s so they squeeze through easily)")
+        print("    (each eval is one long pass over ~2000 examples)")
         if has_loras:
             print(f"  LoRA adapters: {len(srv.get('lora_adapters', []))}")
             print("    Requests to different LoRA adapters cannot be batched together")
@@ -261,7 +286,7 @@ def main():
                 "    by vLLM, so concurrency benefits only apply within each adapter."
             )
             for a in srv.get("lora_adapters", []):
-                n = sum(1 for m, _, _ in jobs if m == a)
+                n = sum(1 for m, *_ in jobs if m == a)
                 print(f"      {a}: {n} job(s)")
     else:
         optimal = 2
@@ -272,7 +297,7 @@ def main():
     for c in [1, 2, optimal, optimal + 2]:
         if c < 1:
             continue
-        est = _fmt_duration(_parallel_estimate(total_reasoning, total_no_reasoning, c))
+        est = _fmt_duration(len(jobs) * TIME_NO_REASONING / c)
         marker = " ← recommended" if c == optimal else ""
         print(f"    --concurrency {c}: ~{est}{marker}")
     print()
@@ -284,7 +309,7 @@ def main():
     t0 = time.monotonic()
     print(f"\n[batch] running with concurrency={concurrency}...\n")
 
-    def run_eval(model, ds, reasoning):
+    def run_eval(model, ds):
         cmd = [
             "uv",
             "run",
@@ -299,14 +324,17 @@ def main():
             ds,
             "--no-plots",
         ]
-        if reasoning:
-            cmd.append("--reasoning")
+        if args.subpopulation:
+            cmd += ["--subpopulation", args.subpopulation]
         if args.hf_token:
             cmd += ["--hf-token", args.hf_token]
 
-        label = f"{model_short_name(model)}  {ds}  {'reasoning' if reasoning else 'no_reasoning'}"
+        label = f"{model_short_name(model)}  {ds}"
+        if args.subpopulation:
+            label += f"  subpop={args.subpopulation}"
         print(f"  [start] {label}", flush=True)
 
+        job_t0 = time.monotonic()
         proc = subprocess.Popen(
             cmd,
             stdout=subprocess.PIPE,
@@ -337,19 +365,25 @@ def main():
         stderr_text = proc.stderr.read()
         proc.stderr.close()
         ret = proc.returncode
+        job_elapsed = _fmt_duration(time.monotonic() - job_t0)
 
         if ret != 0:
-            print(f"  [FAIL]  {label}")
+            print(f"  [FAIL]  {label}  (elapsed {job_elapsed})")
             for line in stderr_text.strip().splitlines():
                 print(f"           {line}")
         else:
-            print(f"  [done]  {label}")
+            print(f"  [done]  {label}  (elapsed {job_elapsed})")
         return ret
 
     with ThreadPoolExecutor(max_workers=concurrency) as pool:
         futures = {pool.submit(run_eval, *j): j for j in jobs}
+        done_count = 0
         for future in as_completed(futures):
             future.result()
+            done_count += 1
+            print(
+                f"[batch] progress: {done_count}/{len(futures)} jobs done", flush=True
+            )
 
     failed = sum(1 for f in futures if f.exception() is not None or f.result() != 0)
     elapsed = time.monotonic() - t0

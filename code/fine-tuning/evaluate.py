@@ -11,28 +11,35 @@
 # ]
 # ///
 """
-Evaluate a served model on the WVS-NZ test set.
+Evaluate a served model on the WVS-NZ dataset.
 
-Connects to a running vLLM server (OpenAI-compatible API), runs the
-test split of the dataset, and reports:
+The goal of the evaluate is to answer a few questions
+- How well it is responding like the population it was trained on
+  - the accuracy of the model across the three different dataset configs (modal_response, sampled_response, first_token_distribution)
+  - the kl-divergence between the model's predicted distribution and the true distrubtion for the full text (i.e modal response) and first token dataset configs
+- The robustness of the model by seeing how well it does in the validation set
 
-  1. Per-question results (model answer, expected answer, distributions, etc.)
-  2. Summary metrics (cross-entropy, KL-divergence, accuracy, etc.)
-  3. Optional per-question distribution comparison plots
+Connects to a running vLLM server (OpenAI-compatible API) and runs ONE
+inference pass over the TRAIN + VALIDATION splits of the chosen dataset
+config (all subpopulations by default, or a single one via ``--subpopulation``).
+Each row is tagged with its split (train/validation) so analysis can split
+the results again later. Optional ``--reasoning`` mode (CoT, default off).
+
+Per-question results (model answer, expected answer, distributions, etc.)
+plus summary metrics (cross-entropy, KL-divergence, accuracy, etc.) are
+written to ``output/evals/<model>/<dataset>-<timestamp>/``.
 
 Usage:
-    uv run evaluate.py \
-        --port 8087 \
-        --model Qwen/Qwen3.6-27B-FP8 \
-        --dataset modal_response
+    uv run evaluate.py --port 8087 --model Qwen/Qwen3.6-27B --dataset modal_response
+
+    # A single subpopulation, with reasoning:
+    uv run evaluate.py --port 8087 \
+        --model Qwen3.6-27B-nz-wvs-modal_response-overall \
+        --dataset modal_response --subpopulation overall --reasoning
 
     # For quick checks without plots:
-    uv run evaluate.py \
-        --port 8000 \
-        --model Qwen/Qwen3.6-27B \
-        --dataset modal_response \
-        --no-plots \
-        --num-test-examples 20
+    uv run evaluate.py --port 8087 --model Qwen/Qwen3.6-27B \
+        --dataset modal_response --no-plots --num-test-examples 20
 """
 
 import argparse
@@ -47,6 +54,40 @@ import pandas as pd
 
 def _model_short_name(model: str) -> str:
     return model.split("/", 1)[-1]
+
+
+def _fmt_duration(seconds: float) -> str:
+    seconds = int(seconds)
+    hours = seconds // 3600
+    minutes = (seconds % 3600) // 60
+    secs = seconds % 60
+    if hours > 0:
+        return f"{hours}h {minutes:02d}m {secs:02d}s"
+    if minutes > 0:
+        return f"{minutes}m {secs:02d}s"
+    return f"{secs}s"
+
+
+class _Tee:
+    """Mirror stdout writes into a log file, flushing after every line.
+
+    Flushing on every write keeps output streaming immediately even when
+    stdout is a pipe (batch_eval relays it line-by-line), and the log file
+    gives a persistent record inside the eval output directory.
+    """
+
+    def __init__(self, stream, log_path: Path):
+        self._stream = stream
+        self._log = open(log_path, "a")
+
+    def write(self, data):
+        self._stream.write(data)
+        self._log.write(data)
+        self.flush()
+
+    def flush(self):
+        self._stream.flush()
+        self._log.flush()
 
 
 def _model_safe_name(model: str) -> str:
@@ -108,8 +149,28 @@ def _load_dataset_and_sha(
     config_name: str,
     hf_token: str | None = None,
     num_test_examples: int | None = None,
+    splits: list[str] | None = None,
+    subpopulation: str | None = None,
 ):
-    from datasets import load_dataset
+    """Load the given dataset config, concatenating the requested splits.
+
+    Each example gets a ``split`` column naming the split it came from, so
+    train/validation results can be separated again in analysis. Optionally
+    filters to a single subpopulation.
+
+    Args:
+        dataset_id: HF dataset repo id.
+        config_name: Dataset config (e.g. ``"modal_response"``).
+        hf_token: HF token.
+        num_test_examples: If set, keep only the first N examples (per split,
+            after any subpopulation filter) for quick checks.
+        splits: Dataset splits to include (default ``["train", "validation"]``).
+        subpopulation: If set, only keep rows of this subpopulation.
+
+    Returns:
+        Tuple of ``(dataset, dataset_sha)``.
+    """
+    from datasets import concatenate_datasets, load_dataset
     from huggingface_hub import dataset_info
 
     dataset_sha = None
@@ -119,16 +180,29 @@ def _load_dataset_and_sha(
     except Exception:
         print("[data] could not fetch dataset SHA from Hub")
 
-    ds = load_dataset(dataset_id, config_name, split="test", token=hf_token or None)
-    if num_test_examples:
-        ds = ds.select(range(min(num_test_examples, len(ds))))
+    if not splits:
+        splits = ["train", "validation"]
+
+    parts = []
+    for split in splits:
+        ds = load_dataset(dataset_id, config_name, split=split, token=hf_token or None)
+        if subpopulation:
+            ds = ds.filter(lambda x: x["subpopulation"] == subpopulation)
+        if num_test_examples:
+            ds = ds.select(range(min(num_test_examples, len(ds))))
+        ds = ds.map(lambda ex, _split=split: {**ex, "split": _split})
+        parts.append(ds)
+
+    ds = concatenate_datasets(parts)
 
     subpops = (
         set(ds["subpopulation"]) if "subpopulation" in ds.features else {"unknown"}
     )
     print(
-        f"[data] loaded {len(ds)} test examples"
-        f" (config={config_name}, subpops={', '.join(sorted(subpops))})"
+        f"[data] loaded {len(ds)} examples"
+        f" (config={config_name}, splits={','.join(splits)},"
+        f" subpop={'all' if subpopulation is None else subpopulation},"
+        f" subpops-in-data={', '.join(sorted(subpops))})"
     )
     if dataset_sha:
         print(f"[data] dataset commit: {dataset_sha}")
@@ -138,7 +212,7 @@ def _load_dataset_and_sha(
 
 def parse_args(argv=None):
     p = argparse.ArgumentParser(
-        description="Evaluate a served model on the WVS-NZ test set.",
+        description="Evaluate a served model on the WVS-NZ validation set.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
 
@@ -162,11 +236,32 @@ def parse_args(argv=None):
     p.add_argument(
         "--dataset",
         default="modal_response",
-        choices=["modal_response", "sampled_response"],
-        help="Dataset config to evaluate on. "
-        "The distributional configs (full_string_distribution, "
-        "first_token_distribution) are not evaluable via served logprobs yet — "
-        "modal_response gives both accuracy and KL/CE.",
+        choices=[
+            "modal_response",
+            "sampled_response",
+            "full_string_distribution",
+            "first_token_distribution",
+        ],
+        help="Dataset config to evaluate on. modal_response/sampled_response "
+        "give accuracy (vs the expected text) plus KL/CE vs the true "
+        "distribution. first_token_distribution scores the model's "
+        "distribution over single-letter answers (accuracy vs the modal "
+        "letter). full_string_distribution only gives KL/CE (no expected "
+        "text in the dataset).",
+    )
+    p.add_argument(
+        "--splits",
+        default=None,
+        help="Comma-separated dataset splits to evaluate on "
+        "(default: train,validation). Each row is tagged with its split in "
+        "the results CSV.",
+    )
+    p.add_argument(
+        "--subpopulation",
+        default=None,
+        choices=["cluster_0", "cluster_1", "overall"],
+        help="Only evaluate this subpopulation (default: all subpopulations "
+        "in a single pass).",
     )
     p.add_argument(
         "--hf-token",
@@ -187,13 +282,33 @@ def parse_args(argv=None):
         "Default: 1000 (no reasoning) / 4096 (reasoning).",
     )
     p.add_argument(
+        "--temperature",
+        type=float,
+        default=0.0,
+        help="Sampling temperature. Use 0.0 (greedy, default) for "
+        "reproducible measurement of the model's intrinsic distribution. ",
+    )
+    p.add_argument(
+        "--top-p",
+        type=float,
+        default=1.0,
+        help="Nucleus sampling cutoff (1.0 = off). Original eval used 0.8.",
+    )
+    p.add_argument(
+        "--presence-penalty",
+        type=float,
+        default=0.0,
+        help="Presence penalty for decoding (0.0 = off). Original eval used "
+        "1.5, which distorts the traced option probabilities.",
+    )
+    p.add_argument(
         "--top-logprobs", type=int, default=20, help="Number of top logprobs to request"
     )
     p.add_argument(
         "--num-test-examples",
         type=int,
         default=None,
-        help="Limit to first N test examples (for quick checks)",
+        help="Limit to first N test examples per split (for quick checks)",
     )
     p.add_argument(
         "--no-plots",
@@ -295,6 +410,70 @@ def compute_option_probs(
                 _total_lp += pos_lps[_pos][_tok]
 
         result[_cat] = math.exp(_total_lp) if _chain else 0.0
+
+    return result
+
+
+def compute_first_token_probs(
+    answer_tokens: list[str],
+    logprobs_data,
+    categories: list[str] | None = None,
+) -> dict[str, float]:
+    """Compute per-category probability from single-letter answers.
+
+    The first-token config labels each option with a letter (``A.``, ``B.``,
+    ...) and prompts the model to answer with ONLY that letter. Here the
+    probability of each category is the probability of its letter token at
+    the first answer position (after ``</think>``), matching the
+    first-token training loss (Cao et al. 2025).
+
+    Args:
+        answer_tokens: Letter for each category, e.g. ``["A", "B"]``.
+        logprobs_data: Logprobs payload from the chat completion.
+        categories: Optional word labels, used to build the result dict.
+
+    Returns:
+        Mapping of category (or letter when ``categories`` is None) to
+        probability, from the answer-position token distribution.
+    """
+    if not logprobs_data or not logprobs_data.content:
+        return {}
+
+    toks = logprobs_data.content
+
+    # Find answer start (after </think>)
+    ans_start = 0
+    for _i, _t in enumerate(toks):
+        if _t.token == "</think>":
+            ans_start = _i + 1
+            break
+    ans_toks = toks[ans_start:]
+
+    if not ans_toks:
+        return {}
+
+    # Probability of each answer letter at the first answer position.
+    first_pos = ans_toks[0].top_logprobs or []
+    lp_lookup = {_tp.token: _tp.logprob for _tp in first_pos}
+
+    def _lp_for(letter: str) -> float | None:
+        # Match the letter as its own token (e.g. "A") or with common
+        # decorations the model may emit ("A.", " A").
+        candidates = [letter, f"{letter}.", f" {letter}", f"{letter}:"]
+        for cand in candidates:
+            if cand in lp_lookup:
+                return lp_lookup[cand]
+        return None
+
+    labels = categories if categories is not None else answer_tokens
+    result = {}
+    for letter, label in zip(answer_tokens, labels):
+        lp = _lp_for(letter)
+        if lp is None:
+            # Fall back to any top-logprob token that starts with the letter.
+            match = [t for t in lp_lookup if t.lstrip().startswith(letter)]
+            lp = lp_lookup.get(match[0]) if match else None
+        result[label] = math.exp(lp) if lp is not None else 0.0
 
     return result
 
@@ -490,7 +669,17 @@ def _load_question_options():
 
 
 def _run_evaluation(
-    client, ds, model, max_tokens, top_logprobs, reasoning, output_dir, no_plots
+    client,
+    ds,
+    model,
+    max_tokens,
+    top_logprobs,
+    reasoning,
+    output_dir,
+    no_plots,
+    temperature=0.0,
+    top_p=1.0,
+    presence_penalty=0.0,
 ):
     import json
     import time
@@ -498,6 +687,8 @@ def _run_evaluation(
     start = time.time()
     has_expected_text = "expected_text" in ds.features
     has_categories = "categories" in ds.features
+    has_answer_tokens = "answer_tokens" in ds.features
+    first_token_mode = has_answer_tokens and not has_expected_text
 
     options_lookup = _load_question_options()
 
@@ -507,10 +698,25 @@ def _run_evaluation(
     correct_count = 0
     nan_count = 0
 
-    print("[eval] running test set...")
+    print("[eval] running pass over the full train + validation set...")
+    loop_t0 = time.time()
     for i, example in enumerate(ds):
         if (i + 1) % 10 == 0:
-            print(f"  [{i + 1}/{len(ds)}]...")
+            elapsed = time.time() - loop_t0
+            rate = (i + 1) / elapsed
+            eta = (len(ds) - (i + 1)) / rate if rate > 0 else 0.0
+            print(
+                f"  [{i + 1}/{len(ds)}]  "
+                f"{rate:.1f} ex/s  elapsed {_fmt_duration(elapsed)}"
+                f"  ETA {_fmt_duration(eta)}"
+            )
+        if (i + 1) % 100 == 0 and results:
+            n = len(results)
+            print(
+                f"      so far: acc {correct_count / n * 100:.1f}% "
+                f"({correct_count}/{n})  avgCE {total_ce / n:.3f}"
+                f"  avgKL {total_kl / n:.3f}"
+            )
 
         messages = [
             {"role": "system", "content": example["system_prompt"]},
@@ -524,9 +730,9 @@ def _run_evaluation(
                 max_tokens=max_tokens,
                 logprobs=True,
                 top_logprobs=top_logprobs,
-                temperature=0.7,
-                top_p=0.8,
-                presence_penalty=1.5,
+                temperature=temperature,
+                top_p=top_p,
+                presence_penalty=presence_penalty,
                 extra_body={
                     "top_k": 20,
                     "chat_template_kwargs": {"enable_thinking": reasoning},
@@ -586,6 +792,11 @@ def _run_evaluation(
         if categories:
             if reasoning and not answer_start_found:
                 pass
+            elif first_token_mode:
+                answer_tokens = list(example.get("answer_tokens", []))
+                option_probs = compute_first_token_probs(
+                    answer_tokens, logprobs_data, categories=categories
+                )
             else:
                 option_probs = compute_option_probs(categories, logprobs_data)
 
@@ -597,6 +808,7 @@ def _run_evaluation(
             "question_format": example.get("question_format", ""),
             "system_prompt_id": example.get("system_prompt_id", ""),
             "subpopulation": example.get("subpopulation", ""),
+            "split": example.get("split", ""),
             "model_answer": answer_text,
             "model_reasoning": reasoning_text if reasoning else "",
         }
@@ -635,6 +847,15 @@ def _run_evaluation(
             row["expected_text"] = expected_text
             if expected_text.strip().lower() == answer_text.strip().lower():
                 correct_count += 1
+        elif first_token_mode and "expected_distribution" in example and categories:
+            # No expected_text in the first-token config; the modal (most
+            # common) response is the letter of the argmax category.
+            dist = list(example["expected_distribution"])
+            modal_idx = max(range(len(dist)), key=dist.__getitem__)
+            modal_letter = example["answer_tokens"][modal_idx]
+            row["expected_text"] = modal_letter
+            if answer_text.strip().rstrip(".").lower() == modal_letter.lower():
+                correct_count += 1
 
         results.append(row)
 
@@ -655,9 +876,12 @@ def _run_evaluation(
     if len(results) > nan_count:
         avg_ce = total_ce / max(len(results) - nan_count, 1)
         print(f"  Avg cross-entropy:   {avg_ce:.4f}")
-    if has_expected_text and len(results) > nan_count:
+    if (has_expected_text or first_token_mode) and len(results) > nan_count:
         accuracy = correct_count / max(len(results) - nan_count, 1) * 100
-        print(f"  Accuracy (exact):    {accuracy:.1f}%")
+        metric_name = (
+            "Accuracy (modal letter)" if first_token_mode else "Accuracy (exact)"
+        )
+        print(f"  {metric_name}:    {accuracy:.1f}%")
         print(f"  Correct:             {correct_count}/{len(results) - nan_count}")
     if total_kl > 0 and len(results) > 0:
         avg_kl = total_kl / max(len(results), 1)
@@ -721,7 +945,12 @@ def main():
             f"[eval] model '{args.model}' found on server ({len(available)} total models)"
         )
 
-    run_name = f"{args.dataset}-{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+    run_name = (
+        f"{args.dataset}-"
+        f"{args.subpopulation + '-' if args.subpopulation else ''}"
+        f"{'reasoning-' if args.reasoning else ''}"
+        f"{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+    )
     if args.output_dir is None:
         model_name = _model_short_name(args.model)
         output_dir = Path("output") / "evals" / model_name / run_name
@@ -729,12 +958,33 @@ def main():
         output_dir = Path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 
+    # Tee everything from here on into the eval output dir (also forces
+    # line-flushing so batch_eval's relay streams in real time).
+    sys.stdout = _Tee(sys.stdout, output_dir / "eval.log")
+    print(f"[log] eval output -> {output_dir / 'eval.log'}")
+
+    splits = (
+        [s.strip() for s in args.splits.split(",") if s.strip()]
+        if args.splits
+        else ["train", "validation"]
+    )
+
     ds, dataset_sha = _load_dataset_and_sha(
         "1jamesthompson1/wvs-nz-value-alignment",
         args.dataset,
         hf_token=args.hf_token,
         num_test_examples=args.num_test_examples,
+        splits=splits,
+        subpopulation=args.subpopulation,
     )
+    print()
+    print(f"  Will evaluate '{args.model}' on '{args.dataset}'")
+    print(
+        f"  One pass over splits {','.join(splits)} — {len(ds)} examples,"
+        f" subpopulation: {'all' if args.subpopulation is None else args.subpopulation}"
+        f", reasoning: {args.reasoning}"
+    )
+    print()
 
     server_created = None
     if available:
@@ -753,6 +1003,10 @@ def main():
     config = {
         "target": args.model,
         "dataset": args.dataset,
+        "split": ",".join(splits),
+        "splits": splits,
+        "subpopulation": args.subpopulation,
+        "reasoning": args.reasoning,
         "run_name": run_name,
         "timestamp": datetime.now().isoformat(),
         "output_dir": str(output_dir.resolve()),
@@ -760,9 +1014,11 @@ def main():
         "api_key": args.api_key,
         "max_tokens": args.max_tokens,
         "top_logprobs": args.top_logprobs,
+        "temperature": args.temperature,
+        "top_p": args.top_p,
+        "presence_penalty": args.presence_penalty,
         "num_test_examples": args.num_test_examples,
         "no_plots": args.no_plots,
-        "reasoning": args.reasoning,
         "dataset_sha": dataset_sha,
         "model_sha": model_sha,
     }
@@ -783,6 +1039,9 @@ def main():
         reasoning=args.reasoning,
         output_dir=output_dir,
         no_plots=args.no_plots,
+        temperature=args.temperature,
+        top_p=args.top_p,
+        presence_penalty=args.presence_penalty,
     )
 
 
