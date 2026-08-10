@@ -37,10 +37,24 @@ def _():
     import pandas as pd
     import random
     import numpy as np
+    import re
     import shutil
+    from itertools import combinations
     from pathlib import Path
+    from scipy.stats import chi2_contingency
 
-    return Path, json, mo, np, pd, random, shutil
+    return (
+        Path,
+        chi2_contingency,
+        combinations,
+        json,
+        mo,
+        np,
+        pd,
+        random,
+        re,
+        shutil,
+    )
 
 
 @app.cell(hide_code=True)
@@ -70,166 +84,152 @@ def _(mo):
 
 
 @app.cell
-def _(items, np, pd, random, respondents_with_clusters, system_prompts):
-    """Select the held-out questions + system prompt, then build the splits.
+def _(pd, re, system_prompts):
+    """Select the held-out system prompt: the least similar to the other
+    five by mean token-Jaccard. It is never used in training, so any
+    behaviour difference under it measures genuine prompt sensitivity."""
 
-    All intermediate computation lives inside functions so the global
-    namespace only receives the final artifacts:
+    def _tokens(s):
+        return set(re.findall(r"[a-z]+", s.lower()))
 
-    - ``held_out_questions`` — DataFrame of the 5 picked questions
-    - ``held_out_prompt`` — name of the held-out system prompt
-    - ``train_keys / val_keys`` — item keys per split
-    - ``split_rows`` — assigns any config's rows to train/validation
+    prompt_names = list(system_prompts.keys())
+    prompt_sim = pd.DataFrame(index=prompt_names, columns=prompt_names, dtype=float)
+    for a in prompt_names:
+        for b in prompt_names:
+            ta, tb = _tokens(system_prompts[a]), _tokens(system_prompts[b])
+            prompt_sim.loc[a, b] = len(ta & tb) / max(len(ta | tb), 1)
+    held_out_prompt = prompt_sim.mean(axis=1).idxmin()
+
+    print(f"Held-out system prompt: {held_out_prompt}")
+    print("Pairwise token-Jaccard similarities (rows/cols = prompts):")
+    print(prompt_sim.round(3).to_string())
+    return (held_out_prompt,)
+
+
+@app.cell
+def _(
+    chi2_contingency,
+    combinations,
+    items,
+    np,
+    pd,
+    respondents_with_clusters,
+):
+    """Select the 5 held-out questions.
+
+    A question is a good held-out pick when its responses are most
+    predictable from the OTHER questions (max cross-battery Cramer's V) —
+    the model has the value-relevant information to answer it but never
+    sees its exact text. One question is picked per battery AND per
+    redundancy cluster (union-find on strongly associated pairs, V > 0.5),
+    so the 5 span distinct value dimensions.
     """
 
-    import re as _re
-    from itertools import combinations
-    from scipy.stats import chi2_contingency
+    value_cols = [it["column_name"] for it in items]
+    survey = respondents_with_clusters[value_cols].replace(-5.0, np.nan)
 
-    def select_held_out(items, respondents_with_clusters, system_prompts):
-        """Pick 5 questions (most redundant, one per battery/cluster) and
-        the least-similar system prompt. Returns (questions_df, prompt)."""
-        value_cols = [it["column_name"] for it in items]
-        survey = respondents_with_clusters[value_cols].replace(-5.0, np.nan)
+    def cramers_v(c1, c2):
+        pair = survey[[c1, c2]].dropna()
+        if len(pair) < 50:
+            return float("nan")
+        ct = pd.crosstab(pair[c1], pair[c2])
+        if min(ct.shape) < 2:
+            return float("nan")
+        chi2, *_ = chi2_contingency(ct)
+        n = ct.values.sum()
+        return float(np.sqrt(chi2 / (n * (min(ct.shape) - 1))))
 
-        def cramers_v(c1, c2):
-            pair = survey[[c1, c2]].dropna()
-            if len(pair) < 50:
-                return float("nan")
-            ct = pd.crosstab(pair[c1], pair[c2])
-            if min(ct.shape) < 2:
-                return float("nan")
-            chi2, *_ = chi2_contingency(ct)
-            n = ct.values.sum()
-            return float(np.sqrt(chi2 / (n * (min(ct.shape) - 1))))
+    scores = {}
+    all_pairs = list(combinations(value_cols, 2))
+    for i, (c1, c2) in enumerate(all_pairs):
+        if i % 5000 == 0:
+            print(f"  [redundancy] {i}/{len(all_pairs)} pairs...")
+        scores[(c1, c2)] = cramers_v(c1, c2)
 
-        scores = {}
-        all_pairs = list(combinations(value_cols, 2))
-        for i, (c1, c2) in enumerate(all_pairs):
-            if i % 5000 == 0:
-                print(f"  [redundancy] {i}/{len(all_pairs)} pairs...")
-            scores[(c1, c2)] = cramers_v(c1, c2)
+    col2battery = {it["column_name"]: it["id"] for it in items}
+    col2sub = {it["column_name"]: it["sub_question"] for it in items}
+    col2q = {it["column_name"]: it["question"] for it in items}
 
-        col2battery = {it["column_name"]: it["id"] for it in items}
-        col2sub = {it["column_name"]: it["sub_question"] for it in items}
-        col2q = {it["column_name"]: it["question"] for it in items}
+    # Per-question redundancy: max V against a question from another
+    # battery (same-battery pairs are trivially related).
+    rows = []
+    for c in value_cols:
+        rel = [(o, v) for (a, o), v in scores.items() if a == c] + [
+            (a, v) for (a, o), v in scores.items() if o == c
+        ]
+        cross = [(o, v) for o, v in rel if col2battery[c] != col2battery[o]]
+        if not cross:
+            continue
+        rows.append(
+            {
+                "column": c,
+                "sub_question": col2sub.get(c),
+                "battery_id": col2battery[c],
+                "question": col2q.get(c),
+                "max_cross_v": round(max(v for _, v in cross), 3),
+                "top_partner": max(cross, key=lambda x: x[1])[0],
+            }
+        )
+    redundancy = pd.DataFrame(rows).sort_values("max_cross_v", ascending=False)
 
-        # Per-question redundancy: max V against a question from another
-        # battery (same-battery pairs are trivially related).
-        rows = []
-        for c in value_cols:
-            rel = [(o, v) for (a, o), v in scores.items() if a == c] + [
-                (a, v) for (a, o), v in scores.items() if o == c
-            ]
-            cross = [(o, v) for o, v in rel if col2battery[c] != col2battery[o]]
-            if not cross:
-                continue
-            rows.append(
+    # Redundancy clusters via union-find: questions linked when strongly
+    # associated cross-battery (V > 0.5) measure the same value dimension.
+    def parent(x, _p):
+        while _p[x] != x:
+            _p[x] = _p[_p[x]]
+            x = _p[x]
+        return x
+
+    parent_map = {c: c for c in value_cols}
+    for (c1, c2), v in scores.items():
+        if v > 0.5 and col2battery[c1] != col2battery[c2]:
+            r1, r2 = parent(c1, parent_map), parent(c2, parent_map)
+            if r1 != r2:
+                parent_map[r1] = r2
+
+    # One pick per battery AND per redundancy cluster, up to 5
+    picked, seen_batts, seen_comps = [], set(), set()
+    for r in redundancy.itertuples():
+        comp_root = parent(r.column, parent_map)
+        if r.battery_id in seen_batts or comp_root in seen_comps:
+            continue
+        picked.append(r)
+        seen_batts.add(r.battery_id)
+        seen_comps.add(comp_root)
+        if len(picked) >= 5:
+            break
+    held_out_questions = pd.DataFrame(picked)
+
+    # Top cross-battery partners per question (for display: which
+    # *training* questions are most similar to each held-out one).
+    partner_rows = []
+    for c in value_cols:
+        rel = [(o, v) for (a, o), v in scores.items() if a == c] + [
+            (a, v) for (a, o), v in scores.items() if o == c
+        ]
+        cross = sorted(
+            [(o, v) for o, v in rel if col2battery[c] != col2battery[o]],
+            key=lambda x: -x[1],
+        )[:3]
+        for o, v in cross:
+            partner_rows.append(
                 {
                     "column": c,
-                    "sub_question": col2sub.get(c),
-                    "battery_id": col2battery[c],
-                    "question": col2q.get(c),
-                    "max_cross_v": round(max(v for _, v in cross), 3),
-                    "top_partner": max(cross, key=lambda x: x[1])[0],
+                    "similar_to": o,
+                    "similar_sub": col2sub.get(o),
+                    "similar_question": col2q.get(o),
+                    "similar_battery": col2battery[o],
+                    "v": round(v, 3),
                 }
             )
-        redundancy = pd.DataFrame(rows).sort_values("max_cross_v", ascending=False)
+    top_partners = pd.DataFrame(partner_rows)
 
-        # Redundancy clusters via union-find: questions linked when strongly
-        # associated cross-battery (V > 0.5) measure the same value dimension.
-        def parent(x, _p):
-            while _p[x] != x:
-                _p[x] = _p[_p[x]]
-                x = _p[x]
-            return x
-
-        parent_map = {c: c for c in value_cols}
-        for (c1, c2), v in scores.items():
-            if v > 0.5 and col2battery[c1] != col2battery[c2]:
-                r1, r2 = parent(c1, parent_map), parent(c2, parent_map)
-                if r1 != r2:
-                    parent_map[r1] = r2
-
-        # One pick per battery AND per redundancy cluster, up to 5 — spans
-        # distinct value dimensions.
-        picked, seen_batts, seen_comps = [], set(), set()
-        for r in redundancy.itertuples():
-            comp_root = parent(r.column, parent_map)
-            if r.battery_id in seen_batts or comp_root in seen_comps:
-                continue
-            picked.append(r)
-            seen_batts.add(r.battery_id)
-            seen_comps.add(comp_root)
-            if len(picked) >= 5:
-                break
-        held_out_questions = pd.DataFrame(picked)
-
-        # Top cross-battery partners per question (for display: which
-        # *training* questions are most similar to each held-out one).
-        partner_rows = []
-        for c in value_cols:
-            rel = [(o, v) for (a, o), v in scores.items() if a == c] + [
-                (a, v) for (a, o), v in scores.items() if o == c
-            ]
-            cross = sorted(
-                [(o, v) for o, v in rel if col2battery[c] != col2battery[o]],
-                key=lambda x: -x[1],
-            )[:3]
-            for o, v in cross:
-                partner_rows.append(
-                    {
-                        "column": c,
-                        "similar_to": o,
-                        "similar_sub": col2sub.get(o),
-                        "similar_question": col2q.get(o),
-                        "similar_battery": col2battery[o],
-                        "v": round(v, 3),
-                    }
-                )
-        top_partners = pd.DataFrame(partner_rows)
-
-        # System-prompt distinctness: mean token-Jaccard vs the others.
-        def tokens(s):
-            return set(_re.findall(r"[a-z]+", s.lower()))
-
-        prompt_names = list(system_prompts.keys())
-        sim = pd.DataFrame(index=prompt_names, columns=prompt_names, dtype=float)
-        for a in prompt_names:
-            for b in prompt_names:
-                ta, tb = tokens(system_prompts[a]), tokens(system_prompts[b])
-                sim.loc[a, b] = len(ta & tb) / max(len(ta | tb), 1)
-        held_out_prompt = sim.mean(axis=1).idxmin()
-
-        return held_out_questions, held_out_prompt, redundancy, sim, top_partners
-
-    def make_splits(items, held_out_questions):
-        """Item keys per split.
-
-        Validation = held-out questions (any prompt) + every item under the
-        held-out prompt. Train = everything else (no test split).
-        """
-        all_item_keys = sorted({(item["id"], item["column_name"]) for item in items})
-        held_out_keys = set(
-            (int(row.battery_id), row.column) for row in held_out_questions.itertuples()
+    print(f"Held-out questions ({len(held_out_questions)}):")
+    print(
+        held_out_questions[["column", "sub_question", "max_cross_v"]].to_string(
+            index=False
         )
-        train_keys = set(all_item_keys) - held_out_keys
-        return held_out_keys, train_keys
-
-    held_out_questions, held_out_prompt, redundancy, prompt_sim, top_partners = (
-        select_held_out(items, respondents_with_clusters, system_prompts)
     )
-    val_keys, train_keys = make_splits(items, held_out_questions)
-
-    def split_rows(rows):
-        train_rows, val_rows = [], []
-        for r in rows:
-            key = (r["question_id"], r["column_name"])
-            if key in val_keys or r.get("system_prompt_id") == held_out_prompt:
-                val_rows.append(r)
-            else:
-                train_rows.append(r)
-        return train_rows, val_rows
 
     def print_held_out_similarity(held_out_questions, top_partners):
         """Show, for each held-out question, the training questions most
@@ -250,16 +250,52 @@ def _(items, np, pd, random, respondents_with_clusters, system_prompts):
                 print(f"\n    ~ {s.similar_to} — {s.similar_sub}  (V={s.v})")
                 print(f"      Q: {s.similar_question}")
 
-    print(f"Validation items (held out): {len(val_keys)}  (one per battery/cluster)")
-    print(
-        held_out_questions[["column", "sub_question", "max_cross_v"]].to_string(
-            index=False
+    print_held_out_similarity(held_out_questions, top_partners)
+    return (held_out_questions,)
+
+
+@app.cell
+def _(first_token_system_prompts, held_out_prompt, held_out_questions, items):
+    """Build the train/validation split and the row assigner.
+
+    Validation = held-out questions (any prompt) + every item under the
+    held-out system prompt. Train = everything else. There is no test
+    split; splits are keyed by item (question_id × column_name) and reused
+    across all four modeling approaches and all subpopulations.
+    """
+
+    # First-token prompts are named "{name}_letter", so the matching
+    # first-token variant of the held-out prompt must be held out too.
+    held_out_prompt_ids = {held_out_prompt} | {
+        name
+        for name in first_token_system_prompts
+        if name.removesuffix("_letter") == held_out_prompt
+    }
+
+    def make_splits(items, held_out_questions):
+        """Item keys per split."""
+        all_item_keys = sorted({(item["id"], item["column_name"]) for item in items})
+        held_out_keys = set(
+            (int(row.battery_id), row.column) for row in held_out_questions.itertuples()
         )
-    )
-    print(f"Held-out system prompt: {held_out_prompt}")
+        train_keys = set(all_item_keys) - held_out_keys
+        return held_out_keys, train_keys
+
+    held_out_keys, train_keys = make_splits(items, held_out_questions)
+    val_keys = held_out_keys
+
+    def split_rows(rows):
+        train_rows, val_rows = [], []
+        for r in rows:
+            key = (r["question_id"], r["column_name"])
+            if key in val_keys or r.get("system_prompt_id") in held_out_prompt_ids:
+                val_rows.append(r)
+            else:
+                train_rows.append(r)
+        return train_rows, val_rows
+
     print(f"Train items: {len(train_keys)}, Validation items: {len(val_keys)}")
     print("\nMost similar training questions per held-out question:")
-    print_held_out_similarity(held_out_questions, top_partners)
     return (split_rows,)
 
 
@@ -472,17 +508,16 @@ def _(mo):
 
 
 @app.cell
-def _(output_dir):
+def _(output_dir, pd):
     """Load processed WVS survey data and merge with LCA cluster assignments."""
-    import pandas as _pd
 
     # Load the already-processed value survey data (numeric response codes,
     # with -1 for "Don't know" and -5 for missing, handled by wrangle_response_data.py)
-    wvs_value_survey = _pd.read_csv(output_dir / "wvs_value_survey.csv")
+    wvs_value_survey = pd.read_csv(output_dir / "wvs_value_survey.csv")
     wvs_value_survey["respondent_id"] = wvs_value_survey["id"].astype(int)
 
     # Load cluster assignments from the LCA model (id -> cluster label)
-    cluster_assignments = _pd.read_csv(output_dir / "cluster_assignments.csv")
+    cluster_assignments = pd.read_csv(output_dir / "cluster_assignments.csv")
     cluster_assignments["respondent_id"] = cluster_assignments["id"].astype(int)
 
     # Merge so each row has both the survey responses and its cluster label
