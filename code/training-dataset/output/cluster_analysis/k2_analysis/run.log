@@ -1,0 +1,134 @@
+Downloading jedi (1.5MiB)
+Downloading kiwisolver (1.4MiB)
+Downloading scikit-learn (8.7MiB)
+Downloading numpy (15.9MiB)
+Downloading scipy (33.6MiB)
+Downloading fonttools (4.7MiB)
+Downloading matplotlib (10.6MiB)
+Downloading marimo (37.4MiB)
+Downloading loro (3.3MiB)
+ Downloaded kiwisolver
+ Downloaded loro
+ Downloaded fonttools
+ Downloaded scikit-learn
+ Downloaded matplotlib
+ Downloaded numpy
+ Downloaded scipy
+ Downloaded jedi
+ Downloaded marimo
+Installed 41 packages in 4.15s
+/home/thompsjame1/.cache/uv/environments-v2/cluster-respondents-d02dd7a9ac5a8909/lib/python3.14/site-packages/stepmix/stepmix.py:128: SyntaxWarning: "\_" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\_"? A raw string is also an option.
+  Save the estimated parameters of all initializations to self.param_buffer\_.
+Doing model selection sweep over k=[1, 2, 3, 4, 5, 6]
+k=1 done
+k=2 done
+k=3 done
+k=4 done
+k=5 done
+k=6 done
+Saved sweep results to output/model_selection_sweep.csv
+BIC-optimal k = 2; using k = 2
+Fitting StepMix...
+Initializations (n_init) :   0%|          | 0/10 [00:00<?, ?it/s]Initializations (n_init) :   0%|          | 0/10 [00:20<?, ?it/s, max_LL=-2.92e+5, max_avg_LL=-276]Initializations (n_init) :  10%|█         | 1/10 [00:20<03:02, 20.27s/it, max_LL=-2.92e+5, max_avg_LL=-276]Initializations (n_init) :  10%|█         | 1/10 [00:58<03:02, 20.27s/it, max_LL=-2.92e+5, max_avg_LL=-276]Initializations (n_init) :  20%|██        | 2/10 [00:58<04:04, 30.56s/it, max_LL=-2.92e+5, max_avg_LL=-276]Initializations (n_init) :  20%|██        | 2/10 [01:07<04:04, 30.56s/it, max_LL=-2.92e+5, max_avg_LL=-276]Initializations (n_init) :  30%|███       | 3/10 [01:07<02:26, 20.94s/it, max_LL=-2.92e+5, max_avg_LL=-276]Initializations (n_init) :  30%|███       | 3/10 [01:30<02:26, 20.94s/it, max_LL=-2.92e+5, max_avg_LL=-276]Initializations (n_init) :  40%|████      | 4/10 [01:30<02:10, 21.70s/it, max_LL=-2.92e+5, max_avg_LL=-276]Initializations (n_init) :  40%|████      | 4/10 [01:53<02:10, 21.70s/it, max_LL=-2.92e+5, max_avg_LL=-276]Initializations (n_init) :  50%|█████     | 5/10 [01:53<01:51, 22.22s/it, max_LL=-2.92e+5, max_avg_LL=-276]Initializations (n_init) :  50%|█████     | 5/10 [02:17<01:51, 22.22s/it, max_LL=-2.92e+5, max_avg_LL=-276]Initializations (n_init) :  60%|██████    | 6/10 [02:17<01:31, 22.79s/it, max_LL=-2.92e+5, max_avg_LL=-276]Initializations (n_init) :  60%|██████    | 6/10 [02:40<01:31, 22.79s/it, max_LL=-2.92e+5, max_avg_LL=-276]Initializations (n_init) :  70%|███████   | 7/10 [02:40<01:09, 23.01s/it, max_LL=-2.92e+5, max_avg_LL=-276]Initializations (n_init) :  70%|███████   | 7/10 [03:01<01:09, 23.01s/it, max_LL=-2.92e+5, max_avg_LL=-276]Initializations (n_init) :  80%|████████  | 8/10 [03:01<00:44, 22.17s/it, max_LL=-2.92e+5, max_avg_LL=-276]Initializations (n_init) :  80%|████████  | 8/10 [03:14<00:44, 22.17s/it, max_LL=-2.92e+5, max_avg_LL=-276]Initializations (n_init) :  90%|█████████ | 9/10 [03:14<00:19, 19.30s/it, max_LL=-2.92e+5, max_avg_LL=-276]Initializations (n_init) :  90%|█████████ | 9/10 [03:36<00:19, 19.30s/it, max_LL=-2.92e+5, max_avg_LL=-276]Initializations (n_init) : 100%|██████████| 10/10 [03:36<00:00, 20.08s/it, max_LL=-2.92e+5, max_avg_LL=-276]Initializations (n_init) : 100%|██████████| 10/10 [03:36<00:00, 21.61s/it, max_LL=-2.92e+5, max_avg_LL=-276]
+avg log-likelihood per respondent: -276.21
+Saved model → output/stepmix_model_k2.joblib
+Mean posterior certainty: 0.997
+Relative entropy (1 = perfectly separated): 0.987
+Saved clusters → output/cluster_assignments.csv
+Saved informativeness rankings → output/question_informativeness.csv
+
+   column  informativeness                                                                                                                                                                                                                                                                                                                        question                                                                                sub_question                                                     response_options  controversial
+0     Q88            0.419                                                                Here are the names of a number of organisations. For each one, please indicate how much confidence you have in them: is it a great deal of confidence, quite a lot of confidence, not very much confidence or none at all? — The World Health Organisation (WHO)                                                         The World Health Organisation (WHO)  [A great deal, Quite a lot, Not very much, None at all, Don't know]          False
+1    Q182            0.407                                                                                                                Please indicate for each of the following statements whether you think it can always be justified, never be justified, or something in between. (1 = Never justifiable, 10 = Always justifiable) — Homosexuality                                                                               Homosexuality                                      [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]           True
+2    Q229            0.404                                                                                                                                                                                                          In your view how often do each of the following things occur in New Zealand's elections? — Election officials are fair                                                                 Election officials are fair              [Very often, Fairly often, Not often, Not at all often]          False
+3    Q123            0.402                                                                                                                      What have been the effects of immigration on the development of New Zealand? For each of the following statements, please indicate whether you agree or disagree with it. — Strengthens cultural diversity                                                              Strengthens cultural diversity                                       [Disagree, Hard to say, Agree]           True
+4     Q76            0.402                                                                                          Here are the names of a number of organisations. For each one, please indicate how much confidence you have in them: is it a great deal of confidence, quite a lot of confidence, not very much confidence or none at all? — Elections                                                                                   Elections  [A great deal, Quite a lot, Not very much, None at all, Don't know]          False
+5    Q121            0.387                                                                                                                                                                                                                                              How would you evaluate the impact of immigrants on the development of New Zealand?                                                                                         NaN   [Very good, Quite good, Neither good nor bad, Quite bad, Very bad]           True
+6     Q74            0.383                                                                                 Here are the names of a number of organisations. For each one, please indicate how much confidence you have in them: is it a great deal of confidence, quite a lot of confidence, not very much confidence or none at all? — The Public Service                                                                          The Public Service  [A great deal, Quite a lot, Not very much, None at all, Don't know]          False
+7    Q183            0.382                                                                                                                 Please indicate for each of the following statements whether you think it can always be justified, never be justified, or something in between. (1 = Never justifiable, 10 = Always justifiable) — Prostitution                                                                                Prostitution                                      [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]           True
+8     Q73            0.381                                                                                         Here are the names of a number of organisations. For each one, please indicate how much confidence you have in them: is it a great deal of confidence, quite a lot of confidence, not very much confidence or none at all? — Parliament                                                                                  Parliament  [A great deal, Quite a lot, Not very much, None at all, Don't know]          False
+9    Q251            0.378                                                                                                And how democratically is this country being governed today? Again using a scale from 1 to 10, where 1 means that it is "not at all democratic" and 10 means that it is "completely democratic," what position would you choose?                                                                                         NaN                                      [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]          False
+10   Q238            0.374                                                   Listed below are various types of political systems. Please think about each one as a way of governing this country. For each one, would you say it is a very good, fairly good, fairly bad or very bad way of governing this country? — Having a democratic political system                                                        Having a democratic political system                       [Very good, Fairly good, Fairly bad, Very bad]          False
+11   Q235            0.363       Listed below are various types of political systems. Please think about each one as a way of governing this country. For each one, would you say it is a very good, fairly good, fairly bad or very bad way of governing this country? — Having a strong leader who does not have to bother with parliament and elections            Having a strong leader who does not have to bother with parliament and elections                       [Very good, Fairly good, Fairly bad, Very bad]          False
+12   Q161            0.360  Here are some statements about science and technology. How much do you agree or disagree with each of these statements? For these questions, a 1 means that you "completely disagree" and a 10 means that you "completely agree." — One of the bad effects of science is that it breaks down people's ideas of right and wrong  One of the bad effects of science is that it breaks down people's ideas of right and wrong                                      [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]          False
+13    Q71            0.359                                                                       Here are the names of a number of organisations. For each one, please indicate how much confidence you have in them: is it a great deal of confidence, quite a lot of confidence, not very much confidence or none at all? — The government in Wellington                                                                The government in Wellington  [A great deal, Quite a lot, Not very much, None at all, Don't know]          False
+14    Q57            0.354                                                                                                                                                                                                   Generally speaking, would you say that most people can be trusted or that you need to be very careful in dealing with people?                                                                                         NaN    [Most people can be trusted, Need to be very careful, Don't know]          False
+Rank  Type          Question                                 Informativeness
+--------------------------------------------------------------------
+1     value         Here are the names of a number of orga   0.419     
+2     value         Please indicate for each of the follow   0.407     
+3     value         In your view how often do each of the    0.404     
+4     value         What have been the effects of immigrat   0.402     
+5     value         Here are the names of a number of orga   0.402     
+6     value         How would you evaluate the impact of i   0.387     
+7     value         Here are the names of a number of orga   0.383     
+8     value         Please indicate for each of the follow   0.382     
+9     value         Here are the names of a number of orga   0.381     
+10    value         And how democratically is this country   0.378     
+11    value         Listed below are various types of poli   0.374     
+12    value         Listed below are various types of poli   0.363     
+13    value         Here are some statements about science   0.360     
+14    value         Here are the names of a number of orga   0.359     
+15    value         Generally speaking, would you say that   0.354     
+16    value         In your view how often do each of the    0.351     
+17    value         Many things are desirable, but not all   0.350     
+18    value         What have been the effects of immigrat   0.348     
+19    value         Here are the names of a number of orga   0.343     
+20    demographic   education_respondent_cs                  0.343     
+21    value         Please indicate for each of the follow   0.341     
+22    value         How much do you agree or disagree with   0.341     
+23    value         Here are some different forms of polit   0.341     
+24    value         Here are the names of a number of orga   0.340     
+25    value         Here are the names of a number of orga   0.339     
+Top 10 question groups (non-controversial only):
+
+  Here are the names of a number of organisations. For each one, please indicate how much confidence you have in them: is it a great deal of confidence, quite a lot of confidence, not very much confidence or none at all?  (5 sub-questions)
+    Q88    info=0.419  The World Health Organisation (WHO)
+    Q76    info=0.402  Elections
+    Q74    info=0.383  The Public Service
+    Q73    info=0.381  Parliament
+    Q71    info=0.359  The government in Wellington
+
+  In your view how often do each of the following things occur in New Zealand's elections?  (1 sub-questions)
+    Q229   info=0.404  Election officials are fair
+
+  And how democratically is this country being governed today? Again using a scale from 1 to 10, where 1 means that it is "not at all democratic" and 10 means that it is "completely democratic," what position would you choose?  (1 sub-questions)
+    Q251   info=0.378  nan
+
+  Listed below are various types of political systems. Please think about each one as a way of governing this country. For each one, would you say it is a very good, fairly good, fairly bad or very bad way of governing this country?  (2 sub-questions)
+    Q238   info=0.374  Having a democratic political system
+    Q235   info=0.363  Having a strong leader who does not have to bother with parliament and elections
+
+  Here are some statements about science and technology. How much do you agree or disagree with each of these statements? For these questions, a 1 means that you "completely disagree" and a 10 means that you "completely agree."  (1 sub-questions)
+    Q161   info=0.360  One of the bad effects of science is that it breaks down people's ideas of right and wrong
+
+Expected certainty (all 10 sub-questions from 10 questions):
+  Mean: 0.915  Median: 0.990  >0.9: 74.3%
+Metric            Top 5 (all)     Top 5 (non-controversial)
+Mean certainty       0.867           0.870
+Median certainty     0.923           0.937
+p(cert > 0.9)        57.7%           60.3%
+PCA: 2.6% + 1.6% = 4.2% variance in 2 components
+Adjusted Rand Index (LCA vs K-Means): 0.803
+Cross-tabulation:
+K-Means cluster    0    1
+LCA cluster              
+0                 34  536
+1                466   21
+
+  bootstrap 10/50 (ARI=0.666)
+  bootstrap 20/50 (ARI=0.746)
+  bootstrap 30/50 (ARI=0.803)
+  bootstrap 40/50 (ARI=0.779)
+  bootstrap 50/50 (ARI=0.717)
+
+Bootstrap stability (k=2, n=50 resamples):
+  mean ARI = 0.718   median = 0.736
+  95% CI   = [0.572, 0.848]
+  interpretation: stable structure
+  BLRT round 10/30
+  BLRT round 20/30
+  BLRT round 30/30
+Observed LR (k=3 vs k=2): 8,969,702
+Bootstrap LRs: mean=1,468  max=1,615
+p-value = 0.032  -> reject k=2: k=3 is a real improvement

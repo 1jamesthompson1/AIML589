@@ -1,0 +1,139 @@
+Downloading fonttools (4.7MiB)
+Downloading kiwisolver (1.4MiB)
+Downloading numpy (15.9MiB)
+Downloading marimo (37.4MiB)
+Downloading scikit-learn (8.7MiB)
+Downloading jedi (1.5MiB)
+Downloading scipy (33.6MiB)
+Downloading matplotlib (10.6MiB)
+Downloading loro (3.3MiB)
+ Downloaded kiwisolver
+ Downloaded loro
+ Downloaded fonttools
+ Downloaded scikit-learn
+ Downloaded matplotlib
+ Downloaded numpy
+ Downloaded scipy
+ Downloaded jedi
+ Downloaded marimo
+Installed 41 packages in 3.67s
+/home/thompsjame1/.cache/uv/environments-v2/cluster-respondents-72c5c7f2678dd5f6/lib/python3.14/site-packages/stepmix/stepmix.py:128: SyntaxWarning: "\_" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\_"? A raw string is also an option.
+  Save the estimated parameters of all initializations to self.param_buffer\_.
+Doing model selection sweep over k=[1, 2, 3, 4, 5, 6]
+k=1 done
+k=2 done
+k=3 done
+k=4 done
+k=5 done
+k=6 done
+Saved sweep results to output/model_selection_sweep.csv
+BIC-optimal k = 2; using k = 3
+Fitting StepMix...
+Initializations (n_init) :   0%|          | 0/10 [00:00<?, ?it/s]Initializations (n_init) :   0%|          | 0/10 [00:11<?, ?it/s, max_LL=-2.88e+5, max_avg_LL=-272]Initializations (n_init) :  10%|█         | 1/10 [00:11<01:42, 11.35s/it, max_LL=-2.88e+5, max_avg_LL=-272]Initializations (n_init) :  10%|█         | 1/10 [00:31<01:42, 11.35s/it, max_LL=-2.88e+5, max_avg_LL=-272]Initializations (n_init) :  20%|██        | 2/10 [00:31<02:09, 16.25s/it, max_LL=-2.88e+5, max_avg_LL=-272]Initializations (n_init) :  20%|██        | 2/10 [00:53<02:09, 16.25s/it, max_LL=-2.88e+5, max_avg_LL=-272]Initializations (n_init) :  30%|███       | 3/10 [00:53<02:13, 19.06s/it, max_LL=-2.88e+5, max_avg_LL=-272]Initializations (n_init) :  30%|███       | 3/10 [01:05<02:13, 19.06s/it, max_LL=-2.88e+5, max_avg_LL=-272]Initializations (n_init) :  40%|████      | 4/10 [01:05<01:36, 16.14s/it, max_LL=-2.88e+5, max_avg_LL=-272]Initializations (n_init) :  40%|████      | 4/10 [01:12<01:36, 16.14s/it, max_LL=-2.88e+5, max_avg_LL=-272]Initializations (n_init) :  50%|█████     | 5/10 [01:12<01:04, 12.90s/it, max_LL=-2.88e+5, max_avg_LL=-272]Initializations (n_init) :  50%|█████     | 5/10 [01:29<01:04, 12.90s/it, max_LL=-2.88e+5, max_avg_LL=-272]Initializations (n_init) :  60%|██████    | 6/10 [01:29<00:57, 14.47s/it, max_LL=-2.88e+5, max_avg_LL=-272]Initializations (n_init) :  60%|██████    | 6/10 [01:37<00:57, 14.47s/it, max_LL=-2.88e+5, max_avg_LL=-272]Initializations (n_init) :  70%|███████   | 7/10 [01:37<00:37, 12.39s/it, max_LL=-2.88e+5, max_avg_LL=-272]Initializations (n_init) :  70%|███████   | 7/10 [01:46<00:37, 12.39s/it, max_LL=-2.88e+5, max_avg_LL=-272]Initializations (n_init) :  80%|████████  | 8/10 [01:46<00:22, 11.12s/it, max_LL=-2.88e+5, max_avg_LL=-272]Initializations (n_init) :  80%|████████  | 8/10 [02:00<00:22, 11.12s/it, max_LL=-2.88e+5, max_avg_LL=-272]Initializations (n_init) :  90%|█████████ | 9/10 [02:00<00:11, 11.98s/it, max_LL=-2.88e+5, max_avg_LL=-272]Initializations (n_init) :  90%|█████████ | 9/10 [02:17<00:11, 11.98s/it, max_LL=-2.88e+5, max_avg_LL=-272]Initializations (n_init) : 100%|██████████| 10/10 [02:17<00:00, 13.63s/it, max_LL=-2.88e+5, max_avg_LL=-272]Initializations (n_init) : 100%|██████████| 10/10 [02:17<00:00, 13.75s/it, max_LL=-2.88e+5, max_avg_LL=-272]
+avg log-likelihood per respondent: -272.07
+Saved model → output/stepmix_model_k3.joblib
+Mean posterior certainty: 0.999
+Relative entropy (1 = perfectly separated): 0.995
+Saved clusters → output/cluster_assignments.csv
+Saved informativeness rankings → output/question_informativeness.csv
+
+   column  informativeness                                                                                                                                                                                                                                                                                   question                                                      sub_question                                                                                                                                                     response_options  controversial
+0    Q182            0.463                                                                           Please indicate for each of the following statements whether you think it can always be justified, never be justified, or something in between. (1 = Never justifiable, 10 = Always justifiable) — Homosexuality                                                     Homosexuality                                                                                                                                      [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]           True
+1    Q240            0.439                                                                                                                                  In political matters, people talk of "the left" and "the right". How would you place your views on this scale, generally speaking? (1 = Left, 10 = Right)                                                               NaN                                                                                                                                      [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]          False
+2    Q186            0.384                                                                     Please indicate for each of the following statements whether you think it can always be justified, never be justified, or something in between. (1 = Never justifiable, 10 = Always justifiable) — Sex before marriage                                               Sex before marriage                                                                                                                                      [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]           True
+3     Q88            0.372                           Here are the names of a number of organisations. For each one, please indicate how much confidence you have in them: is it a great deal of confidence, quite a lot of confidence, not very much confidence or none at all? — The World Health Organisation (WHO)                               The World Health Organisation (WHO)                                                                                                  [A great deal, Quite a lot, Not very much, None at all, Don't know]          False
+4    Q183            0.367                                                                            Please indicate for each of the following statements whether you think it can always be justified, never be justified, or something in between. (1 = Never justifiable, 10 = Always justifiable) — Prostitution                                                      Prostitution                                                                                                                                      [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]           True
+5    Q169            0.365                                                                                                                                                        How much do you agree or disagree with the following statements? — Whenever science and religion conflict, religion is always right  Whenever science and religion conflict, religion is always right                                                                                                     [Strongly agree, Agree, Disagree, Strongly disagree, Don't know]          False
+6    Q157            0.357                                                                                                                                                                   Here is another list. In your opinion, which one of these is most important? And which would be the next most important?                                                               NaN  [A stable economy, Progress toward a less impersonal and more humane society, Progress toward a society where ideas count more than money, The fight against crime]          False
+7    Q230            0.347                                                                                                                                                                       In your view how often do each of the following things occur in New Zealand's elections? — Rich people buy elections                                         Rich people buy elections                                                                                                              [Very often, Fairly often, Not often, Not at all often]          False
+8    Q193            0.346                                                                       Please indicate for each of the following statements whether you think it can always be justified, never be justified, or something in between. (1 = Never justifiable, 10 = Always justifiable) — Having casual sex                                                 Having casual sex                                                                                                                                      [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]           True
+9     Q83            0.344                                            Here are the names of a number of organisations. For each one, please indicate how much confidence you have in them: is it a great deal of confidence, quite a lot of confidence, not very much confidence or none at all? — The United Nations                                                The United Nations                                                                                                  [A great deal, Quite a lot, Not very much, None at all, Don't know]          False
+10   Q223            0.341                                                                                                                                                                    If there were a national election tomorrow which party would you vote for? And which Party would be your second choice?                                                               NaN                                                             [NZ Labour, NZ National, NZ Green, NZ First, TOP, Maori Party, ACT, New Conservative, Other, Don't know]          False
+11   Q160            0.340  Here are some statements about science and technology. How much do you agree or disagree with each of these statements? For these questions, a 1 means that you "completely disagree" and a 10 means that you "completely agree." — We depend too much on science and not enough on faith             We depend too much on science and not enough on faith                                                                                                                                      [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]          False
+12   Q184            0.339                                                                                Please indicate for each of the following statements whether you think it can always be justified, never be justified, or something in between. (1 = Never justifiable, 10 = Always justifiable) — Abortion                                                          Abortion                                                                                                                                      [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]           True
+13    Q76            0.337                                                     Here are the names of a number of organisations. For each one, please indicate how much confidence you have in them: is it a great deal of confidence, quite a lot of confidence, not very much confidence or none at all? — Elections                                                         Elections                                                                                                  [A great deal, Quite a lot, Not very much, None at all, Don't know]          False
+14   Q229            0.335                                                                                                                                                                     In your view how often do each of the following things occur in New Zealand's elections? — Election officials are fair                                       Election officials are fair                                                                                                              [Very often, Fairly often, Not often, Not at all often]          False
+Rank  Type          Question                                 Informativeness
+--------------------------------------------------------------------
+1     value         Please indicate for each of the follow   0.463     
+2     value         In political matters, people talk of "   0.439     
+3     value         Please indicate for each of the follow   0.384     
+4     value         Here are the names of a number of orga   0.372     
+5     value         Please indicate for each of the follow   0.367     
+6     value         How much do you agree or disagree with   0.365     
+7     value         Here is another list. In your opinion,   0.357     
+8     value         In your view how often do each of the    0.347     
+9     value         Please indicate for each of the follow   0.346     
+10    value         Here are the names of a number of orga   0.344     
+11    demographic   religion                                 0.344     
+12    value         If there were a national election tomo   0.341     
+13    value         Here are some statements about science   0.340     
+14    value         Please indicate for each of the follow   0.339     
+15    demographic   age                                      0.338     
+16    demographic   birth_year                               0.338     
+17    value         Here are the names of a number of orga   0.337     
+18    value         In your view how often do each of the    0.335     
+19    value         People talk about the changing roles o   0.332     
+20    value         Listed below are various types of poli   0.332     
+21    value         Please indicate for each of the follow   0.330     
+22    value         Here are two statements people sometim   0.326     
+23    value         How much do you agree or disagree with   0.325     
+24    value         People talk about the changing roles o   0.323     
+25    value         And how democratically is this country   0.323     
+Top 10 question groups (non-controversial only):
+
+  In political matters, people talk of "the left" and "the right". How would you place your views on this scale, generally speaking? (1 = Left, 10 = Right)  (1 sub-questions)
+    Q240   info=0.439  nan
+
+  Here are the names of a number of organisations. For each one, please indicate how much confidence you have in them: is it a great deal of confidence, quite a lot of confidence, not very much confidence or none at all?  (3 sub-questions)
+    Q88    info=0.372  The World Health Organisation (WHO)
+    Q83    info=0.344  The United Nations
+    Q76    info=0.337  Elections
+
+  How much do you agree or disagree with the following statements?  (1 sub-questions)
+    Q169   info=0.365  Whenever science and religion conflict, religion is always right
+
+  Here is another list. In your opinion, which one of these is most important? And which would be the next most important?  (1 sub-questions)
+    Q157   info=0.357  nan
+
+  In your view how often do each of the following things occur in New Zealand's elections?  (2 sub-questions)
+    Q230   info=0.347  Rich people buy elections
+    Q229   info=0.335  Election officials are fair
+
+  If there were a national election tomorrow which party would you vote for? And which Party would be your second choice?  (1 sub-questions)
+    Q223   info=0.341  nan
+
+  Here are some statements about science and technology. How much do you agree or disagree with each of these statements? For these questions, a 1 means that you "completely disagree" and a 10 means that you "completely agree."  (1 sub-questions)
+    Q160   info=0.340  We depend too much on science and not enough on faith
+
+Expected certainty (all 10 sub-questions from 10 questions):
+  Mean: 0.851  Median: 0.925  >0.9: 54.9%
+Metric            Top 5 (all)     Top 5 (non-controversial)
+Mean certainty       0.803           0.768
+Median certainty     0.836           0.789
+p(cert > 0.9)        37.9%           30.0%
+PCA: 2.6% + 1.6% = 4.2% variance in 2 components
+Adjusted Rand Index (LCA vs K-Means): 0.452
+Cross-tabulation:
+K-Means cluster    0    1    2
+LCA cluster                   
+0                135   12  152
+1                351   83    2
+2                 13  309    0
+
+  bootstrap 10/50 (ARI=0.349)
+  bootstrap 20/50 (ARI=0.657)
+  bootstrap 30/50 (ARI=0.349)
+  bootstrap 40/50 (ARI=0.700)
+  bootstrap 50/50 (ARI=0.315)
+
+Bootstrap stability (k=3, n=50 resamples):
+  mean ARI = 0.467   median = 0.457
+  95% CI   = [0.242, 0.704]
+  interpretation: partly unstable — treat subgroups cautiously
+  BLRT round 10/30
+  BLRT round 20/30
+  BLRT round 30/30
+Observed LR (k=4 vs k=3): 5,149,704
+Bootstrap LRs: mean=1,371  max=1,488
+p-value = 0.032  -> reject k=2: k=3 is a real improvement
