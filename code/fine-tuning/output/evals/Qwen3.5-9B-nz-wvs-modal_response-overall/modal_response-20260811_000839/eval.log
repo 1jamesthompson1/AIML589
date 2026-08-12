@@ -1,0 +1,520 @@
+[log] eval output -> output/evals/Qwen3.5-9B-nz-wvs-modal_response-overall/modal_response-20260811_000839/eval.log
+[data] loaded 4518 examples (config=modal_response, splits=train,validation, subpop=all, subpops-in-data=cluster_0, cluster_1, overall)
+[data] dataset commit: bed59feca08a07d738247ae72cca67a6facf4b7d
+
+  Will evaluate 'Qwen3.5-9B-nz-wvs-modal_response-overall' on 'modal_response'
+  One pass over splits train,validation — 4518 examples, subpopulation: all, reasoning: False
+
+[eval] model commit: aa426537423b3c0718c6e0cd497a9f473683d3d6
+[save] config -> output/evals/Qwen3.5-9B-nz-wvs-modal_response-overall/modal_response-20260811_000839/config.json
+[eval] running pass over the full train + validation set...
+  [10/4518]  0.5 ex/s  elapsed 19s  ETA 2h 28m 38s
+  [20/4518]  0.4 ex/s  elapsed 45s  ETA 2h 51m 31s
+  [30/4518]  0.5 ex/s  elapsed 1m 05s  ETA 2h 43m 38s
+  [40/4518]  0.5 ex/s  elapsed 1m 23s  ETA 2h 36m 33s
+  [50/4518]  0.5 ex/s  elapsed 1m 41s  ETA 2h 31m 43s
+  [60/4518]  0.5 ex/s  elapsed 2m 00s  ETA 2h 29m 10s
+  [70/4518]  0.5 ex/s  elapsed 2m 18s  ETA 2h 26m 41s
+  [80/4518]  0.5 ex/s  elapsed 2m 38s  ETA 2h 26m 29s
+  [90/4518]  0.5 ex/s  elapsed 2m 59s  ETA 2h 26m 49s
+  [100/4518]  0.5 ex/s  elapsed 3m 19s  ETA 2h 27m 04s
+      so far: acc 61.6% (61/99)  avgCE 1.141  avgKL 0.565
+  [110/4518]  0.5 ex/s  elapsed 3m 39s  ETA 2h 26m 51s
+  [120/4518]  0.5 ex/s  elapsed 3m 59s  ETA 2h 26m 20s
+  [130/4518]  0.5 ex/s  elapsed 4m 18s  ETA 2h 25m 16s
+  [140/4518]  0.5 ex/s  elapsed 4m 37s  ETA 2h 24m 26s
+  [150/4518]  0.5 ex/s  elapsed 4m 56s  ETA 2h 24m 05s
+  [160/4518]  0.5 ex/s  elapsed 5m 16s  ETA 2h 23m 36s
+  [170/4518]  0.5 ex/s  elapsed 5m 35s  ETA 2h 23m 04s
+  [180/4518]  0.5 ex/s  elapsed 5m 56s  ETA 2h 23m 10s
+  [190/4518]  0.5 ex/s  elapsed 6m 15s  ETA 2h 22m 42s
+  [200/4518]  0.5 ex/s  elapsed 6m 35s  ETA 2h 22m 25s
+      so far: acc 46.2% (92/199)  avgCE 1.332  avgKL 0.550
+  [210/4518]  0.5 ex/s  elapsed 6m 55s  ETA 2h 22m 07s
+  [220/4518]  0.5 ex/s  elapsed 7m 16s  ETA 2h 22m 14s
+  [230/4518]  0.5 ex/s  elapsed 7m 37s  ETA 2h 22m 16s
+  [240/4518]  0.5 ex/s  elapsed 7m 56s  ETA 2h 21m 41s
+  [250/4518]  0.5 ex/s  elapsed 8m 16s  ETA 2h 21m 15s
+  [260/4518]  0.5 ex/s  elapsed 8m 35s  ETA 2h 20m 40s
+  [270/4518]  0.5 ex/s  elapsed 8m 54s  ETA 2h 20m 11s
+  [280/4518]  0.5 ex/s  elapsed 9m 15s  ETA 2h 20m 04s
+  [290/4518]  0.5 ex/s  elapsed 9m 35s  ETA 2h 19m 50s
+  [300/4518]  0.5 ex/s  elapsed 9m 56s  ETA 2h 19m 41s
+      so far: acc 47.8% (143/299)  avgCE 1.457  avgKL 0.576
+  [310/4518]  0.5 ex/s  elapsed 10m 16s  ETA 2h 19m 34s
+  [320/4518]  0.5 ex/s  elapsed 10m 36s  ETA 2h 19m 15s
+  [330/4518]  0.5 ex/s  elapsed 10m 56s  ETA 2h 18m 55s
+  [340/4518]  0.5 ex/s  elapsed 11m 17s  ETA 2h 18m 42s
+  [350/4518]  0.5 ex/s  elapsed 11m 38s  ETA 2h 18m 32s
+  [360/4518]  0.5 ex/s  elapsed 11m 58s  ETA 2h 18m 18s
+  [370/4518]  0.5 ex/s  elapsed 12m 21s  ETA 2h 18m 32s
+  [380/4518]  0.5 ex/s  elapsed 12m 42s  ETA 2h 18m 25s
+  [390/4518]  0.5 ex/s  elapsed 13m 05s  ETA 2h 18m 34s
+  [400/4518]  0.5 ex/s  elapsed 13m 26s  ETA 2h 18m 23s
+      so far: acc 53.4% (213/399)  avgCE 1.533  avgKL 0.578
+  [410/4518]  0.5 ex/s  elapsed 13m 46s  ETA 2h 17m 56s
+  [420/4518]  0.5 ex/s  elapsed 14m 05s  ETA 2h 17m 29s
+  [430/4518]  0.5 ex/s  elapsed 14m 24s  ETA 2h 16m 59s
+  [440/4518]  0.5 ex/s  elapsed 14m 44s  ETA 2h 16m 33s
+  [450/4518]  0.5 ex/s  elapsed 15m 03s  ETA 2h 16m 06s
+  [460/4518]  0.5 ex/s  elapsed 15m 22s  ETA 2h 15m 34s
+  [470/4518]  0.5 ex/s  elapsed 15m 45s  ETA 2h 15m 46s
+  [480/4518]  0.5 ex/s  elapsed 16m 07s  ETA 2h 15m 37s
+  [490/4518]  0.5 ex/s  elapsed 16m 26s  ETA 2h 15m 06s
+  [500/4518]  0.5 ex/s  elapsed 16m 47s  ETA 2h 14m 52s
+      so far: acc 56.3% (281/499)  avgCE 1.547  avgKL 0.570
+  [510/4518]  0.5 ex/s  elapsed 17m 06s  ETA 2h 14m 27s
+  [520/4518]  0.5 ex/s  elapsed 17m 25s  ETA 2h 13m 58s
+  [530/4518]  0.5 ex/s  elapsed 17m 44s  ETA 2h 13m 30s
+  [540/4518]  0.5 ex/s  elapsed 18m 03s  ETA 2h 13m 01s
+  [550/4518]  0.5 ex/s  elapsed 18m 22s  ETA 2h 12m 35s
+  [560/4518]  0.5 ex/s  elapsed 18m 42s  ETA 2h 12m 11s
+  [570/4518]  0.5 ex/s  elapsed 19m 01s  ETA 2h 11m 47s
+  [580/4518]  0.5 ex/s  elapsed 19m 21s  ETA 2h 11m 25s
+  [590/4518]  0.5 ex/s  elapsed 19m 42s  ETA 2h 11m 11s
+  [600/4518]  0.5 ex/s  elapsed 20m 03s  ETA 2h 10m 59s
+      so far: acc 53.9% (323/599)  avgCE 1.587  avgKL 0.613
+  [610/4518]  0.5 ex/s  elapsed 20m 23s  ETA 2h 10m 37s
+  [620/4518]  0.5 ex/s  elapsed 20m 44s  ETA 2h 10m 21s
+  [630/4518]  0.5 ex/s  elapsed 21m 06s  ETA 2h 10m 14s
+  [640/4518]  0.5 ex/s  elapsed 21m 27s  ETA 2h 09m 59s
+  [650/4518]  0.5 ex/s  elapsed 21m 50s  ETA 2h 09m 57s
+  [660/4518]  0.5 ex/s  elapsed 22m 09s  ETA 2h 09m 33s
+  [670/4518]  0.5 ex/s  elapsed 22m 30s  ETA 2h 09m 14s
+  [680/4518]  0.5 ex/s  elapsed 22m 49s  ETA 2h 08m 50s
+  [690/4518]  0.5 ex/s  elapsed 23m 10s  ETA 2h 08m 34s
+  [700/4518]  0.5 ex/s  elapsed 23m 32s  ETA 2h 08m 21s
+      so far: acc 50.8% (355/699)  avgCE 1.685  avgKL 0.717
+  [710/4518]  0.5 ex/s  elapsed 23m 54s  ETA 2h 08m 15s
+  [720/4518]  0.5 ex/s  elapsed 24m 15s  ETA 2h 07m 58s
+  [730/4518]  0.5 ex/s  elapsed 24m 36s  ETA 2h 07m 41s
+  [740/4518]  0.5 ex/s  elapsed 24m 58s  ETA 2h 07m 29s
+  [750/4518]  0.5 ex/s  elapsed 25m 18s  ETA 2h 07m 08s
+  [760/4518]  0.5 ex/s  elapsed 25m 38s  ETA 2h 06m 48s
+  [770/4518]  0.5 ex/s  elapsed 25m 58s  ETA 2h 06m 27s
+  [780/4518]  0.5 ex/s  elapsed 26m 19s  ETA 2h 06m 08s
+  [790/4518]  0.5 ex/s  elapsed 26m 41s  ETA 2h 05m 56s
+  [800/4518]  0.5 ex/s  elapsed 27m 01s  ETA 2h 05m 35s
+      so far: acc 48.9% (391/799)  avgCE 1.751  avgKL 0.739
+  [810/4518]  0.5 ex/s  elapsed 27m 22s  ETA 2h 05m 18s
+  [820/4518]  0.5 ex/s  elapsed 27m 43s  ETA 2h 05m 00s
+  [830/4518]  0.5 ex/s  elapsed 28m 03s  ETA 2h 04m 38s
+  [840/4518]  0.5 ex/s  elapsed 28m 22s  ETA 2h 04m 12s
+  [850/4518]  0.5 ex/s  elapsed 28m 42s  ETA 2h 03m 51s
+  [860/4518]  0.5 ex/s  elapsed 29m 01s  ETA 2h 03m 28s
+  [870/4518]  0.5 ex/s  elapsed 29m 21s  ETA 2h 03m 04s
+  [880/4518]  0.5 ex/s  elapsed 29m 40s  ETA 2h 02m 39s
+  [890/4518]  0.5 ex/s  elapsed 29m 59s  ETA 2h 02m 14s
+  [900/4518]  0.5 ex/s  elapsed 30m 19s  ETA 2h 01m 55s
+      so far: acc 47.7% (429/899)  avgCE 1.834  avgKL 0.796
+  [910/4518]  0.5 ex/s  elapsed 30m 39s  ETA 2h 01m 33s
+  [920/4518]  0.5 ex/s  elapsed 30m 59s  ETA 2h 01m 13s
+  [930/4518]  0.5 ex/s  elapsed 31m 19s  ETA 2h 00m 52s
+  [940/4518]  0.5 ex/s  elapsed 31m 43s  ETA 2h 00m 44s
+  [950/4518]  0.5 ex/s  elapsed 32m 02s  ETA 2h 00m 19s
+  [960/4518]  0.5 ex/s  elapsed 32m 21s  ETA 1h 59m 56s
+  [970/4518]  0.5 ex/s  elapsed 32m 41s  ETA 1h 59m 34s
+  [980/4518]  0.5 ex/s  elapsed 33m 00s  ETA 1h 59m 11s
+  [990/4518]  0.5 ex/s  elapsed 33m 23s  ETA 1h 58m 59s
+  [1000/4518]  0.5 ex/s  elapsed 33m 44s  ETA 1h 58m 42s
+      so far: acc 48.2% (482/999)  avgCE 1.836  avgKL 0.788
+  [1010/4518]  0.5 ex/s  elapsed 34m 05s  ETA 1h 58m 26s
+  [1020/4518]  0.5 ex/s  elapsed 34m 28s  ETA 1h 58m 15s
+  [1030/4518]  0.5 ex/s  elapsed 34m 51s  ETA 1h 58m 01s
+  [1040/4518]  0.5 ex/s  elapsed 35m 10s  ETA 1h 57m 39s
+  [1050/4518]  0.5 ex/s  elapsed 35m 31s  ETA 1h 57m 19s
+  [1060/4518]  0.5 ex/s  elapsed 35m 50s  ETA 1h 56m 56s
+  [1070/4518]  0.5 ex/s  elapsed 36m 11s  ETA 1h 56m 39s
+  [1080/4518]  0.5 ex/s  elapsed 36m 34s  ETA 1h 56m 26s
+  [1090/4518]  0.5 ex/s  elapsed 36m 56s  ETA 1h 56m 11s
+  [1100/4518]  0.5 ex/s  elapsed 37m 18s  ETA 1h 55m 56s
+      so far: acc 47.5% (522/1099)  avgCE 1.849  avgKL 0.831
+  [1110/4518]  0.5 ex/s  elapsed 37m 41s  ETA 1h 55m 44s
+  [1120/4518]  0.5 ex/s  elapsed 38m 03s  ETA 1h 55m 29s
+  [1130/4518]  0.5 ex/s  elapsed 38m 22s  ETA 1h 55m 03s
+  [1140/4518]  0.5 ex/s  elapsed 38m 41s  ETA 1h 54m 38s
+  [1150/4518]  0.5 ex/s  elapsed 38m 59s  ETA 1h 54m 13s
+  [1160/4518]  0.5 ex/s  elapsed 39m 18s  ETA 1h 53m 46s
+  [1170/4518]  0.5 ex/s  elapsed 39m 37s  ETA 1h 53m 22s
+  [1180/4518]  0.5 ex/s  elapsed 39m 57s  ETA 1h 53m 01s
+  [1190/4518]  0.5 ex/s  elapsed 40m 19s  ETA 1h 52m 45s
+  [1200/4518]  0.5 ex/s  elapsed 40m 39s  ETA 1h 52m 26s
+      so far: acc 47.9% (574/1199)  avgCE 1.871  avgKL 0.831
+  [1210/4518]  0.5 ex/s  elapsed 41m 00s  ETA 1h 52m 06s
+  [1220/4518]  0.5 ex/s  elapsed 41m 19s  ETA 1h 51m 42s
+  [1230/4518]  0.5 ex/s  elapsed 41m 38s  ETA 1h 51m 18s
+  [1240/4518]  0.5 ex/s  elapsed 41m 56s  ETA 1h 50m 53s
+  [1250/4518]  0.5 ex/s  elapsed 42m 15s  ETA 1h 50m 28s
+  [1260/4518]  0.5 ex/s  elapsed 42m 34s  ETA 1h 50m 04s
+  [1270/4518]  0.5 ex/s  elapsed 42m 52s  ETA 1h 49m 39s
+  [1280/4518]  0.5 ex/s  elapsed 43m 11s  ETA 1h 49m 15s
+  [1290/4518]  0.5 ex/s  elapsed 43m 30s  ETA 1h 48m 51s
+  [1300/4518]  0.5 ex/s  elapsed 43m 50s  ETA 1h 48m 32s
+      so far: acc 47.3% (615/1299)  avgCE 1.884  avgKL 0.861
+  [1310/4518]  0.5 ex/s  elapsed 44m 12s  ETA 1h 48m 15s
+  [1320/4518]  0.5 ex/s  elapsed 44m 33s  ETA 1h 47m 57s
+  [1330/4518]  0.5 ex/s  elapsed 44m 52s  ETA 1h 47m 33s
+  [1340/4518]  0.5 ex/s  elapsed 45m 10s  ETA 1h 47m 09s
+  [1350/4518]  0.5 ex/s  elapsed 45m 29s  ETA 1h 46m 45s
+  [1360/4518]  0.5 ex/s  elapsed 45m 48s  ETA 1h 46m 22s
+  [1370/4518]  0.5 ex/s  elapsed 46m 08s  ETA 1h 46m 02s
+  [1380/4518]  0.5 ex/s  elapsed 46m 28s  ETA 1h 45m 41s
+  [1390/4518]  0.5 ex/s  elapsed 46m 48s  ETA 1h 45m 20s
+  [1400/4518]  0.5 ex/s  elapsed 47m 08s  ETA 1h 44m 59s
+      so far: acc 48.2% (674/1399)  avgCE 1.843  avgKL 0.833
+  [1410/4518]  0.5 ex/s  elapsed 47m 28s  ETA 1h 44m 38s
+  [1420/4518]  0.5 ex/s  elapsed 47m 47s  ETA 1h 44m 16s
+  [1430/4518]  0.5 ex/s  elapsed 48m 08s  ETA 1h 43m 57s
+  [1440/4518]  0.5 ex/s  elapsed 48m 29s  ETA 1h 43m 38s
+  [1450/4518]  0.5 ex/s  elapsed 48m 48s  ETA 1h 43m 17s
+  [1460/4518]  0.5 ex/s  elapsed 49m 09s  ETA 1h 42m 56s
+  [1470/4518]  0.5 ex/s  elapsed 49m 29s  ETA 1h 42m 38s
+  [1480/4518]  0.5 ex/s  elapsed 49m 50s  ETA 1h 42m 17s
+  [1490/4518]  0.5 ex/s  elapsed 50m 11s  ETA 1h 42m 00s
+  [1500/4518]  0.5 ex/s  elapsed 50m 32s  ETA 1h 41m 40s
+      so far: acc 47.4% (711/1499)  avgCE 1.854  avgKL 0.825
+  [1510/4518]  0.5 ex/s  elapsed 50m 51s  ETA 1h 41m 19s
+  [1520/4518]  0.5 ex/s  elapsed 51m 11s  ETA 1h 40m 57s
+  [1530/4518]  0.5 ex/s  elapsed 51m 31s  ETA 1h 40m 37s
+  [1540/4518]  0.5 ex/s  elapsed 51m 51s  ETA 1h 40m 16s
+  [1550/4518]  0.5 ex/s  elapsed 52m 10s  ETA 1h 39m 54s
+  [1560/4518]  0.5 ex/s  elapsed 52m 30s  ETA 1h 39m 33s
+  [1570/4518]  0.5 ex/s  elapsed 52m 51s  ETA 1h 39m 15s
+  [1580/4518]  0.5 ex/s  elapsed 53m 15s  ETA 1h 39m 02s
+  [1590/4518]  0.5 ex/s  elapsed 53m 36s  ETA 1h 38m 43s
+  [1600/4518]  0.5 ex/s  elapsed 53m 56s  ETA 1h 38m 23s
+      so far: acc 46.8% (748/1599)  avgCE 1.876  avgKL 0.830
+  [1610/4518]  0.5 ex/s  elapsed 54m 16s  ETA 1h 38m 02s
+  [1620/4518]  0.5 ex/s  elapsed 54m 33s  ETA 1h 37m 36s
+  [1630/4518]  0.5 ex/s  elapsed 54m 49s  ETA 1h 37m 08s
+  [1640/4518]  0.5 ex/s  elapsed 55m 04s  ETA 1h 36m 39s
+  [1650/4518]  0.5 ex/s  elapsed 55m 20s  ETA 1h 36m 11s
+  [1660/4518]  0.5 ex/s  elapsed 55m 36s  ETA 1h 35m 43s
+  [1670/4518]  0.5 ex/s  elapsed 55m 50s  ETA 1h 35m 13s
+  [1680/4518]  0.5 ex/s  elapsed 56m 06s  ETA 1h 34m 46s
+  [1690/4518]  0.5 ex/s  elapsed 56m 22s  ETA 1h 34m 19s
+  [1700/4518]  0.5 ex/s  elapsed 56m 40s  ETA 1h 33m 57s
+      so far: acc 47.3% (803/1699)  avgCE 1.867  avgKL 0.830
+  [1710/4518]  0.5 ex/s  elapsed 56m 56s  ETA 1h 33m 29s
+  [1720/4518]  0.5 ex/s  elapsed 57m 14s  ETA 1h 33m 06s
+  [1730/4518]  0.5 ex/s  elapsed 57m 30s  ETA 1h 32m 40s
+  [1740/4518]  0.5 ex/s  elapsed 57m 46s  ETA 1h 32m 14s
+  [1750/4518]  0.5 ex/s  elapsed 58m 01s  ETA 1h 31m 47s
+  [1760/4518]  0.5 ex/s  elapsed 58m 19s  ETA 1h 31m 23s
+  [1770/4518]  0.5 ex/s  elapsed 58m 35s  ETA 1h 30m 57s
+  [1780/4518]  0.5 ex/s  elapsed 58m 48s  ETA 1h 30m 27s
+  [1790/4518]  0.5 ex/s  elapsed 59m 04s  ETA 1h 30m 01s
+  [1800/4518]  0.5 ex/s  elapsed 59m 20s  ETA 1h 29m 36s
+      so far: acc 46.5% (836/1799)  avgCE 1.910  avgKL 0.849
+  [1810/4518]  0.5 ex/s  elapsed 59m 31s  ETA 1h 29m 03s
+  [1820/4518]  0.5 ex/s  elapsed 59m 47s  ETA 1h 28m 38s
+  [1830/4518]  0.5 ex/s  elapsed 1h 00m 05s  ETA 1h 28m 15s
+  [1840/4518]  0.5 ex/s  elapsed 1h 00m 20s  ETA 1h 27m 49s
+  [1850/4518]  0.5 ex/s  elapsed 1h 00m 32s  ETA 1h 27m 18s
+  [1860/4518]  0.5 ex/s  elapsed 1h 00m 44s  ETA 1h 26m 48s
+  [1870/4518]  0.5 ex/s  elapsed 1h 00m 59s  ETA 1h 26m 22s
+  [1880/4518]  0.5 ex/s  elapsed 1h 01m 12s  ETA 1h 25m 53s
+  [1890/4518]  0.5 ex/s  elapsed 1h 01m 28s  ETA 1h 25m 29s
+  [1900/4518]  0.5 ex/s  elapsed 1h 01m 47s  ETA 1h 25m 07s
+      so far: acc 45.6% (866/1899)  avgCE 1.920  avgKL 0.858
+  [1910/4518]  0.5 ex/s  elapsed 1h 02m 03s  ETA 1h 24m 43s
+  [1920/4518]  0.5 ex/s  elapsed 1h 02m 20s  ETA 1h 24m 21s
+  [1930/4518]  0.5 ex/s  elapsed 1h 02m 36s  ETA 1h 23m 56s
+  [1940/4518]  0.5 ex/s  elapsed 1h 02m 54s  ETA 1h 23m 36s
+  [1950/4518]  0.5 ex/s  elapsed 1h 03m 07s  ETA 1h 23m 07s
+  [1960/4518]  0.5 ex/s  elapsed 1h 03m 14s  ETA 1h 22m 31s
+  [1970/4518]  0.5 ex/s  elapsed 1h 03m 31s  ETA 1h 22m 09s
+  [1980/4518]  0.5 ex/s  elapsed 1h 03m 49s  ETA 1h 21m 48s
+  [1990/4518]  0.5 ex/s  elapsed 1h 04m 06s  ETA 1h 21m 26s
+  [2000/4518]  0.5 ex/s  elapsed 1h 04m 21s  ETA 1h 21m 02s
+      so far: acc 44.8% (895/1999)  avgCE 1.945  avgKL 0.863
+  [2010/4518]  0.5 ex/s  elapsed 1h 04m 37s  ETA 1h 20m 37s
+  [2020/4518]  0.5 ex/s  elapsed 1h 04m 53s  ETA 1h 20m 15s
+  [2030/4518]  0.5 ex/s  elapsed 1h 05m 03s  ETA 1h 19m 44s
+  [2040/4518]  0.5 ex/s  elapsed 1h 05m 20s  ETA 1h 19m 22s
+  [2050/4518]  0.5 ex/s  elapsed 1h 05m 34s  ETA 1h 18m 56s
+  [2060/4518]  0.5 ex/s  elapsed 1h 05m 48s  ETA 1h 18m 31s
+  [2070/4518]  0.5 ex/s  elapsed 1h 06m 04s  ETA 1h 18m 08s
+  [2080/4518]  0.5 ex/s  elapsed 1h 06m 20s  ETA 1h 17m 45s
+  [2090/4518]  0.5 ex/s  elapsed 1h 06m 36s  ETA 1h 17m 22s
+  [2100/4518]  0.5 ex/s  elapsed 1h 06m 43s  ETA 1h 16m 50s
+      so far: acc 44.6% (936/2099)  avgCE 1.960  avgKL 0.868
+  [2110/4518]  0.5 ex/s  elapsed 1h 06m 56s  ETA 1h 16m 23s
+  [2120/4518]  0.5 ex/s  elapsed 1h 07m 10s  ETA 1h 15m 59s
+  [2130/4518]  0.5 ex/s  elapsed 1h 07m 25s  ETA 1h 15m 35s
+  [2140/4518]  0.5 ex/s  elapsed 1h 07m 42s  ETA 1h 15m 14s
+  [2150/4518]  0.5 ex/s  elapsed 1h 07m 59s  ETA 1h 14m 52s
+  [2160/4518]  0.5 ex/s  elapsed 1h 08m 14s  ETA 1h 14m 30s
+  [2170/4518]  0.5 ex/s  elapsed 1h 08m 30s  ETA 1h 14m 07s
+  [2180/4518]  0.5 ex/s  elapsed 1h 08m 47s  ETA 1h 13m 46s
+  [2190/4518]  0.5 ex/s  elapsed 1h 09m 03s  ETA 1h 13m 24s
+  [2200/4518]  0.5 ex/s  elapsed 1h 09m 09s  ETA 1h 12m 52s
+      so far: acc 44.5% (978/2199)  avgCE 1.975  avgKL 0.877
+  [2210/4518]  0.5 ex/s  elapsed 1h 09m 24s  ETA 1h 12m 28s
+  [2220/4518]  0.5 ex/s  elapsed 1h 09m 40s  ETA 1h 12m 07s
+  [2230/4518]  0.5 ex/s  elapsed 1h 09m 57s  ETA 1h 11m 46s
+  [2240/4518]  0.5 ex/s  elapsed 1h 10m 13s  ETA 1h 11m 25s
+  [2250/4518]  0.5 ex/s  elapsed 1h 10m 32s  ETA 1h 11m 06s
+  [2260/4518]  0.5 ex/s  elapsed 1h 10m 49s  ETA 1h 10m 45s
+  [2270/4518]  0.5 ex/s  elapsed 1h 11m 05s  ETA 1h 10m 24s
+  [2280/4518]  0.5 ex/s  elapsed 1h 11m 22s  ETA 1h 10m 03s
+  [2290/4518]  0.5 ex/s  elapsed 1h 11m 38s  ETA 1h 09m 42s
+  [2300/4518]  0.5 ex/s  elapsed 1h 11m 44s  ETA 1h 09m 11s
+      so far: acc 44.0% (1011/2299)  avgCE 1.981  avgKL 0.889
+  [2310/4518]  0.5 ex/s  elapsed 1h 11m 50s  ETA 1h 08m 40s
+  [2320/4518]  0.5 ex/s  elapsed 1h 11m 55s  ETA 1h 08m 08s
+  [2330/4518]  0.5 ex/s  elapsed 1h 12m 02s  ETA 1h 07m 39s
+  [2340/4518]  0.5 ex/s  elapsed 1h 12m 11s  ETA 1h 07m 11s
+  [2350/4518]  0.5 ex/s  elapsed 1h 12m 21s  ETA 1h 06m 45s
+  [2360/4518]  0.5 ex/s  elapsed 1h 12m 34s  ETA 1h 06m 22s
+  [2370/4518]  0.5 ex/s  elapsed 1h 12m 51s  ETA 1h 06m 01s
+  [2380/4518]  0.5 ex/s  elapsed 1h 13m 06s  ETA 1h 05m 40s
+  [2390/4518]  0.5 ex/s  elapsed 1h 13m 21s  ETA 1h 05m 18s
+  [2400/4518]  0.5 ex/s  elapsed 1h 13m 36s  ETA 1h 04m 57s
+      so far: acc 44.6% (1070/2399)  avgCE 1.992  avgKL 0.889
+  [2410/4518]  0.5 ex/s  elapsed 1h 13m 55s  ETA 1h 04m 39s
+  [2420/4518]  0.5 ex/s  elapsed 1h 14m 08s  ETA 1h 04m 17s
+  [2430/4518]  0.5 ex/s  elapsed 1h 14m 19s  ETA 1h 03m 52s
+  [2440/4518]  0.5 ex/s  elapsed 1h 14m 26s  ETA 1h 03m 24s
+  [2450/4518]  0.5 ex/s  elapsed 1h 14m 34s  ETA 1h 02m 57s
+  [2460/4518]  0.5 ex/s  elapsed 1h 14m 47s  ETA 1h 02m 34s
+  [2470/4518]  0.5 ex/s  elapsed 1h 15m 02s  ETA 1h 02m 12s
+  [2480/4518]  0.5 ex/s  elapsed 1h 15m 16s  ETA 1h 01m 51s
+  [2490/4518]  0.5 ex/s  elapsed 1h 15m 27s  ETA 1h 01m 27s
+  [2500/4518]  0.6 ex/s  elapsed 1h 15m 41s  ETA 1h 01m 05s
+      so far: acc 44.7% (1116/2499)  avgCE 2.013  avgKL 0.906
+  [2510/4518]  0.6 ex/s  elapsed 1h 15m 56s  ETA 1h 00m 44s
+  [2520/4518]  0.6 ex/s  elapsed 1h 16m 11s  ETA 1h 00m 24s
+  [2530/4518]  0.6 ex/s  elapsed 1h 16m 27s  ETA 1h 00m 04s
+  [2540/4518]  0.6 ex/s  elapsed 1h 16m 44s  ETA 59m 45s
+  [2550/4518]  0.6 ex/s  elapsed 1h 16m 52s  ETA 59m 19s
+  [2560/4518]  0.6 ex/s  elapsed 1h 17m 00s  ETA 58m 54s
+  [2570/4518]  0.6 ex/s  elapsed 1h 17m 09s  ETA 58m 29s
+  [2580/4518]  0.6 ex/s  elapsed 1h 17m 18s  ETA 58m 04s
+  [2590/4518]  0.6 ex/s  elapsed 1h 17m 31s  ETA 57m 42s
+  [2600/4518]  0.6 ex/s  elapsed 1h 17m 44s  ETA 57m 21s
+      so far: acc 45.3% (1178/2599)  avgCE 1.981  avgKL 0.894
+  [2610/4518]  0.6 ex/s  elapsed 1h 18m 01s  ETA 57m 02s
+  [2620/4518]  0.6 ex/s  elapsed 1h 18m 17s  ETA 56m 42s
+  [2630/4518]  0.6 ex/s  elapsed 1h 18m 31s  ETA 56m 22s
+  [2640/4518]  0.6 ex/s  elapsed 1h 18m 42s  ETA 55m 59s
+  [2650/4518]  0.6 ex/s  elapsed 1h 18m 56s  ETA 55m 39s
+  [2660/4518]  0.6 ex/s  elapsed 1h 19m 09s  ETA 55m 17s
+  [2670/4518]  0.6 ex/s  elapsed 1h 19m 23s  ETA 54m 56s
+  [2680/4518]  0.6 ex/s  elapsed 1h 19m 37s  ETA 54m 36s
+  [2690/4518]  0.6 ex/s  elapsed 1h 19m 49s  ETA 54m 14s
+  [2700/4518]  0.6 ex/s  elapsed 1h 20m 05s  ETA 53m 55s
+      so far: acc 44.9% (1212/2699)  avgCE 1.980  avgKL 0.884
+  [2710/4518]  0.6 ex/s  elapsed 1h 20m 21s  ETA 53m 36s
+  [2720/4518]  0.6 ex/s  elapsed 1h 20m 34s  ETA 53m 15s
+  [2730/4518]  0.6 ex/s  elapsed 1h 20m 42s  ETA 52m 51s
+  [2740/4518]  0.6 ex/s  elapsed 1h 20m 53s  ETA 52m 29s
+  [2750/4518]  0.6 ex/s  elapsed 1h 21m 01s  ETA 52m 05s
+  [2760/4518]  0.6 ex/s  elapsed 1h 21m 14s  ETA 51m 45s
+  [2770/4518]  0.6 ex/s  elapsed 1h 21m 29s  ETA 51m 25s
+  [2780/4518]  0.6 ex/s  elapsed 1h 21m 44s  ETA 51m 06s
+  [2790/4518]  0.6 ex/s  elapsed 1h 21m 58s  ETA 50m 46s
+  [2800/4518]  0.6 ex/s  elapsed 1h 22m 10s  ETA 50m 25s
+      so far: acc 45.2% (1265/2799)  avgCE 1.969  avgKL 0.872
+  [2810/4518]  0.6 ex/s  elapsed 1h 22m 27s  ETA 50m 07s
+  [2820/4518]  0.6 ex/s  elapsed 1h 22m 40s  ETA 49m 47s
+  [2830/4518]  0.6 ex/s  elapsed 1h 22m 49s  ETA 49m 24s
+  [2840/4518]  0.6 ex/s  elapsed 1h 23m 00s  ETA 49m 02s
+  [2850/4518]  0.6 ex/s  elapsed 1h 23m 12s  ETA 48m 42s
+  [2860/4518]  0.6 ex/s  elapsed 1h 23m 28s  ETA 48m 23s
+  [2870/4518]  0.6 ex/s  elapsed 1h 23m 44s  ETA 48m 05s
+  [2880/4518]  0.6 ex/s  elapsed 1h 23m 59s  ETA 47m 45s
+  [2890/4518]  0.6 ex/s  elapsed 1h 24m 14s  ETA 47m 27s
+  [2900/4518]  0.6 ex/s  elapsed 1h 24m 30s  ETA 47m 09s
+      so far: acc 45.4% (1315/2899)  avgCE 1.969  avgKL 0.870
+  [2910/4518]  0.6 ex/s  elapsed 1h 24m 42s  ETA 46m 48s
+  [2920/4518]  0.6 ex/s  elapsed 1h 24m 54s  ETA 46m 28s
+  [2930/4518]  0.6 ex/s  elapsed 1h 25m 06s  ETA 46m 07s
+  [2940/4518]  0.6 ex/s  elapsed 1h 25m 21s  ETA 45m 48s
+  [2950/4518]  0.6 ex/s  elapsed 1h 25m 37s  ETA 45m 30s
+  [2960/4518]  0.6 ex/s  elapsed 1h 25m 53s  ETA 45m 12s
+  [2970/4518]  0.6 ex/s  elapsed 1h 26m 00s  ETA 44m 49s
+  [2980/4518]  0.6 ex/s  elapsed 1h 26m 16s  ETA 44m 31s
+  [2990/4518]  0.6 ex/s  elapsed 1h 26m 28s  ETA 44m 11s
+  [3000/4518]  0.6 ex/s  elapsed 1h 26m 41s  ETA 43m 52s
+      so far: acc 45.6% (1368/2999)  avgCE 1.972  avgKL 0.869
+  [3010/4518]  0.6 ex/s  elapsed 1h 26m 50s  ETA 43m 30s
+  [3020/4518]  0.6 ex/s  elapsed 1h 27m 06s  ETA 43m 12s
+  [3030/4518]  0.6 ex/s  elapsed 1h 27m 20s  ETA 42m 53s
+  [3040/4518]  0.6 ex/s  elapsed 1h 27m 26s  ETA 42m 30s
+  [3050/4518]  0.6 ex/s  elapsed 1h 27m 31s  ETA 42m 07s
+  [3060/4518]  0.6 ex/s  elapsed 1h 27m 38s  ETA 41m 45s
+  [3070/4518]  0.6 ex/s  elapsed 1h 27m 53s  ETA 41m 27s
+  [3080/4518]  0.6 ex/s  elapsed 1h 28m 07s  ETA 41m 08s
+  [3090/4518]  0.6 ex/s  elapsed 1h 28m 17s  ETA 40m 48s
+  [3100/4518]  0.6 ex/s  elapsed 1h 28m 33s  ETA 40m 30s
+      so far: acc 45.7% (1415/3099)  avgCE 1.979  avgKL 0.876
+  [3110/4518]  0.6 ex/s  elapsed 1h 28m 46s  ETA 40m 11s
+  [3120/4518]  0.6 ex/s  elapsed 1h 28m 58s  ETA 39m 52s
+  [3130/4518]  0.6 ex/s  elapsed 1h 29m 16s  ETA 39m 35s
+  [3140/4518]  0.6 ex/s  elapsed 1h 29m 31s  ETA 39m 17s
+  [3150/4518]  0.6 ex/s  elapsed 1h 29m 41s  ETA 38m 57s
+  [3160/4518]  0.6 ex/s  elapsed 1h 29m 55s  ETA 38m 38s
+  [3170/4518]  0.6 ex/s  elapsed 1h 30m 05s  ETA 38m 18s
+  [3180/4518]  0.6 ex/s  elapsed 1h 30m 20s  ETA 38m 00s
+  [3190/4518]  0.6 ex/s  elapsed 1h 30m 35s  ETA 37m 42s
+  [3200/4518]  0.6 ex/s  elapsed 1h 30m 46s  ETA 37m 23s
+      so far: acc 45.5% (1457/3199)  avgCE 1.983  avgKL 0.877
+  [3210/4518]  0.6 ex/s  elapsed 1h 30m 55s  ETA 37m 02s
+  [3220/4518]  0.6 ex/s  elapsed 1h 31m 06s  ETA 36m 43s
+  [3230/4518]  0.6 ex/s  elapsed 1h 31m 20s  ETA 36m 25s
+  [3240/4518]  0.6 ex/s  elapsed 1h 31m 36s  ETA 36m 08s
+  [3250/4518]  0.6 ex/s  elapsed 1h 31m 52s  ETA 35m 50s
+  [3260/4518]  0.6 ex/s  elapsed 1h 32m 09s  ETA 35m 33s
+  [3270/4518]  0.6 ex/s  elapsed 1h 32m 22s  ETA 35m 15s
+  [3280/4518]  0.6 ex/s  elapsed 1h 32m 32s  ETA 34m 55s
+  [3290/4518]  0.6 ex/s  elapsed 1h 32m 37s  ETA 34m 34s
+  [3300/4518]  0.6 ex/s  elapsed 1h 32m 44s  ETA 34m 13s
+      so far: acc 45.4% (1499/3299)  avgCE 1.986  avgKL 0.876
+  [3310/4518]  0.6 ex/s  elapsed 1h 32m 53s  ETA 33m 54s
+  [3320/4518]  0.6 ex/s  elapsed 1h 33m 05s  ETA 33m 35s
+  [3330/4518]  0.6 ex/s  elapsed 1h 33m 21s  ETA 33m 18s
+  [3340/4518]  0.6 ex/s  elapsed 1h 33m 34s  ETA 33m 00s
+  [3350/4518]  0.6 ex/s  elapsed 1h 33m 49s  ETA 32m 42s
+  [3360/4518]  0.6 ex/s  elapsed 1h 34m 05s  ETA 32m 25s
+  [3370/4518]  0.6 ex/s  elapsed 1h 34m 13s  ETA 32m 05s
+  [3380/4518]  0.6 ex/s  elapsed 1h 34m 28s  ETA 31m 48s
+  [3390/4518]  0.6 ex/s  elapsed 1h 34m 41s  ETA 31m 30s
+  [3400/4518]  0.6 ex/s  elapsed 1h 34m 54s  ETA 31m 12s
+      so far: acc 44.9% (1527/3399)  avgCE 2.003  avgKL 0.885
+  [3410/4518]  0.6 ex/s  elapsed 1h 35m 10s  ETA 30m 55s
+  [3420/4518]  0.6 ex/s  elapsed 1h 35m 22s  ETA 30m 37s
+  [3430/4518]  0.6 ex/s  elapsed 1h 35m 32s  ETA 30m 18s
+  [3440/4518]  0.6 ex/s  elapsed 1h 35m 40s  ETA 29m 58s
+  [3450/4518]  0.6 ex/s  elapsed 1h 35m 50s  ETA 29m 40s
+  [3460/4518]  0.6 ex/s  elapsed 1h 36m 00s  ETA 29m 21s
+  [3470/4518]  0.6 ex/s  elapsed 1h 36m 13s  ETA 29m 03s
+  [3480/4518]  0.6 ex/s  elapsed 1h 36m 22s  ETA 28m 44s
+  [3490/4518]  0.6 ex/s  elapsed 1h 36m 33s  ETA 28m 26s
+  [3500/4518]  0.6 ex/s  elapsed 1h 36m 48s  ETA 28m 09s
+      so far: acc 45.4% (1588/3499)  avgCE 1.993  avgKL 0.878
+  [3510/4518]  0.6 ex/s  elapsed 1h 37m 03s  ETA 27m 52s
+  [3520/4518]  0.6 ex/s  elapsed 1h 37m 16s  ETA 27m 34s
+  [3530/4518]  0.6 ex/s  elapsed 1h 37m 32s  ETA 27m 18s
+  [3540/4518]  0.6 ex/s  elapsed 1h 37m 44s  ETA 27m 00s
+  [3550/4518]  0.6 ex/s  elapsed 1h 37m 52s  ETA 26m 41s
+  [3560/4518]  0.6 ex/s  elapsed 1h 37m 59s  ETA 26m 22s
+  [3570/4518]  0.6 ex/s  elapsed 1h 38m 07s  ETA 26m 03s
+  [3580/4518]  0.6 ex/s  elapsed 1h 38m 13s  ETA 25m 44s
+  [3590/4518]  0.6 ex/s  elapsed 1h 38m 26s  ETA 25m 26s
+  [3600/4518]  0.6 ex/s  elapsed 1h 38m 43s  ETA 25m 10s
+      so far: acc 45.3% (1631/3599)  avgCE 1.997  avgKL 0.887
+  [3610/4518]  0.6 ex/s  elapsed 1h 38m 57s  ETA 24m 53s
+  [3620/4518]  0.6 ex/s  elapsed 1h 39m 12s  ETA 24m 36s
+  [3630/4518]  0.6 ex/s  elapsed 1h 39m 29s  ETA 24m 20s
+  [3640/4518]  0.6 ex/s  elapsed 1h 39m 47s  ETA 24m 04s
+  [3650/4518]  0.6 ex/s  elapsed 1h 40m 02s  ETA 23m 47s
+  [3660/4518]  0.6 ex/s  elapsed 1h 40m 14s  ETA 23m 30s
+  [3670/4518]  0.6 ex/s  elapsed 1h 40m 21s  ETA 23m 11s
+  [3680/4518]  0.6 ex/s  elapsed 1h 40m 31s  ETA 22m 53s
+  [3690/4518]  0.6 ex/s  elapsed 1h 40m 43s  ETA 22m 36s
+  [3700/4518]  0.6 ex/s  elapsed 1h 40m 59s  ETA 22m 19s
+      so far: acc 45.6% (1685/3699)  avgCE 2.021  avgKL 0.902
+  [3710/4518]  0.6 ex/s  elapsed 1h 41m 14s  ETA 22m 03s
+  [3720/4518]  0.6 ex/s  elapsed 1h 41m 31s  ETA 21m 46s
+  [3730/4518]  0.6 ex/s  elapsed 1h 41m 47s  ETA 21m 30s
+  [3740/4518]  0.6 ex/s  elapsed 1h 42m 02s  ETA 21m 13s
+  [3750/4518]  0.6 ex/s  elapsed 1h 42m 15s  ETA 20m 56s
+  [3760/4518]  0.6 ex/s  elapsed 1h 42m 30s  ETA 20m 39s
+  [3770/4518]  0.6 ex/s  elapsed 1h 42m 45s  ETA 20m 23s
+  [3780/4518]  0.6 ex/s  elapsed 1h 42m 50s  ETA 20m 04s
+  [3790/4518]  0.6 ex/s  elapsed 1h 42m 58s  ETA 19m 46s
+  [3800/4518]  0.6 ex/s  elapsed 1h 43m 12s  ETA 19m 30s
+      so far: acc 45.9% (1745/3799)  avgCE 2.005  avgKL 0.892
+  [3810/4518]  0.6 ex/s  elapsed 1h 43m 28s  ETA 19m 13s
+  [3820/4518]  0.6 ex/s  elapsed 1h 43m 41s  ETA 18m 56s
+  [3830/4518]  0.6 ex/s  elapsed 1h 43m 56s  ETA 18m 40s
+  [3840/4518]  0.6 ex/s  elapsed 1h 44m 11s  ETA 18m 23s
+  [3850/4518]  0.6 ex/s  elapsed 1h 44m 25s  ETA 18m 07s
+  [3860/4518]  0.6 ex/s  elapsed 1h 44m 34s  ETA 17m 49s
+  [3870/4518]  0.6 ex/s  elapsed 1h 44m 46s  ETA 17m 32s
+  [3880/4518]  0.6 ex/s  elapsed 1h 44m 53s  ETA 17m 14s
+  [3890/4518]  0.6 ex/s  elapsed 1h 45m 01s  ETA 16m 57s
+  [3900/4518]  0.6 ex/s  elapsed 1h 45m 16s  ETA 16m 40s
+      so far: acc 45.8% (1784/3899)  avgCE 2.011  avgKL 0.895
+  [3910/4518]  0.6 ex/s  elapsed 1h 45m 26s  ETA 16m 23s
+  [3920/4518]  0.6 ex/s  elapsed 1h 45m 43s  ETA 16m 07s
+  [3930/4518]  0.6 ex/s  elapsed 1h 45m 51s  ETA 15m 50s
+  [3940/4518]  0.6 ex/s  elapsed 1h 45m 57s  ETA 15m 32s
+  [3950/4518]  0.6 ex/s  elapsed 1h 46m 07s  ETA 15m 15s
+  [3960/4518]  0.6 ex/s  elapsed 1h 46m 18s  ETA 14m 58s
+  [3970/4518]  0.6 ex/s  elapsed 1h 46m 32s  ETA 14m 42s
+  [3980/4518]  0.6 ex/s  elapsed 1h 46m 47s  ETA 14m 26s
+  [3990/4518]  0.6 ex/s  elapsed 1h 47m 05s  ETA 14m 10s
+  [4000/4518]  0.6 ex/s  elapsed 1h 47m 13s  ETA 13m 53s
+      so far: acc 45.9% (1837/3999)  avgCE 2.008  avgKL 0.897
+  [4010/4518]  0.6 ex/s  elapsed 1h 47m 29s  ETA 13m 37s
+  [4020/4518]  0.6 ex/s  elapsed 1h 47m 36s  ETA 13m 19s
+  [4030/4518]  0.6 ex/s  elapsed 1h 47m 51s  ETA 13m 03s
+  [4040/4518]  0.6 ex/s  elapsed 1h 48m 05s  ETA 12m 47s
+  [4050/4518]  0.6 ex/s  elapsed 1h 48m 19s  ETA 12m 31s
+  [4060/4518]  0.6 ex/s  elapsed 1h 48m 33s  ETA 12m 14s
+  [4070/4518]  0.6 ex/s  elapsed 1h 48m 49s  ETA 11m 58s
+  [4080/4518]  0.6 ex/s  elapsed 1h 49m 01s  ETA 11m 42s
+  [4090/4518]  0.6 ex/s  elapsed 1h 49m 16s  ETA 11m 26s
+  [4100/4518]  0.6 ex/s  elapsed 1h 49m 28s  ETA 11m 09s
+      so far: acc 46.0% (1884/4099)  avgCE 2.006  avgKL 0.893
+  [4110/4518]  0.6 ex/s  elapsed 1h 49m 42s  ETA 10m 53s
+  [4120/4518]  0.6 ex/s  elapsed 1h 49m 58s  ETA 10m 37s
+  [4130/4518]  0.6 ex/s  elapsed 1h 50m 13s  ETA 10m 21s
+  [4140/4518]  0.6 ex/s  elapsed 1h 50m 26s  ETA 10m 05s
+  [4150/4518]  0.6 ex/s  elapsed 1h 50m 37s  ETA 9m 48s
+  [4160/4518]  0.6 ex/s  elapsed 1h 50m 54s  ETA 9m 32s
+  [4170/4518]  0.6 ex/s  elapsed 1h 51m 09s  ETA 9m 16s
+  [4180/4518]  0.6 ex/s  elapsed 1h 51m 24s  ETA 9m 00s
+  [4190/4518]  0.6 ex/s  elapsed 1h 51m 40s  ETA 8m 44s
+  [4200/4518]  0.6 ex/s  elapsed 1h 51m 57s  ETA 8m 28s
+      so far: acc 45.8% (1925/4199)  avgCE 2.013  avgKL 0.896
+  [4210/4518]  0.6 ex/s  elapsed 1h 52m 13s  ETA 8m 12s
+  [4220/4518]  0.6 ex/s  elapsed 1h 52m 25s  ETA 7m 56s
+  [4230/4518]  0.6 ex/s  elapsed 1h 52m 35s  ETA 7m 39s
+  [4240/4518]  0.6 ex/s  elapsed 1h 52m 46s  ETA 7m 23s
+  [4250/4518]  0.6 ex/s  elapsed 1h 52m 56s  ETA 7m 07s
+  [4260/4518]  0.6 ex/s  elapsed 1h 53m 07s  ETA 6m 51s
+  [4270/4518]  0.6 ex/s  elapsed 1h 53m 20s  ETA 6m 34s
+  [4280/4518]  0.6 ex/s  elapsed 1h 53m 35s  ETA 6m 18s
+  [4290/4518]  0.6 ex/s  elapsed 1h 53m 57s  ETA 6m 03s
+  [4300/4518]  0.6 ex/s  elapsed 1h 54m 14s  ETA 5m 47s
+      so far: acc 46.0% (1978/4299)  avgCE 2.012  avgKL 0.897
+  [4310/4518]  0.6 ex/s  elapsed 1h 54m 34s  ETA 5m 31s
+  [4320/4518]  0.6 ex/s  elapsed 1h 54m 53s  ETA 5m 15s
+  [4330/4518]  0.6 ex/s  elapsed 1h 55m 10s  ETA 5m 00s
+  [4340/4518]  0.6 ex/s  elapsed 1h 55m 25s  ETA 4m 44s
+  [4350/4518]  0.6 ex/s  elapsed 1h 55m 36s  ETA 4m 27s
+  [4360/4518]  0.6 ex/s  elapsed 1h 55m 44s  ETA 4m 11s
+  [4370/4518]  0.6 ex/s  elapsed 1h 56m 05s  ETA 3m 55s
+  [4380/4518]  0.6 ex/s  elapsed 1h 56m 24s  ETA 3m 40s
+  [4390/4518]  0.6 ex/s  elapsed 1h 56m 36s  ETA 3m 23s
+  [4400/4518]  0.6 ex/s  elapsed 1h 56m 54s  ETA 3m 08s
+      so far: acc 46.1% (2030/4399)  avgCE 2.010  avgKL 0.895
+  [4410/4518]  0.6 ex/s  elapsed 1h 57m 07s  ETA 2m 52s
+  [4420/4518]  0.6 ex/s  elapsed 1h 57m 15s  ETA 2m 35s
+  [4430/4518]  0.6 ex/s  elapsed 1h 57m 27s  ETA 2m 19s
+  [4440/4518]  0.6 ex/s  elapsed 1h 57m 44s  ETA 2m 04s
+  [4450/4518]  0.6 ex/s  elapsed 1h 57m 57s  ETA 1m 48s
+  [4460/4518]  0.6 ex/s  elapsed 1h 58m 07s  ETA 1m 32s
+  [4470/4518]  0.6 ex/s  elapsed 1h 58m 26s  ETA 1m 16s
+  [4480/4518]  0.6 ex/s  elapsed 1h 58m 43s  ETA 1m 00s
+  [4490/4518]  0.6 ex/s  elapsed 1h 59m 04s  ETA 44s
+  [4500/4518]  0.6 ex/s  elapsed 1h 59m 23s  ETA 28s
+      so far: acc 46.1% (2075/4499)  avgCE 2.014  avgKL 0.896
+  [4510/4518]  0.6 ex/s  elapsed 1h 59m 40s  ETA 12s
+[save] per-question results -> output/evals/Qwen3.5-9B-nz-wvs-modal_response-overall/modal_response-20260811_000839/per_question_results.csv
+
+============================================================
+Evaluation Summary
+============================================================
+  Examples evaluated:  4518
+  Nan / failures:      0
+  Avg cross-entropy:   2.0201
+  Accuracy (exact):    46.2%
+  Correct:             2086/4518
+  Avg KL-divergence:   0.9008
+
+[done] evaluation complete (7194s)
+       Results saved to /home/james/code/AIML589/code/fine-tuning/output/evals/Qwen3.5-9B-nz-wvs-modal_response-overall/modal_response-20260811_000839

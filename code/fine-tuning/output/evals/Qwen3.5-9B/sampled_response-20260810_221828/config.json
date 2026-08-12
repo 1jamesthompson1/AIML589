@@ -1,0 +1,26 @@
+{
+  "target": "Qwen/Qwen3.5-9B",
+  "dataset": "sampled_response",
+  "split": "train,validation",
+  "splits": [
+    "train",
+    "validation"
+  ],
+  "subpopulation": null,
+  "reasoning": false,
+  "run_name": "sampled_response-20260810_221828",
+  "timestamp": "2026-08-10T22:18:37.121180",
+  "output_dir": "/home/james/code/AIML589/code/fine-tuning/output/evals/Qwen3.5-9B/sampled_response-20260810_221828",
+  "api_url": "http://localhost:8087",
+  "api_key": "EMPTY",
+  "max_tokens": 1000,
+  "top_logprobs": 20,
+  "temperature": 0.0,
+  "top_p": 1.0,
+  "presence_penalty": 0.0,
+  "num_test_examples": null,
+  "no_plots": true,
+  "dataset_sha": "bed59feca08a07d738247ae72cca67a6facf4b7d",
+  "model_sha": "c202236235762e1c871ad0ccb60c8ee5ba337b9a",
+  "elapsed_seconds": 3308
+}

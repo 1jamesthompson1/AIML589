@@ -322,6 +322,13 @@ def parse_args(argv=None):
         default=False,
         help="Enable reasoning mode (chain-of-thought)",
     )
+    p.add_argument(
+        "--max-retries",
+        type=int,
+        default=5,
+        help="Retries per request with exponential backoff (transient vLLM "
+        "5xx/connection errors are retried; 10 consecutive failures abort the run)",
+    )
 
     return p.parse_args(argv)
 
@@ -668,6 +675,58 @@ def _load_question_options():
     return lookup
 
 
+def _chat_with_retry(
+    client,
+    *,
+    model,
+    messages,
+    max_tokens,
+    top_logprobs,
+    temperature,
+    top_p,
+    presence_penalty,
+    reasoning,
+    retries=5,
+    base_delay=5.0,
+):
+    """Call chat.completions.create with exponential-backoff retries.
+
+    vLLM emits transient 5xx / connection errors while it restarts or
+    reloads LoRA adapters; a retry usually succeeds once the server
+    recovers, so a single blip must not silently drop an example.
+    """
+    import time
+
+    last_err = None
+    delay = base_delay
+    for attempt in range(retries):
+        try:
+            return client.chat.completions.create(
+                model=model,
+                messages=messages,
+                max_tokens=max_tokens,
+                logprobs=True,
+                top_logprobs=top_logprobs,
+                temperature=temperature,
+                top_p=top_p,
+                presence_penalty=presence_penalty,
+                extra_body={
+                    "top_k": 20,
+                    "chat_template_kwargs": {"enable_thinking": reasoning},
+                },
+            )
+        except Exception as e:
+            last_err = e
+            if attempt < retries - 1:
+                print(
+                    f"  [retry] request failed ({e.__class__.__name__}); "
+                    f"retrying in {delay:.0f}s ({attempt + 1}/{retries - 1})"
+                )
+                time.sleep(delay)
+                delay *= 2
+    raise last_err
+
+
 def _run_evaluation(
     client,
     ds,
@@ -677,6 +736,7 @@ def _run_evaluation(
     reasoning,
     output_dir,
     no_plots,
+    max_retries=5,
     temperature=0.0,
     top_p=1.0,
     presence_penalty=0.0,
@@ -697,6 +757,9 @@ def _run_evaluation(
     total_kl = 0.0
     correct_count = 0
     nan_count = 0
+    consecutive_failures = 0
+    max_consecutive_failures = 10
+    aborted = False
 
     print("[eval] running pass over the full train + validation set...")
     loop_t0 = time.time()
@@ -724,24 +787,31 @@ def _run_evaluation(
         ]
 
         try:
-            resp = client.chat.completions.create(
+            resp = _chat_with_retry(
+                client,
                 model=model,
                 messages=messages,
                 max_tokens=max_tokens,
-                logprobs=True,
                 top_logprobs=top_logprobs,
                 temperature=temperature,
                 top_p=top_p,
                 presence_penalty=presence_penalty,
-                extra_body={
-                    "top_k": 20,
-                    "chat_template_kwargs": {"enable_thinking": reasoning},
-                },
+                reasoning=reasoning,
+                retries=max_retries,
             )
         except Exception as e:
-            print(f"  [error] query failed at example {i}: {e}")
+            print(f"  [error] query failed at example {i} after retries: {e}")
             nan_count += 1
+            consecutive_failures += 1
+            if consecutive_failures >= max_consecutive_failures:
+                print(
+                    f"  [abort] {consecutive_failures} consecutive failures — "
+                    "server appears down; stopping early and saving what we have"
+                )
+                aborted = True
+                break
             continue
+        consecutive_failures = 0
 
         choice = resp.choices[0]
         msg = choice.message
@@ -845,7 +915,10 @@ def _run_evaluation(
         if has_expected_text:
             expected_text = example["expected_text"]
             row["expected_text"] = expected_text
-            if expected_text.strip().lower() == answer_text.strip().lower():
+            row["is_correct"] = (
+                expected_text.strip().lower() == answer_text.strip().lower()
+            )
+            if row["is_correct"]:
                 correct_count += 1
         elif first_token_mode and "expected_distribution" in example and categories:
             # No expected_text in the first-token config; the modal (most
@@ -854,7 +927,10 @@ def _run_evaluation(
             modal_idx = max(range(len(dist)), key=dist.__getitem__)
             modal_letter = example["answer_tokens"][modal_idx]
             row["expected_text"] = modal_letter
-            if answer_text.strip().rstrip(".").lower() == modal_letter.lower():
+            row["is_correct"] = (
+                answer_text.strip().rstrip(".").lower() == modal_letter.lower()
+            )
+            if row["is_correct"]:
                 correct_count += 1
 
         results.append(row)
@@ -872,30 +948,58 @@ def _run_evaluation(
     print("=" * 60)
     print(f"  Examples evaluated:  {len(results)}")
     print(f"  Nan / failures:      {nan_count}")
+    if aborted:
+        print("  NOTE: run aborted early (server unresponsive); results are partial")
+    if len(results) == 0:
+        print("  No results collected — nothing to report.")
+        return True
 
-    if len(results) > nan_count:
-        avg_ce = total_ce / max(len(results) - nan_count, 1)
-        print(f"  Avg cross-entropy:   {avg_ce:.4f}")
-    if (has_expected_text or first_token_mode) and len(results) > nan_count:
-        accuracy = correct_count / max(len(results) - nan_count, 1) * 100
-        metric_name = (
-            "Accuracy (modal letter)" if first_token_mode else "Accuracy (exact)"
+    print()
+    print("  --- By subpopulation ---")
+    print(f"  {'subpop':<10} {'n':>5} {'accuracy':>9} {'avgCE':>8} {'avgKL':>8}")
+    for subpop in sorted({r.get("subpopulation", "") for r in results}):
+        rows = [r for r in results if r.get("subpopulation") == subpop]
+        n = len(rows)
+        n_ce = sum(1 for r in rows if r.get("cross_entropy") is not None)
+        n_kl = sum(1 for r in rows if r.get("kl_divergence") is not None)
+        acc = (
+            sum(1 for r in rows if r.get("is_correct")) / n * 100
+            if rows and any("is_correct" in r for r in rows)
+            else float("nan")
         )
-        print(f"  {metric_name}:    {accuracy:.1f}%")
-        print(f"  Correct:             {correct_count}/{len(results) - nan_count}")
-    if total_kl > 0 and len(results) > 0:
-        avg_kl = total_kl / max(len(results), 1)
-        print(f"  Avg KL-divergence:   {avg_kl:.4f}")
+        avg_ce = (
+            sum(r["cross_entropy"] for r in rows if r.get("cross_entropy") is not None)
+            / n_ce
+            if n_ce
+            else float("nan")
+        )
+        avg_kl = (
+            sum(r["kl_divergence"] for r in rows if r.get("kl_divergence") is not None)
+            / n_kl
+            if n_kl
+            else float("nan")
+        )
+        acc_str = f"{acc:.1f}%" if acc == acc else "  n/a"
+        print(
+            f"  {(subpop or 'all'):<10} {n:>5} {acc_str:>9}"
+            f" {avg_ce:>8.4f} {avg_kl:>8.4f}"
+        )
+    print()
 
     elapsed = time.time() - start
     config_path = output_dir / "config.json"
     if config_path.exists():
         config = json.loads(config_path.read_text())
         config["elapsed_seconds"] = round(elapsed)
+        if aborted:
+            # Partial runs are disregarded downstream (batch_eval skips runs
+            # flagged aborted) — the run must be redone from scratch.
+            config["aborted"] = True
         config_path.write_text(json.dumps(config, indent=2))
     print()
     print(f"[done] evaluation complete ({elapsed:.0f}s)")
     print(f"       Results saved to {output_dir.resolve()}")
+    return aborted
 
 
 def main():
@@ -1019,6 +1123,7 @@ def main():
         "presence_penalty": args.presence_penalty,
         "num_test_examples": args.num_test_examples,
         "no_plots": args.no_plots,
+        "max_retries": args.max_retries,
         "dataset_sha": dataset_sha,
         "model_sha": model_sha,
     }
@@ -1039,9 +1144,7 @@ def main():
         reasoning=args.reasoning,
         output_dir=output_dir,
         no_plots=args.no_plots,
-        temperature=args.temperature,
-        top_p=args.top_p,
-        presence_penalty=args.presence_penalty,
+        max_retries=args.max_retries,
     )
 
 

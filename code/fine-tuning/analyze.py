@@ -1,192 +1,294 @@
 import marimo
 
-__generated_with = "0.23.14"
+__generated_with = "0.23.16"
 app = marimo.App(width="medium")
 
 
 @app.cell
 def _():
-    import marimo as mo
-    import pandas as pd
     import json
+    import marimo as mo
+    import numpy as np
+    import pandas as pd
     from pathlib import Path
 
-    return Path, json, mo, pd
+    EVALS_ROOT = Path(__file__).resolve().parent / "output" / "evals"
+    FIGS_DIR = Path(__file__).resolve().parent.parent / "figures"
+    return EVALS_ROOT, FIGS_DIR, json, mo, np, pd
 
 
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    # Analyze
+    ## Find tune results table
 
-    The purpose of this notebook is to interrogate the evaluation output found in `output/evals` and generate figures and statistics for reports.
+    For each base model: one row per fine-tuned version (base model at the
+    top), columns = accuracy / cross-entropy / KL divergence on the train,
+    validation and overall splits. All metrics come from the modal eval config
+    (``modal_response`` so accuracy
+    always means exact match against the modal response and CE/KL are against
+    the empirical response distribution. Every fine-tuned version is matched
+    to the subpopulation it was trained on (cluster\_0 / cluster\_1 /
+    overall); the base model is scored on the overall population. The LaTeX
+    tables (pandas ``to_latex``, booktabs) are written to
+    ``code/figures/`` as ``ft-results-<model>.tex`` and included in the report
+    with ``\ctable{...}``.
     """)
     return
 
 
 @app.cell
-def _(Path, json):
-    # Reading in the evaluation results
-    EVALS_DIR = Path("output/evals")
+def _(EVALS_ROOT, json, np, pd):
+    # Building the main table data.
 
-    def load_evals():
-        evals = []
-        if not EVALS_DIR.exists():
-            return evals
-        for model_dir in sorted(EVALS_DIR.iterdir()):
+    MAIN_MODAL_CONFIGS = ("modal_response",)
+
+    METHOD_PRETTY = {
+        "modal_response": "Modal response",
+        "sampled_response": "Sampled response",
+        "first_token_distribution": "First token",
+        "full_string_distribution": "Full string",
+    }
+    POP_PRETTY = {
+        "cluster_0": "cluster 0",
+        "cluster_1": "cluster 1",
+        "overall": "overall",
+    }
+    METHOD_ORDER = [
+        "modal_response",
+        "sampled_response",
+        "first_token_distribution",
+        "full_string_distribution",
+    ]
+    POP_ORDER = {"cluster_0": 0, "cluster_1": 1, "overall": 2}
+    SPLITS = ["train", "validation", "overall"]
+    METRICS = ["accuracy", "cross_entropy", "kl_divergence"]
+
+    def base_and_method(model_name):
+        # "{base}-nz-wvs-{method}" -> (base, method); no suffix -> (name, "base")
+        if "nz-wvs-" in model_name:
+            base, method = model_name.split("nz-wvs-", 1)
+            return base.rstrip("-"), method
+        return model_name, "base"
+
+    def collect_modal_metrics():
+        """Per (model, subpopulation, split) mean metrics, averaged over the
+        system prompts, from the newest non-reasoning modal-config eval run.
+
+        Older eval runs did not tag every row with a split/subpopulation:
+        they are treated as validation-only over the whole population, so
+        their train columns come out as NaN (rendered as "--" in the table).
+        """
+        per_prompt = []
+        for model_dir in sorted(EVALS_ROOT.iterdir()):
             if not model_dir.is_dir():
                 continue
-            for run_dir in sorted(model_dir.iterdir()):
-                if not run_dir.is_dir():
+            runs = []
+            for run_dir in model_dir.iterdir():
+                cfg_path = run_dir / "config.json"
+                if not cfg_path.exists():
                     continue
-                config_path = run_dir / "config.json"
-                if not config_path.exists():
+                cfg = json.loads(cfg_path.read_text())
+                if cfg.get("dataset") not in MAIN_MODAL_CONFIGS or cfg.get("reasoning"):
                     continue
-                config = json.loads(config_path.read_text())
-                evals.append(
+                runs.append((cfg.get("timestamp", ""), run_dir))
+            if not runs:
+                continue
+            _, run_dir = sorted(runs)[-1]
+            df = pd.read_csv(run_dir / "per_question_results.csv")
+            if df.empty or not {"expected_text", "model_answer"}.issubset(df.columns):
+                continue
+            df = df.assign(
+                subpopulation=df["subpopulation"]
+                if "subpopulation" in df
+                else "overall",
+                split=df["split"] if "split" in df else "validation",
+            )
+            base, method = base_and_method(model_dir.name)
+            for (pop, split, sp_id), h in df.groupby(
+                ["subpopulation", "split", "system_prompt_id"], dropna=False
+            ):
+                acc = (
+                    h["expected_text"].str.strip().str.lower()
+                    == h["model_answer"].str.strip().str.lower()
+                ).mean() * 100
+                per_prompt.append(
                     {
                         "model": model_dir.name,
-                        "model_full": config.get("target", ""),
-                        "dataset": config.get("dataset", ""),
-                        "population": config.get("population", ""),
-                        "run_name": run_dir.name,
-                        "timestamp": config.get("timestamp", ""),
-                        "reasoning": config.get("reasoning", None),
-                        "num_test_examples": config.get("num_test_examples", None),
-                        "config_path": config_path,
-                        "results_path": run_dir / "per_question_results.csv",
-                        "figures_path": run_dir / "figures",
+                        "base_model": base,
+                        "method": method,
+                        "subpopulation": pop,
+                        "split": split,
+                        "system_prompt_id": sp_id,
+                        "n": len(h),
+                        "accuracy": acc,
+                        "cross_entropy": h["cross_entropy"].mean(),
+                        "kl_divergence": h["kl_divergence"].mean(),
                     }
                 )
-        return evals
+        df = pd.DataFrame(per_prompt)
+        if df.empty:
+            return df
 
-    evals = load_evals()
-    len(evals)
-    return (evals,)
+        def mean_over_prompts(sub):
+            return (
+                sub.groupby(
+                    ["model", "base_model", "method", "subpopulation", "split"],
+                    dropna=False,
+                )[METRICS]
+                .mean()
+                .reset_index()
+            )
 
+        by_split = mean_over_prompts(df)
+        # Overall = train + validation pooled per prompt, weighted by question
+        # count so each question contributes equally.
+        combined = []
+        for (model, base, method, pop, sp_id), h in df.groupby(
+            ["model", "base_model", "method", "subpopulation", "system_prompt_id"],
+            dropna=False,
+        ):
+            combined.append(
+                {
+                    "model": model,
+                    "base_model": base,
+                    "method": method,
+                    "subpopulation": pop,
+                    "system_prompt_id": sp_id,
+                    "accuracy": np.average(h["accuracy"], weights=h["n"]),
+                    "cross_entropy": np.average(h["cross_entropy"], weights=h["n"]),
+                    "kl_divergence": np.average(h["kl_divergence"], weights=h["n"]),
+                }
+            )
+        combined = pd.DataFrame(combined)
+        combined["split"] = "overall"
+        return pd.concat([by_split, mean_over_prompts(combined)], ignore_index=True)
 
-@app.cell(hide_code=True)
-def _(mo):
-    mo.md(r"""
-    ## Is fine-tuning robust to reasoning vs non-reasoning prompts?
+    def build_main_tables():
+        """dict base_model -> DataFrame, one row per fine-tuned version (base
+        first), 9 columns = 3 metrics x 3 splits. Each adapter is matched to
+        its own training subpopulation."""
+        metrics = collect_modal_metrics()
+        tables = {}
+        for base_model in sorted(metrics["base_model"].unique()):
+            sub = metrics[metrics["base_model"] == base_model]
+            rows = []
+            base_row = sub[
+                (sub["method"] == "base") & (sub["subpopulation"] == "overall")
+            ]
+            if not base_row.empty:
+                rows.append((0, 0, "Base", base_row))
+            adapters = []
+            for method, g in sub[sub["method"] != "base"].groupby(
+                "method", dropna=False
+            ):
+                target_pop = method.rsplit("-", 1)[-1]
+                matched = g[g["subpopulation"] == target_pop]
+                if matched.empty:
+                    continue
+                stem = method.rsplit("-", 1)[0]
+                adapters.append(
+                    (
+                        METHOD_ORDER.index(stem)
+                        if stem in METHOD_ORDER
+                        else len(METHOD_ORDER),
+                        POP_ORDER.get(target_pop, len(POP_ORDER)),
+                        f"{METHOD_PRETTY.get(stem, stem)} ({POP_PRETTY.get(target_pop, target_pop)})",
+                        matched,
+                    )
+                )
+            rows += sorted(adapters, key=lambda r: (r[0], r[1]))
 
-    The finetuning is done with reasoning turned off. Does this finetuning have an effect even when reasoning is turned on?
+            table_rows = []
+            for _, _, label, g in rows:
+                piv = g.set_index("split")
+                row = {"label": label}
+                for split in SPLITS:
+                    for metric in METRICS:
+                        row[f"{metric}_{split}"] = (
+                            float("nan")
+                            if split not in piv.index
+                            else piv.loc[split, metric]
+                        )
+                table_rows.append(row)
+            tables[base_model] = pd.DataFrame(table_rows)
+        return tables
 
-    To answer this question, we can compare the evaluation results of a model and see if the effect of finetuning is consistent across reasoning and non-reasoning runs.
-    """)
-    return
+    def show_main_tables():
+        for base_model, table in build_main_tables().items():
+            print(
+                f"\n=== {base_model} — matched to training subpopulation, modal eval config ==="
+            )
+            print(table.round(3).to_string(index=False))
+
+    show_main_tables()
+    tables = build_main_tables()
+    return (tables,)
 
 
 @app.cell
-def _(evals, mo, pd):
-    def _make_pairs(evals):
-        result = []
-        for e in evals:
-            if e["reasoning"]:
-                continue
-            key = (e["model"], e["dataset"], e["population"])
-            for other in evals:
-                if (
-                    other["reasoning"]
-                    and (other["model"], other["dataset"], other["population"]) == key
-                ):
-                    result.append({"no_reasoning": e, "with_reasoning": other})
-        return result
+def _(FIGS_DIR, pd, tables):
+    # Rendering the tables to LaTeX (pandas to_latex, booktabs).
+    # Each file holds only the tabular; the report wraps it via
+    # \ctable{fine-tuning/main-table-<model>.tex}{<caption>}.
 
-    _pairs = _make_pairs(evals)
-    rows = []
-    for pair in _pairs:
-        nr = pair["no_reasoning"]
-        wr = pair["with_reasoning"]
-        try:
-            nr_df = pd.read_csv(nr["results_path"])
-            wr_df = pd.read_csv(wr["results_path"])
-        except FileNotFoundError:
-            continue
-
-        def _summarize(df):
-            ce = (
-                df["cross_entropy"].dropna().mean()
-                if "cross_entropy" in df.columns
-                else None
+    def render_tables_to_tex():
+        METRIC_LABELS = ["Accuracy", "Cross-entropy", "KL divergence"]
+        METRIC_COLS = ["accuracy", "cross_entropy", "kl_divergence"]
+        SPLIT_LABELS = ["train", "validation", "overall"]
+        # accuracy higher-better, CE and KL lower-better
+        SENSES = ["max", "min", "min"]
+        FORMATS = ["{:.1f}", "{:.2f}", "{:.3f}"]
+        written = []
+        for base_model, table in tables.items():
+            columns = pd.MultiIndex.from_product([METRIC_LABELS, SPLIT_LABELS])
+            out = pd.DataFrame(index=table["label"], columns=columns)
+            out.index.name = "Model"
+            # Position of the best value per column (first on ties); the base
+            # row competes like any other. NaN cells never win.
+            best_pos = {}
+            for mcol, sense in zip(METRIC_COLS, SENSES):
+                for slabel in SPLIT_LABELS:
+                    col = table[f"{mcol}_{slabel}"].dropna()
+                    best_pos[(mcol, slabel)] = (
+                        None
+                        if col.empty
+                        else (col.idxmax() if sense == "max" else col.idxmin())
+                    )
+            for ri, row_label in enumerate(table["label"]):
+                for mi, (mcol, fmt) in enumerate(zip(METRIC_COLS, FORMATS)):
+                    for si, slabel in enumerate(SPLIT_LABELS):
+                        val = table[f"{mcol}_{slabel}"].iloc[ri]
+                        if pd.isna(val):
+                            text = "--"
+                        else:
+                            text = fmt.format(val)
+                            if (
+                                best_pos[(mcol, slabel)] is not None
+                                and ri == best_pos[(mcol, slabel)]
+                            ):
+                                text = f"\\textbf{{{text}}}"
+                        out.loc[row_label, (METRIC_LABELS[mi], slabel)] = text
+            tex = out.to_latex(
+                column_format="l" + "r" * 9,
+                escape=False,
+                index_names=False,
+                multicolumn_format="l",
             )
-            kl = (
-                df["kl_divergence"].dropna().mean()
-                if "kl_divergence" in df.columns
-                else None
+            # Put the "Model" header in the top-left corner of the first header row.
+            tex = tex.replace(
+                " & \\multicolumn{3}{l}{Accuracy}",
+                "Model & \\multicolumn{3}{l}{Accuracy}",
+                1,
             )
-            if "expected_text" in df.columns and "model_answer" in df.columns:
-                acc = (
-                    df["expected_text"].str.strip().str.lower()
-                    == df["model_answer"].str.strip().str.lower()
-                ).mean() * 100
-            else:
-                acc = None
-            return ce, kl, acc
+            out_path = FIGS_DIR / f"ft-results-{base_model}.tex"
+            out_path.parent.mkdir(parents=True, exist_ok=True)
+            out_path.write_text(tex)
+            written.append(out_path)
+        return written
 
-        nr_ce, nr_kl, nr_acc = _summarize(nr_df)
-        wr_ce, wr_kl, wr_acc = _summarize(wr_df)
-
-        def pick(v_nr, v_wr, lower_better=True):
-            if v_nr is None or v_wr is None:
-                return ""
-            if lower_better:
-                return (
-                    "reasoning"
-                    if v_wr < v_nr
-                    else "no_reasoning"
-                    if v_wr > v_nr
-                    else "tie"
-                )
-            return (
-                "reasoning" if v_wr > v_nr else "no_reasoning" if v_wr < v_nr else "tie"
-            )
-
-        rows.append(
-            {
-                "model": nr["model"],
-                "dataset": nr["dataset"],
-                "population": nr["population"],
-                "no_reasoning_run": nr["run_name"],
-                "with_reasoning_run": wr["run_name"],
-                "nr_cross_entropy": round(nr_ce, 4) if nr_ce is not None else "",
-                "wr_cross_entropy": round(wr_ce, 4) if wr_ce is not None else "",
-                "ce_better": pick(nr_ce, wr_ce),
-                "nr_kl": round(nr_kl, 4) if nr_kl is not None else "",
-                "wr_kl": round(wr_kl, 4) if wr_kl is not None else "",
-                "kl_better": pick(nr_kl, wr_kl),
-                "nr_acc": f"{nr_acc:.1f}%" if nr_acc is not None else "",
-                "wr_acc": f"{wr_acc:.1f}%" if wr_acc is not None else "",
-                "acc_better": pick(nr_acc, wr_acc, lower_better=False),
-            }
-        )
-
-    performance_comparison = pd.DataFrame(rows)
-    mo.ui.table(performance_comparison)
-    return
-
-
-@app.cell(hide_code=True)
-def _(mo):
-    mo.md(r"""
-    ## Efficacy of fine-tuning
-
-    There are three sorts of fine-tuning that has been explored. SFT using modal response expected text, SFT using sampled response text and distributional fine-tuning using the ground truth distribution of the population response.
-
-    To understand efficacy we can look at three metrics:
-
-    - Accuracy: How often does the model get the correct answer?
-    - KL Divergence: How close is the model's predicted distribution to the ground truth distribution?
-    - Cross-Entropy: How well does the model's predicted distribution match the ground truth distribution?
-
-    The first metric is uniquely relevant to the first training method as the modal is only ever seen the modal response so its distribution is unlikely to match the ground truth distribution, yet it should be better at the responding with the right answer.
-
-    The second and third metrics are uniquely relevant the other training methods. These method are trying ot not just get the model to have the right answer but to also have the same level of uncertainty as the population. Therefore its accuracy might be lower but its KL divergence and cross-entropy should be better.
-
-    All comparisons will be made against the base model. Furthermore there are some evaluation time parameters that are varied:
-    - Reasoning vs non-reasoning
-    - Dataset split
-    """)
+    table_files = render_tables_to_tex()
+    table_files
     return
 
 

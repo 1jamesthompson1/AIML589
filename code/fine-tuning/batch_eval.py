@@ -170,6 +170,8 @@ def existing_completed_runs(model_short: str) -> set[tuple]:
             continue
         if config.get("reasoning"):
             continue  # reasoning run — not the standard single-pass eval
+        if config.get("aborted"):
+            continue  # partial run — disregarded, must be redone
         splits = config.get("splits") or []
         if not {"train", "validation"}.issubset(splits):
             continue  # must cover both splits
@@ -260,22 +262,27 @@ def main():
         total_s = len(model_jobs) * TIME_NO_REASONING
         print(f"  {short}")
         print(
-            f"    missing: {len(model_jobs)} full-set eval(s)"
+            f"    missing: {len(model_jobs)} eval(s)"
+            f"  subpopulation: {args.subpopulation or 'all'}"
             f"  est. sequential time: {_fmt_duration(total_s)}"
         )
         print()
 
     print(
-        f"  Totals: {len(jobs)} full-set eval(s) "
-        "(one pass over the whole train + validation split each)"
+        f"  Totals: {len(jobs)} eval(s) "
+        "(each a train + validation pass for the requested subpopulation)"
     )
-    if args.subpopulation:
-        print(f"  Subpopulation filter: {args.subpopulation}")
     print()
 
     # Server capacity section
     if kv_conc is not None:
         optimal = min(8, int(kv_conc))
+        if has_loras:
+            # Requests to different LoRA adapters can't be batched and force
+            # adapter (re)loads on the server; keep concurrency low so parallel
+            # evals don't churn the LoRA manager (this crashed the engine once).
+            optimal = min(2, optimal)
+            print("  LoRA adapters present — capping --concurrency at 2")
         print(f"  Server KV cache capacity: {kv_conc:.1f} concurrent sequences")
         print(f"  Recommended --concurrency: {optimal}")
         print("    (each eval is one long pass over ~2000 examples)")
@@ -375,17 +382,33 @@ def main():
             print(f"  [done]  {label}  (elapsed {job_elapsed})")
         return ret
 
-    with ThreadPoolExecutor(max_workers=concurrency) as pool:
-        futures = {pool.submit(run_eval, *j): j for j in jobs}
-        done_count = 0
-        for future in as_completed(futures):
-            future.result()
-            done_count += 1
-            print(
-                f"[batch] progress: {done_count}/{len(futures)} jobs done", flush=True
-            )
+    def run_jobs(job_list):
+        """Run a list of jobs, returning the ones that failed."""
+        with ThreadPoolExecutor(max_workers=concurrency) as pool:
+            futures = {pool.submit(run_eval, *j): j for j in job_list}
+            failed_jobs = []
+            done_count = 0
+            for future in as_completed(futures):
+                job = futures[future]
+                try:
+                    ret = future.result()
+                except Exception as e:
+                    ret = 1
+                    print(f"  [exception] {job}: {e}")
+                if ret != 0:
+                    failed_jobs.append(job)
+                done_count += 1
+                print(
+                    f"[batch] progress: {done_count}/{len(futures)} jobs done",
+                    flush=True,
+                )
+            return failed_jobs
 
-    failed = sum(1 for f in futures if f.exception() is not None or f.result() != 0)
+    failed_jobs = run_jobs(jobs)
+    if failed_jobs:
+        print(f"\n[batch] retrying {len(failed_jobs)} failed job(s)...\n")
+        failed_jobs = run_jobs(failed_jobs)
+    failed = len(failed_jobs)
     elapsed = time.monotonic() - t0
     if failed:
         print(

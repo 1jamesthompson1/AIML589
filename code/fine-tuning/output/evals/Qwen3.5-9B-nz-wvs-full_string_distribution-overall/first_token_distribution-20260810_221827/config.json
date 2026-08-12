@@ -1,0 +1,26 @@
+{
+  "target": "Qwen3.5-9B-nz-wvs-full_string_distribution-overall",
+  "dataset": "first_token_distribution",
+  "split": "train,validation",
+  "splits": [
+    "train",
+    "validation"
+  ],
+  "subpopulation": null,
+  "reasoning": false,
+  "run_name": "first_token_distribution-20260810_221827",
+  "timestamp": "2026-08-10T22:18:49.421250",
+  "output_dir": "/home/james/code/AIML589/code/fine-tuning/output/evals/Qwen3.5-9B-nz-wvs-full_string_distribution-overall/first_token_distribution-20260810_221827",
+  "api_url": "http://localhost:8087",
+  "api_key": "EMPTY",
+  "max_tokens": 1000,
+  "top_logprobs": 20,
+  "temperature": 0.0,
+  "top_p": 1.0,
+  "presence_penalty": 0.0,
+  "num_test_examples": null,
+  "no_plots": true,
+  "dataset_sha": "bed59feca08a07d738247ae72cca67a6facf4b7d",
+  "model_sha": "15477db29b02fb4556facb35e989b4251a7484b0",
+  "elapsed_seconds": 4194
+}
