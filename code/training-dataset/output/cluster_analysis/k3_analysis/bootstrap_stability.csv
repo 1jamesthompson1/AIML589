@@ -1,0 +1,2 @@
+k,n_resamples,mean_ari,median_ari,ci_lo,ci_hi,interpretation
+3,50,0.467,0.457,0.242,0.704,partly unstable - treat subgroups cautiously

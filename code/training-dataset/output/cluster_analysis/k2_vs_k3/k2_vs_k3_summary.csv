@@ -1,0 +1,13 @@
+metric,k=2,k=3,favours
+BIC (lower better),"599,674","599,070",k=3
+AIC (lower better),"588,442","582,220",k=3
+BLRT p-value (k=2 vs k=3),0.032,—,k=3
+Cluster sizes,"[570, 487]","[299, 436, 322]",—
+Smallest cluster share,46.1%,28.3%,k=2
+Mean posterior certainty,0.997,0.999,k=3
+Median posterior certainty,1.000,1.000,k=2
+Respondents with certainty > 0.9,99.1%,99.8%,k=3
+Relative entropy (separation),0.987,0.995,k=3
+Mean question informativeness,0.194,0.204,k=3
+Mean demographic TVD,0.140,0.181,k=3
+Bootstrap stability (mean ARI),0.718,0.467,k=2

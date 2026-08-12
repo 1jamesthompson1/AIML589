@@ -12,6 +12,14 @@
 
 \input{../common.tex}
 
+% --- Automatic word count (excludes references and appendices) ---
+% On every compile texcount computes the word count and writes it to
+% report.count, which is read back into the working draft notice.
+% Requires -shell-escape (enabled in .latexmkrc).
+% References are excluded with -nobib and the appendix with %TC:ignore below.
+\immediate\write18{texcount -1 -inc -sum -nobib -out=report.count report.tex}
+\newcommand{\wordcount}{\IfFileExists{report.count}{\input{report.count}}{N/A}}
+
 \newfloat{fig}{thp}{lof}[chapter]
 \floatname{fig}{Figure}
 
@@ -42,7 +50,8 @@
    Latest PDF:  & \href{https://raw.githubusercontent.com/1jamesthompson1/AIML589/main/docs/output/AIML589-James-Thompson-LLM-NZ-Value-Alignment.pdf}{live version} \\
    Repository:  & \href{https://github.com/1jamesthompson1/AIML589}{project repository} \\
    Contact:     & \href{mailto:1jamesthompson1@gmail.com}{1jamesthompson1@gmail.com} \\
-   \end{tabular}}
+   \end{tabular}}\\[12pt]
+   {\large Word count: \wordcount\ (excluding references and appendices)}
    \vspace*{\fill}
 \end{center}
 \newpage
@@ -101,7 +110,9 @@ A short description of the project goes here.
 
 \appendix
 
+%TC:ignore
 \chapter{Project details}
 \input{appendices/project-details}
+%TC:endignore
 
 \end{document}

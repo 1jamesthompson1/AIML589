@@ -3,6 +3,7 @@
 \usepackage{amssymb}
 \usepackage{hyperref}
 \usepackage{graphicx}
+\usepackage{booktabs}
 \usepackage{csquotes}
 \usepackage{verbatim}
 \usepackage{enumitem}
@@ -11,6 +12,7 @@
 \usetikzlibrary{arrows.meta, positioning, shapes.geometric, shadows.blur}
 \usepackage{pgfgantt}
 \usepackage{pgfplots}
+\usepackage{xstring}
 \setlength{\marginparwidth}{2.5cm}
 \usepackage[colorinlistoftodos, textwidth=2.3cm]{todonotes}
 \usepackage[backend=biber,style=numeric]{biblatex}
@@ -38,12 +40,61 @@
   \todo[color=orange!30, inline, size=\small]{#1}%
 }
 
-% Figure convenience: \cfigure[placement]{filename}{caption}
-\newcommand{\cfigure}[3][htbp]{%
+% Shorthand for flagging a missing citation, e.g. \cn after a claim.
+% Optional detail: \cn[which reference to find]
+\newcommand{\cn}[1][]{%
+  \IfStrEq{#1}{}{\fixme{Citation needed.}}{\fixme{Citation needed: #1}}%
+}
+
+% Figure convenience: \cfigure[placement][width]{filename}{caption}
+% The label is auto-derived from the filename without extension, e.g.
+% \cfigure{bootstrap_stability.png}{Caption text} -> \label{fig:bootstrap_stability}
+% Images are loaded from the repo's code/figures/ dir (requires the xstring package)
+% The optional width defaults to 0.8\textwidth; use [\textwidth] for full width.
+% Strip the file extension for use as a label; if there is no dot
+% (e.g. a bare stem like "bootstrap_stability") the whole name is used.
+% Note: \StrBefore alone would return an empty result when no dot exists.
+\newcommand{\stripext}[2]{%
+   \IfSubStr{#1}{.}{\StrBefore{#1}{.}[#2]}{\def#2{#1}}%
+}
+
+\NewDocumentCommand{\cfigure}{O{htbp} O{0.8\textwidth} m m}{%
+   \stripext{#3}{\cfiglabel}%
    \begin{figure}[#1]
       \centering
-      \includegraphics[width=0.8\textwidth]{figures/#2}
-      \caption{#3}
-      \label{fig:#2}
+      \includegraphics[width=#2]{../../code/figures/#3}
+      \caption{#4}
+      \label{fig:\cfiglabel}
    \end{figure}%
+}
+
+% Figure reference convenience: \figref{filename} -> "Figure N"
+% Uses the same filename-derived label as \cfigure, e.g.
+% \cfigure{bootstrap_stability.png}{...} then \figref{bootstrap_stability.png}
+\newcommand{\figref}[1]{%
+   \stripext{#1}{\cfiglabel}%
+   Figure~\ref{fig:\cfiglabel}%
+}
+
+% Table convenience: \ctable[placement]{filename}{caption}
+% The label is auto-derived from the filename without extension, e.g.
+% \ctable{fine-tuning/main-table-Qwen3.5-9B.tex}{...} -> \label{tab:main-table-Qwen3.5-9B}
+% The file is expected to hold a bare tabular (e.g. pandas to_latex output)
+% and is loaded from the repo's code/figures/ dir (requires the xstring package)
+\newcommand{\ctable}[3][htbp]{%
+   \stripext{#2}{\ctablabel}%
+   \begin{table}[#1]%
+      \centering\small%
+      \input{../../code/figures/#2}%
+      \caption{#3}%
+      \label{tab:\ctablabel}%
+   \end{table}%
+}
+
+% Table reference convenience: \tabref{filename} -> "Table N"
+% Uses the same filename-derived label as \ctable, e.g.
+% \ctable{fine-tuning/main-table-Qwen3.5-9B.tex}{...} then \tabref{fine-tuning/main-table-Qwen3.5-9B.tex}
+\newcommand{\tabref}[1]{%
+   \stripext{#1}{\ctablabel}%
+   Table~\ref{tab:\ctablabel}%
 }

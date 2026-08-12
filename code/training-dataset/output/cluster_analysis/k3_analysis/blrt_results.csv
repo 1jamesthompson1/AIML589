@@ -1,0 +1,2 @@
+k_null,k_alt,lr_observed,lr_boot_mean,lr_boot_max,n_bootstraps,p_value,conclusion
+3,4,4872.0,1370.8,1487.519,30,0.032,reject k=3: k=4 is a real improvement

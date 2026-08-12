@@ -1,0 +1,2 @@
+k,n_resamples,mean_ari,median_ari,ci_lo,ci_hi,interpretation
+2,50,0.718,0.736,0.572,0.848,stable structure

@@ -18,12 +18,17 @@ classifiers = [
 ]
 dependencies = [
     "datasets>=5.0.0",
+    "kmodes>=0.12.2",
     "marimo>=0.23.14",
     "matplotlib>=3.11.1",
+    "nbconvert>=7.17.1",
+    "nbformat>=5.10.4",
     "numpy>=2.5.1",
     "openai>=2.46.0",
     "pandas>=3.0.3",
+    "playwright>=1.62.0",
     "pre-commit>=4.6.0",
+    "prince>=0.20.1",
     "pyarrow>=25.0.0",
     "python-dotenv>=1.2.2",
     "ruff>=0.15.21",

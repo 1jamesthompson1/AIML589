@@ -43,7 +43,20 @@ def _():
     from pathlib import Path
     from scipy.stats import chi2_contingency
 
+    # Which LCA model to use: the number of clusters from cluster_respondents.py.
+    # Must be 2 or 3 (or any k with a completed run), i.e. the assignments are
+    # read from output/cluster_analysis/k{SELECTED_K}_analysis/cluster_assignments.csv.
+    SELECTED_K = 2
+
+    # Which subpopulations to build datasets for. Options are the LCA cluster
+    # names ("cluster_0", "cluster_1", ...) plus "overall". The available
+    # cluster names depend on the loaded cluster_assignments.csv (e.g.
+    # cluster_0 .. cluster_1 for k=2, cluster_0 .. cluster_2 for k=3).
+    SELECTED_SUBPOPS = ["cluster_0", "cluster_1", "overall"]
+
     return (
+        SELECTED_K,
+        SELECTED_SUBPOPS,
         Path,
         chi2_contingency,
         combinations,
@@ -508,7 +521,7 @@ def _(mo):
 
 
 @app.cell
-def _(output_dir, pd):
+def _(SELECTED_K, output_dir, pd):
     """Load processed WVS survey data and merge with LCA cluster assignments."""
 
     # Load the already-processed value survey data (numeric response codes,
@@ -516,8 +529,21 @@ def _(output_dir, pd):
     wvs_value_survey = pd.read_csv(output_dir / "wvs_value_survey.csv")
     wvs_value_survey["respondent_id"] = wvs_value_survey["id"].astype(int)
 
-    # Load cluster assignments from the LCA model (id -> cluster label)
-    cluster_assignments = pd.read_csv(output_dir / "cluster_assignments.csv")
+    # Load cluster assignments from the selected LCA run
+    # (output/cluster_analysis/k{SELECTED_K}_analysis/cluster_assignments.csv)
+    assignments_path = (
+        output_dir
+        / "cluster_analysis"
+        / f"k{SELECTED_K}_analysis"
+        / "cluster_assignments.csv"
+    )
+    if not assignments_path.exists():
+        raise FileNotFoundError(
+            f"{assignments_path} not found — run cluster_respondents.py with "
+            f"--n_clusters={SELECTED_K} first, or change SELECTED_K at the top "
+            "of this notebook."
+        )
+    cluster_assignments = pd.read_csv(assignments_path)
     cluster_assignments["respondent_id"] = cluster_assignments["id"].astype(int)
 
     # Merge so each row has both the survey responses and its cluster label
@@ -868,6 +894,7 @@ def _(mo):
 
 @app.cell
 def _(
+    SELECTED_SUBPOPS,
     dist_sets,
     ft_dist_sets,
     mode_sets,
@@ -885,8 +912,15 @@ def _(
         "full_string_distribution": dist_sets,
         "first_token_distribution": ft_dist_sets,
     }
-    _subpops = ["cluster_0", "cluster_1", "overall"]
+    _subpops = SELECTED_SUBPOPS
     _splits = ["train", "validation"]
+
+    _missing = [s for s in _subpops if s not in mode_sets]
+    if _missing:
+        raise ValueError(
+            f"Selected subpopulations {_missing} were not built; "
+            f"available: {sorted(mode_sets)}"
+        )
 
     for _config_name, _sets in _variants.items():
         _config_dir = _dataset_dir / _config_name

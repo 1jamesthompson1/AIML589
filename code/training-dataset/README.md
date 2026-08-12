@@ -335,7 +335,19 @@ Outputs (consumed by `build_dataset.py` and the public consultation design):
 | `cluster_assignments.csv` | Each row is a respondent with their predicted cluster (0 or 1), plus the posterior probability of belonging to each cluster (`prob_cluster_0`, `prob_cluster_1`). High probability indicates a clean assignment. |
 | `empirical_cluster_distributions.json` | Same structure as above, but computed empirically from actual respondent data within each LCA-assigned cluster rather than model-implied probabilities. |
 | `model_selection_sweep.csv` | Model fit statistics (log-likelihood, AIC, BIC) for k = 1–6. Lower AIC/BIC indicate better fit; used to justify the chosen number of clusters. |
+| `cluster_diagnostics.csv` | Per-cluster sizes and shares for the fitted solution. |
+| `model_diagnostics.json` | Overall quality metrics for the fitted solution (mean/median posterior certainty, share of respondents with certainty > 0.9, relative entropy). |
+| `bootstrap_stability.csv` | Summary of the bootstrap stability analysis (mean/median ARI vs the original partition, 95% CI, interpretation). |
 | `stepmix_model_k2.joblib` | Serialized fitted StepMix model, saved via `joblib.dump()`. Load with `joblib.load()` to reproduce assignments or apply to new data without refitting. |
+
+### Comparing solutions (`cluster_analysis.py`)
+
+`cluster_analysis.py` is a read-only notebook that compares the saved k=2 and
+k=3 analyses (fit statistics, BLRT, assignment quality, partition
+relationship, question informativeness, demographic distinctiveness and
+bootstrap stability) to help choose the number of clusters. It reads the
+`k2_analysis/` and `k3_analysis/` output dirs writes its comparison table and figures to
+`output/cluster_analysis/k2_vs_k3/`. Run it with `uv run cluster_analysis.py`.
 
 
 ## Input data

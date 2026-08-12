@@ -41,6 +41,10 @@ All code will be found in a `code/` subdir. Any scratch scripts can be written i
 
 All scripts should be `marimo` scripts. This is a modern altenrative to jupyter and increases reproducibility. A key catch with this is that variables can only be assigned once. Any overwritting assignment causes and error. Therefore functions should be used as much as possible to keep the global namespace clean.
 
+**Important** marimo has special rules in which a global variable can only be assigned once. This is to help with reproducibility. Therefore, to prevent the polluting of the global namespace as much code as possible should be put into functions. The rough flow is that each cell defines the work it is doing in a function and at the end of the cell calls the function to run it.
+
+Imports should be at the top of the scripts in the import cell unless there is very good reason to do otherwise.
+
 ### Package management
 
 Project uses `uv` so to run python scripts etc.
