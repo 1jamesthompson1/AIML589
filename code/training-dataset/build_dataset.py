@@ -34,6 +34,7 @@ def _(mo):
 def _():
     import json
     import marimo as mo
+    import matplotlib.pyplot as plt
     import pandas as pd
     import random
     import numpy as np
@@ -53,17 +54,17 @@ def _():
     # cluster names depend on the loaded cluster_assignments.csv (e.g.
     # cluster_0 .. cluster_1 for k=2, cluster_0 .. cluster_2 for k=3).
     SELECTED_SUBPOPS = ["cluster_0", "cluster_1", "overall"]
-
     return (
+        Path,
         SELECTED_K,
         SELECTED_SUBPOPS,
-        Path,
         chi2_contingency,
         combinations,
         json,
         mo,
         np,
         pd,
+        plt,
         random,
         re,
         shutil,
@@ -96,12 +97,20 @@ def _(mo):
     return
 
 
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    ### Select held out prompts
+
+    Select the held-out system prompt: the least similar to the other
+    five by mean token-Jaccard. It is never used in training, so any
+    behaviour difference under it measures genuine prompt sensitivity.
+    """)
+    return
+
+
 @app.cell
 def _(pd, re, system_prompts):
-    """Select the held-out system prompt: the least similar to the other
-    five by mean token-Jaccard. It is never used in training, so any
-    behaviour difference under it measures genuine prompt sensitivity."""
-
     def _tokens(s):
         return set(re.findall(r"[a-z]+", s.lower()))
 
@@ -119,6 +128,29 @@ def _(pd, re, system_prompts):
     return (held_out_prompt,)
 
 
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    ### Held out survey questions
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    #### Compute the redundancy structure between all question pairs.
+
+    A question is a good held-out pick when its responses are most
+    predictable from the OTHER questions (max cross-battery Cramer's V) —
+    the model has the value-relevant information to answer it but never
+    sees its exact text. All computation lives inside one function so
+    the global namespace stays clean; the results feed the held-out
+    selection cell below.
+    """)
+    return
+
+
 @app.cell
 def _(
     chi2_contingency,
@@ -128,155 +160,314 @@ def _(
     pd,
     respondents_with_clusters,
 ):
-    """Select the 5 held-out questions.
+    def compute_redundancy(items, respondents_with_clusters):
+        """Return the cross-battery redundancy structure as a dict:
 
-    A question is a good held-out pick when its responses are most
-    predictable from the OTHER questions (max cross-battery Cramer's V) —
-    the model has the value-relevant information to answer it but never
-    sees its exact text. One question is picked per battery AND per
-    redundancy cluster (union-find on strongly associated pairs, V > 0.5),
-    so the 5 span distinct value dimensions.
-    """
+        - scores: {(c1, c2): Cramer's V} for every cross-battery pair
+        - redundancy: per-question DataFrame (max_cross_v, top_partner,
+          battery_id, sub_question, question), sorted by max_cross_v desc
+        - parent_map: union-find roots linking questions strongly
+          associated cross-battery (V > 0.5) into redundancy components
+        - top_partners: per-question top-3 most similar cross-battery
+          questions (kept in train), for diagnostics
+        - col2battery / col2sub / col2q: column lookup helpers
+        """
+        value_cols = [it["column_name"] for it in items]
+        survey = respondents_with_clusters[value_cols].replace(-5.0, np.nan)
 
-    value_cols = [it["column_name"] for it in items]
-    survey = respondents_with_clusters[value_cols].replace(-5.0, np.nan)
+        def cramers_v(c1, c2):
+            pair = survey[[c1, c2]].dropna()
+            if len(pair) < 50:
+                return float("nan")
+            ct = pd.crosstab(pair[c1], pair[c2])
+            if min(ct.shape) < 2:
+                return float("nan")
+            chi2, *_ = chi2_contingency(ct)
+            n = ct.values.sum()
+            return float(np.sqrt(chi2 / (n * (min(ct.shape) - 1))))
 
-    def cramers_v(c1, c2):
-        pair = survey[[c1, c2]].dropna()
-        if len(pair) < 50:
-            return float("nan")
-        ct = pd.crosstab(pair[c1], pair[c2])
-        if min(ct.shape) < 2:
-            return float("nan")
-        chi2, *_ = chi2_contingency(ct)
-        n = ct.values.sum()
-        return float(np.sqrt(chi2 / (n * (min(ct.shape) - 1))))
+        col2battery = {it["column_name"]: it["id"] for it in items}
+        col2sub = {it["column_name"]: it["sub_question"] for it in items}
+        col2q = {it["column_name"]: it["question"] for it in items}
 
-    scores = {}
-    all_pairs = list(combinations(value_cols, 2))
-    for i, (c1, c2) in enumerate(all_pairs):
-        if i % 5000 == 0:
-            print(f"  [redundancy] {i}/{len(all_pairs)} pairs...")
-        scores[(c1, c2)] = cramers_v(c1, c2)
+        # Pairwise Cramer's V. Only cross-battery pairs are scored:
+        # same-battery questions are trivially related.
+        all_pairs = list(combinations(value_cols, 2))
+        scores = {}
+        for i, (c1, c2) in enumerate(all_pairs):
+            if i % 5000 == 0:
+                print(f"  [redundancy] {i}/{len(all_pairs)} pairs...")
+            if col2battery[c1] == col2battery[c2]:
+                continue
+            scores[(c1, c2)] = cramers_v(c1, c2)
 
-    col2battery = {it["column_name"]: it["id"] for it in items}
-    col2sub = {it["column_name"]: it["sub_question"] for it in items}
-    col2q = {it["column_name"]: it["question"] for it in items}
+        # Per-question redundancy: max V against a question from another
+        # battery.
+        rows = []
+        for c in value_cols:
+            rel = [(o, v) for (a, o), v in scores.items() if a == c] + [
+                (a, v) for (a, o), v in scores.items() if o == c
+            ]
+            cross = [(o, v) for o, v in rel if col2battery[c] != col2battery[o]]
+            if not cross:
+                continue
+            rows.append(
+                {
+                    "column": c,
+                    "sub_question": col2sub.get(c),
+                    "battery_id": col2battery[c],
+                    "question": col2q.get(c),
+                    "max_cross_v": round(max(v for _, v in cross), 3),
+                    "top_partner": max(cross, key=lambda x: x[1])[0],
+                }
+            )
+        redundancy = pd.DataFrame(rows).sort_values("max_cross_v", ascending=False)
 
-    # Per-question redundancy: max V against a question from another
-    # battery (same-battery pairs are trivially related).
-    rows = []
-    for c in value_cols:
-        rel = [(o, v) for (a, o), v in scores.items() if a == c] + [
-            (a, v) for (a, o), v in scores.items() if o == c
-        ]
-        cross = [(o, v) for o, v in rel if col2battery[c] != col2battery[o]]
-        if not cross:
-            continue
-        rows.append(
-            {
-                "column": c,
-                "sub_question": col2sub.get(c),
-                "battery_id": col2battery[c],
-                "question": col2q.get(c),
-                "max_cross_v": round(max(v for _, v in cross), 3),
-                "top_partner": max(cross, key=lambda x: x[1])[0],
-            }
-        )
-    redundancy = pd.DataFrame(rows).sort_values("max_cross_v", ascending=False)
+        # Redundancy components via union-find: questions linked when
+        # strongly associated cross-battery (V > 0.5) measure the same
+        # value dimension.
+        def parent(x, p):
+            while p[x] != x:
+                p[x] = p[p[x]]
+                x = p[x]
+            return x
 
-    # Redundancy clusters via union-find: questions linked when strongly
-    # associated cross-battery (V > 0.5) measure the same value dimension.
-    def parent(x, _p):
-        while _p[x] != x:
-            _p[x] = _p[_p[x]]
-            x = _p[x]
+        parent_map = {c: c for c in value_cols}
+        for (c1, c2), v in scores.items():
+            if v > 0.5 and col2battery[c1] != col2battery[c2]:
+                r1, r2 = parent(c1, parent_map), parent(c2, parent_map)
+                if r1 != r2:
+                    parent_map[r1] = r2
+
+        # Top cross-battery partners per question (for diagnostics: which
+        # *training* questions are most similar to each held-out one).
+        partner_rows = []
+        for c in value_cols:
+            rel = [(o, v) for (a, o), v in scores.items() if a == c] + [
+                (a, v) for (a, o), v in scores.items() if o == c
+            ]
+            cross = sorted(rel, key=lambda x: -x[1])[:3]
+            for o, v in cross:
+                partner_rows.append(
+                    {
+                        "column": c,
+                        "similar_to": o,
+                        "similar_sub": col2sub.get(o),
+                        "similar_question": col2q.get(o),
+                        "similar_battery": col2battery[o],
+                        "v": round(v, 3),
+                    }
+                )
+        top_partners = pd.DataFrame(partner_rows)
+
+        return {
+            "scores": scores,
+            "redundancy": redundancy,
+            "parent_map": parent_map,
+            "top_partners": top_partners,
+            "col2battery": col2battery,
+            "col2sub": col2sub,
+            "col2q": col2q,
+        }
+
+    redundancy_data = compute_redundancy(items, respondents_with_clusters)
+    return (redundancy_data,)
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    #### Pick how many to hold out
+
+    Candidates are ranked greedy by max_cross_v, one per battery AND per
+    redundancy component (cross-battery V > 0.5). The first N_HELD_OUT
+    become the validation set. The prints, ranking table and bar chart
+    below show the marginal redundancy of each successive pick, so you
+    can judge whether N_HELD_OUT questions is the right amount.
+    """)
+    return
+
+
+@app.cell
+def _(Path, pd, redundancy_data):
+
+    # How many questions to hold out for validation (one per battery AND
+    # per redundancy component).
+    N_PRINTOUT = 15
+    N_HELD_OUT = 6
+
+    redundancy = redundancy_data["redundancy"]
+    parent_map = redundancy_data["parent_map"]
+    top_partners = redundancy_data["top_partners"]
+    col2sub = redundancy_data["col2sub"]
+
+    def parent(x, p):
+        while p[x] != x:
+            p[x] = p[p[x]]
+            x = p[x]
         return x
 
-    parent_map = {c: c for c in value_cols}
-    for (c1, c2), v in scores.items():
-        if v > 0.5 and col2battery[c1] != col2battery[c2]:
-            r1, r2 = parent(c1, parent_map), parent(c2, parent_map)
-            if r1 != r2:
-                parent_map[r1] = r2
-
-    # One pick per battery AND per redundancy cluster, up to 5
-    picked, seen_batts, seen_comps = [], set(), set()
+    # Rank every candidate: one per battery AND per redundancy component.
+    candidates, seen_batts, seen_comps = [], set(), set()
     for r in redundancy.itertuples():
         comp_root = parent(r.column, parent_map)
         if r.battery_id in seen_batts or comp_root in seen_comps:
             continue
-        picked.append(r)
+        candidates.append(r)
         seen_batts.add(r.battery_id)
         seen_comps.add(comp_root)
-        if len(picked) >= 5:
-            break
-    held_out_questions = pd.DataFrame(picked)
 
-    # Top cross-battery partners per question (for display: which
-    # *training* questions are most similar to each held-out one).
-    partner_rows = []
-    for c in value_cols:
-        rel = [(o, v) for (a, o), v in scores.items() if a == c] + [
-            (a, v) for (a, o), v in scores.items() if o == c
-        ]
-        cross = sorted(
-            [(o, v) for o, v in rel if col2battery[c] != col2battery[o]],
-            key=lambda x: -x[1],
-        )[:3]
-        for o, v in cross:
-            partner_rows.append(
-                {
-                    "column": c,
-                    "similar_to": o,
-                    "similar_sub": col2sub.get(o),
-                    "similar_question": col2q.get(o),
-                    "similar_battery": col2battery[o],
-                    "v": round(v, 3),
-                }
-            )
-    top_partners = pd.DataFrame(partner_rows)
+    held_out_questions = pd.DataFrame(candidates[:N_HELD_OUT])
+    held_cols = set(held_out_questions["column"])
 
-    print(f"Held-out questions ({len(held_out_questions)}):")
+    # Marginal redundancy: the V of each successive pick, so you can see
+    # where holding out an extra question stops buying much.
     print(
-        held_out_questions[["column", "sub_question", "max_cross_v"]].to_string(
-            index=False
-        )
+        "\nMarginal redundancy of each successive pick (one per battery + component):"
     )
+    for i, r in enumerate(candidates[:15], 1):
+        print(
+            f"  pick {i:2d}: {r.column:<6} V={r.max_cross_v:.3f}  "
+            f"{col2sub.get(r.column)}"
+        )
 
-    def print_held_out_similarity(held_out_questions, top_partners):
+    def print_held_out_similarity(held_out_questions, top_partners, out_path):
         """Show, for each held-out question, the training questions most
-        similar to it (cross-battery Cramer's V, top 3, kept in train)."""
-        held_cols = set(held_out_questions["column"])
+        similar to it (cross-battery Cramer's V, top 3, kept in train).
+        Writes the block to out_path (plain text, ASCII-only and
+        line-wrapped so it embeds cleanly in LaTeX verbatim, ready for
+        the report appendix)."""
+
+        def _wrap_line(line, width=75):
+            """Break lines wider than ``width`` at word boundaries, keeping
+            the leading indentation on continuation lines (long question
+            texts would otherwise overflow the LaTeX verbatim box)."""
+            if len(line) <= width:
+                return line
+            indent = line[: len(line) - len(line.lstrip())]
+            parts, cur = [], indent
+            for word in line.split():
+                cand = f"{cur} {word}" if cur != indent else f"{indent}{word}"
+                if len(cand) <= width:
+                    cur = cand
+                else:
+                    parts.append(cur)
+                    cur = f"{indent}{word}"
+            parts.append(cur)
+            return "\n".join(parts)
+
+        lines = []
         for r in held_out_questions.itertuples():
-            print("\n" + "=" * 70)
-            print(f"HELD OUT: {r.column} — {r.sub_question}")
-            print(f"  Q: {r.question}")
-            print(f"  (max cross-battery V={r.max_cross_v})")
-            print("-" * 70)
-            print("  Most similar TRAINING questions:")
+            lines.append("\n" + "=" * 70)
+            lines.append(f"HELD OUT: {r.column} - {r.sub_question}")
+            lines.append(f"  Q: {r.question}")
+            lines.append(f"  (max cross-battery V={r.max_cross_v})")
+            lines.append("-" * 70)
+            lines.append("  Most similar TRAINING questions:")
             sims = top_partners[
                 (top_partners["column"] == r.column)
                 & (~top_partners["similar_to"].isin(held_cols))
             ]
             for s in sims.itertuples():
-                print(f"\n    ~ {s.similar_to} — {s.similar_sub}  (V={s.v})")
-                print(f"      Q: {s.similar_question}")
+                lines.append(f"\n    ~ {s.similar_to} - {s.similar_sub}  (V={s.v})")
+                lines.append(f"      Q: {s.similar_question}")
+        text = "\n".join(_wrap_line(line) for line in lines)
+        Path(out_path).parent.mkdir(parents=True, exist_ok=True)
+        Path(out_path).write_text(text)
 
-    print_held_out_similarity(held_out_questions, top_partners)
-    return (held_out_questions,)
+    print_held_out_similarity(
+        pd.DataFrame(candidates[:N_PRINTOUT]),
+        top_partners,
+        "../figures/held_out_similarity.txt",
+    )
+
+    # Redundancy components with >= 2 questions: these are the only
+    # places where holding out several questions would be redundant.
+    comp_sizes = {}
+    for c in redundancy["column"]:
+        root = parent(c, parent_map)
+        comp_sizes[root] = comp_sizes.get(root, 0) + 1
+    multi_comps = sorted((r, n) for r, n in comp_sizes.items() if n >= 2)
+    print("\nRedundancy components (cross-battery V > 0.5) with >= 2 questions:")
+    for root, n in multi_comps:
+        members = [c for c in redundancy["column"] if parent(c, parent_map) == root]
+        print(f"  {root}: {n} questions -> {', '.join(members)}")
+    return (
+        N_HELD_OUT,
+        candidates,
+        col2sub,
+        held_cols,
+        held_out_questions,
+        redundancy,
+    )
 
 
 @app.cell
-def _(first_token_system_prompts, held_out_prompt, held_out_questions, items):
-    """Build the train/validation split and the row assigner.
+def _(N_HELD_OUT, candidates, col2sub, mo, pd):
+    # Ranking table so you can see what holding out 6, 7, ... would add.
+    cand_df = pd.DataFrame(
+        [
+            {
+                "pick_rank": i + 1,
+                "column": r.column,
+                "battery_id": r.battery_id,
+                "sub_question": col2sub.get(r.column),
+                "max_cross_v": r.max_cross_v,
+                "held_out": i < N_HELD_OUT,
+            }
+            for i, r in enumerate(candidates[:25])
+        ]
+    )
+    mo.ui.table(
+        cand_df, label="Candidates by pick order — first N_HELD_OUT are held out"
+    )
+    return
+
+
+@app.cell
+def _(held_cols, np, plt, redundancy):
+
+    # Bar chart of max cross-battery V for every question, red = held out.
+    colors = [
+        "crimson" if c in held_cols else "steelblue" for c in redundancy["column"]
+    ]
+    fig, ax = plt.subplots(figsize=(14, 4.5))
+    ax.bar(
+        np.arange(len(redundancy)), redundancy["max_cross_v"], color=colors, width=0.9
+    )
+    ax.axhline(0.5, color="black", ls="--", lw=0.8)
+    ax.text(len(redundancy) - 1, 0.52, "V = 0.5 threshold", ha="right", fontsize=9)
+    for _i, _r in enumerate(redundancy.head(15).itertuples()):
+        ax.annotate(
+            _r.column,
+            (_i, _r.max_cross_v),
+            xytext=(0, 2),
+            textcoords="offset points",
+            ha="center",
+            fontsize=8,
+        )
+    ax.set_xlabel("questions ranked by max cross-battery V")
+    ax.set_ylabel("max cross-battery Cramer's V")
+    ax.set_title(f"Redundancy of all {len(redundancy)} questions (red = held out)")
+    plt.show()
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    ### Build the train/validation split and the row assigner.
 
     Validation = held-out questions (any prompt) + every item under the
     held-out system prompt. Train = everything else. There is no test
     split; splits are keyed by item (question_id × column_name) and reused
     across all four modeling approaches and all subpopulations.
-    """
+    """)
+    return
 
+
+@app.cell
+def _(first_token_system_prompts, held_out_prompt, held_out_questions, items):
     # First-token prompts are named "{name}_letter", so the matching
     # first-token variant of the held-out prompt must be held out too.
     held_out_prompt_ids = {held_out_prompt} | {

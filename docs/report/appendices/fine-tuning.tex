@@ -1,0 +1,13 @@
+\section{Held-out validation data}
+\label{app:fine-tuning}
+
+The validation set holds out five questions, one per redundancy cluster and
+battery, selected as the questions whose responses are most predictable from
+the \emph{other} questions (max cross-battery Cram\'er's V). The model has the
+value-relevant information to answer them but never sees the exact question
+text during training, so reproducing their empirical distributions shows
+learned values rather than memorised question-answer pairs. The list below
+shows each held-out question and the training questions most similar to it.
+
+{\small\verbatiminput{../../code/figures/held_out_similarity.txt}}
+

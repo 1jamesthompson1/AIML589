@@ -1,0 +1,352 @@
+
+======================================================================
+HELD OUT: Q6 - Religion
+  Q: Please indicate, for each of the following, how important it is in
+  your life.
+  (max cross-battery V=0.733)
+----------------------------------------------------------------------
+  Most similar TRAINING questions:
+
+    ~ Q15 - Religious faith  (V=0.733)
+      Q: Here is a list of qualities that children can be encouraged to
+      learn at home. Which, if any, do you consider to be especially
+      important?
+
+    ~ Q94 - Church or religious organisation  (V=0.609)
+      Q: Listed below are different types of voluntary organisations. For
+      each, are you an active member, an inactive member, or don't you
+      belong?
+
+    ~ Q165 - God  (V=0.501)
+      Q: Which, if any, of the following do you believe in?
+
+======================================================================
+HELD OUT: Q60 - People you know personally
+  Q: Here are some questions about how much you trust people from various
+  groups. Please indicate how much you trust...
+  (max cross-battery V=0.591)
+----------------------------------------------------------------------
+  Most similar TRAINING questions:
+
+    ~ Q189 - For a man to beat his wife  (V=0.591)
+      Q: Please indicate for each of the following statements whether you
+      think it can always be justified, never be justified, or something in
+      between. (1 = Never justifiable, 10 = Always justifiable)
+
+    ~ Q180 - Cheating on taxes  (V=0.561)
+      Q: Please indicate for each of the following statements whether you
+      think it can always be justified, never be justified, or something in
+      between. (1 = Never justifiable, 10 = Always justifiable)
+
+    ~ Q191 - Violence against other people  (V=0.552)
+      Q: Please indicate for each of the following statements whether you
+      think it can always be justified, never be justified, or something in
+      between. (1 = Never justifiable, 10 = Always justifiable)
+
+======================================================================
+HELD OUT: Q215 - Encouraging others to take action about political issues
+  Q: For each social activism action, have you done it, might do it, or
+  would never do it?
+  (max cross-battery V=0.501)
+----------------------------------------------------------------------
+  Most similar TRAINING questions:
+
+    ~ Q219 - Encouraging other people to take any form of political action
+
+    (V=0.501)
+      Q: Listed below are some other forms of political action people can
+      take using internet and social media tools like Facebook, Twitter,
+      etc. For each one please indicate whether you have done any of these
+      things, whether you might do it, would never under any circumstances
+      do it.
+
+    ~ Q220 - Organising political activities, events, protests  (V=0.362)
+      Q: Listed below are some other forms of political action people can
+      take using internet and social media tools like Facebook, Twitter,
+      etc. For each one please indicate whether you have done any of these
+      things, whether you might do it, would never under any circumstances
+      do it.
+
+    ~ Q211 - Attending peaceful demonstrations  (V=0.36)
+      Q: Here are some different forms of political action that people can
+      take. For each one, please indicate whether you have actually done
+      any of these things, whether you might do it or would never, under
+      any circumstances, do it.
+
+======================================================================
+HELD OUT: Q188 - Euthanasia
+  Q: Please indicate for each of the following statements whether you think
+  it can always be justified, never be justified, or something in between.
+  (1 = Never justifiable, 10 = Always justifiable)
+  (max cross-battery V=0.488)
+----------------------------------------------------------------------
+  Most similar TRAINING questions:
+
+    ~ Q15 - Religious faith  (V=0.488)
+      Q: Here is a list of qualities that children can be encouraged to
+      learn at home. Which, if any, do you consider to be especially
+      important?
+
+    ~ Q94 - Church or religious organisation  (V=0.387)
+      Q: Listed below are different types of voluntary organisations. For
+      each, are you an active member, an inactive member, or don't you
+      belong?
+
+    ~ Q167 - Hell  (V=0.337)
+      Q: Which, if any, of the following do you believe in?
+
+======================================================================
+HELD OUT: Q22 - Homosexuals
+  Q: Here are various groups of people. Could you please tick any that you
+  would not like to have as neighbours?
+  (max cross-battery V=0.475)
+----------------------------------------------------------------------
+  Most similar TRAINING questions:
+
+    ~ Q182 - Homosexuality  (V=0.475)
+      Q: Please indicate for each of the following statements whether you
+      think it can always be justified, never be justified, or something in
+      between. (1 = Never justifiable, 10 = Always justifiable)
+
+    ~ Q36 - Homosexual couples are as good parents as other couples
+
+    (V=0.405)
+      Q: How much do you agree or disagree with the following statements?
+
+    ~ Q186 - Sex before marriage  (V=0.301)
+      Q: Please indicate for each of the following statements whether you
+      think it can always be justified, never be justified, or something in
+      between. (1 = Never justifiable, 10 = Always justifiable)
+
+======================================================================
+HELD OUT: Q93 - Which problem does Amnesty International deal with?
+  Q: Which one of the following problems does the organisation, Amnesty
+  International, deal with?
+  (max cross-battery V=0.455)
+----------------------------------------------------------------------
+  Most similar TRAINING questions:
+
+    ~ Q189 - For a man to beat his wife  (V=0.455)
+      Q: Please indicate for each of the following statements whether you
+      think it can always be justified, never be justified, or something in
+      between. (1 = Never justifiable, 10 = Always justifiable)
+
+    ~ Q192 - Terrorism as a political, ideological, or religious means
+
+    (V=0.352)
+      Q: Please indicate for each of the following statements whether you
+      think it can always be justified, never be justified, or something in
+      between. (1 = Never justifiable, 10 = Always justifiable)
+
+    ~ Q92 - Where are the headquarters of the IMF located?  (V=0.257)
+      Q: Where are the headquarters of the International Monetary Fund
+      (IMF) located?
+
+======================================================================
+HELD OUT: Q160 - We depend too much on science and not enough on faith
+  Q: Here are some statements about science and technology. How much do you
+  agree or disagree with each of these statements? For these questions, a 1
+  means that you "completely disagree" and a 10 means that you "completely
+  agree."
+  (max cross-battery V=0.437)
+----------------------------------------------------------------------
+  Most similar TRAINING questions:
+
+    ~ Q15 - Religious faith  (V=0.437)
+      Q: Here is a list of qualities that children can be encouraged to
+      learn at home. Which, if any, do you consider to be especially
+      important?
+
+    ~ Q165 - God  (V=0.365)
+      Q: Which, if any, of the following do you believe in?
+
+    ~ Q168 - Heaven  (V=0.34)
+      Q: Which, if any, of the following do you believe in?
+
+======================================================================
+HELD OUT: Q64 - The churches
+  Q: Here are the names of a number of organisations. For each one, please
+  indicate how much confidence you have in them: is it a great deal of
+  confidence, quite a lot of confidence, not very much confidence or none
+  at all?
+  (max cross-battery V=0.437)
+----------------------------------------------------------------------
+  Most similar TRAINING questions:
+
+    ~ Q94 - Church or religious organisation  (V=0.437)
+      Q: Listed below are different types of voluntary organisations. For
+      each, are you an active member, an inactive member, or don't you
+      belong?
+
+    ~ Q15 - Religious faith  (V=0.41)
+      Q: Here is a list of qualities that children can be encouraged to
+      learn at home. Which, if any, do you consider to be especially
+      important?
+
+    ~ Q165 - God  (V=0.339)
+      Q: Which, if any, of the following do you believe in?
+
+======================================================================
+HELD OUT: Q200 - nan
+  Q: When you get together with friends, would you say you discuss
+  political matters frequently, occasionally or never?
+  (max cross-battery V=0.436)
+----------------------------------------------------------------------
+  Most similar TRAINING questions:
+
+    ~ Q199 - nan  (V=0.436)
+      Q: How interested would you say you are in politics?
+
+    ~ Q4 - Politics  (V=0.306)
+      Q: Please indicate, for each of the following, how important it is in
+      your life.
+
+======================================================================
+HELD OUT: Q199 - nan
+  Q: How interested would you say you are in politics?
+  (max cross-battery V=0.436)
+----------------------------------------------------------------------
+  Most similar TRAINING questions:
+
+    ~ Q200 - nan  (V=0.436)
+      Q: When you get together with friends, would you say you discuss
+      political matters frequently, occasionally or never?
+
+    ~ Q4 - Politics  (V=0.376)
+      Q: Please indicate, for each of the following, how important it is in
+      your life.
+
+    ~ Q250 - nan  (V=0.268)
+      Q: How important is it for you to live in a country that is governed
+      democratically? On this scale where 1 means it is "not at all
+      important" and 10 means "absolutely important" what position would
+      you choose?
+
+======================================================================
+HELD OUT: Q166 - Life after death
+  Q: Which, if any, of the following do you believe in?
+  (max cross-battery V=0.435)
+----------------------------------------------------------------------
+  Most similar TRAINING questions:
+
+    ~ Q164 - nan  (V=0.435)
+      Q: How important is God in your life? Please use this scale to
+      indicate your strength of belief: 1 means not at all important and 10
+      means very important.
+
+    ~ Q172 - nan  (V=0.397)
+      Q: Apart from weddings and funerals, about how often do you pray?
+
+======================================================================
+HELD OUT: Q153 - nan
+  Q: People sometimes talk about what the aims of this country should be
+  for the next ten years. Listed below are some of the goals which
+  different people would give top priority. Would you please say which one
+  of these you, yourself, consider the most important? And which would be
+  the next most important?
+  (max cross-battery V=0.418)
+----------------------------------------------------------------------
+  Most similar TRAINING questions:
+
+    ~ Q155 - nan  (V=0.418)
+      Q: If you had to choose, which one of the things on this card would
+      you say is most important? And which would be the next most
+      important?
+
+    ~ Q157 - nan  (V=0.347)
+      Q: Here is another list. In your opinion, which one of these is most
+      important? And which would be the next most important?
+
+    ~ Q218 - Signing an electronic petition  (V=0.214)
+      Q: Listed below are some other forms of political action people can
+      take using internet and social media tools like Facebook, Twitter,
+      etc. For each one please indicate whether you have done any of these
+      things, whether you might do it, would never under any circumstances
+      do it.
+
+======================================================================
+HELD OUT: Q155 - nan
+  Q: If you had to choose, which one of the things on this card would you
+  say is most important? And which would be the next most important?
+  (max cross-battery V=0.418)
+----------------------------------------------------------------------
+  Most similar TRAINING questions:
+
+    ~ Q153 - nan  (V=0.418)
+      Q: People sometimes talk about what the aims of this country should
+      be for the next ten years. Listed below are some of the goals which
+      different people would give top priority. Would you please say which
+      one of these you, yourself, consider the most important? And which
+      would be the next most important?
+
+    ~ Q157 - nan  (V=0.36)
+      Q: Here is another list. In your opinion, which one of these is most
+      important? And which would be the next most important?
+
+    ~ Q152 - nan  (V=0.227)
+      Q: People sometimes talk about what the aims of this country should
+      be for the next ten years. Listed below are some of the goals which
+      different people would give top priority. Would you please say which
+      one of these you, yourself, consider the most important? And which
+      would be the next most important?
+
+======================================================================
+HELD OUT: Q250 - nan
+  Q: How important is it for you to live in a country that is governed
+  democratically? On this scale where 1 means it is "not at all important"
+  and 10 means "absolutely important" what position would you choose?
+  (max cross-battery V=0.407)
+----------------------------------------------------------------------
+  Most similar TRAINING questions:
+
+    ~ Q238 - Having a democratic political system  (V=0.407)
+      Q: Listed below are various types of political systems. Please think
+      about each one as a way of governing this country. For each one,
+      would you say it is a very good, fairly good, fairly bad or very bad
+      way of governing this country?
+
+    ~ Q239 - Having a system governed by religious law in which there are
+
+    no political parties or elections (V=0.288)
+      Q: Listed below are various types of political systems. Please think
+      about each one as a way of governing this country. For each one,
+      would you say it is a very good, fairly good, fairly bad or very bad
+      way of governing this country?
+
+    ~ Q243 - People choose their leaders in free elections  (V=0.277)
+      Q: Many things are desirable, but not all of them are essential
+      characteristics of democracy. Please tell us, for each of the
+      following things how essential you think it is as a characteristic of
+      democracy? Use this scale where 1 means "not at all an essential
+      characteristic of democracy" and 10 means it definitely is "an
+      essential characteristic of democracy".
+
+======================================================================
+HELD OUT: Q238 - Having a democratic political system
+  Q: Listed below are various types of political systems. Please think
+  about each one as a way of governing this country. For each one, would
+  you say it is a very good, fairly good, fairly bad or very bad way of
+  governing this country?
+  (max cross-battery V=0.407)
+----------------------------------------------------------------------
+  Most similar TRAINING questions:
+
+    ~ Q250 - nan  (V=0.407)
+      Q: How important is it for you to live in a country that is governed
+      democratically? On this scale where 1 means it is "not at all
+      important" and 10 means "absolutely important" what position would
+      you choose?
+
+    ~ Q243 - People choose their leaders in free elections  (V=0.342)
+      Q: Many things are desirable, but not all of them are essential
+      characteristics of democracy. Please tell us, for each of the
+      following things how essential you think it is as a characteristic of
+      democracy? Use this scale where 1 means "not at all an essential
+      characteristic of democracy" and 10 means it definitely is "an
+      essential characteristic of democracy".
+
+    ~ Q251 - nan  (V=0.263)
+      Q: And how democratically is this country being governed today? Again
+      using a scale from 1 to 10, where 1 means that it is "not at all
+      democratic" and 10 means that it is "completely democratic," what
+      position would you choose?

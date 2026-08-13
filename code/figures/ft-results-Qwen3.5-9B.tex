@@ -1,16 +1,18 @@
+\resizebox{\textwidth}{!}{%
 \begin{tabular}{lrrrrrrrrr}
 \toprule
 Model & \multicolumn{3}{l}{Accuracy} & \multicolumn{3}{l}{Cross-entropy} & \multicolumn{3}{l}{KL divergence} \\
  & train & validation & overall & train & validation & overall & train & validation & overall \\
 \midrule
 Base & 47.8 & 58.2 & 48.2 & 2.02 & 1.99 & 2.01 & 0.880 & 0.879 & 0.878 \\
-Modal response (cluster 0) & 47.6 & 58.0 & 47.8 & 1.92 & \textbf{1.84} & 1.92 & 0.877 & \textbf{0.851} & 0.877 \\
+Modal response (cluster 0) & 47.6 & 58.0 & 47.8 & 1.92 & \bfseries 1.84 & 1.92 & 0.877 & \bfseries 0.851 & 0.877 \\
 Modal response (cluster 1) & 41.5 & 41.0 & 42.2 & 2.15 & 2.18 & 2.14 & 0.961 & 1.001 & 0.956 \\
-Modal response (overall) & \textbf{47.9} & \textbf{58.4} & \textbf{48.5} & 2.02 & 1.99 & 2.01 & 0.879 & 0.881 & 0.878 \\
-Sampled response (cluster 0) & 46.8 & 58.2 & 47.4 & \textbf{1.91} & 1.84 & \textbf{1.91} & \textbf{0.874} & 0.855 & \textbf{0.875} \\
+Modal response (overall) & \bfseries 47.9 & \bfseries 58.4 & \bfseries 48.5 & 2.02 & 1.99 & 2.01 & 0.879 & 0.881 & 0.878 \\
+Sampled response (cluster 0) & 46.8 & 58.2 & 47.4 & \bfseries 1.91 & 1.84 & \bfseries 1.91 & \bfseries 0.874 & 0.855 & \bfseries 0.875 \\
 Sampled response (cluster 1) & 41.5 & 41.1 & 42.3 & 2.14 & 2.18 & 2.14 & 0.958 & 1.002 & 0.953 \\
-Sampled response (overall) & 47.7 & 58.4 & 48.3 & 2.02 & 2.00 & 2.02 & 0.882 & 0.886 & 0.879 \\
+Sampled response (overall) & 47.7 & \bfseries 58.4 & 48.3 & 2.02 & 2.00 & 2.02 & 0.882 & 0.886 & 0.879 \\
 First token (overall) & 47.6 & 58.3 & 48.2 & 2.02 & 1.99 & 2.01 & 0.879 & 0.884 & 0.878 \\
-Full string (overall) & 47.7 & 58.4 & 48.3 & 2.02 & 1.99 & 2.01 & 0.880 & 0.881 & 0.878 \\
+Full string (overall) & 47.7 & \bfseries 58.4 & 48.3 & 2.02 & 1.99 & 2.01 & 0.880 & 0.881 & 0.878 \\
 \bottomrule
 \end{tabular}
+}

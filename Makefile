@@ -2,6 +2,8 @@ LATEXMK := latexmk
 # Enable \write18 so the report can run texcount for its word count footer.
 # $$$$ is needed: define-block recipes are expanded twice by make.
 SHELL_ESCAPE := -e '$$$$pdflatex="pdflatex -shell-escape %O %S"'
+# Plain recipes (e.g. watch) are expanded only once, so a single $$ is enough.
+WATCH_SHELL_ESCAPE := -e '$$pdflatex="pdflatex -shell-escape %O %S"'
 OPTS := -pdf -interaction=nonstopmode $(SHELL_ESCAPE)
 
 TEX_DIR := docs
@@ -69,7 +71,7 @@ watch:
 	docname=$$(sed -n 's/^[[:space:]]*\\docname{\(.*\)}/\1/p' "$$src" 2>/dev/null); \
 	[ -z "$$docname" ] && docname="$$base"; \
 	mkdir -p "$$outdir"; \
-	$(LATEXMK) -pdf -f -pvc -pv- $(SHELL_ESCAPE) -outdir="$$outdir" -cd -interaction=nonstopmode \
+	$(LATEXMK) -pdf -f -pvc -pv- $(WATCH_SHELL_ESCAPE) -outdir="$$outdir" -cd -interaction=nonstopmode \
 	  -jobname="$$docname" "$$src"
 
 # Print the report word count (same computation as the working draft notice)

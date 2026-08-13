@@ -38,6 +38,8 @@ Discuss the various methods of evaluating the efficacy of fine-tuning, including
 
 \ctable{ft-results-Qwen3.5-9B}{The results of fine-tuning Qwen-3.5-9B on the WVS data. The table shows the accuracy, cross-entropy and KL divergence for the base model and various fine-tuned models on the training, validation and overall datasets. This is calculated by running the model with reasoning off agasint the modal response dataset.}
 
+\ctable{ft-capability-Qwen3.5-9B}{The capability of Qwen-3.5-9B on various benchmarks. The table shows the accuracy and 95\% confidence intervals for the MMLU-Pro, GPQA Diamond and SWE-bench benchmarks. This is calculated by running the model with reasoning off agasint the modal response dataset.}
+
 Also explore other concepts of:
 - Is fine-tuning robust to reasoning on and off?
 - Does system prompt matter?
@@ -89,16 +91,30 @@ Given the instability of the $k=3$ solution it is decided to use the $k=2$ solut
 
 \subsection{Structure of the training data}
 
-\cite{durmusMeasuringRepresentationSubjective2024} introduce using WVS.
+The training data is structured as a prompt and a completion, as illustrated in \figref{wvs-simple-sft}. Each training example consists of a system prompt (the persona and answer format instruction), a user prompt (the survey question text with its response options), and the expected completion. This is standard for LLM training on survey data \cite{durmusMeasuringRepresentationSubjective2024,nieSurveytoBehaviorDownstreamAlignment2025} \cn{Extras needed}. Where \cite{nieSurveytoBehaviorDownstreamAlignment2025} demonstrates that the strict format of just system prompt, user prompt and zero shot completion was sufficient to get good performance on unseen survey questions and out-of-distribution performance.
 
-\cite{luFantasticallyOrderedPrompts2022} mention how the order of options matter. We have to use WVS order to make it fair. OTher research has showed it may not matter as we are fine tuning.
+\subsection{Prompting and response representation}
+
+Both humans and LLM have various biases and sensitivities to the way questions are asked and the way responses are represented \cite{rupprechtPromptPerturbationsReveal2025,rottgerPoliticalCompassSpinning2024,luFantasticallyOrderedPrompts2022, schumanQuestionsAnswersAttitude1996, tourangeauCognitiveProcessesUnderlying1988}. Therefore to mitigate any unintended effects of prompting and response representation we use the same question and response format as the original survey for both wording and option ordering. The only exception to this are the battery questions where for the LLM training each battery subquestion is split into a separate training example. The order in which question is answered is less comparable to humans as the LLM is not answering an entire survey in working memory but rather answering a single question at a time \fixmeinline{Is this that big of a deal. Could be a cool idea. Training on survey resopnse trajectories!}.
 
 
-\cite{rupprechtPromptPerturbationsReveal2025} show that LLM have th same human like biases. Therefore that is why we make it as similar as possible to original survey.
-Caveat is the matrix questions as only a single one is presented at each moment.
+\subsubsection{System prompt}
 
-\cite{rottgerPoliticalCompassSpinning2024} show tha foricning a model repsosne format and parahprases effect it alot.
+LLMs use system propmts to give instructions. This is a test
 
+As discussed above it amter alot.
+
+Chosen a wide range of prompts accoridng to ...
+
+\subsection{Held out validation data}
+
+The goal of fine-tuning a LLM is to explore whether the models behaviour changes in downstream applications. This is an extreme version of out-of-distribution testing. Therefore the purpose of the validation set is simply to help decide which models have performed the best in training and should proceed on to the simulations. A non-random validation split is made in which some survey questions are held out and some system prompts are held out.
+
+The selection of survey questions is done by holding out questions in which it has a high Crammer V \cite{haraldcramerMathematicalMethodsStatistics1946} measure with another question in a different battery. The top 6 most redundant questions are held out as beyond that the next redundant questions were from the same value dimension (e.g., religion, politics, etc.). See \ref{app:fine-tuning} for more details.
+
+The selection of held out prompts was simply the prompt that had the smallest Jaccard \cite{EtudeComparativeDistribution1901} similarity with the other prompt. This was done to prevent over-fitting from being unnoticed.
+
+This held out validation set has 828 examples with 30 being from unseen survey questions and 798 being from unseen system prompts.
 
 \section{Methods for Fine-tuning the models}
 \label{sec:ft-methods}
@@ -110,6 +126,67 @@ Given the use of LLM reasoning in downstream applications allows for more uncert
 There are ways of doing finetuning of a LLM. We will only explore simple fine-tuning methods (SFT) and vary the method on two axes: what the target is (modal response, sampled response or the distribution of responses) and what the response representation is (full option string or just single token representing the option).
 
 The modal response fine tuning is conducted as a baseline as it is a straight forward application of SFT. The rest of the methods are various ways of trying to have the model learn the distribution of responses in the survey data. However in an implementation sense there are three methods (SFT, full option string distributional fine-tuning and single token distributional fine-tuning).
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[
+    every node/.style={draw, rounded corners, align=left, font=\small},
+    node distance=1.3cm,
+    inner sep=7pt,
+    arrow/.style={->, thick}
+]
+
+\node (prompt) {
+\textbf{Model input (Prompt)}\\[2pt]
+System prompt: You are a participant in the World Values Survey.\\[2pt]
+User prompt: Please indicate, for each of the following, how important\\
+it is in your life. Options: Very important, Rather important,\\
+Not very important, Not at all important, Don't know. Family:};
+
+\node (model) [below=0.6cm of prompt] {
+\textbf{Large Language Model}
+};
+
+\node (output) [below=0.7cm of model] {
+\textbf{Model response}\\[2pt]
+``Very important''\\[2pt]
+OR\\
+$[0.92,\ 0.06,\ 0.01,\ 0.005,\ 0]$
+};
+
+\node (loss1) [below left=1.5cm and 0.5cm of output, text width=4.6cm] {
+\textbf{Single answer(modal or sampled)}\\[2pt]
+$\mathcal{L}_{SFT} = -\log p_\theta(y \mid x)$\\[2pt]
+};
+
+\node (loss2) [below right=1.5cm and 0.5cm of output, text width=4.6cm] {
+\textbf{Distributional (first token or full string)}\\[2pt]
+$\mathcal{L}_{dist} = -\sum_i q_i \log p_\theta(y_i \mid x)$\\[2pt]
+{\scriptsize\itshape Requires $k$ forward passes for each of the $k$ options}
+};
+
+\node (real) [below=0.8cm, anchor=north] at ($(loss1.south)!0.5!(loss2.south)$) {
+\textbf{WVS respondents}\\[2pt]
+modal/sampled answer or empirical distribution $q$
+};
+
+\draw[arrow] (prompt) -- (model);
+\draw[arrow] (model) -- (output);
+\draw[arrow] (output.south west) -- (loss1.north);
+\draw[arrow] (output.south east) -- (loss2.north);
+\draw[arrow] (real.north west) -- (loss1.south);
+\draw[arrow] (real.north east) -- (loss2.south);
+\draw[arrow] (loss1.north west) to[bend left=30] (model.south west);
+\draw[arrow] (loss2.north east) to[bend left=-30] (model.south east);
+
+\end{tikzpicture}
+\caption{Simplified illustration of the fine-tuning setup. The model is prompted
+with a system persona and a survey question with its response options, and its
+response is used in two different loss functions: a simple SFT loss against the
+single modal (or sampled) answer, and a distributional loss against the full
+distribution of responses from the WVS respondents.}
+\label{fig:wvs-simple-sft}
+\end{figure}
 
 
 \subsection{SFT fine-tuning: Modal \& Sampled response}
