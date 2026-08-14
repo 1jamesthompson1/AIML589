@@ -1,0 +1,14 @@
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{lrrrrrrrrr}
+\toprule
+Model & \multicolumn{3}{l}{Accuracy} & \multicolumn{3}{l}{Cross-entropy} & \multicolumn{3}{l}{KL divergence} \\
+ & train & validation & overall & train & validation & overall & train & validation & overall \\
+\midrule
+Base & 59.9 & \bfseries 53.6 & 60.1 & 2.35 & 2.15 & 2.33 & 1.215 & 1.043 & 1.194 \\
+Modal response (overall) & 60.2 & \bfseries 53.6 & 60.3 & 2.35 & \bfseries 2.15 & 2.33 & 1.213 & \bfseries 1.038 & 1.193 \\
+Sampled response (overall) & \bfseries 60.3 & \bfseries 53.6 & \bfseries 60.4 & \bfseries 2.35 & 2.15 & 2.33 & \bfseries 1.210 & 1.044 & 1.191 \\
+First token (overall) & 60.2 & \bfseries 53.6 & 60.3 & 2.35 & 2.15 & \bfseries 2.33 & 1.211 & 1.039 & \bfseries 1.191 \\
+Full string (overall) & 59.8 & \bfseries 53.6 & 60.0 & 2.35 & 2.15 & 2.33 & 1.214 & 1.039 & 1.194 \\
+\bottomrule
+\end{tabular}
+}

@@ -1,0 +1,27 @@
+{
+  "target": "Qwen/Qwen3.6-27B",
+  "dataset": "sampled_response",
+  "split": "train,validation",
+  "splits": [
+    "train",
+    "validation"
+  ],
+  "subpopulation": "overall",
+  "reasoning": false,
+  "run_name": "sampled_response-overall-20260814_124058",
+  "timestamp": "2026-08-14T12:41:05.284964",
+  "output_dir": "/vol/grid-solar/sgeusers/thompsjame1/AIML589/code/fine-tuning/output/evals/Qwen3.6-27B/sampled_response-overall-20260814_124058",
+  "api_url": "http://localhost:8087",
+  "api_key": "EMPTY",
+  "max_tokens": 1000,
+  "top_logprobs": 20,
+  "temperature": 0.0,
+  "top_p": 1.0,
+  "presence_penalty": 0.0,
+  "num_test_examples": null,
+  "no_plots": true,
+  "max_retries": 5,
+  "dataset_sha": "bed59feca08a07d738247ae72cca67a6facf4b7d",
+  "model_sha": "6a9e13bd6fc8f0983b9b99948120bc37f49c13e9",
+  "elapsed_seconds": 1145
+}

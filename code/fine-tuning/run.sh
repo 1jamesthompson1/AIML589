@@ -68,6 +68,16 @@ REMOTE_SCP="~/$REMOTE_DIR"
 echo "==> Setting up remote directory on $HOST..."
 ssh -F "$SSH_CONFIG" "$HOST" "mkdir -p \"$REMOTE_FULL\""
 
+# Interrupted runs orphan uv ephemeral envs in /tmp (each several GB of
+# torch/vllm), eventually filling the disk. Clear any not referenced by a
+# live process before starting.
+ssh -F "$SSH_CONFIG" "$HOST" 'for d in /tmp/.tmp*/environments-v2/serve-*; do
+  [ -e "$d" ] || continue
+  if ! grep -l "$d" /proc/[0-9]*/environ 2>/dev/null | grep -q .; then
+    rm -rf "$(dirname "$(dirname "$d")")"
+  fi
+done'
+
 echo "==> Copying files to $HOST..."
 scp -F "$SSH_CONFIG" "$SCRIPT_DIR/$SCRIPT" "$HOST":"$REMOTE_SCP"/"$SCRIPT"
 # Copy template for model card generation

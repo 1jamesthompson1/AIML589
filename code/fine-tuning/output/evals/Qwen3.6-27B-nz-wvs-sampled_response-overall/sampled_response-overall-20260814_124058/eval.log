@@ -1,0 +1,190 @@
+[log] eval output -> output/evals/Qwen3.6-27B-nz-wvs-sampled_response-overall/sampled_response-overall-20260814_124058/eval.log
+[data] loaded 1506 examples (config=sampled_response, splits=train,validation, subpop=overall, subpops-in-data=overall)
+[data] dataset commit: bed59feca08a07d738247ae72cca67a6facf4b7d
+
+  Will evaluate 'Qwen3.6-27B-nz-wvs-sampled_response-overall' on 'sampled_response'
+  One pass over splits train,validation — 1506 examples, subpopulation: overall, reasoning: False
+
+[eval] model commit: 270e5ae87e779b4003e4db029ba2e7ccde1edba3
+[save] config -> output/evals/Qwen3.6-27B-nz-wvs-sampled_response-overall/sampled_response-overall-20260814_124058/config.json
+[eval] running pass over the full train + validation set...
+  [10/1506]  1.2 ex/s  elapsed 8s  ETA 20m 41s
+  [20/1506]  1.3 ex/s  elapsed 15s  ETA 19m 35s
+  [30/1506]  1.3 ex/s  elapsed 22s  ETA 18m 40s
+  [40/1506]  1.3 ex/s  elapsed 29s  ETA 18m 08s
+  [50/1506]  0.7 ex/s  elapsed 1m 08s  ETA 33m 24s
+  [60/1506]  0.8 ex/s  elapsed 1m 15s  ETA 30m 18s
+  [70/1506]  0.9 ex/s  elapsed 1m 22s  ETA 28m 03s
+  [80/1506]  0.9 ex/s  elapsed 1m 28s  ETA 26m 23s
+  [90/1506]  0.9 ex/s  elapsed 1m 36s  ETA 25m 10s
+  [100/1506]  1.0 ex/s  elapsed 1m 43s  ETA 24m 12s
+      so far: acc 69.7% (69/99)  avgCE 1.746  avgKL 1.124
+  [110/1506]  1.0 ex/s  elapsed 1m 50s  ETA 23m 24s
+  [120/1506]  1.0 ex/s  elapsed 1m 57s  ETA 22m 40s
+  [130/1506]  1.0 ex/s  elapsed 2m 05s  ETA 22m 04s
+  [140/1506]  1.1 ex/s  elapsed 2m 12s  ETA 21m 33s
+  [150/1506]  1.1 ex/s  elapsed 2m 20s  ETA 21m 07s
+  [160/1506]  1.1 ex/s  elapsed 2m 27s  ETA 20m 44s
+  [170/1506]  1.1 ex/s  elapsed 2m 35s  ETA 20m 23s
+  [180/1506]  1.1 ex/s  elapsed 2m 42s  ETA 19m 59s
+  [190/1506]  1.1 ex/s  elapsed 2m 50s  ETA 19m 39s
+  [200/1506]  1.1 ex/s  elapsed 2m 58s  ETA 19m 27s
+      so far: acc 57.3% (114/199)  avgCE 1.675  avgKL 0.824
+  [210/1506]  1.1 ex/s  elapsed 3m 06s  ETA 19m 10s
+  [220/1506]  1.1 ex/s  elapsed 3m 13s  ETA 18m 53s
+  [230/1506]  1.1 ex/s  elapsed 3m 20s  ETA 18m 33s
+  [240/1506]  1.2 ex/s  elapsed 3m 27s  ETA 18m 15s
+  [250/1506]  1.2 ex/s  elapsed 3m 35s  ETA 18m 03s
+  [260/1506]  1.2 ex/s  elapsed 3m 43s  ETA 17m 48s
+  [270/1506]  1.2 ex/s  elapsed 3m 50s  ETA 17m 33s
+  [280/1506]  1.2 ex/s  elapsed 3m 57s  ETA 17m 20s
+  [290/1506]  1.2 ex/s  elapsed 4m 05s  ETA 17m 10s
+  [300/1506]  1.2 ex/s  elapsed 4m 13s  ETA 16m 59s
+      so far: acc 53.2% (159/299)  avgCE 1.828  avgKL 0.865
+  [310/1506]  1.2 ex/s  elapsed 4m 21s  ETA 16m 48s
+  [320/1506]  1.2 ex/s  elapsed 4m 29s  ETA 16m 38s
+  [330/1506]  1.2 ex/s  elapsed 4m 37s  ETA 16m 27s
+  [340/1506]  1.2 ex/s  elapsed 4m 44s  ETA 16m 17s
+  [350/1506]  1.2 ex/s  elapsed 4m 52s  ETA 16m 06s
+  [360/1506]  1.2 ex/s  elapsed 5m 00s  ETA 15m 56s
+  [370/1506]  1.2 ex/s  elapsed 5m 08s  ETA 15m 47s
+  [380/1506]  1.2 ex/s  elapsed 5m 16s  ETA 15m 38s
+  [390/1506]  1.2 ex/s  elapsed 5m 24s  ETA 15m 28s
+  [400/1506]  1.2 ex/s  elapsed 5m 32s  ETA 15m 18s
+      so far: acc 47.1% (188/399)  avgCE 2.012  avgKL 0.962
+  [410/1506]  1.2 ex/s  elapsed 5m 38s  ETA 15m 06s
+  [420/1506]  1.2 ex/s  elapsed 5m 46s  ETA 14m 55s
+  [430/1506]  1.2 ex/s  elapsed 5m 53s  ETA 14m 45s
+  [440/1506]  1.2 ex/s  elapsed 6m 01s  ETA 14m 36s
+  [450/1506]  1.2 ex/s  elapsed 6m 09s  ETA 14m 26s
+  [460/1506]  1.2 ex/s  elapsed 6m 17s  ETA 14m 17s
+  [470/1506]  1.2 ex/s  elapsed 6m 24s  ETA 14m 08s
+  [480/1506]  1.2 ex/s  elapsed 6m 32s  ETA 13m 59s
+  [490/1506]  1.2 ex/s  elapsed 6m 39s  ETA 13m 48s
+  [500/1506]  1.2 ex/s  elapsed 6m 46s  ETA 13m 37s
+      so far: acc 49.5% (247/499)  avgCE 2.051  avgKL 0.998
+  [510/1506]  1.2 ex/s  elapsed 6m 54s  ETA 13m 29s
+  [520/1506]  1.2 ex/s  elapsed 7m 02s  ETA 13m 21s
+  [530/1506]  1.2 ex/s  elapsed 7m 10s  ETA 13m 12s
+  [540/1506]  1.2 ex/s  elapsed 7m 17s  ETA 13m 03s
+  [550/1506]  1.2 ex/s  elapsed 7m 24s  ETA 12m 53s
+  [560/1506]  1.2 ex/s  elapsed 7m 32s  ETA 12m 44s
+  [570/1506]  1.2 ex/s  elapsed 7m 39s  ETA 12m 34s
+  [580/1506]  1.2 ex/s  elapsed 7m 46s  ETA 12m 25s
+  [590/1506]  1.2 ex/s  elapsed 7m 53s  ETA 12m 15s
+  [600/1506]  1.2 ex/s  elapsed 8m 03s  ETA 12m 09s
+      so far: acc 48.9% (293/599)  avgCE 2.202  avgKL 1.137
+  [610/1506]  1.2 ex/s  elapsed 8m 11s  ETA 12m 01s
+  [620/1506]  1.2 ex/s  elapsed 8m 18s  ETA 11m 52s
+  [630/1506]  1.2 ex/s  elapsed 8m 26s  ETA 11m 44s
+  [640/1506]  1.2 ex/s  elapsed 8m 34s  ETA 11m 35s
+  [650/1506]  1.2 ex/s  elapsed 8m 41s  ETA 11m 27s
+  [660/1506]  1.2 ex/s  elapsed 8m 48s  ETA 11m 17s
+  [670/1506]  1.2 ex/s  elapsed 8m 56s  ETA 11m 09s
+  [680/1506]  1.2 ex/s  elapsed 9m 04s  ETA 11m 01s
+  [690/1506]  1.3 ex/s  elapsed 9m 11s  ETA 10m 51s
+  [700/1506]  1.2 ex/s  elapsed 9m 20s  ETA 10m 45s
+      so far: acc 45.9% (321/699)  avgCE 2.349  avgKL 1.288
+  [710/1506]  1.2 ex/s  elapsed 9m 31s  ETA 10m 40s
+  [720/1506]  1.2 ex/s  elapsed 9m 40s  ETA 10m 33s
+  [730/1506]  1.2 ex/s  elapsed 9m 48s  ETA 10m 25s
+  [740/1506]  1.2 ex/s  elapsed 9m 54s  ETA 10m 15s
+  [750/1506]  1.2 ex/s  elapsed 10m 01s  ETA 10m 06s
+  [760/1506]  1.2 ex/s  elapsed 10m 08s  ETA 9m 57s
+  [770/1506]  1.3 ex/s  elapsed 10m 15s  ETA 9m 48s
+  [780/1506]  1.3 ex/s  elapsed 10m 22s  ETA 9m 39s
+  [790/1506]  1.3 ex/s  elapsed 10m 31s  ETA 9m 32s
+  [800/1506]  1.3 ex/s  elapsed 10m 39s  ETA 9m 24s
+      so far: acc 42.3% (338/799)  avgCE 2.350  avgKL 1.242
+  [810/1506]  1.3 ex/s  elapsed 10m 47s  ETA 9m 16s
+  [820/1506]  1.2 ex/s  elapsed 10m 56s  ETA 9m 09s
+  [830/1506]  1.3 ex/s  elapsed 11m 03s  ETA 9m 00s
+  [840/1506]  1.3 ex/s  elapsed 11m 10s  ETA 8m 51s
+  [850/1506]  1.3 ex/s  elapsed 11m 17s  ETA 8m 42s
+  [860/1506]  1.3 ex/s  elapsed 11m 24s  ETA 8m 33s
+  [870/1506]  1.3 ex/s  elapsed 11m 31s  ETA 8m 25s
+  [880/1506]  1.3 ex/s  elapsed 11m 37s  ETA 8m 16s
+  [890/1506]  1.3 ex/s  elapsed 11m 44s  ETA 8m 07s
+  [900/1506]  1.3 ex/s  elapsed 11m 51s  ETA 7m 59s
+      so far: acc 43.8% (394/899)  avgCE 2.287  avgKL 1.160
+  [910/1506]  1.3 ex/s  elapsed 11m 59s  ETA 7m 50s
+  [920/1506]  1.3 ex/s  elapsed 12m 08s  ETA 7m 44s
+  [930/1506]  1.3 ex/s  elapsed 12m 17s  ETA 7m 36s
+  [940/1506]  1.3 ex/s  elapsed 12m 24s  ETA 7m 28s
+  [950/1506]  1.3 ex/s  elapsed 12m 31s  ETA 7m 19s
+  [960/1506]  1.3 ex/s  elapsed 12m 37s  ETA 7m 11s
+  [970/1506]  1.3 ex/s  elapsed 12m 44s  ETA 7m 02s
+  [980/1506]  1.3 ex/s  elapsed 12m 51s  ETA 6m 54s
+  [990/1506]  1.3 ex/s  elapsed 12m 59s  ETA 6m 46s
+  [1000/1506]  1.3 ex/s  elapsed 13m 07s  ETA 6m 38s
+      so far: acc 44.2% (442/999)  avgCE 2.279  avgKL 1.145
+  [1010/1506]  1.3 ex/s  elapsed 13m 14s  ETA 6m 30s
+  [1020/1506]  1.3 ex/s  elapsed 13m 21s  ETA 6m 21s
+  [1030/1506]  1.3 ex/s  elapsed 13m 29s  ETA 6m 14s
+  [1040/1506]  1.3 ex/s  elapsed 13m 36s  ETA 6m 05s
+  [1050/1506]  1.3 ex/s  elapsed 13m 43s  ETA 5m 57s
+  [1060/1506]  1.3 ex/s  elapsed 13m 51s  ETA 5m 49s
+  [1070/1506]  1.3 ex/s  elapsed 13m 59s  ETA 5m 42s
+  [1080/1506]  1.3 ex/s  elapsed 14m 07s  ETA 5m 34s
+  [1090/1506]  1.3 ex/s  elapsed 14m 15s  ETA 5m 26s
+  [1100/1506]  1.3 ex/s  elapsed 14m 22s  ETA 5m 18s
+      so far: acc 43.4% (477/1099)  avgCE 2.297  avgKL 1.191
+  [1110/1506]  1.3 ex/s  elapsed 14m 30s  ETA 5m 10s
+  [1120/1506]  1.3 ex/s  elapsed 14m 37s  ETA 5m 02s
+  [1130/1506]  1.3 ex/s  elapsed 14m 45s  ETA 4m 54s
+  [1140/1506]  1.3 ex/s  elapsed 14m 51s  ETA 4m 46s
+  [1150/1506]  1.3 ex/s  elapsed 14m 58s  ETA 4m 38s
+  [1160/1506]  1.3 ex/s  elapsed 15m 05s  ETA 4m 30s
+  [1170/1506]  1.3 ex/s  elapsed 15m 12s  ETA 4m 22s
+  [1180/1506]  1.3 ex/s  elapsed 15m 19s  ETA 4m 14s
+  [1190/1506]  1.3 ex/s  elapsed 15m 26s  ETA 4m 06s
+  [1200/1506]  1.3 ex/s  elapsed 15m 34s  ETA 3m 58s
+      so far: acc 43.0% (516/1199)  avgCE 2.347  avgKL 1.210
+  [1210/1506]  1.3 ex/s  elapsed 15m 42s  ETA 3m 50s
+  [1220/1506]  1.3 ex/s  elapsed 15m 49s  ETA 3m 42s
+  [1230/1506]  1.3 ex/s  elapsed 15m 57s  ETA 3m 34s
+  [1240/1506]  1.3 ex/s  elapsed 16m 04s  ETA 3m 26s
+  [1250/1506]  1.3 ex/s  elapsed 16m 11s  ETA 3m 18s
+  [1260/1506]  1.3 ex/s  elapsed 16m 18s  ETA 3m 11s
+  [1270/1506]  1.3 ex/s  elapsed 16m 25s  ETA 3m 03s
+  [1280/1506]  1.3 ex/s  elapsed 16m 33s  ETA 2m 55s
+  [1290/1506]  1.3 ex/s  elapsed 16m 40s  ETA 2m 47s
+  [1300/1506]  1.3 ex/s  elapsed 16m 48s  ETA 2m 39s
+      so far: acc 44.3% (576/1299)  avgCE 2.318  avgKL 1.195
+  [1310/1506]  1.3 ex/s  elapsed 16m 55s  ETA 2m 32s
+  [1320/1506]  1.3 ex/s  elapsed 17m 03s  ETA 2m 24s
+  [1330/1506]  1.3 ex/s  elapsed 17m 11s  ETA 2m 16s
+  [1340/1506]  1.3 ex/s  elapsed 17m 19s  ETA 2m 08s
+  [1350/1506]  1.3 ex/s  elapsed 17m 27s  ETA 2m 00s
+  [1360/1506]  1.3 ex/s  elapsed 17m 34s  ETA 1m 53s
+  [1370/1506]  1.3 ex/s  elapsed 17m 42s  ETA 1m 45s
+  [1380/1506]  1.3 ex/s  elapsed 17m 49s  ETA 1m 37s
+  [1390/1506]  1.3 ex/s  elapsed 17m 58s  ETA 1m 30s
+  [1400/1506]  1.3 ex/s  elapsed 18m 07s  ETA 1m 22s
+      so far: acc 44.1% (617/1399)  avgCE 2.328  avgKL 1.199
+  [1410/1506]  1.3 ex/s  elapsed 18m 15s  ETA 1m 14s
+  [1420/1506]  1.3 ex/s  elapsed 18m 22s  ETA 1m 06s
+  [1430/1506]  1.3 ex/s  elapsed 18m 29s  ETA 58s
+  [1440/1506]  1.3 ex/s  elapsed 18m 38s  ETA 51s
+  [1450/1506]  1.3 ex/s  elapsed 18m 45s  ETA 43s
+  [1460/1506]  1.3 ex/s  elapsed 18m 52s  ETA 35s
+  [1470/1506]  1.3 ex/s  elapsed 18m 59s  ETA 27s
+  [1480/1506]  1.3 ex/s  elapsed 19m 07s  ETA 20s
+  [1490/1506]  1.3 ex/s  elapsed 19m 14s  ETA 12s
+  [1500/1506]  1.3 ex/s  elapsed 19m 22s  ETA 4s
+      so far: acc 43.6% (654/1499)  avgCE 2.326  avgKL 1.190
+[save] per-question results -> output/evals/Qwen3.6-27B-nz-wvs-sampled_response-overall/sampled_response-overall-20260814_124058/per_question_results.csv
+
+============================================================
+Evaluation Summary
+============================================================
+  Examples evaluated:  1506
+  Nan / failures:      0
+
+  --- By subpopulation ---
+  subpop         n  accuracy    avgCE    avgKL
+  overall     1506     43.7%   2.3272   1.1916
+
+
+[done] evaluation complete (1168s)
+       Results saved to /vol/grid-solar/sgeusers/thompsjame1/AIML589/code/fine-tuning/output/evals/Qwen3.6-27B-nz-wvs-sampled_response-overall/sampled_response-overall-20260814_124058

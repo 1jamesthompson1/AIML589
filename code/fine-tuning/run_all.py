@@ -29,6 +29,7 @@ Example:
     uv run run_all.py uni-gpu1 Qwen/Qwen3.5-9B --force
     uv run run_all.py uni-gpu1 Qwen/Qwen3.5-9B --force-older-than 2
     uv run run_all.py uni-gpu1 Qwen/Qwen3.5-9B --subpop cluster_0
+    uv run run_all.py uni-gpu1 Qwen/Qwen3.5-9B --adapters modal_response-overall,sampled_response-overall
 
 Environment:
     EVAL_PORT      Local port for the eval server tunnel (default: 8087)
@@ -67,6 +68,10 @@ DATASETS = [
     "first_token_distribution",
 ]
 SUBPOPS = ["cluster_0", "cluster_1", "overall"]
+
+# How long to wait after launching the server before the first health probe
+# (model + LoRA loading takes minutes). Keep in sync with serve.py.
+STARTUP_GRACE_S = 180
 
 # finetune.py-only flags: extra args are forwarded to serve.py too, but vLLM
 # rejects them. Flags whose values could be mistaken for a new flag are not
@@ -158,6 +163,15 @@ def parse_args(argv=None):
         choices=SUBPOPS,
         help="Run only this subpopulation (skip the others)",
     )
+    p.add_argument(
+        "--adapters",
+        default=None,
+        metavar="SUFFIX[,SUFFIX...]",
+        help="Only run {dataset}-{population} suffixes listed here, e.g. "
+        "'modal_response-overall,sampled_response-cluster_0'. Limits "
+        "finetune jobs AND which collection adapters are served/evaluated. "
+        "Default: all matching adapters.",
+    )
     p.add_argument("--skip-finetune", action="store_true")
     p.add_argument("--skip-eval", action="store_true")
     force = p.add_mutually_exclusive_group()
@@ -218,7 +232,7 @@ def server_is_up(url: str, timeout_s: float = 5.0) -> bool:
         return False
 
 
-def serve_adapters(host, model, collection, port, extra):
+def serve_adapters(host, model, collection, port, extra, adapter_suffixes=None):
     banner(f"SERVING all adapters from {collection} on :{port}")
     cmd = [
         str(RUN_SH),
@@ -234,6 +248,8 @@ def serve_adapters(host, model, collection, port, extra):
         # finetune-only flags (e.g. --num-epochs) must not reach vLLM
         *filter_finetune_only(extra),
     ]
+    if adapter_suffixes:
+        cmd.extend(["--adapter-suffixes", adapter_suffixes])
     proc = subprocess.Popen(cmd)  # inherit stdio so run.sh logs are visible
     return proc
 
@@ -249,9 +265,11 @@ def stop_server(proc, timeout_s: float = 30.0):
         proc.wait()
 
 
-def run_eval(port):
+def run_eval(port, subpop=None):
     banner("EVALUATING all served adapters on the validation split")
     cmd = ["uv", "run", str(BATCH_EVAL), "--port", str(port)]
+    if subpop:
+        cmd.extend(["--subpopulation", subpop])
     subprocess.run(cmd, cwd=SCRIPT_DIR, check=True)
 
 
@@ -276,10 +294,14 @@ def main(argv=None):
     )
 
     if not args.skip_finetune:
+        wanted = {s.strip() for s in (args.adapters or "").split(",") if s.strip()}
         for ds in DATASETS:
             subpops = [args.subpop] if args.subpop else SUBPOPS
             for pop in subpops:
                 repo = f"{hf_org}/{model_slug}-nz-wvs-{ds}-{pop}"
+                if wanted and f"{ds}-{pop}" not in wanted:
+                    print(f"[skip] {repo}: not in --adapters {args.adapters}")
+                    continue
                 if hf_org and not resuming:
                     last_modified = adapter_last_modified(repo, hf_token)
                     if last_modified is not None:
@@ -307,8 +329,17 @@ def main(argv=None):
     if args.skip_eval:
         return
 
-    proc = serve_adapters(args.host, args.model, collection, port, args.extra)
+    proc = serve_adapters(
+        args.host, args.model, collection, port, args.extra, args.adapters
+    )
     try:
+        # Give vLLM a head start before polling — early probes just race the
+        # model load and show up as connection refused through the tunnel.
+        print(
+            f"Giving vLLM {STARTUP_GRACE_S}s to start before polling...",
+            flush=True,
+        )
+        time.sleep(STARTUP_GRACE_S)
         print(f"Waiting for server on localhost:{port}...", flush=True)
         deadline = time.monotonic() + 600
         while time.monotonic() < deadline:
@@ -320,7 +351,7 @@ def main(argv=None):
             sys.exit(1)
         print("Server ready.")
 
-        run_eval(port)
+        run_eval(port, args.subpop)
     except KeyboardInterrupt:
         print("\nInterrupted — shutting down server...")
     finally:

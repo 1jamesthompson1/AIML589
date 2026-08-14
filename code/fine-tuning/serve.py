@@ -19,6 +19,11 @@ Each fine-tuned adapter lives in its own HF Hub repo following the
 naming convention ``{model_slug}-nz-wvs-{dataset}-{population}``
 (e.g. ``Qwen3.6-27B-nz-wvs-modal_response-cluster_0``).
 
+Adapters whose LoRA rank (from their ``adapter_config.json``) exceeds
+``--max-lora-rank`` are skipped with a warning — vLLM refuses to load them
+anyway, and one bad adapter would abort server startup. This keeps
+mixed-rank collections servable.
+
 Usage:
     # Base model only (no adapters)
     uv run serve.py --model Qwen/Qwen3.6-27B
@@ -38,6 +43,7 @@ Usage:
 """
 
 import argparse
+import json
 import logging
 import os
 import signal
@@ -56,6 +62,12 @@ for noisy in ("huggingface_hub", "urllib3"):
     logging.getLogger(noisy).setLevel(logging.WARNING)
 
 log = logging.getLogger(__name__)
+
+# How long to wait before the first health probe after launching vLLM.
+# Model loading takes minutes (longer with LoRA adapters), and early probes
+# just race the bind, showing up as "channel 2: open failed: Connection
+# refused" through the tunnel. Keep in sync with run_all.py.
+STARTUP_GRACE_S = 180
 
 
 def discover_adapters_from_collection(
@@ -79,6 +91,12 @@ def discover_adapters_from_collection(
         log.warning("[adapters] could not fetch collection %s: %s", collection_slug, e)
         return adapters
 
+    log.info(
+        "[adapters] collection %s has %d item(s)",
+        collection_slug,
+        len(collection.items),
+    )
+
     for item in collection.items:
         if item.item_type != "model":
             continue
@@ -90,6 +108,30 @@ def discover_adapters_from_collection(
             adapters.append((adapter_name, repo_id))
 
     return adapters
+
+
+def get_lora_rank(adapter: str, hf_token: str | None = None) -> int | None:
+    """Return the LoRA rank (``r``) of an adapter from its adapter_config.json.
+
+    ``adapter`` may be a local directory or an HF repo id. Returns None if
+    the config can't be read (unreachable hub, missing file, etc.).
+    """
+    from huggingface_hub import hf_hub_download
+
+    try:
+        if os.path.isdir(adapter):
+            config_path = os.path.join(adapter, "adapter_config.json")
+        else:
+            config_path = hf_hub_download(
+                repo_id=adapter,
+                filename="adapter_config.json",
+                token=hf_token,
+            )
+        with open(config_path) as f:
+            return json.load(f).get("r")
+    except Exception as e:
+        log.debug("[adapters] could not read LoRA rank for %s: %s", adapter, e)
+        return None
 
 
 def parse_args(argv=None):
@@ -142,6 +184,20 @@ def parse_args(argv=None):
         default=256,
         help="Maximum number of sequences per batch. Lower this if OOM with Mamba models.",
     )
+    p.add_argument(
+        "--enable-auto-tool-choice",
+        action="store_true",
+        default=True,
+        help="Enable tool calling in vLLM. Required for agentic evals "
+        "(gpqa_diamond gives the model bash/python/submit tools); without it "
+        "vLLM rejects requests with tool_choice='auto' (HTTP 400).",
+    )
+    p.add_argument(
+        "--tool-call-parser",
+        default="hermes",
+        help="Parser for tool calls in model output. 'hermes' is the format "
+        "used by the Qwen3 chat template (see vLLM docs for others).",
+    )
 
     # ── LoRA multi-adapter options ──────────────────────────────────
     p.add_argument(
@@ -160,6 +216,15 @@ def parse_args(argv=None):
         help="HF collection slug to auto-discover adapters from "
         "(e.g. '1jamesthompson1/wvs-nz-lora-adapters'). "
         "Finds all repos matching {model_slug}-nz-wvs-*.",
+    )
+    p.add_argument(
+        "--adapter-suffixes",
+        default=None,
+        metavar="SUFFIX[,SUFFIX...]",
+        help="Only load discovered adapters whose {dataset}-{population} "
+        "suffix is listed (e.g. 'modal_response-overall,sampled_response-"
+        "cluster_0'). Ignores other adapters in the collection. "
+        "Default: all matching adapters.",
     )
     p.add_argument(
         "--max-lora-rank",
@@ -217,6 +282,9 @@ def main():
         str(args.max_model_len),
         "--reasoning-parser",
         "qwen3",
+        "--enable-auto-tool-choice",
+        "--tool-call-parser",
+        args.tool_call_parser,
         "--enable-prefix-caching",
         "--language-model-only",
         "--max-num-seqs",
@@ -225,6 +293,7 @@ def main():
 
     # ── Build adapter list ──────────────────────────────────────────
     adapter_modules: list[tuple[str, str]] = []
+    hf_token = os.environ.get("HF_TOKEN")
 
     base_slug = args.model.split("/")[-1]
 
@@ -232,10 +301,22 @@ def main():
         log.info(
             "[adapters] discovering adapters from collection %s...", args.hf_collection
         )
-        hf_token = os.environ.get("HF_TOKEN")
         discovered = discover_adapters_from_collection(
             args.hf_collection, base_slug, hf_token
         )
+        if args.adapter_suffixes:
+            wanted = {s.strip() for s in args.adapter_suffixes.split(",") if s.strip()}
+            # Repo name is {model_slug}-nz-wvs-{dataset}-{population}, so the
+            # suffix is everything after the "-nz-wvs-" marker.
+            discovered = [
+                (name, repo_id)
+                for name, repo_id in discovered
+                if name.split("-nz-wvs-", 1)[1] in wanted
+            ]
+            log.info(
+                "[adapters] filtered by --adapter-suffixes, %d adapter(s) remain",
+                len(discovered),
+            )
         if not discovered:
             log.warning("[adapters] no matching adapters found for %s", base_slug)
         else:
@@ -255,9 +336,40 @@ def main():
             name, path = entry.split("=", 1)
             adapter_modules.append((name.strip(), path.strip()))
 
+    # vLLM aborts startup if any adapter's rank exceeds --max-lora-rank, so
+    # drop those here and warn rather than crash the whole server.
+    if adapter_modules:
+        kept: list[tuple[str, str]] = []
+        for name, path in adapter_modules:
+            rank = get_lora_rank(path, hf_token)
+            if rank is None:
+                log.warning(
+                    "[adapters] %s: could not determine LoRA rank, loading anyway",
+                    name,
+                )
+                kept.append((name, path))
+            elif rank <= args.max_lora_rank:
+                kept.append((name, path))
+            else:
+                log.warning(
+                    "[adapters] skipping %s: rank %d > --max-lora-rank %d",
+                    name,
+                    rank,
+                    args.max_lora_rank,
+                )
+        adapter_modules = kept
+        if not adapter_modules:
+            log.warning(
+                "[adapters] no usable adapters (all rank > %d)",
+                args.max_lora_rank,
+            )
+
     if adapter_modules:
         cmd.append("--enable-lora")
         cmd.extend(["--max-lora-rank", str(args.max_lora_rank)])
+        # Keep every adapter resident in CPU memory so switching LoRAs never
+        # hits the network or re-reads weights from disk.
+        cmd.extend(["--max-cpu-loras", str(len(adapter_modules))])
         cmd.extend(
             ["--lora-modules"] + [f"{name}={path}" for name, path in adapter_modules]
         )
@@ -293,7 +405,7 @@ def main():
     # Give vLLM a head start before the health poll below begins — model
     # loading takes a while, and early probes just race the bind (showing up
     # as "channel 2: open failed: Connection refused" through the tunnel).
-    time.sleep(10)
+    time.sleep(STARTUP_GRACE_S)
 
     print("[serve] vLLM output:")
     print("=" * 60)
