@@ -381,6 +381,13 @@ subpopulations (cluster_0, cluster_1, overall). Splits are 80/10/10 by
 (question_id, column_name) so a question never spans splits. The datasets are
 stored in `output/dataset/` — see the [dataset README](output/dataset/README.md) for full details.
 
+The expensive pairwise redundancy computation (max cross-battery Cramer's V,
+used for held-out question selection) is cached to
+`output/redundancy.pkl`, keyed by a hash of its input files
+(`question_mapping.json`, `wvs_value_survey.csv`, `cluster_assignments.csv`).
+The cache loads automatically on rerun and invalidates when any input
+changes; delete the file to force a recompute.
+
 The dataset is also published on the Hugging Face Hub:
 - **Repository:** [`1jamesthompson1/wvs-nz-value-alignment`](https://huggingface.co/datasets/1jamesthompson1/wvs-nz-value-alignment)
 
@@ -389,7 +396,10 @@ from datasets import load_dataset
 ds = load_dataset("1jamesthompson1/wvs-nz-value-alignment", "modal_response")
 ```
 
-Re-upload after regeneration:
+Re-upload after regeneration either from the notebook (the final "Publish to
+the Hugging Face Hub" cells: tick the acknowledgement checkbox, type the repo
+id, and press a separate final confirmation button before anything is
+uploaded) or manually:
 
 ```bash
 hf upload 1jamesthompson1/wvs-nz-value-alignment output/dataset --type dataset

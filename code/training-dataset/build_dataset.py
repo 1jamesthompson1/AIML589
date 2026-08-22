@@ -1,6 +1,6 @@
 import marimo
 
-__generated_with = "0.23.16"
+__generated_with = "0.24.0"
 app = marimo.App(width="medium")
 
 
@@ -32,17 +32,25 @@ def _(mo):
 
 @app.cell
 def _():
+    import hashlib
     import json
     import marimo as mo
     import matplotlib.pyplot as plt
     import pandas as pd
     import random
     import numpy as np
+    import os
+    import pickle
     import re
     import shutil
+    import textwrap
     from itertools import combinations
     from pathlib import Path
     from scipy.stats import chi2_contingency
+    from matplotlib.patches import Patch
+    from dotenv import load_dotenv
+
+    load_dotenv()
 
     # Which LCA model to use: the number of clusters from cluster_respondents.py.
     # Must be 2 or 3 (or any k with a completed run), i.e. the assignments are
@@ -55,19 +63,24 @@ def _():
     # cluster_0 .. cluster_1 for k=2, cluster_0 .. cluster_2 for k=3).
     SELECTED_SUBPOPS = ["cluster_0", "cluster_1", "overall"]
     return (
+        Patch,
         Path,
         SELECTED_K,
         SELECTED_SUBPOPS,
         chi2_contingency,
         combinations,
+        hashlib,
         json,
         mo,
         np,
+        os,
         pd,
+        pickle,
         plt,
         random,
         re,
         shutil,
+        textwrap,
     )
 
 
@@ -147,17 +160,27 @@ def _(mo):
     sees its exact text. All computation lives inside one function so
     the global namespace stays clean; the results feed the held-out
     selection cell below.
+
+    This is the slowest step in the notebook, so the result is cached to
+    `output/redundancy.pkl`, keyed by a hash of the input files
+    (question mapping, survey, cluster assignments). Reruns load the
+    cache; it invalidates automatically when any input changes (delete
+    the file to force a recompute).
     """)
     return
 
 
 @app.cell
 def _(
+    SELECTED_K,
     chi2_contingency,
     combinations,
+    hashlib,
     items,
     np,
+    output_dir,
     pd,
+    pickle,
     respondents_with_clusters,
 ):
     def compute_redundancy(items, respondents_with_clusters):
@@ -270,7 +293,51 @@ def _(
             "col2q": col2q,
         }
 
-    redundancy_data = compute_redundancy(items, respondents_with_clusters)
+    # Disk cache: the pairwise Cramer's V over all cross-battery pairs is
+    # the slowest step in this notebook, and it only depends on the
+    # question mapping plus the survey/cluster files. The result is saved
+    # to output/redundancy.pkl, keyed by a hash of those inputs, so
+    # reruns load it instantly. The cache invalidates automatically when
+    # any input file changes; delete the file to force a recompute.
+    _cache_file = output_dir / "redundancy.pkl"
+
+    def redundancy_cache_key():
+        """Hash of every input the redundancy structure depends on."""
+        h = hashlib.sha256()
+        for p in (
+            output_dir / "question_mapping.json",
+            output_dir / "wvs_value_survey.csv",
+            output_dir
+            / "cluster_analysis"
+            / f"k{SELECTED_K}_analysis"
+            / "cluster_assignments.csv",
+        ):
+            if p.exists():
+                h.update(p.name.encode())
+                h.update(p.read_bytes())
+        return h.hexdigest()[:16]
+
+    def load_or_compute_redundancy(items, respondents_with_clusters, key):
+        """Load the cached redundancy if the key matches, else compute and
+        cache it."""
+        if _cache_file.exists():
+            try:
+                with open(_cache_file, "rb") as fh:
+                    cached = pickle.load(fh)
+                if cached["key"] == key:
+                    print(f"Loaded redundancy from cache: {_cache_file} (key {key})")
+                    return cached["redundancy_data"]
+                print(f"Inputs changed (key {key}) — recomputing redundancy")
+            except Exception as exc:
+                print(f"Cache unreadable ({exc}) — recomputing redundancy")
+        redundancy_data = compute_redundancy(items, respondents_with_clusters)
+        with open(_cache_file, "wb") as fh:
+            pickle.dump({"key": key, "redundancy_data": redundancy_data}, fh)
+        print(f"Computed redundancy, cached to {_cache_file} (key {key})")
+        return redundancy_data
+
+    _key = redundancy_cache_key()
+    redundancy_data = load_or_compute_redundancy(items, respondents_with_clusters, _key)
     return (redundancy_data,)
 
 
@@ -289,7 +356,7 @@ def _(mo):
 
 
 @app.cell
-def _(Path, pd, redundancy_data):
+def _(Path, pd, redundancy_data, textwrap):
 
     # How many questions to hold out for validation (one per battery AND
     # per redundancy component).
@@ -331,7 +398,7 @@ def _(Path, pd, redundancy_data):
             f"{col2sub.get(r.column)}"
         )
 
-    def print_held_out_similarity(held_out_questions, top_partners, out_path):
+    def print_held_out_similarity(questions, top_partners, out_path):
         """Show, for each held-out question, the training questions most
         similar to it (cross-battery Cramer's V, top 3, kept in train).
         Writes the block to out_path (plain text, ASCII-only and
@@ -339,27 +406,24 @@ def _(Path, pd, redundancy_data):
         the report appendix)."""
 
         def _wrap_line(line, width=75):
-            """Break lines wider than ``width`` at word boundaries, keeping
-            the leading indentation on continuation lines (long question
-            texts would otherwise overflow the LaTeX verbatim box)."""
-            if len(line) <= width:
-                return line
+            """Wrap via ``textwrap``, keeping the leading indentation on
+            continuation lines (long question texts would otherwise
+            overflow the LaTeX verbatim box)."""
             indent = line[: len(line) - len(line.lstrip())]
-            parts, cur = [], indent
-            for word in line.split():
-                cand = f"{cur} {word}" if cur != indent else f"{indent}{word}"
-                if len(cand) <= width:
-                    cur = cand
-                else:
-                    parts.append(cur)
-                    cur = f"{indent}{word}"
-            parts.append(cur)
-            return "\n".join(parts)
+            return textwrap.fill(
+                line.strip(),
+                width=width,
+                initial_indent=indent,
+                subsequent_indent=indent,
+            )
 
         lines = []
-        for r in held_out_questions.itertuples():
+        for r in questions.itertuples():
             lines.append("\n" + "=" * 70)
-            lines.append(f"HELD OUT: {r.column} - {r.sub_question}")
+            if r in held_out_questions.itertuples():
+                lines.append(f" Actual HELD OUT: {r.column} - {r.sub_question}")
+            else:
+                lines.append(f"Suggested HELD OUT: {r.column} - {r.sub_question}")
             lines.append(f"  Q: {r.question}")
             lines.append(f"  (max cross-battery V={r.max_cross_v})")
             lines.append("-" * 70)
@@ -425,15 +489,65 @@ def _(N_HELD_OUT, candidates, col2sub, mo, pd):
 
 
 @app.cell
-def _(held_cols, np, plt, redundancy):
+def _(
+    Patch,
+    held_cols,
+    held_out_questions,
+    np,
+    plt,
+    redundancy,
+    redundancy_data,
+):
+    # Bar chart of max cross-battery V, coloured by redundancy group.
+    _parent_map = redundancy_data["parent_map"]
 
-    # Bar chart of max cross-battery V for every question, red = held out.
-    colors = [
-        "crimson" if c in held_cols else "steelblue" for c in redundancy["column"]
-    ]
-    fig, ax = plt.subplots(figsize=(14, 4.5))
+    def _root(c):
+        while _parent_map[c] != c:
+            c = _parent_map[c]
+        return c
+
+    _group_of, _root_members = {}, {}
+    for _c in redundancy["column"]:
+        _r = _root(_c)
+        _group_of[_c] = _r
+        _root_members.setdefault(_r, []).append(_c)
+
+    # Order groups by their best member's rank so colours follow the
+    # chart order (left to right).
+    _multi_roots = [r for r, m in _root_members.items() if len(m) >= 2]
+    _first_rank = {
+        r: redundancy.index[redundancy["column"].isin(_root_members[r])].min()
+        for r in _multi_roots
+    }
+    _multi_roots.sort(key=lambda r: _first_rank[r])
+
+    _cmap = plt.cm.tab20
+    _group_colors = {
+        r: _cmap(i / max(len(_multi_roots), 1)) for i, r in enumerate(_multi_roots)
+    }
+    _grey = "#c8c8c8"
+
+    _bar_colors = [_group_colors.get(_group_of[c], _grey) for c in redundancy["column"]]
+    _edge_colors = ["black" if c in held_cols else "none" for c in redundancy["column"]]
+    _linewidths = [1.3 if c in held_cols else 0.0 for c in redundancy["column"]]
+
+    # Held-out groups, in pick order (one per battery + redundancy group).
+    _held_group_roots, _seen = [], set()
+    for _c in held_out_questions["column"]:
+        _r = _group_of[_c]
+        if _r not in _seen:
+            _seen.add(_r)
+            _held_group_roots.append(_r)
+    _held_out_in_group = {_r: _c for _c in held_cols for _r in [_group_of[_c]]}
+
+    fig, ax = plt.subplots(figsize=(16, 5))
     ax.bar(
-        np.arange(len(redundancy)), redundancy["max_cross_v"], color=colors, width=0.9
+        np.arange(len(redundancy)),
+        redundancy["max_cross_v"],
+        color=_bar_colors,
+        edgecolor=_edge_colors,
+        linewidth=_linewidths,
+        width=0.9,
     )
     ax.axhline(0.5, color="black", ls="--", lw=0.8)
     ax.text(len(redundancy) - 1, 0.52, "V = 0.5 threshold", ha="right", fontsize=9)
@@ -448,7 +562,36 @@ def _(held_cols, np, plt, redundancy):
         )
     ax.set_xlabel("questions ranked by max cross-battery V")
     ax.set_ylabel("max cross-battery Cramer's V")
-    ax.set_title(f"Redundancy of all {len(redundancy)} questions (red = held out)")
+    ax.set_title(
+        "Redundancy of all questions (colour = redundancy group, black edge = held out)"
+    )
+
+    _handles = []
+    for _i, _r in enumerate(_held_group_roots):
+        _members = sorted(_root_members[_r])
+        _handles.append(
+            Patch(
+                facecolor=_group_colors.get(_r, _grey),
+                edgecolor="black",
+                label=(
+                    f"held-out group {_i + 1} — {', '.join(_members)} "
+                    f"(held out: {_held_out_in_group[_r]})"
+                ),
+            )
+        )
+    _handles.append(
+        Patch(facecolor=_grey, label="other questions (no redundancy group)")
+    )
+    ax.legend(
+        handles=_handles,
+        bbox_to_anchor=(1.02, 1),
+        loc="upper left",
+        fontsize=7,
+        frameon=False,
+    )
+
+    fig.savefig("../figures/redundancy_bar_chart.pdf", bbox_inches="tight")
+
     plt.show()
     return
 
@@ -499,7 +642,6 @@ def _(first_token_system_prompts, held_out_prompt, held_out_questions, items):
         return train_rows, val_rows
 
     print(f"Train items: {len(train_keys)}, Validation items: {len(val_keys)}")
-    print("\nMost similar training questions per held-out question:")
     return (split_rows,)
 
 
@@ -533,6 +675,19 @@ def _(Path, json):
         question_templates,
         system_prompts,
     )
+
+
+@app.cell
+def _(system_prompts, textwrap):
+    # output system prompts in nice format for LaTeX report, wrapped at
+    # 75 chars so they embed cleanly in LaTeX verbatim blocks
+    with open("../figures/system_prompts.txt", "w") as sys_f:
+        for name, text in system_prompts.items():
+            wrapped = "\n\n".join(
+                textwrap.fill(p, width=75) for p in text.split("\n\n")
+            )
+            sys_f.write(f"--- {name} ---\n{wrapped}\n\n")
+    return
 
 
 @app.cell(hide_code=True)
@@ -1151,6 +1306,132 @@ def _(
             print(f"  -> {_config_name}/{_split} total: {_total} rows")
 
     f"Exported {len(_variants)} configs to {_dataset_dir}"
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    ## Publish to the Hugging Face Hub
+
+    The exported datasets under `output/dataset/` are published to the Hub
+    so the fine-tuning pipeline can load them directly:
+    [`1jamesthompson1/wvs-nz-value-alignment`](https://huggingface.co/datasets/1jamesthompson1/wvs-nz-value-alignment).
+    Set `HF_TOKEN` (with write permission) in the environment first.
+
+    Uploading **overwrites** the public dataset and cannot be undone, so
+    the cells below require explicit confirmation: tick the
+    acknowledgement checkbox, type the repo id, then press the upload
+    button. Nothing touches the network until all of that is done.
+    """)
+    return
+
+
+@app.cell
+def _(mo, output_dir, pd):
+    # Publish to the Hub overwrites the public dataset, so require explicit
+    # confirmation: an acknowledgement checkbox AND the repo id typed in
+    # full, with the actual checks done in the upload cell below (marimo
+    # forbids reading UI values in the cell that creates them).
+    WVS_REPO_ID = "1jamesthompson1/wvs-nz-value-alignment"
+    dataset_dir = output_dir / "dataset"
+
+    def _summarize_dataset(dataset_dir):
+        """Per-file summary of the exported dataset: rows and size per
+        config / split / subpopulation."""
+        rows = []
+        for p in sorted(dataset_dir.rglob("*.parquet")):
+            rows.append(
+                {
+                    "config": p.parent.parent.name,
+                    "split": p.parent.name,
+                    "subpopulation": p.stem,
+                    "rows": len(pd.read_parquet(p)),
+                    "size_kb": round(p.stat().st_size / 1024, 1),
+                }
+            )
+        return pd.DataFrame(rows)
+
+    summary = _summarize_dataset(dataset_dir)
+    _total_rows = int(summary["rows"].sum())
+    _total_size_kb = float(summary["size_kb"].sum())
+
+    upload_ack = mo.ui.checkbox(
+        label=(
+            f"I understand this OVERWRITES the public dataset `{WVS_REPO_ID}` "
+            "and cannot be undone."
+        )
+    )
+    upload_typed = mo.ui.text(placeholder=f'Type "{WVS_REPO_ID}" exactly to confirm')
+    # run_button (not button): pressing it runs the cells that reference it,
+    # which works even where UI interactions don't auto-rerun dependents
+    # (e.g. the VS Code extension).
+    upload_go = mo.ui.run_button(
+        label="Upload to the Hugging Face Hub",
+        kind="danger",
+    )
+
+    mo.vstack(
+        [
+            mo.md(
+                f"**{len(summary)} parquet files, {_total_rows:,} rows, "
+                f"{_total_size_kb:,.0f} KB** will be uploaded to "
+                f"`{WVS_REPO_ID}`."
+            ),
+            summary,
+            upload_ack,
+            upload_typed,
+            upload_go,
+        ]
+    )
+    return WVS_REPO_ID, dataset_dir, upload_ack, upload_go, upload_typed
+
+
+@app.cell
+def _(WVS_REPO_ID, dataset_dir, mo, os, upload_ack, upload_go, upload_typed):
+    mo.stop(
+        not upload_go.value,
+        mo.md(
+            "Nothing uploaded yet — tick the checkbox, type the repo id, "
+            "then press the **Upload to the Hugging Face Hub** button above."
+        ),
+    )
+    mo.stop(
+        not upload_ack.value,
+        mo.md("Tick the acknowledgement checkbox before uploading."),
+    )
+    mo.stop(
+        upload_typed.value != WVS_REPO_ID,
+        mo.md(f"Type `{WVS_REPO_ID}` exactly in the text box to confirm."),
+    )
+
+    token = os.environ.get("HF_TOKEN")
+    mo.stop(
+        not token,
+        mo.md(
+            "**`HF_TOKEN` is not set** — export it first, e.g. "
+            "`export HF_TOKEN=hf_...`, then run this cell again."
+        ),
+    )
+
+    # huggingface_hub is imported here (like in fine-tuning/finetune.py) so
+    # the marimo global namespace stays clean.
+    def upload_to_hub(repo_id, folder, token):
+        from huggingface_hub import HfApi, create_repo
+
+        api = HfApi(token=token)
+        create_repo(repo_id, token=token, repo_type="dataset", exist_ok=True)
+        api.upload_folder(
+            folder_path=folder,
+            repo_id=repo_id,
+            repo_type="dataset",
+            token=token,
+            commit_message="Regenerated by build_dataset.py",
+        )
+        return repo_id
+
+    uploaded = upload_to_hub(WVS_REPO_ID, dataset_dir, token)
+    f"Done — https://huggingface.co/datasets/{uploaded}"
     return
 
 

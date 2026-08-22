@@ -1,6 +1,6 @@
 
 ======================================================================
-HELD OUT: Q6 - Religion
+ Actual HELD OUT: Q6 - Religion
   Q: Please indicate, for each of the following, how important it is in
   your life.
   (max cross-battery V=0.733)
@@ -21,7 +21,7 @@ HELD OUT: Q6 - Religion
       Q: Which, if any, of the following do you believe in?
 
 ======================================================================
-HELD OUT: Q60 - People you know personally
+ Actual HELD OUT: Q60 - People you know personally
   Q: Here are some questions about how much you trust people from various
   groups. Please indicate how much you trust...
   (max cross-battery V=0.591)
@@ -44,7 +44,8 @@ HELD OUT: Q60 - People you know personally
       between. (1 = Never justifiable, 10 = Always justifiable)
 
 ======================================================================
-HELD OUT: Q215 - Encouraging others to take action about political issues
+ Actual HELD OUT: Q215 - Encouraging others to take action about political
+ issues
   Q: For each social activism action, have you done it, might do it, or
   would never do it?
   (max cross-battery V=0.501)
@@ -74,7 +75,7 @@ HELD OUT: Q215 - Encouraging others to take action about political issues
       any circumstances, do it.
 
 ======================================================================
-HELD OUT: Q188 - Euthanasia
+ Actual HELD OUT: Q188 - Euthanasia
   Q: Please indicate for each of the following statements whether you think
   it can always be justified, never be justified, or something in between.
   (1 = Never justifiable, 10 = Always justifiable)
@@ -96,7 +97,7 @@ HELD OUT: Q188 - Euthanasia
       Q: Which, if any, of the following do you believe in?
 
 ======================================================================
-HELD OUT: Q22 - Homosexuals
+ Actual HELD OUT: Q22 - Homosexuals
   Q: Here are various groups of people. Could you please tick any that you
   would not like to have as neighbours?
   (max cross-battery V=0.475)
@@ -119,7 +120,7 @@ HELD OUT: Q22 - Homosexuals
       between. (1 = Never justifiable, 10 = Always justifiable)
 
 ======================================================================
-HELD OUT: Q93 - Which problem does Amnesty International deal with?
+ Actual HELD OUT: Q93 - Which problem does Amnesty International deal with?
   Q: Which one of the following problems does the organisation, Amnesty
   International, deal with?
   (max cross-battery V=0.455)
@@ -143,7 +144,8 @@ HELD OUT: Q93 - Which problem does Amnesty International deal with?
       (IMF) located?
 
 ======================================================================
-HELD OUT: Q160 - We depend too much on science and not enough on faith
+Suggested HELD OUT: Q160 - We depend too much on science and not enough on
+faith
   Q: Here are some statements about science and technology. How much do you
   agree or disagree with each of these statements? For these questions, a 1
   means that you "completely disagree" and a 10 means that you "completely
@@ -164,7 +166,7 @@ HELD OUT: Q160 - We depend too much on science and not enough on faith
       Q: Which, if any, of the following do you believe in?
 
 ======================================================================
-HELD OUT: Q64 - The churches
+Suggested HELD OUT: Q64 - The churches
   Q: Here are the names of a number of organisations. For each one, please
   indicate how much confidence you have in them: is it a great deal of
   confidence, quite a lot of confidence, not very much confidence or none
@@ -187,7 +189,7 @@ HELD OUT: Q64 - The churches
       Q: Which, if any, of the following do you believe in?
 
 ======================================================================
-HELD OUT: Q200 - nan
+Suggested HELD OUT: Q200 - nan
   Q: When you get together with friends, would you say you discuss
   political matters frequently, occasionally or never?
   (max cross-battery V=0.436)
@@ -202,7 +204,7 @@ HELD OUT: Q200 - nan
       your life.
 
 ======================================================================
-HELD OUT: Q199 - nan
+Suggested HELD OUT: Q199 - nan
   Q: How interested would you say you are in politics?
   (max cross-battery V=0.436)
 ----------------------------------------------------------------------
@@ -223,7 +225,7 @@ HELD OUT: Q199 - nan
       you choose?
 
 ======================================================================
-HELD OUT: Q166 - Life after death
+Suggested HELD OUT: Q166 - Life after death
   Q: Which, if any, of the following do you believe in?
   (max cross-battery V=0.435)
 ----------------------------------------------------------------------
@@ -238,7 +240,7 @@ HELD OUT: Q166 - Life after death
       Q: Apart from weddings and funerals, about how often do you pray?
 
 ======================================================================
-HELD OUT: Q153 - nan
+Suggested HELD OUT: Q153 - nan
   Q: People sometimes talk about what the aims of this country should be
   for the next ten years. Listed below are some of the goals which
   different people would give top priority. Would you please say which one
@@ -265,7 +267,7 @@ HELD OUT: Q153 - nan
       do it.
 
 ======================================================================
-HELD OUT: Q155 - nan
+Suggested HELD OUT: Q155 - nan
   Q: If you had to choose, which one of the things on this card would you
   say is most important? And which would be the next most important?
   (max cross-battery V=0.418)
@@ -291,7 +293,7 @@ HELD OUT: Q155 - nan
       would be the next most important?
 
 ======================================================================
-HELD OUT: Q250 - nan
+Suggested HELD OUT: Q250 - nan
   Q: How important is it for you to live in a country that is governed
   democratically? On this scale where 1 means it is "not at all important"
   and 10 means "absolutely important" what position would you choose?
@@ -307,7 +309,7 @@ HELD OUT: Q250 - nan
 
     ~ Q239 - Having a system governed by religious law in which there are
 
-    no political parties or elections (V=0.288)
+    no political parties or elections  (V=0.288)
       Q: Listed below are various types of political systems. Please think
       about each one as a way of governing this country. For each one,
       would you say it is a very good, fairly good, fairly bad or very bad
@@ -322,7 +324,7 @@ HELD OUT: Q250 - nan
       essential characteristic of democracy".
 
 ======================================================================
-HELD OUT: Q238 - Having a democratic political system
+Suggested HELD OUT: Q238 - Having a democratic political system
   Q: Listed below are various types of political systems. Please think
   about each one as a way of governing this country. For each one, would
   you say it is a very good, fairly good, fairly bad or very bad way of

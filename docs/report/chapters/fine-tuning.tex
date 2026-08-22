@@ -40,6 +40,8 @@ Discuss the various methods of evaluating the efficacy of fine-tuning, including
 
 \ctable{ft-capability-Qwen3.5-9B}{The capability of Qwen-3.5-9B on various benchmarks. The table shows the accuracy and 95\% confidence intervals for the MMLU-Pro, GPQA Diamond and SWE-bench benchmarks. This is calculated by running the model with reasoning off agasint the modal response dataset.}
 
+\ctable{ft-results-Qwen3.6-27B}{The results of fine-tuning Qwen-3.6-27B on the WVS data. The table shows the accuracy, cross-entropy and KL divergence for the base model and various fine-tuned models on the training, validation and overall datasets. This is calculated by running the model with reasoning off agasint the modal response dataset.}
+
 Also explore other concepts of:
 - Is fine-tuning robust to reasoning on and off?
 - Does system prompt matter?
@@ -100,11 +102,10 @@ Both humans and LLM have various biases and sensitivities to the way questions a
 
 \subsubsection{System prompt}
 
-LLMs use system propmts to give instructions. This is a test
+LLM use system prompts to imbue the model with a person and to give instructions how it should respond \cite{brownLanguageModelsAre2020,salewskiInContextImpersonationReveals2023}. Previous studies have not used system prompts when training/evaluating LLMs on survey data \cite{durmusMeasuringRepresentationSubjective2024,caoSpecializingLargeLanguage2025,nieSurveytoBehaviorDownstreamAlignment2025}. This is partly due to previuos generation of models being much less able to follow instructions coherently therefore the propmt had to be set up in a text completion format (e.g., "If I had to give an answer my answer would be ..."). More modern LLM are very good at following system prompts, and given the importance of system prompts in LLM behaviour we have used a range of system prompts. This it to ensure  that the model won't simply 'forget' the value it learns when a new system prompt is used and to explore the effects of system prompts on the fine-tuning performance.
 
-As discussed above it amter alot.
+The system prompts used are designed to span the range of possible system prompts on the axis of how self aware the model should be. On one extreme is the \texttt{no persona} prompt which is only instructions n how to respond. Whereas a system prompt like \texttt{values reflection} heavily implies the models has an internal value system, similarly \texttt{AI research assistant} tells the model it is taking a value survey and that it is an AI system. A full list of system prompts can be found in the \figref{system_prompts}.
 
-Chosen a wide range of prompts accoridng to ...
 
 \subsection{Held out validation data}
 
@@ -112,9 +113,9 @@ The goal of fine-tuning a LLM is to explore whether the models behaviour changes
 
 The selection of survey questions is done by holding out questions in which it has a high Crammer V \cite{haraldcramerMathematicalMethodsStatistics1946} measure with another question in a different battery. The top 6 most redundant questions are held out as beyond that the next redundant questions were from the same value dimension (e.g., religion, politics, etc.). See \ref{app:fine-tuning} for more details.
 
-The selection of held out prompts was simply the prompt that had the smallest Jaccard \cite{EtudeComparativeDistribution1901} similarity with the other prompt. This was done to prevent over-fitting from being unnoticed.
+The selection of held out system prompts was simply the prompt that had the smallest Jaccard \cite{EtudeComparativeDistribution1901} similarity with the other prompt. This was done to prevent over-fitting from being unnoticed.
 
-This held out validation set has 828 examples with 30 being from unseen survey questions and 798 being from unseen system prompts.
+This held out validation set has 293 examples with 48 being from unseen survey questions and 245 being from an unseen system prompts.
 
 \section{Methods for Fine-tuning the models}
 \label{sec:ft-methods}

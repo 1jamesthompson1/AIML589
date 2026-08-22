@@ -86,6 +86,31 @@ You can also auto-add each new adapter repo to a HF Collection for easy browsing
     --hf-collection "1jamesthompson1/wvs-nz-lora-adapters"
 ```
 
+### Continuing training from a previous run
+
+Each upload includes the continuation state needed to pick training back up:
+the LoRA adapter, `optimizer.pt` / `scheduler.pt` and `trainer_state.json`
+(global step, epoch). To continue from an existing repo, pass `--resume-from`:
+
+```bash
+./code/fine-tuning/run.sh finetune uni-gpu1 -- \
+    --dataset modal_response --subpopulation overall \
+    --resume-from 1jamesthompson1/Qwen/Qwen3.5-9B-nz-wvs-modal_response-overall \
+    --num-epochs 2 --upload-to-hf
+```
+
+Notes:
+
+- `--num-epochs` is the **total** number of epochs across all segments, so pass
+  `trained_epochs + new_epochs` (the optimizer/scheduler state carries over).
+- Use the same base `--model` and LoRA hyperparameters as the original run
+  (`--lora-r`, `--lora-alpha`, `--lora-dropout`, `--dora`, `--quantization`).
+- If the original run saved no periodic checkpoint (e.g. `--save-steps` larger
+  than the number of steps), only the step counter is preserved and the
+  optimizer is rebuilt from scratch.
+- `run_all.py` normally skips repos already on the hub; passing `--resume-from`
+  through the `--` pass-through disables that skip.
+
 ### Batch run (full config grid)
 
 `run_all.py` drives the whole grid — all 4 dataset configs (finetuning
@@ -96,7 +121,26 @@ methods) x 3 subpopulations — using finetune.py's default hyperparameters
 uv run ./code/fine-tuning/run_all.py uni-gpu1 Qwen/Qwen3.5-9B              # finetune + evaluate all 12
 uv run ./code/fine-tuning/run_all.py uni-gpu1 Qwen/Qwen3.5-9B --skip-finetune   # evaluate only
 uv run ./code/fine-tuning/run_all.py uni-gpu1 Qwen/Qwen3.5-9B --skip-eval       # finetune only
+uv run ./code/fine-tuning/run_all.py uni-gpu1 Qwen/Qwen3.5-9B --subpop cluster_0
 ```
+
+`--force` retrains every job even if its adapter repo already exists on the
+HF Hub (re-uploading over the old adapters). Use this to redo the grid after
+changing the data pipeline or hyperparameters:
+
+```bash
+uv run ./code/fine-tuning/run_all.py uni-gpu1 Qwen/Qwen3.5-9B --force
+```
+
+To retrain only the stale repos — e.g. anything last updated more than 2
+hours ago — use `--force-older-than HOURS` instead:
+
+```bash
+uv run ./code/fine-tuning/run_all.py uni-gpu1 Qwen/Qwen3.5-9B --force-older-than 2
+```
+
+`--subpop` limits the finetune step to one subpopulation (eval always covers
+the full validation split — see below).
 
 It fine-tunes each `(dataset, subpopulation)` pair (uploading the adapter to
 HF), then starts a single multi-LoRA vLLM server with all 12 adapters and
@@ -106,6 +150,26 @@ Set `EVAL_PORT` or `HF_COLLECTION` env vars to override defaults.
 ### Run metadata
 
 Every run saves a `finetune_config.json` alongside the adapter with all hyperparameters, timestamp, and git commit hash.
+
+### Main report table
+
+`analyze.py` also renders the main fine-tuning table for the report: for each
+base model a table with one row per fine-tuned version (base model at the
+top) and 9 columns — accuracy, cross-entropy and KL divergence on the train,
+validation and overall splits. Metrics are taken from the modal eval config
+(`modal_response`) so accuracy always means exact match against the modal
+response and CE/KL are against the empirical response distribution. Every
+fine-tuned version is matched to the subpopulation it was trained on; the
+base model is scored on the overall population. The LaTeX (booktabs) tables
+are written to `code/figures/ft-results-<model>.tex` and included in the
+report with `\ctable{ft-results-<model>.tex}{<caption>}`.
+
+Note: only Qwen3.5-9B has eval runs in the current config format
+(`modal_response`/`sampled_response`/`first_token_distribution`); it is the
+only model that gets a table. The Qwen3.5-2B and Qwen3.6-27B runs use the
+older `single_modal`/`single_sample` config naming and predate per-row
+split/subpopulation tagging — re-evaluate them before they can appear in the
+table.
 
 ## Dataset configs for evaluation
 
@@ -117,9 +181,38 @@ the expected answer differs):
 | `modal_response` | Mode (most common response) | Accuracy (exact match vs majority) + KL/CE vs true distribution |
 | `sampled_response` | Random sample from cluster | Accuracy (exact match vs a typical individual) + KL/CE vs true distribution |
 | `full_string_distribution` | Empirical distribution over categories | KL/CE vs true distribution (train: weighted NLL over option strings; eval: served logprobs — not yet implemented) |
-| `first_token_distribution` | Empirical distribution; single-letter answers | First-token soft CE (Cao et al. 2025) — one forward pass, loss on the K answer-token logits at the answer position |
+| `first_token_distribution` | Empirical distribution; single-letter answers | Accuracy (vs the modal letter) + KL/CE vs true distribution over single-letter answers |
 
-Each eval run covers **all subpopulations** (cluster_0, cluster_1, overall) in a single pass. The `subpopulation` column in `per_question_results.csv` identifies which subpopulation each row belongs to.
+Each eval run is **one inference pass over the train + validation splits**
+(~2050 examples total, all subpopulations together by default). Every row is
+tagged with its `split` (train/validation) and `subpopulation` in
+`per_question_results.csv`, so analysis can re-split the results. Use
+`--subpopulation <name>` to evaluate only one subpopulation and `--reasoning`
+to enable chain-of-thought (default off).
+
+`evaluate.py` supports all four configs. For `first_token_distribution` the model's per-letter probabilities at the answer position are scored against the empirical distribution (matching the first-token training loss); accuracy is exact match against the modal letter.
+
+### Batch evaluation
+
+`batch_eval.py` runs the missing evaluations in parallel — one full-set
+(train+validation) pass per model per dataset config:
+
+| Flag | Default |
+|---|---|
+| `--datasets` | `modal_response,sampled_response,first_token_distribution` |
+| `--subpopulation` | all subpopulations in one pass (forwarded to each eval) |
+| `--model` | all models on the server |
+| `--concurrency` | auto-detect from server KV cache |
+
+```bash
+uv run code/fine-tuning/batch_eval.py --port 8087                                    # all models, 3 configs
+uv run code/fine-tuning/batch_eval.py --port 8087 --model Qwen3.5-9B-nz-wvs-modal_response-overall
+uv run code/fine-tuning/batch_eval.py --port 8087 --datasets modal_response --dry-run
+```
+
+Completed runs are detected from the eval `config.json`; only runs covering
+both train and validation splits (unfiltered, non-reasoning) count, so old
+validation-only or per-cluster evals don't block the new full-set passes.
 
 ## Evaluation
 
