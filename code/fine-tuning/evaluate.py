@@ -15,7 +15,7 @@ Evaluate a served model on the WVS-NZ dataset.
 
 The goal of the evaluate is to answer a few questions
 - How well it is responding like the population it was trained on
-  - the accuracy of the model across the three different dataset configs (modal_response, sampled_response, first_token_distribution)
+  - the accuracy of the model across the two dataset configs (modal_response, first_token_distribution)
   - the kl-divergence between the model's predicted distribution and the true distrubtion for the full text (i.e modal response) and first token dataset configs
 - The robustness of the model by seeing how well it does in the validation set
 
@@ -72,7 +72,7 @@ class _Tee:
     """Mirror stdout writes into a log file, flushing after every line.
 
     Flushing on every write keeps output streaming immediately even when
-    stdout is a pipe (batch_eval relays it line-by-line), and the log file
+    stdout is a pipe (run_all relays it line-by-line), and the log file
     gives a persistent record inside the eval output directory.
     """
 
@@ -236,18 +236,11 @@ def parse_args(argv=None):
     p.add_argument(
         "--dataset",
         default="modal_response",
-        choices=[
-            "modal_response",
-            "sampled_response",
-            "full_string_distribution",
-            "first_token_distribution",
-        ],
-        help="Dataset config to evaluate on. modal_response/sampled_response "
-        "give accuracy (vs the expected text) plus KL/CE vs the true "
-        "distribution. first_token_distribution scores the model's "
-        "distribution over single-letter answers (accuracy vs the modal "
-        "letter). full_string_distribution only gives KL/CE (no expected "
-        "text in the dataset).",
+        choices=["modal_response", "first_token_distribution"],
+        help="Dataset config to evaluate on. modal_response gives accuracy "
+        "(vs the expected text) plus KL/CE vs the true distribution. "
+        "first_token_distribution scores the model's distribution over "
+        "single-letter answers (accuracy vs the modal letter).",
     )
     p.add_argument(
         "--splits",
@@ -328,6 +321,14 @@ def parse_args(argv=None):
         default=5,
         help="Retries per request with exponential backoff (transient vLLM "
         "5xx/connection errors are retried; 10 consecutive failures abort the run)",
+    )
+    p.add_argument(
+        "--concurrency",
+        type=int,
+        default=8,
+        help="Requests kept in flight simultaneously (AsyncOpenAI pipeline). "
+        "Same-adapter requests then batch on the server, fusing prefill and "
+        "decode. Use 1 for a strictly sequential pass.",
     )
 
     return p.parse_args(argv)
@@ -727,6 +728,180 @@ def _chat_with_retry(
     raise last_err
 
 
+async def _chat_with_retry_async(
+    client,
+    *,
+    model,
+    messages,
+    max_tokens,
+    top_logprobs,
+    temperature,
+    top_p,
+    presence_penalty,
+    reasoning,
+    retries=5,
+    base_delay=5.0,
+):
+    """Async twin of ``_chat_with_retry`` for the pipelined eval pass."""
+    import asyncio
+
+    last_err = None
+    delay = base_delay
+    for attempt in range(retries):
+        try:
+            return await client.chat.completions.create(
+                model=model,
+                messages=messages,
+                max_tokens=max_tokens,
+                logprobs=True,
+                top_logprobs=top_logprobs,
+                temperature=temperature,
+                top_p=top_p,
+                presence_penalty=presence_penalty,
+                extra_body={
+                    "top_k": 20,
+                    "chat_template_kwargs": {"enable_thinking": reasoning},
+                },
+            )
+        except Exception as e:
+            last_err = e
+            if attempt < retries - 1:
+                print(
+                    f"  [retry] request failed ({e.__class__.__name__}); "
+                    f"retrying in {delay:.0f}s ({attempt + 1}/{retries - 1})"
+                )
+                await asyncio.sleep(delay)
+                delay *= 2
+    raise last_err
+
+
+def _build_row(
+    idx,
+    example,
+    resp,
+    *,
+    reasoning,
+    first_token_mode,
+    has_expected_text,
+    options_lookup,
+):
+    """Turn a completion into a results row (shared by both eval passes).
+
+    Splits off any `` response`` reasoning suffix, then computes the option
+    distribution / correctness metrics. Returns None when the model produced
+    no answer text (counted as a failure by the caller).
+    """
+    choice = resp.choices[0]
+    msg = choice.message
+    logprobs_data = choice.logprobs
+
+    answer_text = ""
+    reasoning_text = ""
+    answer_start_found = False
+    if logprobs_data and logprobs_data.content:
+        toks = logprobs_data.content
+        ans_start = 0
+        for k, t in enumerate(toks):
+            if t.token == " response":
+                ans_start = k + 1
+                answer_start_found = True
+                break
+        if ans_start > 0 or not msg.content:
+            if ans_start > 0:
+                reasoning_text = "".join(t.token for t in toks[: ans_start - 1]).strip()
+            answer_text = "".join(t.token for t in toks[ans_start:]).strip()
+            if answer_text.endswith("<|im_end|>"):
+                answer_text = answer_text[: -len("<|im_end|>")].strip()
+    if not answer_text and msg.content:
+        content = msg.content
+        think_end = content.find(" response")
+        if think_end >= 0:
+            reasoning_text = content[:think_end].strip()
+            answer_text = content[think_end + len(" response") :].strip()
+            answer_start_found = True
+        if not answer_text:
+            answer_text = content.strip()
+    if not answer_text:
+        print(f"  [error] empty response at example {idx}")
+        return None
+    if reasoning and not answer_start_found:
+        print(
+            "  [warn] answer start not found ( response missing) — response may be truncated"
+        )
+
+    option_probs = {}
+    categories = list(example.get("categories") or [])
+    if not categories:
+        col = example.get("column_name", "")
+        categories = options_lookup.get(col, [])
+    if categories:
+        if reasoning and not answer_start_found:
+            pass
+        elif first_token_mode:
+            answer_tokens = list(example.get("answer_tokens", []))
+            option_probs = compute_first_token_probs(
+                answer_tokens, logprobs_data, categories=categories
+            )
+        else:
+            option_probs = compute_option_probs(categories, logprobs_data)
+
+    row = {
+        "question_id": example["question_id"],
+        "question": example.get("question", ""),
+        "sub_question": example.get("sub_question", ""),
+        "column_name": example.get("column_name", ""),
+        "question_format": example.get("question_format", ""),
+        "system_prompt_id": example.get("system_prompt_id", ""),
+        "subpopulation": example.get("subpopulation", ""),
+        "split": example.get("split", ""),
+        "model_answer": answer_text,
+        "model_reasoning": reasoning_text if reasoning else "",
+    }
+
+    if categories:
+        row["categories"] = categories
+        cat_probs = {c: option_probs.get(c, 0.0) for c in categories}
+        total_prob = sum(cat_probs.values())
+        if total_prob > 0:
+            for k in cat_probs:
+                cat_probs[k] /= total_prob
+        model_dist = [cat_probs.get(c, 0.0) for c in categories]
+        row["model_distribution"] = model_dist
+
+        if "expected_distribution" in example:
+            true_dist = list(example["expected_distribution"])
+            row["true_distribution"] = true_dist
+        else:
+            true_dist = None
+
+        if true_dist:
+            p_clamped = [max(p, 1e-10) for p in true_dist]
+            q_clamped = [max(p, 1e-10) for p in model_dist]
+            kl = kl_divergence(p_clamped, q_clamped)
+            row["kl_divergence"] = kl
+            ce_dist = sum(
+                -tp * math.log(max(mp, 1e-10)) for tp, mp in zip(true_dist, model_dist)
+            )
+            row["cross_entropy"] = ce_dist
+
+    if has_expected_text:
+        expected_text = example["expected_text"]
+        row["expected_text"] = expected_text
+        row["is_correct"] = expected_text.strip().lower() == answer_text.strip().lower()
+    elif first_token_mode and "expected_distribution" in example and categories:
+        # No expected_text in the first-token config; the modal (most
+        # common) response is the letter of the argmax category.
+        dist = list(example["expected_distribution"])
+        modal_idx = max(range(len(dist)), key=dist.__getitem__)
+        modal_letter = example["answer_tokens"][modal_idx]
+        row["expected_text"] = modal_letter
+        row["is_correct"] = (
+            answer_text.strip().rstrip(".").lower() == modal_letter.lower()
+        )
+
+    return row
+
+
 def _run_evaluation(
     client,
     ds,
@@ -740,22 +915,19 @@ def _run_evaluation(
     temperature=0.0,
     top_p=1.0,
     presence_penalty=0.0,
+    concurrency=1,
 ):
     import json
     import time
 
     start = time.time()
     has_expected_text = "expected_text" in ds.features
-    has_categories = "categories" in ds.features
     has_answer_tokens = "answer_tokens" in ds.features
     first_token_mode = has_answer_tokens and not has_expected_text
 
     options_lookup = _load_question_options()
 
     results = []
-    total_ce = 0.0
-    total_kl = 0.0
-    correct_count = 0
     nan_count = 0
     consecutive_failures = 0
     max_consecutive_failures = 10
@@ -763,177 +935,165 @@ def _run_evaluation(
 
     print("[eval] running pass over the full train + validation set...")
     loop_t0 = time.time()
-    for i, example in enumerate(ds):
-        if (i + 1) % 10 == 0:
-            elapsed = time.time() - loop_t0
-            rate = (i + 1) / elapsed
-            eta = (len(ds) - (i + 1)) / rate if rate > 0 else 0.0
+
+    def _report(done, rows):
+        """Progress line (every ~10 examples) + metric snapshot (every 100)."""
+        elapsed = time.time() - loop_t0
+        rate = done / elapsed if elapsed > 0 else 0.0
+        eta = (len(ds) - done) / rate if rate > 0 else 0.0
+        print(
+            f"  [{done}/{len(ds)}]  "
+            f"{rate:.1f} ex/s  elapsed {_fmt_duration(elapsed)}"
+            f"  ETA {_fmt_duration(eta)}",
+            flush=True,
+        )
+        if done % 100 == 0 and rows:
+            n = len(rows)
+            n_correct = sum(1 for r in rows if r.get("is_correct"))
+            ces = [
+                r["cross_entropy"] for r in rows if r.get("cross_entropy") is not None
+            ]
+            kls = [
+                r["kl_divergence"] for r in rows if r.get("kl_divergence") is not None
+            ]
+            avg_ce = sum(ces) / len(ces) if ces else float("nan")
+            avg_kl = sum(kls) / len(kls) if kls else float("nan")
             print(
-                f"  [{i + 1}/{len(ds)}]  "
-                f"{rate:.1f} ex/s  elapsed {_fmt_duration(elapsed)}"
-                f"  ETA {_fmt_duration(eta)}"
-            )
-        if (i + 1) % 100 == 0 and results:
-            n = len(results)
-            print(
-                f"      so far: acc {correct_count / n * 100:.1f}% "
-                f"({correct_count}/{n})  avgCE {total_ce / n:.3f}"
-                f"  avgKL {total_kl / n:.3f}"
+                f"      so far: acc {n_correct / n * 100:.1f}% "
+                f"({n_correct}/{n})  avgCE {avg_ce:.3f}"
+                f"  avgKL {avg_kl:.3f}",
+                flush=True,
             )
 
+    def _query_args(example):
         messages = [
             {"role": "system", "content": example["system_prompt"]},
             {"role": "user", "content": example["user_prompt"]},
         ]
+        return dict(
+            model=model,
+            messages=messages,
+            max_tokens=max_tokens,
+            top_logprobs=top_logprobs,
+            temperature=temperature,
+            top_p=top_p,
+            presence_penalty=presence_penalty,
+            reasoning=reasoning,
+            retries=max_retries,
+        )
 
-        try:
-            resp = _chat_with_retry(
-                client,
-                model=model,
-                messages=messages,
-                max_tokens=max_tokens,
-                top_logprobs=top_logprobs,
-                temperature=temperature,
-                top_p=top_p,
-                presence_penalty=presence_penalty,
-                reasoning=reasoning,
-                retries=max_retries,
-            )
-        except Exception as e:
-            print(f"  [error] query failed at example {i} after retries: {e}")
-            nan_count += 1
-            consecutive_failures += 1
-            if consecutive_failures >= max_consecutive_failures:
-                print(
-                    f"  [abort] {consecutive_failures} consecutive failures — "
-                    "server appears down; stopping early and saving what we have"
-                )
-                aborted = True
-                break
-            continue
-        consecutive_failures = 0
+    def _row_for(idx, example, resp):
+        return _build_row(
+            idx,
+            example,
+            resp,
+            reasoning=reasoning,
+            first_token_mode=first_token_mode,
+            has_expected_text=has_expected_text,
+            options_lookup=options_lookup,
+        )
 
-        choice = resp.choices[0]
-        msg = choice.message
-        logprobs_data = choice.logprobs
-
-        answer_text = ""
-        reasoning_text = ""
-        answer_start_found = False
-        if logprobs_data and logprobs_data.content:
-            toks = logprobs_data.content
-            ans_start = 0
-            for k, t in enumerate(toks):
-                if t.token == "</think>":
-                    ans_start = k + 1
-                    answer_start_found = True
+    if concurrency <= 1:
+        # Strictly sequential pass: one request at a time.
+        for i, example in enumerate(ds):
+            try:
+                resp = _chat_with_retry(client, **_query_args(example))
+            except Exception as e:
+                print(f"  [error] query failed at example {i} after retries: {e}")
+                nan_count += 1
+                consecutive_failures += 1
+                if consecutive_failures >= max_consecutive_failures:
+                    print(
+                        f"  [abort] {consecutive_failures} consecutive failures — "
+                        "server appears down; stopping early and saving what we have"
+                    )
+                    aborted = True
                     break
-            if ans_start > 0 or not msg.content:
-                if ans_start > 0:
-                    reasoning_text = "".join(
-                        t.token for t in toks[: ans_start - 1]
-                    ).strip()
-                answer_text = "".join(t.token for t in toks[ans_start:]).strip()
-                if answer_text.endswith("<|im_end|>"):
-                    answer_text = answer_text[: -len("<|im_end|>")].strip()
-        if not answer_text and msg.content:
-            content = msg.content
-            think_end = content.find("</think>")
-            if think_end >= 0:
-                reasoning_text = content[:think_end].strip()
-                answer_text = content[think_end + len("</think>") :].strip()
-                answer_start_found = True
-            if not answer_text:
-                answer_text = content.strip()
-        if not answer_text:
-            print(f"  [error] empty response at example {i}")
-            nan_count += 1
-            continue
-        if reasoning and not answer_start_found:
-            print(
-                "  [warn] answer start not found (</think> missing) — response may be truncated"
-            )
+                continue
+            consecutive_failures = 0
+            row = _row_for(i, example, resp)
+            if row is None:
+                nan_count += 1
+                continue
+            results.append(row)
+            if len(results) % 10 == 0:
+                _report(len(results), results)
+    else:
+        # Pipelined pass: keep `concurrency` requests in flight so the GPU
+        # receives a batched stream (fused prefill/decode) instead of one
+        # request at a time. Results are reordered to dataset order at the
+        # end, and the retry/abort semantics match the sequential pass.
+        import asyncio
 
-        option_probs = {}
-        categories = list(example.get("categories", [])) if has_categories else []
-        if not categories:
-            col = example.get("column_name", "")
-            categories = options_lookup.get(col, [])
-        if categories:
-            if reasoning and not answer_start_found:
-                pass
-            elif first_token_mode:
-                answer_tokens = list(example.get("answer_tokens", []))
-                option_probs = compute_first_token_probs(
-                    answer_tokens, logprobs_data, categories=categories
+        print(f"[eval] pipelined pass ({concurrency} requests in flight)...")
+
+        async def _pipeline():
+            nonlocal nan_count, aborted
+            sem = asyncio.Semaphore(concurrency)
+            rows_by_idx: dict[int, dict] = {}
+            done = 0
+            consec_fail = 0
+
+            async def query(i, example):
+                async with sem:
+                    try:
+                        resp = await _chat_with_retry_async(
+                            client, **_query_args(example)
+                        )
+                        return i, resp, None
+                    except Exception as e:
+                        return i, None, e
+
+            pending: dict[int, asyncio.Task] = {}
+            submitted = 0
+            while submitted < len(ds) or pending:
+                while (
+                    submitted < len(ds) and len(pending) < concurrency and not aborted
+                ):
+                    i = submitted
+                    submitted += 1
+                    pending[i] = asyncio.create_task(query(i, ds[i]))
+                if not pending:
+                    break
+                done_now, _ = await asyncio.wait(
+                    pending.values(), return_when=asyncio.FIRST_COMPLETED
                 )
-            else:
-                option_probs = compute_option_probs(categories, logprobs_data)
+                finished = [
+                    (i, pending.pop(i))
+                    for i in [k for k, t in pending.items() if t in done_now]
+                ]
+                for i, task in finished:
+                    iq, resp, err = task.result()
+                    done += 1
+                    if err is not None:
+                        print(
+                            f"  [error] query failed at example {iq} "
+                            f"after retries: {err}"
+                        )
+                        nan_count += 1
+                        consec_fail += 1
+                        if consec_fail >= max_consecutive_failures:
+                            print(
+                                f"  [abort] {consec_fail} consecutive failures — "
+                                "server appears down; stopping early and "
+                                "saving what we have"
+                            )
+                            aborted = True
+                            for t in pending.values():
+                                t.cancel()
+                            break
+                        continue
+                    consec_fail = 0
+                    row = _row_for(iq, ds[iq], resp)
+                    if row is None:
+                        nan_count += 1
+                        continue
+                    rows_by_idx[iq] = row
+                    if done % 10 == 0:
+                        _report(done, [rows_by_idx[k] for k in sorted(rows_by_idx)])
+            return [rows_by_idx[k] for k in sorted(rows_by_idx)]
 
-        row = {
-            "question_id": example["question_id"],
-            "question": example.get("question", ""),
-            "sub_question": example.get("sub_question", ""),
-            "column_name": example.get("column_name", ""),
-            "question_format": example.get("question_format", ""),
-            "system_prompt_id": example.get("system_prompt_id", ""),
-            "subpopulation": example.get("subpopulation", ""),
-            "split": example.get("split", ""),
-            "model_answer": answer_text,
-            "model_reasoning": reasoning_text if reasoning else "",
-        }
-
-        if categories:
-            row["categories"] = categories
-            cat_probs = {c: option_probs.get(c, 0.0) for c in categories}
-            total_prob = sum(cat_probs.values())
-            if total_prob > 0:
-                for k in cat_probs:
-                    cat_probs[k] /= total_prob
-            model_dist = [cat_probs.get(c, 0.0) for c in categories]
-            row["model_distribution"] = model_dist
-
-            if "expected_distribution" in example:
-                true_dist = list(example["expected_distribution"])
-                row["true_distribution"] = true_dist
-            else:
-                true_dist = None
-
-            if true_dist:
-                p_clamped = [max(p, 1e-10) for p in true_dist]
-                q_clamped = [max(p, 1e-10) for p in model_dist]
-                kl = kl_divergence(p_clamped, q_clamped)
-                row["kl_divergence"] = kl
-                total_kl += kl
-                ce_dist = sum(
-                    -tp * math.log(max(mp, 1e-10))
-                    for tp, mp in zip(true_dist, model_dist)
-                )
-                row["cross_entropy"] = ce_dist
-                total_ce += ce_dist
-
-        if has_expected_text:
-            expected_text = example["expected_text"]
-            row["expected_text"] = expected_text
-            row["is_correct"] = (
-                expected_text.strip().lower() == answer_text.strip().lower()
-            )
-            if row["is_correct"]:
-                correct_count += 1
-        elif first_token_mode and "expected_distribution" in example and categories:
-            # No expected_text in the first-token config; the modal (most
-            # common) response is the letter of the argmax category.
-            dist = list(example["expected_distribution"])
-            modal_idx = max(range(len(dist)), key=dist.__getitem__)
-            modal_letter = example["answer_tokens"][modal_idx]
-            row["expected_text"] = modal_letter
-            row["is_correct"] = (
-                answer_text.strip().rstrip(".").lower() == modal_letter.lower()
-            )
-            if row["is_correct"]:
-                correct_count += 1
-
-        results.append(row)
+        results = asyncio.run(_pipeline())
 
     df = pd.DataFrame(results)
     df.to_csv(output_dir / "per_question_results.csv", index=False)
@@ -992,7 +1152,7 @@ def _run_evaluation(
         config = json.loads(config_path.read_text())
         config["elapsed_seconds"] = round(elapsed)
         if aborted:
-            # Partial runs are disregarded downstream (batch_eval skips runs
+            # Partial runs are disregarded downstream (run_all skips runs
             # flagged aborted) — the run must be redone from scratch.
             config["aborted"] = True
         config_path.write_text(json.dumps(config, indent=2))
@@ -1011,7 +1171,7 @@ def main():
     if args.hf_token is None:
         args.hf_token = os.environ.get("HF_TOKEN")
 
-    from openai import OpenAI
+    from openai import OpenAI, AsyncOpenAI
 
     if args.api_url is None:
         args.api_url = f"http://localhost:{args.port}"
@@ -1063,7 +1223,7 @@ def main():
     output_dir.mkdir(parents=True, exist_ok=True)
 
     # Tee everything from here on into the eval output dir (also forces
-    # line-flushing so batch_eval's relay streams in real time).
+    # line-flushing so run_all's relay streams in real time).
     sys.stdout = _Tee(sys.stdout, output_dir / "eval.log")
     print(f"[log] eval output -> {output_dir / 'eval.log'}")
 
@@ -1124,13 +1284,14 @@ def main():
         "num_test_examples": args.num_test_examples,
         "no_plots": args.no_plots,
         "max_retries": args.max_retries,
+        "concurrency": args.concurrency,
         "dataset_sha": dataset_sha,
         "model_sha": model_sha,
     }
     (output_dir / "config.json").write_text(json.dumps(config, indent=2))
     print(f"[save] config -> {output_dir / 'config.json'}")
 
-    client = OpenAI(
+    client = (OpenAI if args.concurrency <= 1 else AsyncOpenAI)(
         base_url=f"{args.api_url}/v1",
         api_key=args.api_key,
     )
@@ -1145,6 +1306,7 @@ def main():
         output_dir=output_dir,
         no_plots=args.no_plots,
         max_retries=args.max_retries,
+        concurrency=args.concurrency,
     )
 
 

@@ -1,2 +1,3 @@
 .ssh_config
+.vastgpu.state
 output/evals/**/figures/**

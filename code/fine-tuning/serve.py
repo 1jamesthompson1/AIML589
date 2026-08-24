@@ -367,8 +367,10 @@ def main():
     if adapter_modules:
         cmd.append("--enable-lora")
         cmd.extend(["--max-lora-rank", str(args.max_lora_rank)])
-        # Keep every adapter resident in CPU memory so switching LoRAs never
-        # hits the network or re-reads weights from disk.
+        # Keep every adapter's weights GPU-resident. VRAM is ample
+        # (rank-64 adapters are ~1-2GB each), and max_cpu_loras stays as the
+        # swap fallback so nothing ever re-reads from disk/network.
+        cmd.extend(["--max-loras", str(len(adapter_modules))])
         cmd.extend(["--max-cpu-loras", str(len(adapter_modules))])
         cmd.extend(
             ["--lora-modules"] + [f"{name}={path}" for name, path in adapter_modules]

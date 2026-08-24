@@ -36,6 +36,15 @@ Examples:
         --hf-token "$HF_TOKEN" --upload-to-hf
 
     uv run code/fine-tuning/finetune.py --help
+
+    # Continue a previous run from its uploaded HF repo. The adapter, optimizer,
+    # scheduler and step counter are downloaded from the repo and training
+    # resumes at the saved global step. NOTE: --num-epochs is the TOTAL number
+    # of epochs across all segments (trained + new), matching the original run:
+    uv run finetune.py --model Qwen/Qwen3.6-27B \\
+        --dataset modal_response --subpopulation overall \\
+        --resume-from 1jamesthompson1/Qwen3.6-27B-nz-wvs-modal_response-overall \\
+        --num-epochs 2 --upload-to-hf
 """
 
 import argparse
@@ -215,6 +224,16 @@ def parse_args(argv=None):
         "or HF_COLLECTION env var)",
     )
     p.add_argument(
+        "--resume-from",
+        default=None,
+        help="HF repo id of a previous run (e.g. "
+        "{HF_ORG}/{model_slug}-nz-wvs-{dataset}-{subpopulation}) to continue "
+        "training from. Downloads the LoRA adapter plus the continuation state "
+        "(optimizer, scheduler, global step) that the upload stage saves, and "
+        "resumes at the saved step. --num-epochs is the TOTAL number of epochs "
+        "across all segments, so pass trained_epochs + new_epochs.",
+    )
+    p.add_argument(
         "--upload-to-hf",
         action="store_true",
         default=False,
@@ -316,6 +335,102 @@ def save_model(output_dir, model, tokenizer):
     log.info("    saved to %s", output_dir)
 
 
+# ----------------------------------------------------
+# Checkpoint continuation state (resume support)
+# ----------------------------------------------------
+
+# Files Trainer needs to continue a run: the global step / epoch bookkeeping,
+# the optimizer + LR scheduler state, and (fp16 only) the GradScaler.
+RESUME_STATE_FILES = (
+    "optimizer.pt",
+    "scheduler.pt",
+    "scaler.pt",
+    "rng_state.pytorch",
+    "trainer_state.json",
+)
+
+
+def _latest_checkpoint(output_dir: Path) -> Path | None:
+    """Return the highest-step checkpoint dir (or None if none was saved)."""
+    ckpts = list(Path(output_dir).glob("checkpoint-*"))
+    if not ckpts:
+        return None
+    return max(ckpts, key=lambda p: int(p.name.split("-")[-1]))
+
+
+def stage_continuation_state(output_dir: Path, trainer) -> list[str]:
+    """Copy the optimizer/scheduler/step state out of the latest periodic
+    checkpoint into the output dir root, so the HF upload includes everything
+    needed to continue training from this run (see ``prepare_resume``).
+
+    Args:
+        output_dir: Directory where the final adapter is saved.
+        trainer: Trainer instance after training (for the fallback
+            ``trainer_state.json`` when no periodic checkpoint was saved).
+
+    Returns:
+        List of staged file names.
+    """
+    import shutil
+
+    output_dir = Path(output_dir)
+    ckpt = _latest_checkpoint(output_dir)
+    staged = []
+    if ckpt is not None:
+        for name in RESUME_STATE_FILES:
+            src = ckpt / name
+            if src.exists():
+                shutil.copy2(src, output_dir / name)
+                staged.append(name)
+        log.info("[resume] staged continuation state from %s: %s", ckpt, staged)
+    else:
+        # save_steps > total steps means no periodic checkpoint was written:
+        # preserve at least the step counter so the next segment continues at
+        # the right global step (optimizer/scheduler will be rebuilt).
+        trainer.state.save_to_json(str(output_dir / "trainer_state.json"))
+        staged.append("trainer_state.json")
+        log.warning(
+            "[resume] no periodic checkpoint found — staged only trainer_state.json "
+            "(optimizer/scheduler state will not survive)"
+        )
+    return staged
+
+
+def prepare_resume(args, model):
+    """Download a previous run's adapter + continuation state from HF and
+    load the LoRA adapter onto the base model.
+
+    Args:
+        args: Parsed command-line arguments (must have ``resume_from`` set).
+        model: The base model (from ``load_base_model``).
+
+    Returns:
+        Tuple of ``(model, resume_checkpoint)`` where ``resume_checkpoint`` is
+        the local directory containing the adapter and continuation state to
+        hand to ``trainer.train(resume_from_checkpoint=...)``.
+    """
+    from huggingface_hub import snapshot_download
+    from peft import PeftModel
+
+    resume_dir = Path(args.output_dir) / "resume" / args.resume_from.replace("/", "_")
+    log.info("[resume] downloading %s -> %s", args.resume_from, resume_dir)
+    snapshot_download(
+        repo_id=args.resume_from,
+        local_dir=str(resume_dir),
+        token=args.hf_token,
+    )
+    if not (resume_dir / "trainer_state.json").exists():
+        raise ValueError(
+            f"--resume-from {args.resume_from} has no trainer_state.json — "
+            "nothing to continue from (was it uploaded by an older run?)"
+        )
+    if not (resume_dir / "adapter_config.json").exists():
+        raise ValueError(f"--resume-from {args.resume_from} has no adapter_config.json")
+    log.info("[resume] loading adapter from %s", resume_dir)
+    model = PeftModel.from_pretrained(model, str(resume_dir), token=args.hf_token)
+    return model, resume_dir
+
+
 def _get_gpu_info() -> str:
     import torch
 
@@ -367,7 +482,12 @@ def run_sft(args, ds, model_path):
     log.info("[sft] loading model...")
     model = load_base_model(args)
 
-    peft_config = make_peft_config(args)
+    peft_config = None
+    resume_checkpoint = None
+    if args.resume_from:
+        model, resume_checkpoint = prepare_resume(args, model)
+    else:
+        peft_config = make_peft_config(args)
 
     log.info("[sft] tokenizing %d examples...", len(ds))
     tok_ds = ds.map(
@@ -398,7 +518,7 @@ def run_sft(args, ds, model_path):
         per_device_eval_batch_size=args.eval_batch_size or args.batch_size,
         gradient_accumulation_steps=args.gradient_accumulation_steps,
         learning_rate=args.lr,
-        warmup_ratio=args.warmup_ratio,
+        warmup_steps=args.warmup_ratio,  # transformers>=5.2: float <1 = ratio (warmup_ratio was removed)
         num_train_epochs=args.num_epochs,
         logging_steps=args.logging_steps,
         save_steps=args.save_steps,
@@ -430,10 +550,12 @@ def run_sft(args, ds, model_path):
         data_collator=SftCollator(tokenizer, args.max_seq_length),
     )
 
-    log.info("[sft] starting training...")
+    log.info("[sft] starting training%s...", " (resuming)" if resume_checkpoint else "")
     gpu_name = _get_gpu_info()
     t0 = time.time()
-    trainer.train()
+    trainer.train(
+        resume_from_checkpoint=str(resume_checkpoint) if resume_checkpoint else None
+    )
     train_time_s = time.time() - t0
 
     log.info("[sft] saving...")
@@ -441,6 +563,8 @@ def run_sft(args, ds, model_path):
     tokenizer.save_pretrained(str(model_path))
     log.info(f"    saved to {model_path}")
     log.info(f"    gpu: {gpu_name}  time: {train_time_s:.0f}s")
+
+    stage_continuation_state(model_path, trainer)
 
     # Capture training logs
     log_history = getattr(trainer.state, "log_history", [])
@@ -760,6 +884,24 @@ class CustomLossTrainer(Trainer):
         loss = self._loss_fn(**loss_kwargs, logits=outputs.logits)
         return (loss, outputs) if return_outputs else loss
 
+    def prediction_step(self, model, inputs, prediction_loss_only, ignore_keys=None):
+        """Compute the custom loss on the eval batch so ``eval_loss`` is logged.
+
+        The stock ``prediction_step`` only returns a loss when the batch has a
+        ``labels`` key (or the model computes its own loss). The first-token
+        batches carry ``q`` / ``answer_token_ids`` / ``option_mask`` instead of
+        ``labels``, so eval would otherwise run forward passes and silently
+        report no ``eval_loss``. Copy the dict because ``compute_loss`` pops
+        its custom keys.
+        """
+        inputs = dict(inputs)
+        inputs = self._prepare_inputs(inputs)
+        import torch
+
+        with torch.no_grad():
+            loss, _ = self.compute_loss(model, inputs, return_outputs=True)
+        return (loss.detach().mean(), None, None)
+
 
 # ----------------------------------------------------
 # First-token distributional training (K single-token answers per example, soft CE loss)
@@ -978,7 +1120,11 @@ def run_distributional(args, ds, model_path, variant):
     log.info("[%s] eval split: %d examples", tag, len(tok_eval_ds))
 
     log.info("[%s] loading model...", tag)
-    model = get_peft_model(load_base_model(args), make_peft_config(args))
+    resume_checkpoint = None
+    if args.resume_from:
+        model, resume_checkpoint = prepare_resume(args, load_base_model(args))
+    else:
+        model = get_peft_model(load_base_model(args), make_peft_config(args))
 
     training_args = TrainingArguments(
         output_dir=str(model_path),
@@ -986,7 +1132,7 @@ def run_distributional(args, ds, model_path, variant):
         per_device_eval_batch_size=args.eval_batch_size or args.batch_size,
         gradient_accumulation_steps=args.gradient_accumulation_steps,
         learning_rate=args.lr,
-        warmup_ratio=args.warmup_ratio,
+        warmup_steps=args.warmup_ratio,  # transformers>=5.2: float <1 = ratio (warmup_ratio was removed)
         num_train_epochs=args.num_epochs,
         logging_steps=args.logging_steps,
         save_steps=args.save_steps,
@@ -1015,15 +1161,20 @@ def run_distributional(args, ds, model_path, variant):
         data_collator=collator_cls(tokenizer, args.max_seq_length),
     )
 
-    log.info("[%s] starting training...", tag)
+    log.info(
+        "[%s] starting training%s...", tag, " (resuming)" if resume_checkpoint else ""
+    )
     gpu_name = _get_gpu_info()
     t0 = time.time()
-    trainer.train()
+    trainer.train(
+        resume_from_checkpoint=str(resume_checkpoint) if resume_checkpoint else None
+    )
     train_time_s = time.time() - t0
 
     log.info("[%s] saving...", tag)
     trainer.save_model(str(model_path))
     tokenizer.save_pretrained(str(model_path))
+    stage_continuation_state(model_path, trainer)
 
     log_history = getattr(trainer.state, "log_history", [])
     save_training_log(model_path, log_history)
@@ -1206,7 +1357,7 @@ def generate_readme(
         gradient_accumulation_steps=args.gradient_accumulation_steps,
         num_epochs=args.num_epochs,
         max_seq_length=args.max_seq_length,
-        warmup_ratio=args.warmup_ratio,
+        warmup_steps=args.warmup_ratio,  # transformers>=5.2: float <1 = ratio (warmup_ratio was removed)
         dtype=args.dtype,
         log_history=log_entries,
         packages=packages,

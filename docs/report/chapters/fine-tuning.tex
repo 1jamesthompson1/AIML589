@@ -1,36 +1,41 @@
-This chapter wil talk about the fine-tuning process used.
+The goal of this chapter is to show that an open weight model can be fine-tuned with value survey data to produce a model that responds more like the respondents it is aligned to when answering survey questions. The chapter is split into four sections: 
+\begin{enumerate}
+  \item \ref{sec:ft-different-models} A discussion of the WVS data and how different models have an innate value system.
+  \item \ref{sec:ft-results} ...
+  \item \ref{sec:ft-dataset} ...
+  \item \ref{sec:ft-methods} ...
+\end{enumerate}
 
-clustering of WVS data
-prompts and format of the data
-finetuning methods
-finetuning evaluations (survey modelling and response distributions)
-
-The goal of this chapter is to show that the an open weight model can be fine-tuned with value survey data to produce a model that responds more like the respondents it is aligned to when answering survey questions.
 
 In section \ref{sec:ft-results} we wil find that ...
 
 In section \ref{sec:ft-dataset} and section \ref{sec:ft-methods} I describe the methods used ot create the dataset and fine-tune the model.
 
+\section{Different models respond differently to survey questions}
+\label{sec:ft-different-models}
+
+Each model has an innate value system that is a result of the specific trianing data and training methods used to create the model. This is shown in \tabref{models-vs-population} where the models are compared to the empirical survey data. The models are compared to the empirical survey data by calculating the KL divergence between the model's response distribution and the empirical survey response distribution.
+
+Gemma 4 31B
+Ling 3.0 Tiny
+Nemotron 3.5 Lightning
+Muse Glimmer
+Devstral Small 2
+
+
+
+Compare between models of different sizes.
+
+Qwen 3.5 from 2B to 27B
+
+Compare between system prompts with one that is the persona as a NZ model.
+
+Post hoc analysis
+
 \section{The results of Fine-tuning LLMs on value survey data}
 \label{sec:ft-results}
 
-\subsection{The clusters of survey respondents}
 
-The WVS data was clustered into 2 clusters using Latent Cluster Analysis (LCA). The clusters were found to be stable and reproducible. We can understand the cluster in two ways. Firstly we can look at the value questions that most split the clusters. Secondly we can look at the demographic questions that most split the clusters.
-
-For the value questions in \figref{clusters/k2_analysis/figures/top5_splitting_questions} we can see that the top 5 value questions are interestingly around trust in authority (elections and World Health organisation), homosexuality and immigration.
-
-For the demographic questions in \figref{clusters/k2_analysis/figures/cluster_demographics_infographic} we can see that one group (cluster\_1) is an older, more religious, less educated and poorer group. This fits in with some standard social science observation \cn.
-
-As is seen in \figref{clusters/k2_analysis/figures/certainty_by_n_questions} it is possible to assign respondents to cluster with a high degree of certainty (>90\%) with only 10 questions. This is important for the methodology of the public consultation survey.
-
-\cfigure{clusters/k2_analysis/figures/top5_splitting_questions.png}{The top 5 value questions that provide the most amount of information about which cluster a respondent belongs to.}
-
-\cfigure[htbp][1.2\textwidth]{clusters/k2_analysis/figures/cluster_demographics_infographic.png}{The demographic differences between the clusters.}
-
-
-
-\subsection{Efficacy of fine-tuning}
 
 Discuss the various methods of evaluating the efficacy of fine-tuning, including:
 - Survey modelling (how well the model predicts survey responses)
@@ -53,43 +58,6 @@ Also explore other concepts of:
 
 We choose the WVS dataset (free, open and sufficient). Has other countries.
 NZAVS would be good yet no free access.
-
-\subsection{Clustering of survey data}
-
-The WVS data has 1,057 responses to 251 value questions. Each question has categorical responses with varying number of options. The goal of the clustering is to find groups of respondents that have similar responses to the value questions and sufficiently different responses to other groups of respondents. Furthermore the clusters should be robust to the choice of clustering method and reproducible.
-
-To measure the effectiveness of the clustering we will use a few metrics including Bayesian Information Criterion (BIC) \cite{schwarzEstimatingDimensionModel1978}, cluster size entropy, within cluster coherence and inter cluster difference. Within cluster coherence is a measure of how dense the clusters response distributions are and is calculated as the entropy of the response distributions. Inter cluster difference is a measure of how different the clusters response distributions are from each other. These performance metrics are used to help understand how well the model has fit the data. We can use the Adjusted Rand Index (ARI) \cite{hubertComparingPartitions1985} to measure difference of cluster assignments. With this difference metric we can compare how stable a clustering is when retrained in various ways.
-
-\subsubsection{Clustering method}
-
-A standard method of clustering is to use Latent Cluster Analysis (LCA) \cite{lazarsfeldLatentStructureAnalysis1968,bakkEstimatingAssociationLatent2013,golliniMixtureLatentTrait2013}. This assumes that each respondent belongs to a latent class and that the responses are generated by a mixture of underlying latent classes. It has been used in social science research to cluster survey respondents \cite{magunBetweenCountryValueDiversity2016}. Problematically it has several assumptions which are violated namely Local (conditional) Independence, Homogeneity and the number of classes has been correctly specified. 
-
-Given some of the standard assumptions of LCA are violated I compare various clustering methods in \tabref{clusters/k2_analysis/figures/method_comparison}. We can see that LCA has the best inter cluster difference and within cluster coherence with sufficiently even cluster sizes for a 2 cluster situation. To further validate this in \tabref{clusters/k3_analysis/figures/method_comparison} we can see that LCA still has the best intra cluster coherence and near top performance in inter cluster differences in the 3 cluster situation. As a further basic check we can see in \figref{clusters/k2_analysis/figures/kmodes_cluster_stability_check} that the clusters of LCA and K-modes are similar but not identical. 
-
-\ctable{clusters/k2_analysis/figures/method_comparison}{Comparision of different clustering methods with 2 clusters.}
-
-\ctable{clusters/k3_analysis/figures/method_comparison}{Comparision of different clustering methods with 3 clusters.}
-
-\cfigure{clusters/k2_analysis/figures/kmodes_cluster_stability_check}{The clusters of LCA compared with the clusters of K-Modes. We can see that K-Modes and LCA produce different structured clusters.}
-
-Given the above analysis we will use LCA as the clustering method for the WVS data. It is both a baseline in literature and performs well in preliminary analysis.
-
-
-\subsubsection{LCA number of clusters selection}
-
-LCA clustering requires a predefined cluster size to a sweep was done to find the optimal number of clusters \figref{clusters/k2_analysis/figures/model_selection_sweep}. This indicates that 2 clusters is optimal. It is noted that BIC can unselect \cite{nylundDecidingNumberClasses2007}, therefore a Bootstrap Likelihood Ratio Test (BLRT) \cite{mclachlanBootstrappingLikelihoodRatio1987,mclachlanFiniteMixtureModels2000} was used to test whether the additional cluster is significant. The test with $n=30$ slightly rejected ($p=0.032$) the null hypothesis that 2 clusters is sufficient in favour of 3 clusters. This is not a decisive result however begs further exploration.
-
-\cfigure{clusters/k2_analysis/figures/model_selection_sweep}{BIC values for different numbers of clusters. The optimal number of clusters (2) is indicated by the minimum BIC value.}
-
-
-\cfigure{clusters/k2_vs_k3/figures/crosstab_k2_vs_k3}{Cross-tabulation of the cluster assignments for 2 and 3 clusters. We can see that the $k=3$ solution is simply splitting cluster 1 of the $k=2$ solution into two clusters.}
-
-The difference between $k=2$ and $k=3$ solutions is that the $k=3$ solution splits cluster 1 of the $k=2$ solution into two clusters which can be seen in \figref{clusters/k2_vs_k3/figures/crosstab_k2_vs_k3}. The question is whether this split is meaningful or not. To answer this we can test the stability. This works by sampling data from the model and then refitting to that data and using ARI to compare the cluster assignments . As seen in \tabref{clusters/k2_vs_k3/figures/bootstrap_stability} the $k=2$ solution is much more stable than the $k=3$ solution.
-
-\ctable{clusters/k2_vs_k3/figures/bootstrap_stability}{Bootstrap stability check for 2 and 3 clusters. We can see that the $k=2$ solution is much more stable than the $k=3$ solution.}
-
-Given the instability of the $k=3$ solution it is decided to use the $k=2$ solution as it is more robust and reproducible.
-
 
 \subsection{Structure of the training data}
 

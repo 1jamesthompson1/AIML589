@@ -4,6 +4,11 @@ set -euo pipefail
 # ───────────────────────────────────────────────
 # run.sh — Run fine-tuning or serving on a remote GPU host
 # ───────────────────────────────────────────────
+# bind_probe <port>: exits 0 if nothing is already listening on 127.0.0.1:<port>,
+# 1 otherwise. Used to fail fast when a stale tunnel squats on the local port.
+bind_probe() {
+  python3 -c 'import socket, sys; s=socket.socket(); s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1); s.bind(("127.0.0.1", int(sys.argv[1]))); s.close()' "$1" 2>/dev/null
+}
 # Usage:
 #   ./code/fine-tuning/run.sh serve    <ssh-host> [--port PORT] [-- serve.py args...]
 #   ./code/fine-tuning/run.sh finetune <ssh-host> [-- finetune.py args...]
@@ -66,14 +71,22 @@ REMOTE_FULL="\$HOME/$REMOTE_DIR"
 REMOTE_SCP="~/$REMOTE_DIR"
 
 echo "==> Setting up remote directory on $HOST..."
-ssh -F "$SSH_CONFIG" "$HOST" "mkdir -p \"$REMOTE_FULL\""
+# sshd on a freshly created cloud instance may need a few seconds; the
+# ssh-probe in vastgpu.py already gates on this, but retry here anyway so a
+# sliver of a race can't kill an unattended run.
+for _ in 1 2 3; do
+  ssh -F "$SSH_CONFIG" "$HOST" "mkdir -p \"$REMOTE_FULL\"" && break
+  echo "  (ssh not up yet, retrying in 5s...)"
+  sleep 5
+done
 
 # Interrupted runs orphan uv ephemeral envs in /tmp (each several GB of
 # torch/vllm), eventually filling the disk. Clear any not referenced by a
-# live process before starting.
-ssh -F "$SSH_CONFIG" "$HOST" 'for d in /tmp/.tmp*/environments-v2/serve-*; do
-  [ -e "$d" ] || continue
+# live process before starting. Use find (not a glob) so this works whether
+# the remote shell is bash or zsh (zsh aborts on an unmatched glob).
+ssh -F "$SSH_CONFIG" "$HOST" 'find /tmp -maxdepth 3 -type d -path "*/environments-v2/serve-*" 2>/dev/null | while read -r d; do
   if ! grep -l "$d" /proc/[0-9]*/environ 2>/dev/null | grep -q .; then
+    echo "  cleaning orphaned uv env: $d"
     rm -rf "$(dirname "$(dirname "$d")")"
   fi
 done'
@@ -99,13 +112,36 @@ rm -f "$TMPENV"
 
 # Build remote command prefix
 REMOTE_PREFIX="export PATH=\"\$HOME/.local/bin:\$PATH\";"
-REMOTE_PREFIX+=" for d in /usr/local/cuda /opt/cuda /usr/lib/cuda; do"
-REMOTE_PREFIX+="   [ -x \"\$d/bin/nvcc\" ] && export CUDA_HOME=\"\$d\" && export PATH=\"\$d/bin:\$PATH\" && break;"
-REMOTE_PREFIX+=" done;"
+REMOTE_PREFIX+=" if command -v nvcc >/dev/null 2>&1; then :; else"
+REMOTE_PREFIX+="   for d in /usr/local/cuda /opt/cuda /usr/lib/cuda; do"
+REMOTE_PREFIX+="     [ -x \"\$d/bin/nvcc\" ] && export CUDA_HOME=\"\$d\" && export PATH=\"\$d/bin:\$PATH\" && break;"
+REMOTE_PREFIX+="   done;"
+REMOTE_PREFIX+=" fi;"
 REMOTE_PREFIX+=" command -v uv >/dev/null 2>&1 || curl -LsSf https://astral.sh/uv/install.sh | sh;"
+# torch/triton JIT-compiles CUDA kernels on the first training step and needs
+# a C compiler (the pytorch base image has none and the vast API rejects long
+# onstart scripts, so bootstrap gcc here — once per fresh instance).
+REMOTE_PREFIX+=" command -v gcc >/dev/null 2>&1 || (apt-get update -qq && apt-get install -y -qq --no-install-recommends gcc g++ make);"
 REMOTE_PREFIX+=" cd \"$REMOTE_FULL\" && set -a && . ./$ENV_FILE && set +a"
 
 if [ "$MODE" = "serve" ]; then
+  # ── Serve mode: fail fast before doing any remote work if the local
+  #    tunnel port is already taken (stale tunnel from a previous run). ──
+  if bind_probe "$PORT"; then
+    :
+  else
+    echo "error: local port $PORT already in use (stale ssh tunnel from a previous run?)"
+    PIDS=$(lsof -i ":$PORT" -P -n 2>/dev/null | awk 'NR > 1 && $2 ~ /^[0-9]+$/ {print $2}' | sort -u | tr '\n' ' ')
+    if [ -n "$PIDS" ]; then
+      echo "       processes holding the port:"
+      ps -o pid=,comm=,args= -p $PIDS 2>/dev/null || true
+    else
+      lsof -i ":$PORT" -P -n 2>/dev/null || true
+    fi
+    echo "       kill them with \`kill <pid>\`, or use --port <other>"
+    exit 1
+  fi
+
   # ── Serve mode: find free port, start vLLM, set up tunnel ──
   echo "==> Finding free port on $HOST..."
   INT_PORT=$(ssh -F "$SSH_CONFIG" "$HOST" "python3 -c 'import socket; s=socket.socket(); s.bind((\"\",0)); print(s.getsockname()[1]); s.close()'")
@@ -121,6 +157,19 @@ if [ "$MODE" = "serve" ]; then
   echo "==> Setting up SSH tunnel (localhost:$PORT -> $HOST:$INT_PORT)..."
   ssh -F "$SSH_CONFIG" -N -L "$PORT:localhost:$INT_PORT" "$HOST" &
   TUNNEL_PID=$!
+
+  # The tunnel dies instantly if it can't bind (bind error above would have
+  # caught that) or ssh itself fails — fail fast instead of polling a dead
+  # port for 10 minutes. A live tunnel stays up even while the remote server
+  # is still starting, so a quick liveness check is safe here.
+  sleep 2
+  if ! kill -0 "$TUNNEL_PID" 2>/dev/null; then
+    echo ""
+    echo "error: ssh tunnel to :$PORT failed to start (port busy? ssh unreachable?)"
+    kill $REMOTE_PID 2>/dev/null
+    wait $REMOTE_PID 2>/dev/null
+    exit 1
+  fi
 
   echo ""
   echo "============================================"
