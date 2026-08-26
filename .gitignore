@@ -10,3 +10,8 @@ workbench/**
 **/__pycache__/
 
 .env
+
+# Local mirror of the HF storage bucket (fine-tuning + behavioural-simulation
+# outputs). Synced with `hf buckets sync`, backed up with borg. See
+# code/hf-bucket/README.md.
+artifacts/

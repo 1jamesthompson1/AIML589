@@ -1,0 +1,7 @@
+# Use a non-default logs dir so exports can find logs, but keep generated
+# outputs out of git where noise accumulates.
+# All simulation outputs live in the HF bucket (via artifacts/bs symlink)
+output
+
+# inspect/eval environment (log dir, API keys) — keep out of git
+.env

@@ -1,3 +1,6 @@
 .ssh_config
 .vastgpu.state
 output/evals/**/figures/**
+
+# All training/eval outputs live in the HF bucket (via artifacts/ft symlink)
+output
