@@ -25,7 +25,7 @@ SRV_TGTS := $(foreach src,$(SRV_SRCS), \
 
 ALL_TGTS := $(DOC_TGTS) $(SRV_TGTS)
 
-.PHONY: all clean watch setup help wordcount
+.PHONY: all clean watch setup help wordcount artifacts-sync artifacts-pull artifacts-backup artifacts-precommit
 
 all: $(ALL_TGTS)
 
@@ -78,8 +78,61 @@ watch:
 wordcount:
 	texcount -dir=$(TEX_DIR)/report/ -inc -sum -nobib $(TEX_DIR)/report/report.tex
 
+# --- HF bucket artifacts (heavy outputs, kept out of git) ---
+# Sync/backup logic lives here rather than in extra scripts so it stays
+# colocated with the build tooling. All knobs come from .env (see
+# .env.example): HF_TOKEN, HF_BUCKET, RUN_BORG_BACKUP, BORG_REPO.
+# `make artifacts-precommit` is also invoked by the pre-commit hook; it is
+# best-effort and never fails the commit.
+
+# Upload artifacts/ (ft + bs mirrors) to the HF storage bucket.
+artifacts-sync:
+	@bash -c 'set -euo pipefail; \
+	  set -a; [ -f .env ] && . ./.env; set +a; \
+	  HF=$${HF_BIN:-.venv/bin/hf}; \
+	  BUCKET=hf://buckets/$${HF_BUCKET:-1jamesthompson1/wvs-nz-value-alignment-evals}; \
+	  exec "$$HF" buckets sync ./artifacts "$$BUCKET"'
+
+# Download the bucket back into artifacts/ (fresh machines/checkouts).
+artifacts-pull:
+	@bash -c 'set -euo pipefail; \
+	  set -a; [ -f .env ] && . ./.env; set +a; \
+	  HF=$${HF_BIN:-.venv/bin/hf}; \
+	  BUCKET=hf://buckets/$${HF_BUCKET:-1jamesthompson1/wvs-nz-value-alignment-evals}; \
+	  mkdir -p artifacts; \
+	  exec "$$HF" buckets sync "$$BUCKET" ./artifacts'
+
+# Borg backup of artifacts/ (unencrypted, auto-initialised).
+artifacts-backup:
+	@bash -c 'set -euo pipefail; \
+	  set -a; [ -f .env ] && . ./.env; set +a; \
+	  [ -d artifacts/ft ] && [ -d artifacts/bs ] || { echo "artifacts/ mirror missing"; exit 1; }; \
+	  BR=$${BORG_REPO:-grid-directory/AIML589-evals-backup}; \
+	  case "$$BR" in /*) ;; ~/*) BR=$$HOME/$${BR#\~/} ;; *) BR=$$HOME/$$BR ;; esac; \
+	  BORG=$${BORG_BIN:-$$HOME/.local/bin/borg}; \
+	  "$$BORG" info "$$BR" >/dev/null 2>&1 || "$$BORG" init --encryption=none "$$BR"; \
+	  "$$BORG" create --stats "$$BR::$$(hostname)-$$(date +%Y%m%d-%H%M%S)" ./artifacts; \
+	  "$$BORG" prune --keep-daily 7 --keep-weekly 4 --keep-monthly 6 "$$BR"'
+
+# pre-commit hook entry: sync via artifacts-sync, then borg via
+# artifacts-backup when RUN_BORG_BACKUP=true. Never fails so commits are not
+# blocked by network/remote hiccups.
+artifacts-precommit:
+	@bash -c 'set -u; \
+	  set -a; [ -f .env ] && . ./.env; set +a; \
+	  echo "--- syncing artifacts/ to HF bucket ---"; \
+	  $(MAKE) --no-print-directory artifacts-sync || echo "!! artifact sync failed (commit not blocked)"; \
+	  echo "--- optional borg backup ---"; \
+	  if [ "$${RUN_BORG_BACKUP:-false}" = "true" ]; then \
+	    $(MAKE) --no-print-directory artifacts-backup || echo "!! artifact backup failed (commit not blocked)"; \
+	  else \
+	    echo "borg backup skipped (RUN_BORG_BACKUP != true)"; \
+	  fi; \
+	  exit 0'
+
 # Bootstrap
 setup:
+	@[ -f .env ] || cp .env.example .env
 	uv sync && uv run pre-commit install
 
 # Clean
@@ -91,6 +144,9 @@ help:
 	@echo "  make              Build all PDFs"
 	@echo "  make watch FILE=x Watch and rebuild a single document"
 	@echo "  make wordcount    Print the report word count (excl. references/appendices)"
+	@echo "  make artifacts-sync    Upload artifacts/ to the HF bucket"
+	@echo "  make artifacts-pull    Download the HF bucket into artifacts/"
+	@echo "  make artifacts-backup  Borg backup of artifacts/ (also in pre-commit)"
 	@echo "  make clean        Remove build artifacts"
 	@echo ""
 	@echo "Sources in docs/   -> docs/output/"

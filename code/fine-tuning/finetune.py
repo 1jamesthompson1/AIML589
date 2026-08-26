@@ -54,6 +54,14 @@ import os
 import sys
 from pathlib import Path
 
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from prompt_construction import (
+    THINKING_ENABLED,
+    render_prompt,
+    render_prompt_text,
+)
+
 # Use expandable CUDA segments by default to reduce memory fragmentation
 # (large tensors like logits/logsumexp allocate in contiguous blocks).
 # setdefault so an explicitly-set environment variable still wins.
@@ -204,6 +212,15 @@ def parse_args(argv=None):
         default="bf16",
         choices=["bf16", "fp16"],
         help="Compute dtype for training (bf16 recommended for modern GPUs)",
+    )
+    p.add_argument(
+        "--reasoning",
+        action="store_true",
+        default=THINKING_ENABLED,
+        help="Enable reasoning (leave the <think> block open) when rendering the "
+        "training prompt. Defaults to prompt_construction.THINKING_ENABLED so "
+        "training and evaluation use the same prompt format. Must match the eval "
+        "setting or the fine-tuned adapter will not fire at eval time.",
     )
 
     p.add_argument(
@@ -495,6 +512,7 @@ def run_sft(args, ds, model_path):
             tokenize_sft,
             tokenizer=tokenizer,
             max_length=args.max_seq_length,
+            enable_thinking=args.reasoning,
         ),
         batched=False,
         remove_columns=ds.column_names,
@@ -506,10 +524,13 @@ def run_sft(args, ds, model_path):
             tokenize_sft,
             tokenizer=tokenizer,
             max_length=args.max_seq_length,
+            enable_thinking=args.reasoning,
         ),
         batched=False,
         remove_columns=ds.column_names,
     )
+
+    log_example_prompts(tokenizer, ds, n=2, enable_thinking=args.reasoning)
     log.info("[sft] eval split: %d examples", len(tok_eval_ds))
 
     training_args = SFTConfig(
@@ -578,28 +599,65 @@ def run_sft(args, ds, model_path):
 # ----------------------------------------------------
 
 
-def _prompt_ids(example, tokenizer, max_length):
-    """Tokenize prompt (system + user) via the chat template.
+def _prompt_ids(
+    example, tokenizer, max_length, enable_thinking: bool = THINKING_ENABLED
+):
+    """Tokenize prompt (system + user) via the shared chat template.
 
-    Uses the chat template with a generation prompt (ends in
-    ``<|im_start|>assistant\\n``), truncated from the left to fit
-    ``max_length`` so the answer position stays at the end of the sequence.
+    Delegates to :func:`prompt_construction.render_prompt` so the training
+    prompt format is guaranteed identical to the evaluation prompt format
+    (see ``prompt_construction.THINKING_ENABLED``). Using different formats
+    is enough to make the fine-tuned adapter silently fail to fire at eval.
 
     Args:
         example: Dataset row with ``system_prompt`` and ``user_prompt`` keys.
         tokenizer: Tokeniser instance.
         max_length: Maximum sequence length.
+        enable_thinking: Whether the rendered prompt leaves the ``<think>``
+            block open (True) or closed (False). Must match the eval setting.
 
     Returns:
         List of token ids for the prompt.
     """
-    prompt_text = tokenizer.apply_chat_template(
-        format_chat(example["system_prompt"], example["user_prompt"]),
-        tokenize=False,
-        add_generation_prompt=True,
+    return render_prompt(
+        tokenizer,
+        example["system_prompt"],
+        example["user_prompt"],
+        max_length=max_length,
+        enable_thinking=enable_thinking,
     )
-    ids = tokenizer(prompt_text)["input_ids"]
-    return ids[-max_length:] if len(ids) > max_length else ids
+
+
+def log_example_prompts(
+    tokenizer, ds, n: int = 2, enable_thinking: bool = THINKING_ENABLED
+):
+    """Log a couple of fully-rendered example prompts so the exact string the
+    model is trained on can be inspected later in the run logs.
+
+    Prints the rendered prompt (system + user through the chat template) and,
+    when present, the target completion, for the first ``n`` rows of ``ds``.
+    """
+    log.info("=" * 72)
+    log.info("EXAMPLE TRAINING PROMPT(S)  [enable_thinking=%s]", enable_thinking)
+    log.info("=" * 72)
+    for i in range(min(n, len(ds))):
+        ex = ds[i]
+        text = render_prompt_text(
+            tokenizer,
+            ex["system_prompt"],
+            ex["user_prompt"],
+            enable_thinking=enable_thinking,
+        )
+        target = ex.get("expected_text", None)
+        log.info(
+            "--- example %d (system_prompt_id=%s) ---",
+            i,
+            ex.get("system_prompt_id", "?"),
+        )
+        log.info("%s", text)
+        if target:
+            log.info("    target completion: %r", str(target))
+    log.info("=" * 72)
 
 
 def _completion_ids(text, tokenizer):
@@ -638,7 +696,9 @@ def _with_completion(prompt_ids, comp_ids, max_length):
     return seq, lab
 
 
-def tokenize_sft(example, tokenizer, max_length):
+def tokenize_sft(
+    example, tokenizer, max_length, enable_thinking: bool = THINKING_ENABLED
+):
     """Tokenize one SFT example: shared prompt + single completion.
 
     Prompt tokens are masked to ``-100`` so only the completion is scored —
@@ -658,7 +718,7 @@ def tokenize_sft(example, tokenizer, max_length):
     Returns:
         Dict with ``input_ids`` and ``labels``.
     """
-    prompt_ids = _prompt_ids(example, tokenizer, max_length)
+    prompt_ids = _prompt_ids(example, tokenizer, max_length, enable_thinking)
     comp_ids = _completion_ids(example.get("expected_text", ""), tokenizer)
     seq, lab = _with_completion(prompt_ids, comp_ids, max_length)
     return {"input_ids": seq, "labels": lab}
@@ -718,7 +778,9 @@ class SftCollator:
 # ----------------------------------------------------
 
 
-def tokenize_distributional(example, tokenizer, max_length):
+def tokenize_distributional(
+    example, tokenizer, max_length, enable_thinking: bool = THINKING_ENABLED
+):
     """Expand one distributional example into its K option-string completions.
 
     Each example has a shared prompt (system + user + options block) and an
@@ -736,7 +798,7 @@ def tokenize_distributional(example, tokenizer, max_length):
         Dict with ``input_ids`` (list of K lists), ``labels`` (list of K
         lists), and ``q`` (list of K floats).
     """
-    prompt_ids = _prompt_ids(example, tokenizer, max_length)
+    prompt_ids = _prompt_ids(example, tokenizer, max_length, enable_thinking)
 
     input_ids, labels, q = [], [], []
     for q_i, category in zip(example["expected_distribution"], example["categories"]):
@@ -908,7 +970,9 @@ class CustomLossTrainer(Trainer):
 # ----------------------------------------------------
 
 
-def tokenize_first_token(example, tokenizer, max_length):
+def tokenize_first_token(
+    example, tokenizer, max_length, enable_thinking: bool = THINKING_ENABLED
+):
     """Tokenize one first-token example: prompt only, plus K answer tokens and q.
 
     Unlike :func:`tokenize_distributional`, no expansion happens: the expected
@@ -928,7 +992,7 @@ def tokenize_first_token(example, tokenizer, max_length):
     Raises:
         ValueError: If any answer token encodes to more than one token id.
     """
-    input_ids = _prompt_ids(example, tokenizer, max_length)
+    input_ids = _prompt_ids(example, tokenizer, max_length, enable_thinking)
 
     answer_token_ids = []
     for tok in example["answer_tokens"]:
@@ -1100,12 +1164,14 @@ def run_distributional(args, ds, model_path, variant):
             tokenize_fn,
             tokenizer=tokenizer,
             max_length=args.max_seq_length,
+            enable_thinking=args.reasoning,
         ),
         batched=False,
         remove_columns=ds.column_names,
     )
     n_opt = sum(len(ex["q"]) for ex in tok_ds)
     log.info("[%s] %d options/completions across %d examples", tag, n_opt, len(tok_ds))
+    log_example_prompts(tokenizer, ds, n=2, enable_thinking=args.reasoning)
 
     log.info("[%s] tokenizing validation split for eval...", tag)
     tok_eval_ds = load_dataset(args, split="validation").map(
@@ -1113,6 +1179,7 @@ def run_distributional(args, ds, model_path, variant):
             tokenize_fn,
             tokenizer=tokenizer,
             max_length=args.max_seq_length,
+            enable_thinking=args.reasoning,
         ),
         batched=False,
         remove_columns=ds.column_names,
@@ -1224,7 +1291,9 @@ def upload_to_hf(args, model_path: Path):
     return args.hf_repo
 
 
-def save_run_metadata(output_dir: Path, args, gpu_name: str | None = None):
+def save_run_metadata(
+    output_dir: Path, args, gpu_name: str | None = None, command: str | None = None
+):
     import json
     from datetime import datetime
 
@@ -1250,6 +1319,7 @@ def save_run_metadata(output_dir: Path, args, gpu_name: str | None = None):
         "library_name": "peft",
         "pipeline_tag": "text-generation",
         "timestamp": datetime.now().isoformat(),
+        "command": command or "",
         "hyperparameters": {
             "lora_r": args.lora_r,
             "lora_alpha": args.lora_alpha,
@@ -1264,11 +1334,20 @@ def save_run_metadata(output_dir: Path, args, gpu_name: str | None = None):
             "warmup_ratio": args.warmup_ratio,
             "dtype": args.dtype,
         },
+        "adapter": _adapter_stats_dict(output_dir),
     }
 
     meta_path = output_dir / "finetune_config.json"
     meta_path.write_text(json.dumps(metadata, indent=2))
     log.info("    run metadata -> %s", meta_path)
+
+
+def _adapter_stats_dict(output_dir: Path) -> dict:
+    """Parameter count + size for the saved adapter, or empty if absent."""
+    params, size = lora_stats(output_dir)
+    if params is None:
+        return {}
+    return {"trainable_parameters": params, "size_bytes": size}
 
 
 def save_training_log(output_dir: Path, log_history: list[dict]):
@@ -1329,17 +1408,52 @@ def dump_environment(output_dir: Path, key_names: list[str] | None = None):
     return all_packages, key_names
 
 
+def lora_stats(output_dir: Path):
+    """Report the adapter's trainable parameter count and on-disk size.
+
+    Reads only the ``adapter_model.safetensors`` JSON *header* (the first
+    few bytes), so it works without loading the multi-GB weight tensors.
+
+    Returns:
+        ``(param_count, size_bytes)`` or ``(None, None)`` if the file is
+        missing (e.g. before the model is saved).
+    """
+    import json as _json
+
+    fp = output_dir / "adapter_model.safetensors"
+    if not fp.exists():
+        return None, None
+    size_bytes = fp.stat().st_size
+    with fp.open("rb") as f:
+        header_len = int.from_bytes(f.read(8), "little")
+        header = _json.loads(f.read(header_len))
+    param_count = 0
+    for name, meta in header.items():
+        if name == "__metadata__":
+            continue
+        shape = (meta or {}).get("shape", [])
+        if not shape:
+            continue
+        numel = 1
+        for dim in shape:
+            numel *= int(dim)
+        param_count += numel
+    return param_count, size_bytes
+
+
 def generate_readme(
     output_dir: Path,
     args,
     log_history: list[dict],
     gpu_name: str | None = None,
     train_time_s: float | None = None,
+    command: str | None = None,
 ):
     from jinja2 import Template
 
     log_entries = [json.dumps(e) for e in log_history]
     packages, key_names = dump_environment(output_dir)
+    lora_params, adapter_size = lora_stats(output_dir)
 
     template_path = Path(__file__).resolve().parent / "MODEL_DATACARD_TEMPLATE.md"
     template = Template(template_path.read_text())
@@ -1365,6 +1479,9 @@ def generate_readme(
         hf_collection=args.hf_collection or "",
         gpu_name=gpu_name or "",
         train_time_s=train_time_s or 0,
+        command=command or "",
+        lora_params=lora_params,
+        adapter_size=adapter_size,
     )
 
     readme_path = output_dir / "README.md"
@@ -1397,6 +1514,10 @@ def main():
 
     load_dotenv()
     args = parse_args()
+
+    # Exact command line used to launch this training run, captured for
+    # reproducibility and written into the model card / run metadata.
+    command = " ".join(sys.argv)
 
     # Note: CUDA_VISIBLE_DEVICES is set at module load by _apply_gpu_env()
     # (before the transformers import), because CUDA is initialised during
@@ -1446,9 +1567,14 @@ def main():
     else:
         raise ValueError(f"Unknown dataset: {args.dataset}")
 
-    save_run_metadata(model_path, args, gpu_name)
+    save_run_metadata(model_path, args, gpu_name, command=command)
     generate_readme(
-        model_path, args, log_history, gpu_name=gpu_name, train_time_s=train_time_s
+        model_path,
+        args,
+        log_history,
+        gpu_name=gpu_name,
+        train_time_s=train_time_s,
+        command=command,
     )
 
     if args.hf_token and args.upload_to_hf and args.hf_repo:

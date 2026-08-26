@@ -438,7 +438,6 @@ def run_eval_jobs(
             model,
             "--dataset",
             ds,
-            "--no-plots",
         ]
         if subpop:
             cmd += ["--subpopulation", subpop]

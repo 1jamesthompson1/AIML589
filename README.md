@@ -16,6 +16,7 @@ This repo is a mono repo containing several systems. Each top-level directory ha
 | `survey/` | Source files for the public consultation survey: participant information sheet, survey mockup, recruitment flyer/post, and the VUW logo. |
 | `website/` | Public-facing project site ([nz-llm.sjhl.nz](https://nz-llm.sjhl.nz)). Built with Astro + React, deployed via GitHub Pages. |
 | `workbench/` | Scratch scripts, experiments, and draft files — not part of the main pipeline. |
+| `artifacts/` | Heavy pipeline outputs (fine-tuning evals, behavioural-simulation runs) mirrored locally and synced to a public HF storage bucket — **gitignored**. See [HF bucket artifacts](#hf-bucket-artifacts). |
 
 ### Setting up
 
@@ -26,8 +27,20 @@ Requires [`uv`](https://docs.astral.sh/uv/getting-started/installation/) and [`m
 ```bash
 git clone https://github.com/1jamesthompson1/AIML589.git
 cd AIML589
-make setup
+make setup          # also copies .env.example -> .env if missing
+# edit .env (HF_TOKEN is required for the bucket sync; see .env.example)
+make artifacts-pull # optional: fetch heavy outputs back into artifacts/
 ```
+
+### HF bucket artifacts
+
+Heavy outputs (`code/fine-tuning/output` → `artifacts/ft`, `code/behavioural-simulations/output` → `artifacts/bs`, both symlinks) live in a public Hugging Face **storage bucket** — plain object storage, no git overhead:
+
+- **`make artifacts-sync`** — upload `artifacts/` to the bucket (skips unchanged files). Runs automatically on every `git commit` via the `sync-hf-artifacts` pre-commit hook (best-effort; never blocks the commit).
+- **`make artifacts-backup`** — borg backup (unencrypted, auto-initialised) of `artifacts/` into `$HOME/grid-directory/AIML589-evals-backup`; also runs in pre-commit when `RUN_BORG_BACKUP=true`.
+- **`make artifacts-pull`** — download the bucket back to `artifacts/` (fresh machines).
+
+Configured via `.env` (see `.env.example`): `HF_TOKEN`, `HF_BUCKET` (default `1jamesthompson1/wvs-nz-value-alignment-evals`), `RUN_BORG_BACKUP`, `BORG_REPO`. Directory paths of empty dirs are not stored in the bucket.
 
 ### Docs
 

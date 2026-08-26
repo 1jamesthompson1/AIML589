@@ -93,6 +93,8 @@ done'
 
 echo "==> Copying files to $HOST..."
 scp -F "$SSH_CONFIG" "$SCRIPT_DIR/$SCRIPT" "$HOST":"$REMOTE_SCP"/"$SCRIPT"
+# Shared prompt-construction module imported by finetune.py (and served scripts).
+scp -F "$SSH_CONFIG" "$SCRIPT_DIR/prompt_construction.py" "$HOST":"$REMOTE_SCP"/prompt_construction.py
 # Copy template for model card generation
 if [ "$MODE" = "finetune" ]; then
   scp -F "$SSH_CONFIG" "$SCRIPT_DIR/MODEL_DATACARD_TEMPLATE.md" "$HOST":"$REMOTE_SCP"/MODEL_DATACARD_TEMPLATE.md

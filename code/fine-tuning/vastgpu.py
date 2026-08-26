@@ -77,6 +77,9 @@ DEFAULT_GPU_NAMES = ["RTX_PRO_6000_S", "RTX_PRO_6000_WS"]
 DEFAULT_MIN_INET = (
     2000  # Mb/s — skip slow hosts (model downloads + serving need bandwidth)
 )
+DEFAULT_MIN_DLPREF = (
+    220  # vast.ai benchmark score — skip weak/overpriced hosts by default
+)
 DEFAULT_DISK = 150  # GB; template does NOT carry disk, so it is always sent explicitly
 # WVS template (wvs-llm-rtx6000): vastai/vllm:v0.27.1-cuda-13.0, ssh+direct, port 8080
 # forwarded, ~/.no_auto_tmux pre-created.
@@ -176,10 +179,14 @@ class Offer:
     reliability: float
     inet_down: float
     duration: float  # seconds this offer stays available (large = on-demand)
+    dlperf: float = 0.0  # vast.ai $/h-normalised benchmark score (excluding price)
 
 
 def search_offers(
-    num_gpus: int, min_inet: int, min_disk: float = DEFAULT_DISK
+    num_gpus: int,
+    min_inet: int,
+    min_disk: float = DEFAULT_DISK,
+    min_dlperf: float | None = None,
 ) -> list[Offer]:
     # Offer disk_space is the volume the VM actually gets: template-hash
     # creation sizes the instance from the offer's advertised disk and
@@ -192,6 +199,10 @@ def search_offers(
             "rentable=true verified=true external=false "
             f"inet_down>={min_inet} disk_space>={min_disk}"
         )
+        # dlperf = vast.ai's price-normalised GPU benchmark: higher is more
+        # compute per $, so skipping weak machines is worth more than price.
+        if min_dlperf:
+            query += f" dlperf>={min_dlperf}"
         out = run_vast("search", "offers", query, "--raw")
         data = json.loads(out)
         if isinstance(data, dict):
@@ -215,6 +226,7 @@ def search_offers(
                     reliability=float(o.get("reliability2", 0) or 0),
                     inet_down=float(o.get("inet_down", 0) or 0),
                     duration=float(o.get("duration", 0) or 0),
+                    dlperf=float(o.get("dlperf", 0) or 0),
                 )
             )
     offers.sort(key=lambda o: o.price)
@@ -495,7 +507,7 @@ def cmd_find(args: argparse.Namespace) -> None:
     )
     if args.max_price:
         print(f"  (filtering out offers above ${args.max_price}/h)")
-    offers = search_offers(args.num_gpus, args.min_inet, args.min_disk)
+    offers = search_offers(args.num_gpus, args.min_inet, args.min_disk, args.min_dlperf)
     if args.max_price:
         offers = [o for o in offers if o.price <= args.max_price]
     if not offers:
@@ -563,7 +575,7 @@ def cmd_launch(args: argparse.Namespace) -> None:
     print(
         f"Searching vast.ai for {', '.join(DEFAULT_GPU_NAMES)} (>= {args.num_gpus} GPU) offers..."
     )
-    offers = search_offers(args.num_gpus, args.min_inet, args.min_disk)
+    offers = search_offers(args.num_gpus, args.min_inet, args.min_disk, args.min_dlperf)
     if args.max_price:
         offers = [o for o in offers if o.price <= args.max_price]
     if not offers:
@@ -744,6 +756,13 @@ def parse_args(argv=None) -> argparse.Namespace:
         sp.add_argument("--ssh-key", default=DEFAULT_SSH_KEY, help="Private key path")
         sp.add_argument(
             "--top", type=int, default=10, help="Number of offers 'find' lists"
+        )
+        sp.add_argument(
+            "--min-dlperf",
+            type=float,
+            default=DEFAULT_MIN_DLPREF,
+            help="Skip offers with vast.ai benchmark score below X "
+            "(dlperf = compute per $; e.g. 220 filters out weak/overpriced hosts)",
         )
         if name == "launch":
             sp.add_argument(

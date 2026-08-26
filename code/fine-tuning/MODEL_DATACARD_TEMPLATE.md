@@ -14,6 +14,12 @@ license: cc-by-sa-4.0
 pipeline_tag: text-generation
 datasets:
   - 1jamesthompson1/wvs-nz-value-alignment
+{%- if lora_params is not none and lora_params != "" %}
+parameters: {{ lora_params }}
+{%- endif %}
+{%- if adapter_size is not none and adapter_size != "" %}
+adapter_size_bytes: {{ adapter_size }}
+{%- endif %}
 ---
 
 {% set slug = base_model.split('/')[-1] %}
@@ -40,6 +46,15 @@ Part of the [{{ hf_collection }}](https://huggingface.co/collections/{{ hf_colle
 **GPU:** {{ gpu_name }}{% if train_time_s %} · **Training time:** {{ (train_time_s // 60)|int }}m {{ (train_time_s % 60)|int }}s{% endif %}
 {% endif %}
 
+## Training command
+
+The exact command used to produce this adapter (also saved in
+`finetune_config.json`):
+
+```
+{{ command }}
+```
+
 ## Training hyperparameters
 
 | Parameter | Value |
@@ -55,6 +70,12 @@ Part of the [{{ hf_collection }}](https://huggingface.co/collections/{{ hf_colle
 | Max seq length | {{ max_seq_length }} |
 | Warmup ratio | {{ warmup_ratio }} |
 | Dtype | {{ dtype }} |
+{%- if lora_params is not none and lora_params != "" %}
+| Trainable parameters (LoRA) | {{ "{:,}".format(lora_params) }} |
+{%- endif %}
+{%- if adapter_size is not none and adapter_size != "" %}
+| Adapter size on disk | {{ "{:,}".format(adapter_size) }} bytes |
+{%- endif %}
 
 ## Training log
 

@@ -18,6 +18,8 @@ classifiers = [
 ]
 dependencies = [
     "datasets>=5.0.0",
+    "fpdf2>=2.8.8",
+    "inspect-ai>=0.3.258",
     "kmodes>=0.12.2",
     "marimo>=0.23.14",
     "matplotlib>=3.11.1",
@@ -30,10 +32,16 @@ dependencies = [
     "pre-commit>=4.6.0",
     "prince>=0.20.1",
     "pyarrow>=25.0.0",
+    "pypdf>=6.16.2",
     "python-dotenv>=1.2.2",
     "ruff>=0.15.21",
+    "sentence-transformers>=3.0",
     "stepmix>=3.0.0",
+    "vastai>=1.5.5",
 ]
+
+[tool.ruff.lint.flake8-implicit-str-concat]
+allow-multiline = false
 
 [project.urls]
 Homepage = "https://github.com/1jamesthompson1/AIML589"

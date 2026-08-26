@@ -4,7 +4,6 @@
 # dependencies = [
 #   "numpy>=2.0.0",
 #   "pandas>=2.0.0",
-#   "matplotlib>=3.8.0",
 #   "datasets>=5.0.0",
 #   "openai>=1.80.0",
 #   "python-dotenv>=1.1.0",
@@ -37,9 +36,9 @@ Usage:
         --model Qwen3.6-27B-nz-wvs-modal_response-overall \
         --dataset modal_response --subpopulation overall --reasoning
 
-    # For quick checks without plots:
+    # For quick checks:
     uv run evaluate.py --port 8087 --model Qwen/Qwen3.6-27B \
-        --dataset modal_response --no-plots --num-test-examples 20
+        --dataset modal_response --num-test-examples 20
 """
 
 import argparse
@@ -48,7 +47,14 @@ import os
 import sys
 from pathlib import Path
 
-import numpy as np
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from prompt_construction import (
+    THINKING_ENABLED,
+    build_messages,
+    chat_template_kwargs,
+    render_prompt_text,
+)
+
 import pandas as pd
 
 
@@ -304,16 +310,12 @@ def parse_args(argv=None):
         help="Limit to first N test examples per split (for quick checks)",
     )
     p.add_argument(
-        "--no-plots",
-        action="store_true",
-        default=False,
-        help="Skip generating per-question distribution plots",
-    )
-    p.add_argument(
         "--reasoning",
         action="store_true",
-        default=False,
-        help="Enable reasoning mode (chain-of-thought)",
+        default=THINKING_ENABLED,
+        help="Enable reasoning mode (chain-of-thought). Defaults to the "
+        "shared value in prompt_construction.THINKING_ENABLED so eval and "
+        "training use the same prompt format.",
     )
     p.add_argument(
         "--max-retries",
@@ -526,137 +528,6 @@ def kl_divergence(p: list[float], q: list[float]) -> float:
     )
 
 
-def plot_distribution_comparison(
-    per_question_df: pd.DataFrame, output_dir: Path, max_plots: int = 100
-):
-    import matplotlib.pyplot as plt
-    import textwrap
-
-    figs_dir = output_dir / "figures"
-    figs_dir.mkdir(exist_ok=True)
-    plot_count = 0
-
-    for col, group in per_question_df.groupby("column_name"):
-        if plot_count >= max_plots:
-            break
-
-        row = group.iloc[0]
-        cats = row.get("categories")
-        true_dist = row.get("true_distribution")
-        if not cats or not true_dist:
-            continue
-
-        sq = row.get("sub_question", "")
-        qtext = row.get("question", "")
-        if not sq or (isinstance(sq, float) and math.isnan(sq)):
-            sq = ""
-
-        title_parts = []
-        if qtext:
-            title_parts.append(textwrap.fill(qtext, width=70))
-        if sq:
-            title_parts.append(sq)
-        title = "\n".join(title_parts)
-
-        def _make_plot(model_dist, label_suffix, filename_suffix):
-            """Helper to create a single comparison plot."""
-            x = np.arange(len(cats))
-            width = 0.35
-
-            fig, ax = plt.subplots(figsize=(max(9, len(cats) * 0.8), 5.5))
-            bars1 = ax.bar(
-                x - width / 2,
-                true_dist,
-                width,
-                label="Expected",
-                color="#DD8452",
-                alpha=0.85,
-            )
-            bars2 = ax.bar(
-                x + width / 2,
-                model_dist,
-                width,
-                label="Model",
-                color="#4C72B0",
-                alpha=0.85,
-            )
-
-            for b1, b2 in zip(bars1, bars2):
-                for b, d in [(b1, true_dist), (b2, model_dist)]:
-                    h = b.get_height()
-                    if h > 0.01:
-                        ax.annotate(
-                            f"{h:.0%}",
-                            xy=(b.get_x() + b.get_width() / 2, h),
-                            xytext=(0, 3),
-                            textcoords="offset points",
-                            ha="center",
-                            va="bottom",
-                            fontsize=7,
-                        )
-
-            ax.set_xticks(x)
-            ax.set_xticklabels(cats, fontsize=8, rotation=20, ha="right")
-            ax.set_ylabel("Probability")
-            ax.set_title(title, fontsize=10, linespacing=1.3, pad=12)
-            ax.legend(fontsize=8, loc="upper right")
-
-            _p = [max(p, 1e-10) for p in true_dist]
-            _q = [max(p, 1e-10) for p in model_dist]
-            kl = sum(pi * math.log(pi / qi) for pi, qi in zip(_p, _q) if pi > 0)
-            ax.text(
-                0.98,
-                0.95,
-                f"KL={kl:.3f}",
-                transform=ax.transAxes,
-                ha="right",
-                va="top",
-                fontsize=9,
-                bbox=dict(boxstyle="round,pad=0.3", facecolor="wheat", alpha=0.7),
-            )
-
-            footer = f"Column: {col}  {label_suffix}"
-            fig.text(
-                0.5,
-                0.01,
-                footer,
-                ha="center",
-                va="bottom",
-                fontsize=7,
-                color="gray",
-                style="italic",
-            )
-
-            ax.set_ylim(0, max(max(true_dist), max(model_dist)) * 1.25)
-            fig.subplots_adjust(top=0.88, bottom=0.08)
-            plt.tight_layout(rect=[0, 0.04, 1, 0.92])
-
-            safe_name = f"{col}{filename_suffix}".replace(" ", "_").replace("/", "_")[
-                :80
-            ]
-            figpath = figs_dir / f"{safe_name}.png"
-            fig.savefig(figpath, dpi=150, bbox_inches="tight")
-            plt.close(fig)
-
-        # --- Per-system-prompt plots ---
-        for _, r in group.iterrows():
-            md = r.get("model_distribution")
-            if md and isinstance(md, (list, tuple)):
-                sp = r.get("system_prompt_id", "unknown")
-                _make_plot(md, f"System Prompt: {sp}", f"_{sp}")
-
-        # --- Averaged plot ---
-        model_dists = group["model_distribution"].tolist()
-        model_dists = [d for d in model_dists if isinstance(d, (list, tuple))]
-        if model_dists:
-            avg_dist = [sum(vals) / len(vals) for vals in zip(*model_dists)]
-            _make_plot(avg_dist, "Averaged across prompts", "_avg")
-
-        plot_count += 1 + len(group)
-
-    print(f"[plots] saved plots to {figs_dir}")
-
-
 def _load_question_options():
     import json
     from pathlib import Path
@@ -713,7 +584,7 @@ def _chat_with_retry(
                 presence_penalty=presence_penalty,
                 extra_body={
                     "top_k": 20,
-                    "chat_template_kwargs": {"enable_thinking": reasoning},
+                    "chat_template_kwargs": chat_template_kwargs(reasoning),
                 },
             )
         except Exception as e:
@@ -760,7 +631,7 @@ async def _chat_with_retry_async(
                 presence_penalty=presence_penalty,
                 extra_body={
                     "top_k": 20,
-                    "chat_template_kwargs": {"enable_thinking": reasoning},
+                    "chat_template_kwargs": chat_template_kwargs(reasoning),
                 },
             )
         except Exception as e:
@@ -910,7 +781,6 @@ def _run_evaluation(
     top_logprobs,
     reasoning,
     output_dir,
-    no_plots,
     max_retries=5,
     temperature=0.0,
     top_p=1.0,
@@ -966,10 +836,7 @@ def _run_evaluation(
             )
 
     def _query_args(example):
-        messages = [
-            {"role": "system", "content": example["system_prompt"]},
-            {"role": "user", "content": example["user_prompt"]},
-        ]
+        messages = build_messages(example["system_prompt"], example["user_prompt"])
         return dict(
             model=model,
             messages=messages,
@@ -1098,9 +965,6 @@ def _run_evaluation(
     df = pd.DataFrame(results)
     df.to_csv(output_dir / "per_question_results.csv", index=False)
     print(f"[save] per-question results -> {output_dir / 'per_question_results.csv'}")
-
-    if not no_plots and any("categories" in r for r in results):
-        plot_distribution_comparison(df, output_dir)
 
     print()
     print("=" * 60)
@@ -1248,7 +1112,34 @@ def main():
         f" subpopulation: {'all' if args.subpopulation is None else args.subpopulation}"
         f", reasoning: {args.reasoning}"
     )
+    print(
+        f"  [prompt-format] enable_thinking={args.reasoning} "
+        f"(shared with training via prompt_construction.THINKING_ENABLED="
+        f"{THINKING_ENABLED}); train/eval match when both are off."
+    )
     print()
+
+    # Log a fully-rendered example prompt so the exact string sent to the
+    # server can be inspected later (and compared against the training log).
+    if len(ds):
+        ex = ds[0]
+        print("  Example eval prompt (messages):")
+        print(f"    system: {ex['system_prompt'][:120]!r}")
+        print(f"    user:   {ex['user_prompt'][:120]!r}")
+        try:
+            from transformers import AutoTokenizer
+
+            tok = AutoTokenizer.from_pretrained(args.model, trust_remote_code=True)
+            rendered = render_prompt_text(
+                tok,
+                ex["system_prompt"],
+                ex["user_prompt"],
+                enable_thinking=args.reasoning,
+            )
+            print("  Example eval prompt (rendered template, tail):")
+            print(f"    ...{rendered[-80:]!r}")
+        except Exception as e:  # transformers missing or model pull failed
+            print(f"  [skip] could not render template locally: {e}")
 
     server_created = None
     if available:
@@ -1282,7 +1173,6 @@ def main():
         "top_p": args.top_p,
         "presence_penalty": args.presence_penalty,
         "num_test_examples": args.num_test_examples,
-        "no_plots": args.no_plots,
         "max_retries": args.max_retries,
         "concurrency": args.concurrency,
         "dataset_sha": dataset_sha,
@@ -1304,7 +1194,6 @@ def main():
         top_logprobs=args.top_logprobs,
         reasoning=args.reasoning,
         output_dir=output_dir,
-        no_plots=args.no_plots,
         max_retries=args.max_retries,
         concurrency=args.concurrency,
     )

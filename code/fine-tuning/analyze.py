@@ -7,6 +7,9 @@ app = marimo.App(width="medium")
 @app.cell
 def _():
     import json
+    import math
+    import textwrap
+
     import marimo as mo
     import numpy as np
     import pandas as pd
@@ -14,150 +17,14 @@ def _():
 
     EVALS_ROOT = Path(__file__).resolve().parent / "output" / "evals"
     FIGS_DIR = Path(__file__).resolve().parent.parent / "figures"
-    return EVALS_ROOT, FIGS_DIR, json, mo, np, pd
-
-
-@app.cell(hide_code=True)
-def _(mo):
-    mo.md(r"""
-    ## Base models vs the population
-
-    How far is each base model's response distribution from the NZ
-    population, per split (mean over held-out validation questions and
-    all system prompts).
-    """)
-    return
+    return EVALS_ROOT, FIGS_DIR, json, math, mo, np, pd, textwrap
 
 
 @app.cell
-def _(EVALS_ROOT, json, np, pd):
-
-    def collect_base_tvd():
-        """Per (base model, split) mean TVD (%) from the newest
-        non-reasoning modal-config eval run of each base model."""
-        rows = []
-        for model_dir in sorted(EVALS_ROOT.iterdir()):
-            if not model_dir.is_dir() or "nz-wvs-" in model_dir.name:
-                continue  # base models only
-            runs = []
-            for run_dir in model_dir.iterdir():
-                cfg_path = run_dir / "config.json"
-                if not cfg_path.exists():
-                    continue
-                cfg = json.loads(cfg_path.read_text())
-                if cfg.get("dataset") != "modal_response" or cfg.get("reasoning"):
-                    continue
-                runs.append((cfg.get("timestamp", ""), run_dir))
-            if not runs:
-                continue
-            _, run_dir = sorted(runs)[-1]
-            df = pd.read_csv(run_dir / "per_question_results.csv")
-            if df.empty or "true_distribution" not in df.columns:
-                continue
-            df = df.assign(
-                subpopulation=df["subpopulation"]
-                if "subpopulation" in df
-                else "overall",
-                split=df["split"] if "split" in df else "validation",
-            )
-            df = df[df["subpopulation"] == "overall"]
-
-            def row_tvd(row):
-                md = row.get("model_distribution")
-                td = row.get("true_distribution")
-                try:
-                    md = json.loads(md) if isinstance(md, str) else md
-                    td = json.loads(td) if isinstance(td, str) else td
-                    return 0.5 * sum(abs(a - b) for a, b in zip(md, td)) * 100
-                except Exception:
-                    return float("nan")
-
-            df["tvd"] = df.apply(row_tvd, axis=1)
-            for (split, sp_id), h in df.groupby(
-                ["split", "system_prompt_id"], dropna=False
-            ):
-                rows.append(
-                    {
-                        "base_model": model_dir.name,
-                        "split": split,
-                        "system_prompt_id": sp_id,
-                        "n": len(h),
-                        "tvd": h["tvd"].mean(),
-                    }
-                )
-        per = pd.DataFrame(rows)
-        if per.empty:
-            return pd.DataFrame()
-        # Mean across prompts per split.
-        per_split = (
-            per.groupby(["base_model", "split"], dropna=False)["tvd"].mean().unstack()
-        )
-        # "All": per prompt, train + validation pooled by question count,
-        # then mean across prompts.
-        all_rows = []
-        for (bm, sp_id), h in per.groupby(
-            ["base_model", "system_prompt_id"], dropna=False
-        ):
-            all_rows.append(
-                {"base_model": bm, "tvd": np.average(h["tvd"], weights=h["n"])}
-            )
-        per_all = (
-            pd.DataFrame(all_rows).groupby("base_model", dropna=False)["tvd"].mean()
-        )
-        out = per_split.reindex(columns=["validation", "train"])
-        out["overall"] = per_all
-        return out[["validation", "train", "overall"]]
-
-    base_tvd = collect_base_tvd()
-    print("\n=== How far is each base model from the NZ population? ===")
-    print(
-        "TVD (%) = 0.5 * sum |model - true| over the response categories; "
-        "0 = answers exactly like NZ, 100 = completely different. "
-        "Validation = held-out questions/prompts."
-    )
-    print(
-        base_tvd.rename(
-            columns={
-                "validation": "TVD (%) validation",
-                "train": "TVD (%) train",
-                "overall": "TVD (%) all",
-            }
-        )
-        .round(1)
-        .to_string()
-    )
-    return
-
-
-@app.cell(hide_code=True)
-def _(mo):
-    mo.md(r"""
-    ## Find tune results table
-
-    For each base model: one row per fine-tuned version (base model at the
-    top), columns = accuracy / cross-entropy / KL divergence on the train,
-    validation and overall splits, plus a "vs Base" column block with the
-    adapter-minus-base deltas on the held-out validation split. All metrics
-    come from the modal eval config
-    (``modal_response`` so accuracy
-    always means exact match against the modal response and CE/KL are
-    against the empirical response distribution. Above the table, a short
-    section reports the mean TVD (%) between each base model's response
-    distribution and the NZ population (0.5 * sum |model - true| over the
-    response categories; 0 = answers exactly like NZ). Every model (base
-    and fine-tuned) is
-    scored on the overall population. The LaTeX
-    tables (pandas ``to_latex``, booktabs) are written to
-    ``code/figures/`` as ``ft-results-<model>.tex`` and included in the report
-    with ``\ctable{...}``.
-    """)
-    return
-
-
-@app.cell
-def _(EVALS_ROOT, json, np, pd):
-    # Building the main table data.
-
+def _(EVALS_ROOT, json, pd):
+    # Shared eval-run helpers used by every analysis section below. All
+    # sections read the same thing: the newest non-reasoning modal_response
+    # eval run per model directory, overall population rows only.
     MAIN_MODAL_CONFIGS = ("modal_response",)
 
     METHOD_PRETTY = {
@@ -174,6 +41,13 @@ def _(EVALS_ROOT, json, np, pd):
     ]
     SPLITS = ["train", "validation", "overall"]
     METRICS = ["accuracy", "cross_entropy", "kl_divergence"]
+    CAPABILITY_ROOT = EVALS_ROOT.parent / "capability"
+    TASK_LABELS = {
+        "mmlu_pro": "MMLU-Pro",
+        "gpqa_diamond": "GPQA Diamond",
+        "swe_bench": "SWE-bench",
+    }
+    TASK_ORDER = ["mmlu_pro", "gpqa_diamond", "swe_bench"]
 
     def base_and_method(model_name):
         # "{base}-nz-wvs-{method}" -> (base, method); no suffix -> (name, "base")
@@ -181,6 +55,352 @@ def _(EVALS_ROOT, json, np, pd):
             base, method = model_name.split("nz-wvs-", 1)
             return base.rstrip("-"), method
         return model_name, "base"
+
+    def newest_eval_run(model_dir):
+        """Newest non-reasoning modal_response run dir (by config timestamp)."""
+        runs = []
+        for run_dir in model_dir.iterdir():
+            cfg_path = run_dir / "config.json"
+            if not cfg_path.exists():
+                continue
+            cfg = json.loads(cfg_path.read_text())
+            if cfg.get("dataset") not in MAIN_MODAL_CONFIGS or cfg.get("reasoning"):
+                continue
+            runs.append((cfg.get("timestamp", ""), run_dir))
+        if not runs:
+            return None
+        return sorted(runs)[-1][1]
+
+    def load_overall_per_question(model_dir):
+        """Per-question rows (overall population only) of the newest
+        modal_response eval run of one model dir; None when there is none."""
+        run_dir = newest_eval_run(model_dir)
+        if run_dir is None:
+            return None
+        csv_path = run_dir / "per_question_results.csv"
+        if not csv_path.exists():
+            return None
+        df = pd.read_csv(csv_path)
+        if df.empty:
+            return None
+        df = df.assign(
+            subpopulation=df["subpopulation"] if "subpopulation" in df else "overall",
+            split=df["split"] if "split" in df else "validation",
+        )
+        return df[df["subpopulation"] == "overall"]
+
+    return (
+        CAPABILITY_ROOT,
+        MAIN_MODAL_CONFIGS,
+        METHOD_ORDER,
+        METHOD_PRETTY,
+        METRICS,
+        SPLITS,
+        TASK_LABELS,
+        TASK_ORDER,
+        base_and_method,
+        load_overall_per_question,
+        newest_eval_run,
+    )
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    ## Distance to the NZ population (TVD)
+
+    For every model (base and fine-tuned): per question, the model's
+    response distribution is averaged across system prompts, then compared
+    with the NZ population distribution via TVD (%) = 0.5 * sum |model -
+    true| over the response categories (0 = answers exactly like NZ).
+    The table below shows the mean question-level TVD per split plus a
+    "Δ vs Base" column (adapter minus its base on the held-out validation
+    split) so fine tuning can be judged by whether it lowered the TVD.
+    The LaTeX table is written to ``code/figures/ft-tvd-<model>.tex``.
+    """)
+    return
+
+
+@app.cell
+def _(
+    EVALS_ROOT,
+    METHOD_ORDER,
+    METHOD_PRETTY,
+    base_and_method,
+    json,
+    load_overall_per_question,
+    np,
+    pd,
+):
+
+    def collect_question_tvd():
+        """Per (model, split, question) TVD (%) between the model's response
+        distribution averaged across system prompts and the NZ population."""
+        rows = []
+        for model_dir in sorted(EVALS_ROOT.iterdir()):
+            if not model_dir.is_dir():
+                continue
+            df = load_overall_per_question(model_dir)
+            if (
+                df is None
+                or "question_id" not in df.columns
+                or not {
+                    "model_distribution",
+                    "true_distribution",
+                }.issubset(df.columns)
+            ):
+                continue
+            base, method = base_and_method(model_dir.name)
+
+            def parse_dist(v):
+                try:
+                    return json.loads(v) if isinstance(v, str) else v
+                except Exception:
+                    return None
+
+            for (split, qid), g in df.groupby(["split", "question_id"], dropna=False):
+                dists = [d for d in g["model_distribution"].map(parse_dist) if d]
+                true_dist = next(
+                    (d for d in g["true_distribution"].map(parse_dist) if d), None
+                )
+                if not dists or true_dist is None:
+                    continue
+                avg_dist = [sum(vals) / len(vals) for vals in zip(*dists)]
+                tvd = 0.5 * sum(abs(a - b) for a, b in zip(avg_dist, true_dist)) * 100
+                rows.append(
+                    {
+                        "model": model_dir.name,
+                        "base_model": base,
+                        "method": method,
+                        "split": split,
+                        "question_id": qid,
+                        "n_prompts": len(dists),
+                        "tvd": tvd,
+                    }
+                )
+        return pd.DataFrame(rows)
+
+    def build_tvd_tables(qtvd):
+        """dict base_model -> DataFrame with one row per model version (base
+        first), columns = mean question-level TVD per split + delta vs base.
+        Duplicate entries (several eval dirs mapping to the same method,
+        e.g. reruns) are averaged."""
+        tables = {}
+        base_vals = {}
+        if qtvd.empty:
+            return tables, base_vals
+        for base_model in sorted(qtvd["base_model"].unique()):
+            sub = qtvd[qtvd["base_model"] == base_model]
+            entries = []
+            for model in sub["model"].unique():
+                g = sub[sub["model"] == model]
+                method = g["method"].iloc[0]
+                if method == "base":
+                    key, label = 0, "Base"
+                else:
+                    stem = method.rsplit("-", 1)[0]
+                    key = (
+                        METHOD_ORDER.index(stem)
+                        if stem in METHOD_ORDER
+                        else len(METHOD_ORDER)
+                    )
+                    label = METHOD_PRETTY.get(stem, stem)
+                entries.append((key, label, g))
+            by_label = {}
+            for key, label, g in entries:
+                by_label.setdefault((key, label), []).append(g)
+            rows = []
+            for (key, label), gs in sorted(by_label.items()):
+                merged = pd.concat(gs)
+                rows.append(
+                    {
+                        "label": label,
+                        "tvd_validation": merged.loc[
+                            merged["split"] == "validation", "tvd"
+                        ].mean(),
+                        "tvd_train": merged.loc[
+                            merged["split"] == "train", "tvd"
+                        ].mean(),
+                        "tvd_all": merged["tvd"].mean(),
+                    }
+                )
+            table = pd.DataFrame(rows)
+            tables[base_model] = table
+            base_row = table[table["label"] == "Base"]
+            if not base_row.empty:
+                base_vals[base_model] = float(base_row["tvd_validation"].iloc[0])
+        return tables, base_vals
+
+    def show_tvd_tables(tables, base_vals):
+        """Console view: mean question-level TVD per split + Δ vs Base."""
+        for base_model, table in tables.items():
+            print(f"\n=== {base_model} — mean TVD (%) vs NZ population ===")
+            out = pd.DataFrame(index=table["label"])
+            out["Validation"] = table["tvd_validation"].round(1).values
+            out["Train"] = table["tvd_train"].round(1).values
+            out["All"] = table["tvd_all"].round(1).values
+            delta = table["tvd_validation"] - base_vals.get(base_model, np.nan)
+            delta = delta.where(table["label"] != "Base")
+            out["Δ vs Base"] = ["--" if pd.isna(v) else f"{v:+.1f}" for v in delta]
+            print(out.to_string())
+        print(
+            "\nTVD (%) averaged over questions, model distribution averaged "
+            "across system prompts. Δ vs Base = adapter minus base on "
+            "validation (negative means fine tuning moved the model closer "
+            "to the NZ population)."
+        )
+
+    question_tvd = collect_question_tvd()
+    tvd_tables, tvd_base_vals = build_tvd_tables(question_tvd)
+    show_tvd_tables(tvd_tables, tvd_base_vals)
+    return question_tvd, tvd_tables, tvd_base_vals
+
+
+@app.cell
+def _(FIGS_DIR, pd):
+    # Shared LaTeX table rendering, used by all sections above/below. Styler
+    # .to_latex (convert_css) turns CSS font-weight into \bfseries, but
+    # escapes cell values only, so headers with special chars (%, _, ...)
+    # need escape_header. Each file holds only the tabular, wrapped in
+    # \resizebox{\textwidth}{!}{...} so it never overflows the page; the
+    # report pulls it in with \ctable{...}{...}.
+
+    def escape_header(label):
+        """Escape LaTeX special chars in a column header."""
+
+        return (
+            label.replace("\\", "\\textbackslash{}")
+            .replace("&", "\\&")
+            .replace("%", "\\%")
+            .replace("$", "\\$")
+            .replace("#", "\\#")
+            .replace("_", "\\_")
+            .replace("{", "\\{")
+            .replace("}", "\\}")
+        )
+
+    def highlight_best(df, senses=None):
+        """Bold the best value per column: max for numeric columns by default,
+        or per column via senses={label: "max"|"min"} (e.g. for MultiIndex
+        columns keyed by metric)."""
+
+        def highlight(s):
+            if senses is None:
+                if not pd.api.types.is_numeric_dtype(s):
+                    return ["" for _ in s]  # e.g. CI columns: no highlighting
+                best = s.max()
+            else:
+                best = s.max() if senses[s.name[0]] == "max" else s.min()
+            return ["font-weight: bold;" if v == best else "" for v in s]
+
+        return df.style.apply(highlight, axis=0)
+
+    def write_latex_table(df, fmt, n_cols, out_name, senses=None):
+        """Style, format, and write a DataFrame to a resizebox-wrapped booktabs
+        tabular in FIGS_DIR. The index name is suppressed (Styler would emit an
+        extra header row), so the "Model" header is patched into the top-left
+        corner of the first header row."""
+        tex = (
+            highlight_best(df, senses=senses)
+            .format(fmt, na_rep="--")
+            .to_latex(
+                convert_css=True,
+                column_format="l" + "r" * n_cols,
+                hrules=True,
+                multicol_align="l",
+            )
+        )
+        tex = tex.replace(" & \\multicolumn", "Model & \\multicolumn", 1)
+        # Scale the table to the text width so it never overflows the page.
+        tex = "\\resizebox{\\textwidth}{!}{%\n" + tex + "}"
+        out_path = FIGS_DIR / out_name
+        out_path.parent.mkdir(parents=True, exist_ok=True)
+        out_path.write_text(tex)
+        return out_path
+
+    return escape_header, write_latex_table
+
+
+@app.cell
+def _(np, pd, tvd_base_vals, tvd_tables, write_latex_table):
+    # Rendering the TVD tables to LaTeX (booktabs, lowest TVD per column
+    # bolded; deltas formatted with an explicit sign).
+
+    def render_tvd_tables_to_tex():
+        # 4 columns only: TVD per split, plus a single delta column.
+        columns = pd.MultiIndex.from_tuples(
+            [
+                ("TVD (%)", "Validation"),
+                ("TVD (%)", "Train"),
+                ("TVD (%)", "All"),
+                ("Δ vs Base", "vs Base (val)"),
+            ]
+        )
+        senses = {"TVD (%)": "min", "Δ vs Base": "min"}
+        written = []
+        for base_model, table in tvd_tables.items():
+            out = pd.DataFrame(index=table["label"], columns=columns)
+            out.index.name = None
+            fmt = {}
+            for col, vals in [
+                ("Validation", table["tvd_validation"]),
+                ("Train", table["tvd_train"]),
+                ("All", table["tvd_all"]),
+            ]:
+                out[("TVD (%)", col)] = vals.values
+                fmt[("TVD (%)", col)] = "{:.1f}"
+            delta = table["tvd_validation"] - tvd_base_vals.get(base_model, np.nan)
+            out[("Δ vs Base", "vs Base (val)")] = delta.where(
+                table["label"] != "Base"
+            ).values
+            fmt[("Δ vs Base", "vs Base (val)")] = "{:+.1f}"
+            written.append(
+                write_latex_table(
+                    out, fmt, out.shape[1], f"ft-tvd-{base_model}.tex", senses=senses
+                )
+            )
+        return written
+
+    tvd_tex_files = render_tvd_tables_to_tex()
+    tvd_tex_files
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    ## Find tune results table
+
+    For each base model: one row per fine-tuned version (base model at the
+    top), columns = accuracy / cross-entropy / KL divergence on the train,
+    validation and overall splits, plus a "vs Base" column block with the
+    adapter-minus-base deltas on the held-out validation split. All metrics
+    come from the modal eval config
+    (``modal_response`` so accuracy
+    always means exact match against the modal response and CE/KL are
+    against the empirical response distribution. Every model (base
+    and fine-tuned) is
+    scored on the overall population. The LaTeX
+    tables (pandas ``to_latex``, booktabs) are written to
+    ``code/figures/`` as ``ft-results-<model>.tex`` and included in the report
+    with ``\ctable{...}``.
+    """)
+    return
+
+
+@app.cell
+def _(
+    EVALS_ROOT,
+    METHOD_ORDER,
+    METHOD_PRETTY,
+    METRICS,
+    SPLITS,
+    base_and_method,
+    load_overall_per_question,
+    np,
+    pd,
+):
+    # Building the main table data.
 
     def collect_modal_metrics():
         """Per (model, split) mean metrics, averaged over the system prompts,
@@ -196,28 +416,9 @@ def _(EVALS_ROOT, json, np, pd):
         for model_dir in sorted(EVALS_ROOT.iterdir()):
             if not model_dir.is_dir():
                 continue
-            runs = []
-            for run_dir in model_dir.iterdir():
-                cfg_path = run_dir / "config.json"
-                if not cfg_path.exists():
-                    continue
-                cfg = json.loads(cfg_path.read_text())
-                if cfg.get("dataset") not in MAIN_MODAL_CONFIGS or cfg.get("reasoning"):
-                    continue
-                runs.append((cfg.get("timestamp", ""), run_dir))
-            if not runs:
+            df = load_overall_per_question(model_dir)
+            if df is None or not {"expected_text", "model_answer"}.issubset(df.columns):
                 continue
-            _, run_dir = sorted(runs)[-1]
-            df = pd.read_csv(run_dir / "per_question_results.csv")
-            if df.empty or not {"expected_text", "model_answer"}.issubset(df.columns):
-                continue
-            df = df.assign(
-                subpopulation=df["subpopulation"]
-                if "subpopulation" in df
-                else "overall",
-                split=df["split"] if "split" in df else "validation",
-            )
-            df = df[df["subpopulation"] == "overall"]
             base, method = base_and_method(model_dir.name)
             for (split, sp_id), h in df.groupby(
                 ["split", "system_prompt_id"], dropna=False
@@ -386,72 +587,7 @@ def _(EVALS_ROOT, json, np, pd):
 
     tables, base_refs = build_main_tables()
     show_main_tables()
-    return METHOD_ORDER, METHOD_PRETTY, base_and_method, base_refs, tables
-
-
-@app.cell
-def _(FIGS_DIR, pd):
-    # Shared LaTeX table rendering, used by both the main results table and
-    # the capability table below. Styler.to_latex (convert_css) turns CSS
-    # font-weight into \bfseries, but escapes cell values only, so headers
-    # with special chars (%, _, ...) need escape_header. Each file holds only
-    # the tabular, wrapped in \resizebox{\textwidth}{!}{...} so it never
-    # overflows the page; the report pulls it in with \ctable{...}{...}.
-
-    def escape_header(label):
-        """Escape LaTeX special chars in a column header."""
-
-        return (
-            label.replace("\\", "\\textbackslash{}")
-            .replace("&", "\\&")
-            .replace("%", "\\%")
-            .replace("$", "\\$")
-            .replace("#", "\\#")
-            .replace("_", "\\_")
-            .replace("{", "\\{")
-            .replace("}", "\\}")
-        )
-
-    def highlight_best(df, senses=None):
-        """Bold the best value per column: max for numeric columns by default,
-        or per column via senses={label: "max"|"min"} (e.g. for MultiIndex
-        columns keyed by metric)."""
-
-        def highlight(s):
-            if senses is None:
-                if not pd.api.types.is_numeric_dtype(s):
-                    return ["" for _ in s]  # e.g. CI columns: no highlighting
-                best = s.max()
-            else:
-                best = s.max() if senses[s.name[0]] == "max" else s.min()
-            return ["font-weight: bold;" if v == best else "" for v in s]
-
-        return df.style.apply(highlight, axis=0)
-
-    def write_latex_table(df, fmt, n_cols, out_name, senses=None):
-        """Style, format, and write a DataFrame to a resizebox-wrapped booktabs
-        tabular in FIGS_DIR. The index name is suppressed (Styler would emit an
-        extra header row), so the "Model" header is patched into the top-left
-        corner of the first header row."""
-        tex = (
-            highlight_best(df, senses=senses)
-            .format(fmt, na_rep="--")
-            .to_latex(
-                convert_css=True,
-                column_format="l" + "r" * n_cols,
-                hrules=True,
-                multicol_align="l",
-            )
-        )
-        tex = tex.replace(" & \\multicolumn", "Model & \\multicolumn", 1)
-        # Scale the table to the text width so it never overflows the page.
-        tex = "\\resizebox{\\textwidth}{!}{%\n" + tex + "}"
-        out_path = FIGS_DIR / out_name
-        out_path.parent.mkdir(parents=True, exist_ok=True)
-        out_path.write_text(tex)
-        return out_path
-
-    return escape_header, write_latex_table
+    return base_refs, tables
 
 
 @app.cell
@@ -526,31 +662,19 @@ def _(mo):
 
 
 @app.cell
-def _(EVALS_ROOT, METHOD_ORDER, METHOD_PRETTY, base_and_method, json, pd):
+def _(
+    CAPABILITY_ROOT,
+    METHOD_ORDER,
+    METHOD_PRETTY,
+    TASK_LABELS,
+    TASK_ORDER,
+    base_and_method,
+    json,
+    pd,
+):
     # Building the capability table data from summary.json of the newest run
     # per model (same "pick newest run by config timestamp" rule as the main
     # table).
-
-    CAPABILITY_ROOT = EVALS_ROOT.parent / "capability"
-    TASK_LABELS = {
-        "mmlu_pro": "MMLU-Pro",
-        "gpqa_diamond": "GPQA Diamond",
-        "swe_bench": "SWE-bench",
-    }
-    TASK_ORDER = ["mmlu_pro", "gpqa_diamond", "swe_bench"]
-
-    def newest_run(model_dir):
-        """Newest completed run dir for one model (by config timestamp)."""
-        runs = []
-        for run_dir in model_dir.iterdir():
-            cfg_path = run_dir / "config.json"
-            if not cfg_path.exists():
-                continue
-            cfg = json.loads(cfg_path.read_text())
-            runs.append((cfg.get("timestamp", ""), run_dir))
-        if not runs:
-            return None
-        return sorted(runs)[-1][1]
 
     def collect_capability_scores():
         """Per (model, task) accuracy/stderr from the newest run of each model."""
@@ -589,11 +713,25 @@ def _(EVALS_ROOT, METHOD_ORDER, METHOD_PRETTY, base_and_method, json, pd):
                 )
         return pd.DataFrame(rows)
 
-    def build_capability_tables():
+    def newest_run(model_dir):
+        runs = []
+
+        def _cfg(run_dir):
+            cfg_path = run_dir / "config.json"
+
+            return json.loads(cfg_path.read_text()) if cfg_path.exists() else {}
+
+        for run_dir in model_dir.iterdir():
+            cfg = _cfg(run_dir)
+            runs.append((cfg.get("timestamp", ""), run_dir))
+        if not runs:
+            return None
+        return sorted(runs)[-1][1]
+
+    def build_capability_tables(scores):
         """dict base_model -> DataFrame, one row per fine-tuned version (base
         first), columns = accuracy/stderr per task. Adapters are labelled and
         ordered exactly like in the main table."""
-        scores = collect_capability_scores()
         tables = {}
         if scores.empty:
             return tables
@@ -636,7 +774,8 @@ def _(EVALS_ROOT, METHOD_ORDER, METHOD_PRETTY, base_and_method, json, pd):
             tables[base_model] = pd.DataFrame(table_rows)
         return tables
 
-    capability_tables = build_capability_tables()
+    capability_scores = collect_capability_scores()
+    capability_tables = build_capability_tables(capability_scores)
     for base_model, table in capability_tables.items():
         print(f"\n=== {base_model} — capability evals (accuracy in %, with 95% CI) ===")
         disp = pd.DataFrame(index=table["label"])
@@ -651,7 +790,7 @@ def _(EVALS_ROOT, METHOD_ORDER, METHOD_PRETTY, base_and_method, json, pd):
                     cells.append(f"{a * 100:.1f} [{lo:.1f}, {hi:.1f}]")
             disp[TASK_LABELS[task]] = cells
         print(disp.to_string())
-    return CAPABILITY_ROOT, TASK_LABELS, TASK_ORDER, capability_tables
+    return capability_tables
 
 
 @app.cell
@@ -767,6 +906,208 @@ def _(TASK_LABELS, TASK_ORDER, capability_tables, escape_header, pd, write_latex
 
     capability_table_files = render_capability_tables_to_tex()
     capability_table_files
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    ## Distribution comparison figures
+
+    For each model's newest ``modal_response`` run (overall population
+    only) we pick the 3 questions whose TVD of the prompt-averaged model
+    distribution vs the NZ population sits at the 10th, 50th and 90th
+    percentile across questions. Each figure has two bars per answer
+    category: the NZ baseline and the average across system prompts,
+    annotated with the TVD to the baseline. Figures are written to
+    ``code/fine-tuning/output/figures/distributions/<model>/<column>_<p10|p50|p90>.png``.
+    """)
+    return
+
+
+@app.cell
+def _(EVALS_ROOT, load_overall_per_question, math, np, textwrap):
+    # Distribution summary figures — read the newest run's saved
+    # per_question_results.csv per model (nothing recomputed during eval).
+    import ast
+
+    import matplotlib.pyplot as plt
+
+    DIST_FIGS_ROOT = EVALS_ROOT.parent / "figures" / "distributions"
+    PERCENTILE_PICKS = [("p10", 10), ("p50", 50), ("p90", 90)]
+    BASELINE_COLOR = "#DD8452"
+    AVG_COLOR = "#55A868"
+
+    def _parse_list(v):
+        """CSV cells hold list-like values as strings; parse them into
+        real lists regardless of quoting style."""
+        if isinstance(v, str):
+            try:
+                v = ast.literal_eval(v)
+            except Exception:
+                return None
+        return list(v) if isinstance(v, (list, tuple)) else None
+
+    def _question_rows(df):
+        """All overall-population rows. The split column is assigned per
+        question-prompt pair, so filtering by it would drop prompts; the
+        figures are descriptive, so train+validation rows are combined."""
+        return df
+
+    def _question_stats(group):
+        """(title_row, cats, true_dist, {prompt_id: dist}, avg_dist, tvd_pct)
+        for one question column; None when the stored data is unusable."""
+        row = group.iloc[0]
+        cats = _parse_list(row.get("categories"))
+        true_dist = _parse_list(row.get("true_distribution"))
+        if not cats or not true_dist or len(cats) != len(true_dist):
+            return None
+        per_prompt = {}
+        for _, r in group.iterrows():
+            d = _parse_list(r.get("model_distribution"))
+            if d and len(d) == len(cats):
+                per_prompt[r.get("system_prompt_id", "unknown")] = d
+        if not per_prompt:
+            return None
+        avg_dist = [sum(vals) / len(per_prompt) for vals in zip(*per_prompt.values())]
+        tvd = 0.5 * sum(abs(a - b) for a, b in zip(avg_dist, true_dist)) * 100
+        return row, cats, true_dist, per_prompt, avg_dist, tvd
+
+    def _plot_question(model_name, col, stats, pct_label, figs_dir):
+        """Two bars per category: the NZ baseline and the plain average
+        across system prompts. Returns the figure path."""
+        row, cats, true_dist, per_prompt, avg_dist, tvd = stats
+
+        title_parts = []
+        qtext = row.get("question", "")
+        if qtext:
+            title_parts.append(textwrap.fill(str(qtext), width=70))
+        sq = row.get("sub_question", "")
+        if sq and not (isinstance(sq, float) and math.isnan(sq)):
+            title_parts.append(str(sq))
+
+        x = np.arange(len(cats))
+        width = 0.35
+
+        fig, ax = plt.subplots(figsize=(max(9, len(cats) * 0.9), 6))
+
+        bars = ax.bar(
+            x - width / 2,
+            true_dist,
+            width * 0.92,
+            color=BASELINE_COLOR,
+            alpha=0.85,
+        )
+        for b in bars:
+            h = b.get_height()
+            if h > 0.01:
+                ax.annotate(
+                    f"{h:.0%}",
+                    xy=(b.get_x() + b.get_width() / 2, h),
+                    xytext=(0, 3),
+                    textcoords="offset points",
+                    ha="center",
+                    va="bottom",
+                    fontsize=7,
+                    rotation=90,
+                )
+
+        bars = ax.bar(
+            x + width / 2,
+            avg_dist,
+            width * 0.92,
+            color=AVG_COLOR,
+            alpha=0.85,
+        )
+        for b in bars:
+            h = b.get_height()
+            if h > 0.01:
+                ax.annotate(
+                    f"{h:.0%}",
+                    xy=(b.get_x() + b.get_width() / 2, h),
+                    xytext=(0, 3),
+                    textcoords="offset points",
+                    ha="center",
+                    va="bottom",
+                    fontsize=7,
+                    rotation=90,
+                )
+
+        ax.set_xticks(x)
+        ax.set_xticklabels(cats, fontsize=8, rotation=20, ha="right")
+        ax.set_ylabel("Probability")
+        if title_parts:
+            ax.set_title("\n".join(title_parts), fontsize=10, linespacing=1.3, pad=12)
+        ax.set_ylim(0, max(max(true_dist), max(avg_dist)) * 1.25)
+        ax.legend(
+            ["Baseline\n(NZ pop.)", "Avg across\nprompts"],
+            fontsize=7,
+            loc="upper right",
+        )
+        ax.text(
+            0.02,
+            0.98,
+            f"TVD={tvd:.1f}%",
+            transform=ax.transAxes,
+            ha="left",
+            va="top",
+            fontsize=9,
+            bbox=dict(boxstyle="round,pad=0.3", facecolor="wheat", alpha=0.7),
+        )
+
+        footer = f"{model_name} | {col} | {pct_label}"
+        fig.text(
+            0.5,
+            0.01,
+            footer,
+            ha="center",
+            va="bottom",
+            fontsize=7,
+            color="gray",
+            style="italic",
+        )
+        plt.tight_layout(rect=[0, 0.04, 1, 1])
+
+        safe_name = f"{col}_{pct_label}".replace(" ", "_").replace("/", "_")[:80]
+        figs_dir.mkdir(parents=True, exist_ok=True)
+        figpath = figs_dir / f"{safe_name}.png"
+        fig.savefig(figpath, dpi=150, bbox_inches="tight")
+        plt.close(fig)
+        print(f"[plots] wrote {figpath.name}")
+        return figpath
+
+    def generate_distribution_figures():
+        """For every model: 3 figures at the p10/p50/p90 percentiles of the
+        question-level average-TVD distribution."""
+        out_files = []
+        for model_dir in sorted(EVALS_ROOT.iterdir()):
+            if not model_dir.is_dir():
+                continue
+            df = load_overall_per_question(model_dir)
+            if df is None or "categories" not in df.columns:
+                continue
+            entries = []
+            for col, g in _question_rows(df).groupby("column_name"):
+                stats = _question_stats(g)
+                if stats:
+                    entries.append((col, stats))
+            if not entries:
+                continue
+            tvds = np.array([stats[5] for _, stats in entries])
+            figs_dir = DIST_FIGS_ROOT / model_dir.name
+            used = set()
+            for pct_label, pct in PERCENTILE_PICKS:
+                order = np.argsort(np.abs(tvds - np.percentile(tvds, pct)))
+                idx = next(int(i) for i in order if int(i) not in used)
+                used.add(idx)
+                col, stats = entries[idx]
+                out_files.append(
+                    _plot_question(model_dir.name, col, stats, pct_label, figs_dir)
+                )
+        return out_files
+
+    distribution_fig_files = generate_distribution_figures()
+    distribution_fig_files
     return
 
 

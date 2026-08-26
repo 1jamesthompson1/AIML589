@@ -26,6 +26,18 @@ repos:
         language: system
         types: [python]
 
+      - id: sync-hf-artifacts
+        name: Sync artifacts to HF bucket (+ optional borg backup)
+        description: Upload artifacts/ to the HF storage bucket, then borg
+          backup when RUN_BORG_BACKUP=true. Best-effort (warnings never block
+          the commit). Configure via .env; see .env.example.
+        entry: make artifacts-precommit
+        language: system
+        pass_filenames: false
+        always_run: true
+        verbose: true
+        timeout: 600
+
   - repo: https://github.com/compilerla/conventional-pre-commit
     rev: v4.0.0
     hooks:

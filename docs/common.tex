@@ -4,12 +4,14 @@
 \usepackage{hyperref}
 \usepackage{graphicx}
 \usepackage{booktabs}
+\usepackage{multirow}
 \usepackage{csquotes}
 \usepackage{verbatim}
 \usepackage{enumitem}
 \usepackage{microtype}
 \usepackage{tikz}
-\usetikzlibrary{arrows.meta, positioning, shapes.geometric, shadows.blur, calc}
+\usetikzlibrary{arrows.meta, positioning, shapes.geometric, shadows.blur, calc, fit, backgrounds}
+\usepackage{fontawesome5}
 \usepackage{pgfgantt}
 \usepackage{pgfplots}
 \usepackage{xstring}
@@ -98,3 +100,103 @@
    \stripext{#1}{\ctablabel}%
    Table~\ref{tab:\ctablabel}%
 }
+
+% --- Research question (RQ) system ---
+% Define the research questions once (e.g. in the introduction) and then
+% cross-reference any of them throughout the document with a clickable link.
+% In an electronic PDF the reference shows a tooltip with the full question
+% text when hovered; in print only the "RQn" link label is seen. The tooltip
+% is a plain PDF Widget annotation (no extra packages required) - it works in
+% desktop readers (Okular, Evince, Acrobat); some viewers ignore it.
+%
+% Usage (the label string needs no "rq:" prefix - it is added automatically):
+%   \newrq{label}{Question text ...}  % define & print an RQ (auto-numbered)
+%   \rqref{label}                     % "RQn" clickable link (hover for full text)
+%   \rqtext{label}                    % the full question text inline in prose
+%
+% Example:
+%   \newrq{align}{Can we ...?}
+%   ... see \rqref{align} in Chapter 3.
+\newcounter{rqcount}
+\newcommand{\newrq}[2]{%
+   \stepcounter{rqcount}%
+   \expandafter\xdef\csname rqnum@#1\endcsname{RQ\number\csname c@rqcount\endcsname}%
+   \expandafter\gdef\csname rqtext@#1\endcsname{#2}%
+   \hypertarget{rq:#1}{}%
+   \textbf{\csname rqnum@#1\endcsname.}\ #2%
+}
+% \pdfhover{visible text}{hover text} - a hover tooltip annotation overlaying
+% the visible text (PDF Widget button with zero border). Used by the RQ and
+% glossary reference macros below. The hover text is fully expanded into
+% \tttmp first so \pdfescapestring sees the literal string (safe for
+% parentheses/quotes). The dict is fully expanded at call time (hence
+% \expanded), so several tooltips on one page each keep their own text.
+\newcommand{\pdfhover}[2]{%
+   \edef\tttmp{#2}%
+   \leavevmode
+   \setbox0=\hbox{#1}%
+   \expanded{\noexpand\pdfannot width \the\wd0 height \the\ht0 depth \the\dp0 %
+      {/Subtype /Widget /FT /Btn /Ff 65536 /F 768 /H /N /BS << /W 0 >>
+       /TU (\pdfescapestring{\tttmp}) /Contents (\pdfescapestring{\tttmp})}}%
+   #1%
+}
+% \rqref and \termref use \texorpdfstring so bookmarks/PDF outlines get plain
+% text, and \protect so the links survive writes (e.g. \section headings and
+% \caption arguments going into the TOC/LOF): the write keeps the tokens and
+% the link is typeset when the list is rendered.
+\newcommand{\rqref}[1]{%
+   \texorpdfstring{\protect\hyperlink{rq:#1}{\protect\pdfhover{\csname rqnum@#1\endcsname}{\csname rqtext@#1\endcsname}}}{\csname rqnum@#1\endcsname}%
+}
+\newcommand{\rqtext}[1]{\csname rqtext@#1\endcsname}
+
+% --- Glossary of terms system ---
+% Define terms once (e.g. in a "Glossary of terms" section in the
+% introduction) and then reference them throughout the document with a
+% clickable link. In an electronic PDF the reference shows the definition as
+% a tooltip when hovered (same mechanism as the RQ references); in print only
+% the linked term text is seen.
+%
+% Usage (labels need no prefix - internal namespacing is automatic):
+%   \newterm{label}{Term text}{Definition text}  % register a term
+%   \termref{label}              % clickable term link (hover tooltip)
+%   \termtext{label}             % the definition text inline in prose
+%   \printglossary               % prints the entries only: wrap it in your
+%                                % own \section / \chapter heading, e.g. an
+%                                % appendix chapter.
+%
+% Example:
+%   \newterm{llm}{Large language model}{A neural network trained on ...}
+%   ... see \termref{llm} ...
+%
+% Terms must be registered (\newterm) before their first reference, the same
+% restriction as for research questions. In the report the terms live in a
+% single file (appendices/glossary.tex) which is \input twice: once in the
+% preamble (registers the terms so \termref works anywhere) and once as the
+% appendix (prints them; set \glossaryprinttrue first). \newterm is
+% idempotent, so the second \input does not register the terms twice.
+\newif\ifglossaryprint
+\newcommand{\glistall}{}
+\newcommand{\newterm}[3]{%
+   \ifcsname gldef-#1\endcsname
+   \else
+      \expandafter\gdef\csname gltxt-#1\endcsname{#2}%
+      \expandafter\gdef\csname gldef-#1\endcsname{#3}%
+      \xdef\glistall{\ifx\glistall\empty\else\glistall,\fi#1}%
+   \fi
+}
+\newcommand{\termref}[1]{%
+   \texorpdfstring{\protect\hyperlink{gl:#1}{\protect\pdfhover{\csname gltxt-#1\endcsname}{\csname gldef-#1\endcsname}}}{\csname gltxt-#1\endcsname}%
+}
+\newcommand{\termtext}[1]{\csname gldef-#1\endcsname}
+\makeatletter
+\newcommand{\printglossary}{%
+   \expandafter\gl@printlist\expandafter{\glistall}%
+}
+\newcommand{\gl@printlist}[1]{%
+   \@for\gl@lab:=#1\do{%
+      \par\noindent
+      \hypertarget{gl:\gl@lab}{}\textbf{\csname gltxt-\gl@lab\endcsname:}\ %
+      \csname gldef-\gl@lab\endcsname\par\vspace{6pt}%
+   }%
+}
+\makeatother
