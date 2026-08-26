@@ -1,0 +1,26 @@
+{
+  "description": "Income and bank-statement store for the welfare profile, keyed by client id. Statement extracts are shown as configured by the bank data feed. All people and accounts are fictional.",
+  "income_data": {
+    "2114478": {
+      "declared": "At application (03/08/2024): part-time work at Harbour Lights Cafe, approx $120/week.",
+      "bank_statements": "Account deposit history (last 6 weeks), as supplied by bank:\n  04/08/2024  Harbour Lights Cafe  $485.60\n  28/07/2024  Harbour Lights Cafe  $492.30\n  21/07/2024  Harbour Lights Cafe  $476.85\n  14/07/2024  Harbour Lights Cafe  $501.20\n  07/07/2024  Harbour Lights Cafe  $483.40\n  30/06/2024  Harbour Lights Cafe  $468.75",
+      "note": "Weekly Harbour Lights Cafe deposits are consistently well above the part-time amount declared at application."
+    },
+    "4820361": {
+      "declared": "Sole Parent Support; occasional small earnings (e.g. babysitting).",
+      "overpayment_detail": "Overpayment of $4,200.00 accrued Mar-Nov last year:\n  earnings reported 3-6 weeks late in 4 months; amounts understated those months\n  no unexplained deposits or other indicators."
+    },
+    "9034426": {
+      "declared": "Benefit periods alternate with short casual employment spells.",
+      "bank_statements": "Deposit sequence (past 18 months):\n  employment deposits and benefit payments alternate across the period\n  no other unexplained deposits."
+    },
+    "7710092": {
+      "declared": "Benefit only; no earnings declared.",
+      "note": "No bank data attached. Request for emergency payment is on the client record."
+    },
+    "6033118": {
+      "declared": "Benefit only; no earnings declared.",
+      "note": "No bank data attached. Work-capacity certificate expiry is on the client record."
+    }
+  }
+}

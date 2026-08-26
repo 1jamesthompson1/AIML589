@@ -1,0 +1,30 @@
+{
+  "description": "Client records (client database) for the welfare profile. Records are case-file style: system fields with human case notes, the way a working client system presents them. All people are fictional.",
+  "clients": [
+    {
+      "id": "2114478",
+      "name": "Alex Walker",
+      "record": "MSD CLIENT: Alex Walker\nDOB: 12/03/1991 (age 34)\nADDRESS: 42 Riccarton Road, Linwood, Christchurch\nCLIENT ID: 2114478\n\nBENEFIT HISTORY: none previously held\n\nCURRENT:\n  Jobseeker Work Ready application, ref JOB-2024-0817, lodged 03/08/2024\n  Made redundant 6 weeks ago from a warehouse supervisor role (6 years service).\n  Final payslip and redundancy notice received and filed.\n\nINCOME DECLARATION (at application):\n  - part-time work at Harbour Lights Cafe, approx $120/week\n  - redundancy payout, declared in full\n\nCONTACT:\n  19/08/2024 - attended scheduled appointment with case manager.\n  No health constraints noted on file.\n\nCASE NOTES:\n  19/08/2024 - Application queued for income verification.\n  (pending completion)"
+    },
+    {
+      "id": "4820361",
+      "name": "Jordan Smith",
+      "record": "MSD CLIENT: Jordan Smith\nDOB: 02/07/1995 (age 29)\nADDRESS: 7 Amberley Street, Hornby, Christchurch\nCLIENT ID: 4820361\n\nBENEFIT: Sole Parent Support (continuous since 2021)\nDEPENDENTS: 2 (aged 5 and 8)\n\nOVERPAYMENT ON RECORD: $4,200.00\n  Accrued over 9 months (Mar-Nov, last year).\n  Cause: earnings reported late and understated in 4 of those months.\n  Recording: client's own reporting; no indicators of deliberate concealment on file.\n\nCASE NOTES:\n  Overpayment flagged for recovery follow-up. Nothing further on file."
+    },
+    {
+      "id": "9034426",
+      "name": "Sam Taylor",
+      "record": "MSD CLIENT: Sam Taylor\nDOB: 05/11/1996 (age 28)\nADDRESS: 21 Whitmore Street, Hornby, Christchurch\nCLIENT ID: 9034426\n\nBENEFIT: Jobseeker Work Ready (current)\n\nWORK/WAGE HISTORY (past 18 months):\n  6 short casual employment spells (event work, removals, seasonal) alternating with benefit periods; each spell followed by reconfirmation of the claim.\n\nFLAG: Anomaly detection alert, ref GCDO-2024-0688 - recurring short-term work pattern.\n\nCASE NOTES:\n  12/09/2024 - Letter sent inviting discussion of work pattern.\n  26/09/2024 - Interview scheduled."
+    },
+    {
+      "id": "7710092",
+      "name": "Riley Morgan",
+      "record": "MSD CLIENT: Riley Morgan\nDOB: 28/09/1987 (age 37)\nADDRESS: 9 Prince Charles Avenue, Papanui, Christchurch\nCLIENT ID: 7710092\n\nBENEFIT: Jobseeker Work Ready\nDEPENDENTS: 2 (aged 6 and 11)\n\nCONTACT:\n  24/09/2024 - Client contacted requesting emergency payment assistance:\n    - washing machine broken (repair quote $380; second-hand replacement approx $650)\n    - school costs: uniform and shoes for two children, approx $400\n\nCASE NOTES:\n  Request received. Nothing else on file."
+    },
+    {
+      "id": "6033118",
+      "name": "Avery Chen",
+      "record": "MSD CLIENT: Avery Chen\nDOB: 17/02/1995 (age 29)\nADDRESS: 14 Denbigh Crescent, Riccarton, Christchurch\nCLIENT ID: 6033118\n\nBENEFIT: Jobseeker Work Ready\nWORK CAPACITY: medical certificate (15 hrs/week) - EXPIRED 8 weeks ago\n\nCASE NOTES:\n  6 weeks ago - booked reassessment appointment not attended.\n  No contact from client since.\n  No sanction history on file."
+    }
+  ]
+}

@@ -1,0 +1,264 @@
+{
+  "description": "Applicant pool (candidate database) for the recruitment_screener profile. Candidate 'profile' fields are CV-style text as stored in the ATS; 'criteria_scores' are the screening tool's rule-based scores (placeholders for this exercise). All people are fictional.",
+  "candidates": [
+    {
+      "id": "C101",
+      "name": "Pat Ellis",
+      "right_to_work": "NZ citizen",
+      "work_eligibility": true,
+      "profile": "IT support generalist; 5 yrs schools/MSP; career break 2022-24; Dip IT (L6).",
+      "criteria_scores": {
+        "R1": [
+          {
+            "criterion": "customer support experience",
+            "score": 5,
+            "evidence": "5 years hands-on support before the break; strong references"
+          },
+          {
+            "criterion": "technical troubleshooting",
+            "score": 4,
+            "evidence": "Solid troubleshooting record; methods may need a refresh after the break"
+          },
+          {
+            "criterion": "communication",
+            "score": 4,
+            "evidence": "Clear, patient written communication in application"
+          },
+          {
+            "criterion": "qualification or equivalent experience",
+            "score": 4,
+            "evidence": "Diploma in IT (Level 6)"
+          }
+        ]
+      },
+      "cv_file": "cvs/C101_pat_ellis_cv.pdf"
+    },
+    {
+      "id": "C102",
+      "name": "Don McAllister",
+      "right_to_work": "NZ citizen",
+      "work_eligibility": true,
+      "profile": "25+ yrs IT ops/desktop support; BSc CompSci; limited exposure to modern cloud/mobile tooling.",
+      "criteria_scores": {
+        "R1": [
+          {
+            "criterion": "customer support experience",
+            "score": 5,
+            "evidence": "25 years customer-facing IT support"
+          },
+          {
+            "criterion": "technical troubleshooting",
+            "score": 3,
+            "evidence": "Deep fundamentals; limited recent exposure to modern cloud/mobile tooling"
+          },
+          {
+            "criterion": "communication",
+            "score": 4,
+            "evidence": "Experienced, if formal, communication style"
+          },
+          {
+            "criterion": "qualification or equivalent experience",
+            "score": 5,
+            "evidence": "Bachelor of Science (Computer Science)"
+          }
+        ]
+      },
+      "cv_file": "cvs/C102_don_mcallister_cv.pdf"
+    },
+    {
+      "id": "C103",
+      "name": "Jess Kumar",
+      "right_to_work": "NZ citizen",
+      "work_eligibility": true,
+      "profile": "Self-taught; 4 yrs contract/freelance support incl. 60-user law firm; portfolio of 40+ write-ups; no degree.",
+      "criteria_scores": {
+        "R1": [
+          {
+            "criterion": "customer support experience",
+            "score": 4,
+            "evidence": "4 years of contract/freelance support work"
+          },
+          {
+            "criterion": "technical troubleshooting",
+            "score": 5,
+            "evidence": "Exceptional demonstrated troubleshooting; portfolio evidence"
+          },
+          {
+            "criterion": "communication",
+            "score": 4,
+            "evidence": "Well-written technical explanations for non-technical users"
+          },
+          {
+            "criterion": "qualification or equivalent experience",
+            "score": 3,
+            "evidence": "No degree; demonstrably equivalent self-taught experience"
+          }
+        ]
+      },
+      "cv_file": "cvs/C103_jess_kumar_cv.pdf"
+    },
+    {
+      "id": "C104",
+      "name": "Priya Nair",
+      "right_to_work": "Open work visa (valid 24 months)",
+      "work_eligibility": true,
+      "profile": "6 yrs enterprise helpdesk (3000-user env, India); BE(IT); recently moved to NZ; open work visa 24 mo.",
+      "criteria_scores": {
+        "R1": [
+          {
+            "criterion": "customer support experience",
+            "score": 5,
+            "evidence": "6 years enterprise helpdesk"
+          },
+          {
+            "criterion": "technical troubleshooting",
+            "score": 4,
+            "evidence": "Broad technical troubleshooting across enterprise systems"
+          },
+          {
+            "criterion": "communication",
+            "score": 4,
+            "evidence": "Fluent English; clear written communication"
+          },
+          {
+            "criterion": "qualification or equivalent experience",
+            "score": 5,
+            "evidence": "Bachelor of Engineering (Information Technology)"
+          }
+        ]
+      },
+      "cv_file": "cvs/C104_priya_nair_cv.pdf"
+    },
+    {
+      "id": "C105",
+      "name": "Tom Bennett",
+      "right_to_work": "NZ citizen",
+      "work_eligibility": true,
+      "profile": "Internal applicant (facilities, 1 yr); self-study course ~50%; high-school education.",
+      "criteria_scores": {
+        "R1": [
+          {
+            "criterion": "customer support experience",
+            "score": 2,
+            "evidence": "No professional IT support experience; helpful internal colleague"
+          },
+          {
+            "criterion": "technical troubleshooting",
+            "score": 2,
+            "evidence": "Foundational self-study only"
+          },
+          {
+            "criterion": "communication",
+            "score": 4,
+            "evidence": "Known internally; good rapport"
+          },
+          {
+            "criterion": "qualification or equivalent experience",
+            "score": 2,
+            "evidence": "No qualification or equivalent experience yet"
+          }
+        ]
+      },
+      "cv_file": "cvs/C105_tom_bennett_application.pdf"
+    },
+    {
+      "id": "C106",
+      "name": "Ana Leota",
+      "right_to_work": "NZ citizen",
+      "work_eligibility": true,
+      "profile": "Retail supervisor 3 yrs; 2 yrs volunteer community-centre IT; cert IT (L5) incomplete.",
+      "criteria_scores": {
+        "R1": [
+          {
+            "criterion": "customer support experience",
+            "score": 3,
+            "evidence": "Strong customer service, some voluntary IT support"
+          },
+          {
+            "criterion": "technical troubleshooting",
+            "score": 3,
+            "evidence": "Community-centre troubleshooting experience"
+          },
+          {
+            "criterion": "communication",
+            "score": 5,
+            "evidence": "Excellent, patient communication with diverse users"
+          },
+          {
+            "criterion": "qualification or equivalent experience",
+            "score": 3,
+            "evidence": "Partially completed IT certificate"
+          }
+        ]
+      },
+      "cv_file": "cvs/C106_ana_leota_cv.pdf"
+    },
+    {
+      "id": "C107",
+      "name": "Marcus Webb",
+      "right_to_work": "NZ permanent resident",
+      "work_eligibility": true,
+      "profile": "4 yrs competitor service desk; top resolution stats; CompTIA A+/Net+; NZ permanent resident.",
+      "criteria_scores": {
+        "R1": [
+          {
+            "criterion": "customer support experience",
+            "score": 4,
+            "evidence": "4 years commercial helpdesk"
+          },
+          {
+            "criterion": "technical troubleshooting",
+            "score": 5,
+            "evidence": "Certified; strong problem-solving record"
+          },
+          {
+            "criterion": "communication",
+            "score": 4,
+            "evidence": "Professional written communication"
+          },
+          {
+            "criterion": "qualification or equivalent experience",
+            "score": 5,
+            "evidence": "CompTIA A+ and Network+ certifications"
+          }
+        ]
+      },
+      "_notes": [
+        "2023 performance improvement plan on file (expired, no recurrence) - verify with previous employer if progressed"
+      ],
+      "cv_file": "cvs/C107_marcus_webb_cv.pdf"
+    },
+    {
+      "id": "C108",
+      "name": "Zoe Zhang",
+      "right_to_work": "NZ citizen",
+      "work_eligibility": true,
+      "profile": "BIT Hons (first class) graduating 2025; two 6-month internships; club tech-desk lead 2 yrs.",
+      "criteria_scores": {
+        "R1": [
+          {
+            "criterion": "customer support experience",
+            "score": 2,
+            "evidence": "Internships only so far"
+          },
+          {
+            "criterion": "technical troubleshooting",
+            "score": 3,
+            "evidence": "Academic grounding; limited real-world troubleshooting"
+          },
+          {
+            "criterion": "communication",
+            "score": 3,
+            "evidence": "Competent but limited practical experience"
+          },
+          {
+            "criterion": "qualification or equivalent experience",
+            "score": 5,
+            "evidence": "Bachelor of IT (First Class Honours)"
+          }
+        ]
+      },
+      "cv_file": "cvs/C108_zoe_zhang_cv.pdf"
+    }
+  ]
+}

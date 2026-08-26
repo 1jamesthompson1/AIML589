@@ -15,3 +15,7 @@ workbench/**
 # outputs). Synced with `hf buckets sync`, backed up with borg. See
 # code/hf-bucket/README.md.
 artifacts/
+
+# Fingerprint marking the artifacts/ state of the last successful borg backup
+# (see Makefile artifacts-backup).
+.artifacts-backup.sha
