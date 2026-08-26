@@ -1,18 +1,14 @@
 \resizebox{\textwidth}{!}{%
-\begin{tabular}{lrrrrrrrrr}
+\begin{tabular}{lrrrrrrrrrrrr}
 \toprule
-Model & \multicolumn{3}{l}{Accuracy} & \multicolumn{3}{l}{Cross-entropy} & \multicolumn{3}{l}{KL divergence} \\
- & train & validation & overall & train & validation & overall & train & validation & overall \\
+Model & \multicolumn{4}{l}{Accuracy} & \multicolumn{4}{l}{CE} & \multicolumn{4}{l}{KL} \\
+ & Validation & Train & All & vs Base & Validation & Train & All & vs Base & Validation & Train & All & vs Base \\
 \midrule
-Base & 47.8 & 58.2 & 48.2 & 2.02 & 1.99 & 2.01 & 0.880 & 0.879 & 0.878 \\
-Modal response (cluster 0) & 47.6 & 58.0 & 47.8 & 1.92 & \bfseries 1.84 & 1.92 & 0.877 & \bfseries 0.851 & 0.877 \\
-Modal response (cluster 1) & 41.5 & 41.0 & 42.2 & 2.15 & 2.18 & 2.14 & 0.961 & 1.001 & 0.956 \\
-Modal response (overall) & \bfseries 47.9 & \bfseries 58.4 & \bfseries 48.5 & 2.02 & 1.99 & 2.01 & 0.879 & 0.881 & 0.878 \\
-Sampled response (cluster 0) & 46.8 & 58.2 & 47.4 & \bfseries 1.91 & 1.84 & \bfseries 1.91 & \bfseries 0.874 & 0.855 & \bfseries 0.875 \\
-Sampled response (cluster 1) & 41.5 & 41.1 & 42.3 & 2.14 & 2.18 & 2.14 & 0.958 & 1.002 & 0.953 \\
-Sampled response (overall) & 47.7 & \bfseries 58.4 & 48.3 & 2.02 & 2.00 & 2.02 & 0.882 & 0.886 & 0.879 \\
-First token (overall) & 47.6 & 58.3 & 48.2 & 2.02 & 1.99 & 2.01 & 0.879 & 0.884 & 0.878 \\
-Full string (overall) & 47.7 & \bfseries 58.4 & 48.3 & 2.02 & 1.99 & 2.01 & 0.880 & 0.881 & 0.878 \\
+Base & 58.2 & 47.8 & 48.2 & -- & \bfseries 1.99 & 2.02 & 2.01 & -- & \bfseries 0.879 & 0.880 & 0.878 & -- \\
+Modal response & 58.3 & \bfseries 47.9 & \bfseries 48.5 & +0.2 & 1.99 & 2.02 & 2.02 & +0.00 & 0.882 & 0.882 & 0.880 & +0.003 \\
+Sampled response & 58.3 & 47.7 & 48.3 & +0.2 & 1.99 & 2.02 & 2.02 & +0.00 & 0.883 & 0.882 & 0.880 & +0.005 \\
+First token & 58.3 & 47.6 & 48.2 & +0.1 & 1.99 & \bfseries 2.02 & \bfseries 2.01 & +0.01 & 0.884 & \bfseries 0.879 & \bfseries 0.878 & +0.006 \\
+Full string & \bfseries 58.4 & 47.7 & 48.3 & \bfseries +0.2 & 1.99 & 2.02 & 2.01 & \bfseries +0.00 & 0.881 & 0.880 & 0.878 & \bfseries +0.003 \\
 \bottomrule
 \end{tabular}
 }

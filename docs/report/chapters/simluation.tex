@@ -1,7 +1,69 @@
-A seciton discussion the bheaviuoral simulations of the model
+In \ref{chap:finetuning} it was shown that a model can be fine-tuned to answer a value survey in a simliar manner to a human...?
 
-The selection of secnarios
-The harness used
-How summaries of the results were generated
-A method for mapping to value dimensions
-The results of the simulations (compared to clusters are there behavioural clusters)
+
+For the goal of aligning a model to humans this is only as useful as inso far it effects the models behaviour in downstream applications. This this chapter I conduct behavioural simulations of the model to see what decisions it makes when put in various simluated deployment scenarios. The goal here is to test if fine tuned models make decisiosn that are appreciably different to a baseline model.
+
+
+\section{Models behavior in the simulation}
+
+A presentation and discussion of the results...
+
+\section{Simulation setup}
+
+To test how a model acts it is standard practice to use a simluation of an deployment environments. The act of evaluating models using simluations is commonplace to test and undersatnd various dimensions across models; capabilities, intelligence, safety etc. In our case we are using 
+
+\subsection{Simulation framework}
+
+The framework is going to be a LLM placed in an agentic harness. It will be given a job description (i.e persona), a set of tools and then some tasks it needs to accomplish. The harness is a simple ReACT \cite{yaoReActSynergizingReasoning2023a} style harness that allows the model to use tools and reason about the task at hand.
+
+Some of the simluations are inherently interactive and require the model to ask follow up questions to get more information about the situation (e.g., the model is used as a customer service agent and needs to ask the customer for more information). For these scenarios the role of the interlocuter is \scare{played} by another LLM with a strict personna and instructions on how it should respond.
+
+\subsection{Simulation scenarios}
+
+The scenarios choosen were selected under the constraint of feasibility (text based and implementation simplicity), relevance to the public and judgeability. That is, the scenarios should be situations in which the genearl public care about how a potential future Ai system would act and can also undersatns how the situation sufficiently to judge it. A final scenario is made up of both profiles (an agentic harness and a persona) and situations (a task to be accomplished).
+
+To find profiles that the general public care about I used a combination of my own judgement and various previously conducted studies / surveys. The search goal is to find a set of profiles that the ones people are most concerned about as these are the ones that will need the most oversight and alignment.
+
+\ctable{behavioural-sim-profiles}{Simulation profiles and situations.}
+
+\subsection{How realistic is the models behavior in the simulation?}
+
+THe goal of the simluations is to undersatnd the beahviour of the model. Much of social science research uses lab based experiments to undersatnd human behaviour. A concern when doing lab based experiments is that the subjects behaviour may not be truly indiciative of their behaviour in the real world \cite{orneSocialPsychologyPsychological1962,adairHawthorneEffectReconsideration1984}.
+
+LLMs are demonstrated to have the same problem. This happens because the model can detect that it is in a simluation (situational awareness) \cite{berglundTakenOutContext2023,needhamLargeLanguageModels2025a} and is shown to behave differently in a simluation than it would in the real world \cite{greenblattAlignmentFakingLarge2024,meinkeFrontierModelsAre2025a}
+
+In social science the classical way to avoid this is through... \cite{webbUnobtrusiveMeasures2000}. Yet as we are operating in a completely simulated environment it is possible to minimise the effect of situational awareness by making the simulation as realistic as possible. This is done by using a realistic agentic harness along with actual company information and data (still fictitious user data). The goal is to make the model believe that it is in a real world situation and therefore act as it would in the real world.
+
+To validate this approach a check over the trajectories was done to see how often the model reasoned about being evaluated or that it was in a simulation.
+\fixmeinline{Add in results of scout scanning the trajectories for situational awareness.}
+
+\section{Understanding trajectories}
+
+This is a discussion of the way in which we can understand the trajectories.
+
+The result of a single simulation is a trajectory. This trajectory includes the scenario setup, the models reasoning, the tools it calls and also in interactive scenarios the responses from the interlocuter. It is a complete record of the simulation. The full pipeline, from a single simulation run to the summaries described below and their uses, is shown in \figref{behavioural-sim-pipeline}.
+
+\begin{figure}[htbp]
+\centering
+\input{../../code/figures/behavioural-sim-pipeline.tex}
+\caption{The behavioural simulation pipeline.}
+\label{fig:behavioural-sim-pipeline}
+\end{figure}
+
+The goal of undersatndin the trajectories is to try and answer \rqref{align} and to also create summaries that can be used in \ref{chap:survey} to answer \rqref{prefer}. The first sort of summary is a summary of the decisions made which needs to be structred and allows for comparisoin between multiple runs of the same scenario across models. The second one however is more holistic with an objective of fairly representing the trajectory for human oversight.
+
+All of the summaries are generated using LLM-as-judge due to both resource constraints and that LLM may be more deterministic in their judgements \cn.
+
+\subsection{Structured summaries}
+
+A structured summary is a summary of the decisions made by the model in a simulation. IT is conducted usign a grading rubric \cn and structured output. The grading rubric is specific to each individual scenario and is designed to capture the key decisions that are to be made for that particular scenario. Each item in the rubric declares the type of grading it requires: a \texttt{likert} score, a \texttt{multichoice} selection, a \texttt{bool} (yes/no) answer, or a plain \texttt{number}. This allows for easy quantitative comparison between models as well as clustering of different trajectory types.
+
+It is conducted using a frontier model.
+
+
+\subsection{Holistic summaries}
+
+The holistic summary are key to the methodogly and in answering \rqref{prefer}. The final result of the pipeline is a short summary that is used in a pairwise comparison. Therefore it follows a narrative format describing both what happened and why it did it. This follows convention human practices of asking someone to explain (i.e to a supervisor) what they did and why \cn. 
+
+The pipeline of the summary is that after the simluation ends (when the target model responds without a tool call) an additional user message is sent to the target model with a self review prompt which creates a few short paragraphs of text. The summary is then passed to the judge model along with the trajectory to provide a short audit review of the self reivew summary.
+

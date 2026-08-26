@@ -1,0 +1,130 @@
+% Bare tikzpicture for the behavioural-simulation pipeline
+% (Fig.~\ref{fig:behavioural-sim-pipeline}). \input from
+% docs/report/chapters/simluation.tex; compiles only as part of the report.
+% Explicit coordinates: two columns 8.4cm apart, so they cannot overlap.
+\begin{tikzpicture}[
+    font=\small,
+    box/.style={
+        draw=#1!65!black,
+        fill=#1!11,
+        rounded corners=3pt,
+        align=center,
+        inner sep=5pt,
+        text width=3.15cm,
+        minimum height=1.65cm,
+    },
+    hero/.style={
+        draw=black!50,
+        fill=black!7,
+        rounded corners=3pt,
+        align=center,
+        inner sep=6pt,
+        text width=6.4cm,
+        minimum height=1.45cm,
+    },
+    chip/.style={
+        draw=#1!55!black,
+        fill=#1!18,
+        rounded corners=2pt,
+        font=\scriptsize\bfseries,
+        inner sep=3.5pt,
+        text=#1!55!black,
+    },
+    arr/.style={-{Stealth[length=2.4mm]}, thick, draw=black!65},
+    darr/.style={arr, dashed},
+]
+
+% --- 1. Simulation ---------------------------------------------------------
+\node[chip=blue] (s1) at (0, 1.2) {1.\ Simulation};
+
+\node[box=blue] (model) at (-4.55, 0) {
+    {\large\textcolor{blue!75!black}{\faMicrochip}}\\[3pt]
+    \textbf{Model under test}\\[1pt]
+    {\scriptsize base or value-aligned fine-tune}
+};
+
+\node[box=blue] (harness) at (0, 0) {
+    {\large\textcolor{blue!75!black}{\faCogs}}\\[3pt]
+    \textbf{Agentic harness}\\[1pt]
+    {\scriptsize persona, tools, situation\\ ReACT loop}
+};
+
+\node[box=blue] (interlocutor) at (4.55, 0) {
+    {\large\textcolor{blue!75!black}{\faComments}}\\[3pt]
+    \textbf{Interlocutor LLM}\\[1pt]
+    {\scriptsize client / candidate\\ {\itshape interactive only}}
+};
+
+\node[hero] (trajectory) at (0, -1.95) {
+    {\large\textcolor{black!70}{\faProjectDiagram}}\quad
+    \textbf{Trajectory}\\[2pt]
+    {\scriptsize complete run: reasoning, tool calls, dialogue, outcome}
+};
+
+\draw[arr] (model) -- (harness);
+\draw[darr] (interlocutor) -- (harness);
+\draw[arr] (harness) -- (trajectory);
+
+% --- 2. Summarisation ------------------------------------------------------
+\node[chip=teal] (s2) at (0, -3.15) {2.\ Summarisation};
+
+\node[box=teal] (selfreview) at (-4.2, -4.65) {
+    {\large\textcolor{teal!75!black}{\faUserEdit}}\\[3pt]
+    \textbf{Model summary}\\[1pt]
+    {\scriptsize self-review of its own transcript}
+};
+
+\node[box=teal] (holistic) at (4.2, -4.65) {
+    {\large\textcolor{teal!75!black}{\faBookOpen}}\\[3pt]
+    \textbf{Holistic summary}\\[1pt]
+    {\scriptsize readable narrative for human oversight}
+};
+
+\node[box=teal] (judge) at (-4.2, -6.8) {
+    {\large\textcolor{teal!75!black}{\faGavel}}\\[3pt]
+    \textbf{Judge}\\[1pt]
+    {\scriptsize grades the run against the rubric}\\[2pt]
+    {\scriptsize\textcolor{blue!70!black}{likert}\,$\cdot$\,
+     \textcolor{teal!70!black}{multichoice}\,$\cdot$\,
+     \textcolor{orange!80!black}{bool}\,$\cdot$\,
+     \textcolor{purple!70!black}{number}}
+};
+
+\node[box=violet] (structured) at (-4.2, -8.95) {
+    {\large\textcolor{violet!75!black}{\faFileCode}}\\[3pt]
+    \textbf{Structured summary}\\[1pt]
+    {\scriptsize JSON: score, assessment, key decisions}
+};
+
+\draw[arr] (trajectory.south west) -- (selfreview.north);
+\draw[arr] (trajectory.south east) -- (holistic.north);
+\draw[arr] (selfreview) -- (judge);
+\draw[arr] (judge) -- (structured);
+
+% --- 3. Use ----------------------------------------------------------------
+\node[box=orange] (vignettes) at (4.2, -6.8) {
+    {\large\textcolor{orange!75!black}{\faCopy}}\\[3pt]
+    \textbf{Vignettes}\\[1pt]
+    {\scriptsize templated narratives for the survey}
+};
+
+\node[box=orange] (survey) at (4.2, -8.95) {
+    {\large\textcolor{orange!75!black}{\faUsers}}\\[3pt]
+    \textbf{Public consultation}\\[1pt]
+    {\scriptsize NZ public rates each vignette (RQ2)}
+};
+
+\node[chip=orange] (s3) at (0, -10.2) {3.\ Use};
+
+\node[hero, draw=orange!65!black, fill=orange!11] (analysis) at (0, -11.45) {
+    {\large\textcolor{orange!75!black}{\faChartBar}}\quad
+    \textbf{Cross-model analysis}\\[2pt]
+    {\scriptsize base vs fine-tuned decisions, per scenario (RQ1)}
+};
+
+\draw[arr] (holistic) -- (vignettes);
+\draw[arr] (vignettes) -- (survey);
+\draw[arr] (structured.south) -- (analysis.north west);
+\draw[arr] (survey.south) -- (analysis.north east);
+
+\end{tikzpicture}

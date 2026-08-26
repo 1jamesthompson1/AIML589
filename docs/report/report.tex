@@ -12,6 +12,11 @@
 
 \input{../common.tex}
 
+% Term definitions for the glossary appendix, loaded early so \termref works
+% anywhere in the document body (the appendix itself is printed later; the
+% same file is input again there with \glossaryprinttrue).
+\input{appendices/glossary}
+
 % --- Automatic word count (excludes references and appendices) ---
 % On every compile texcount computes the word count and writes it to
 % report.count, which is read back into the working draft notice.
@@ -116,6 +121,11 @@ A short description of the project goes here.
 
 \chapter{Project details}
 \input{appendices/project-details}
+
+\glossaryprinttrue
+\chapter{Glossary of terms}
+\label{app:glossary}
+\input{appendices/glossary}
 %TC:endignore
 
 \end{document}

@@ -1,0 +1,20 @@
+% Appendix: Glossary of terms.
+%
+% This file is input TWICE from report.tex, so all term definitions live in
+% the one place:
+%   1. in the preamble   - registers the terms (\gdef) so \termref works
+%      anywhere in the document body before this appendix is printed;
+%   2. as the appendix   - prints the glossary (report.tex sets
+%      \glossaryprinttrue just before this second \input).
+% \newterm is idempotent, so the second input does not duplicate entries.
+%
+%   \newterm{label}{Term text}{Definition text}
+%TC:ignore
+\newterm{llm}{Large language model (LLM)}{A neural network model pre-trained on large amounts of text, here fine-tuned to behave in line with survey responses.}
+\newterm{ai-system}{AI system}{A computer system that uses one or many forms of artificial intelligence to perform tasks that would normally require human intelligence.}
+\newterm{agentic-harness}{Agentic harness}{A framework that gives a model (normally a LLM) the abilityt o act autonomousy by allows its outputs to be used as inputs to other systems (like a search engine, online shopping, code editor etc). }
+%TC:endignore
+
+\ifglossaryprint
+\printglossary
+\fi
