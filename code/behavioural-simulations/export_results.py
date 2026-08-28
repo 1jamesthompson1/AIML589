@@ -1,16 +1,37 @@
-"""Export inspect-ai eval logs into per-run outputs.
+"""Export inspect-ai eval logs into per-run outputs for the website and analysis.
 
-For every run (one sample = one run of a scenario, isolated in its own
-sandbox) this writes, under ``output/runs/<model>/<profile>-<situation>/``:
+For every run (one sample = one run of a situation, isolated in its own
+sandbox) this writes a directory per model x profile x situation, grouped
+under a timestamped parent per model so each export session is unique:
 
-- ``trajectory.json`` / ``trajectory.md`` — the full run (reasoning, tool
-  calls, observations, and the dialogue for interactive scenarios),
-- ``model_summary.json`` — the model's own review of its trajectory,
-- ``judge_summary.json`` — the judge's structured, rubric-based evaluation
-  (the structure differs per profile and situation),
-- ``config.json`` — model / profile / situation identifiers for this run.
+    output/runs/<model>-<timestamp>/<profile>-<situation>/
+        transcript.json  - structured JSON transcript of the run: the full
+                           message stream (system prompt, work item, agent
+                           reasoning, tool calls, tool results and the final
+                           outcome) in a stable schema designed to be loaded
+                           by the public webapp and reused as training data,
+        transcript.md    - the same run as readable text (for the report),
+        self_review.txt  - the model's own summary of its work (plain text),
+        judge.json       - the judge's structured, rubric-based evaluation
+                           (the structure differs per profile and situation),
+        audit.txt        - the audit judge's fact-check statement on the
+                           model's self-review (plain text),
+        config.json      - provenance (model, eval log, ids) for this run.
 
-Plus an ``index.csv`` summarising all runs.
+Plus an ``index.csv`` summarising all runs and an ``index.json`` webapp
+manifest (situations, models, and every run with its version/date/score) for
+``website/src/components/SimulationViewer.tsx``.
+
+Every sample is exported: repeated runs of the same scenario by the same
+model (re-runs, epochs) are kept as numbered versions in chronological
+order - v1 is the oldest, and the most recent version keeps the plain
+directory name while older ones get a ``-v<N>`` suffix (e.g.
+``.../welfare-initial_benefit_application-v1``). Each export session writes
+to a fresh timestamped parent per model (``output/runs/<model>-<stamp>/``)
+and removes any earlier session for that model first, so re-exports never
+accumulate duplicate snapshots. Use ``--latest-only`` to export just the
+newest version of each (model, profile-situation) pair, and
+``--include-errors`` to also export samples from interrupted/failed runs.
 
 Usage:
 
@@ -21,16 +42,26 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import datetime as dt
 import json
 import re
-from dataclasses import is_dataclass, asdict
+import shutil
+from dataclasses import asdict, is_dataclass
 from enum import Enum
 from pathlib import Path
 
 import pandas as pd
 from inspect_ai.log import read_eval_log
 
+from profiles import get_profile, profile_spec, situations
 from run_simulations import render_transcript
+
+# The transcript JSON schema tag written into each transcript.json. Bump when
+# the layout below changes so the webapp / training code can tell versions
+# apart.
+TRANSCRIPT_SCHEMA = "wvs-run-transcript/v1"
+
+DEFAULT_BUCKET = "1jamesthompson1/wvs-nz-value-alignment-evals"
 
 
 def _model_slug(model: str) -> str:
@@ -53,96 +84,250 @@ def _json_safe(obj):
     return str(obj)
 
 
-def structured_trajectory(sample) -> list[dict]:
-    """Turn the sample's messages into a JSON-safe, readable trajectory."""
-    records = []
+def _split_content(content) -> tuple[str | None, str]:
+    """Split message content into ``(reasoning, text)``.
+
+    Reasoning blocks are kept separate from the answer text rather than being
+    flattened into it, so the webapp can display them distinctly and training
+    pipelines can include or exclude them."""
+    if isinstance(content, str):
+        return None, content
+    reasoning_parts, text_parts = [], []
+    for block in content or []:
+        text = getattr(block, "text", None)
+        block_type = getattr(block, "type", "")
+        if not text and hasattr(block, "reasoning"):
+            text = getattr(block, "reasoning", "")
+        if not text:
+            continue
+        if block_type == "reasoning" or hasattr(block, "signature"):
+            reasoning_parts.append(text)
+        else:
+            text_parts.append(text)
+    reasoning = "\n\n".join(reasoning_parts) or None
+    text = "\n\n".join(text_parts)
+    return reasoning, text
+
+
+def structured_transcript(log_eval, sample, meta: dict) -> dict:
+    """The run as a stable, JSON-safe document for the webapp and reuse as
+    training data.
+
+    A header identifies the deployment context (which model, which work
+    profile, which situation), followed by the flat ``messages`` stream in
+    conversation order: the system prompt, the initial work item, then the
+    agent loop - assistant turns (with optional ``tool_calls``, e.g.
+    ``search_client_record``), the matching ``tool`` result messages, and the
+    closing assistant message that constitutes the outcome. For interactive
+    situations, client replies arrive as tool results on the messaging tool.
+    """
+    messages = []
     for i, msg in enumerate(sample.messages or []):
         record: dict = {"index": i, "role": msg.role}
-        if getattr(msg, "content", None):
-            record["content"] = _json_safe(msg.content)
-        if getattr(msg, "tool_calls", None):
-            record["tool_calls"] = [
-                {
-                    "function": call.function,
-                    "arguments": call.arguments,
-                    "id": call.id,
-                }
-                for call in msg.tool_calls
-            ]
+        reasoning, text = _split_content(msg.content)
+        if reasoning:
+            record["reasoning"] = reasoning
         if msg.role == "tool":
             record["function"] = getattr(msg, "function", None)
-            record["output"] = (
+            record["tool_call_id"] = getattr(msg, "tool_call_id", None)
+            record["content"] = (
                 msg.text if msg.text else json.dumps(_json_safe(msg.content))
             )
-        records.append(record)
-    return records
+        else:
+            record["content"] = text
+            if getattr(msg, "tool_calls", None):
+                record["tool_calls"] = [
+                    {
+                        "id": call.id,
+                        "function": call.function,
+                        "arguments": _json_safe(call.arguments),
+                    }
+                    for call in msg.tool_calls
+                ]
+        messages.append(record)
+
+    return {
+        "schema": TRANSCRIPT_SCHEMA,
+        "run": {
+            "model": log_eval.model,
+            "task": log_eval.task,
+            "created": log_eval.created,
+            "profile_id": meta.get("profile_id"),
+            "situation_id": meta.get("situation_id"),
+            "situation_name": meta.get("situation_name"),
+            "situation_type": meta.get("scenario_type"),
+            "interactive": meta.get("scenario_type") == "interactive",
+            "sample_id": sample.id,
+            "epoch": sample.epoch,
+        },
+        "messages": messages,
+    }
 
 
-def run_dir_for(log, sample, output_dir: Path) -> Path:
+def situation_meta(meta: dict) -> dict:
+    """Enrich sample metadata with the situation's display name (from its
+    profile module's situations.json), tolerating renamed/removed items."""
+    enriched = dict(meta)
+    profile_id, situation_id = meta.get("profile_id"), meta.get("situation_id")
+    try:
+        match = next(s for s in situations(profile_id) if s["id"] == situation_id)
+    except Exception:
+        return enriched
+    enriched["situation_name"] = match.get("name")
+    return enriched
+
+
+def export_sample(log, sample, run_dir: Path, version: int | None = None) -> Path:
+    """Write one run's outputs into ``run_dir``; return it."""
+    run_dir.mkdir(parents=True, exist_ok=True)
+
     metadata = sample.metadata or {}
-    return (
-        output_dir
-        / _model_slug(log.eval.model)
-        / f"{metadata.get('profile_id', '?')}-{metadata.get('situation_id', '?')}"
-        / f"{sample.id}"
-    )
+    meta = situation_meta(metadata)
+    transcript = structured_transcript(log.eval, sample, meta)
+    (run_dir / "transcript.json").write_text(json.dumps(transcript, indent=2))
+    (run_dir / "transcript.md").write_text(render_transcript(sample.messages or []))
 
+    (run_dir / "self_review.txt").write_text(metadata.get("model_summary", ""))
 
-def export_log(log, output_dir: Path) -> dict:
-    """Write per-run outputs for one eval log; return the index row(s)."""
-    rows = []
-    for sample in log.samples or []:
-        run_dir = run_dir_for(log, sample, output_dir)
-        run_dir.mkdir(parents=True, exist_ok=True)
+    score = (sample.scores or {}).get("scenario_judge")
+    judge = {}
+    if score is not None:
+        judge = {
+            "score": score.value,
+            "explanation": score.explanation,
+            "structured": (score.metadata or {}).get("judge_summary"),
+        }
+    (run_dir / "judge.json").write_text(json.dumps(judge, indent=2))
 
-        metadata = sample.metadata or {}
-        trajectory = structured_trajectory(sample)
+    # The audit judge's plain-text fact-check of the model's summary.
+    audit_score = (sample.scores or {}).get("audit_judge")
+    fact_check = (
+        (audit_score.metadata or {}).get("fact_check") if audit_score else None
+    ) or (audit_score.explanation if audit_score else None)
+    (run_dir / "audit.txt").write_text(fact_check or "")
 
-        (run_dir / "trajectory.json").write_text(json.dumps(trajectory, indent=2))
-        (run_dir / "trajectory.md").write_text(render_transcript(sample.messages or []))
-
-        model_summary = metadata.get("model_summary", "")
-        (run_dir / "model_summary.json").write_text(
-            json.dumps({"model": log.eval.model, "summary": model_summary}, indent=2)
-        )
-
-        judge: dict = {}
-        score = (sample.scores or {}).get("scenario_judge")
-        if score is not None:
-            judge = {
-                "score": score.value,
-                "explanation": score.explanation,
-                "structured": (score.metadata or {}).get("judge_summary"),
-            }
-        (run_dir / "judge_summary.json").write_text(json.dumps(judge, indent=2))
-
-        (run_dir / "config.json").write_text(
-            json.dumps(
-                {
-                    "model": log.eval.model,
-                    "log": str(log.location),
-                    "profile_id": metadata.get("profile_id"),
-                    "situation_id": metadata.get("situation_id"),
-                    "scenario_type": metadata.get("scenario_type"),
-                    "sandboxed_sample": True,
-                },
-                indent=2,
-            )
-        )
-
-        structured = judge.get("structured") or {}
-        rows.append(
+    (run_dir / "config.json").write_text(
+        json.dumps(
             {
                 "model": log.eval.model,
-                "profile": metadata.get("profile_id"),
-                "situation": metadata.get("situation_id"),
-                "type": metadata.get("scenario_type"),
-                "run_dir": str(run_dir.relative_to(output_dir.parent)),
-                "judge_score": judge.get("score"),
-                "judge_verdict": structured.get("overall", {}).get("verdict"),
-            }
+                "task": log.eval.task,
+                "created": log.eval.created,
+                "log": str(log.location),
+                "profile_id": meta.get("profile_id"),
+                "situation_id": meta.get("situation_id"),
+                "situation_name": meta.get("situation_name"),
+                "situation_type": meta.get("scenario_type"),
+                "sample_id": sample.id,
+                "epoch": sample.epoch,
+                "version": version,
+                "has_error": bool(sample.error),
+            },
+            indent=2,
         )
-    return rows
+    )
+    return run_dir
+
+
+def sample_key(log, sample) -> tuple | None:
+    """Export key for a sample: (model, profile-situation). None if it lacks
+    the identifiers the export needs."""
+    metadata = sample.metadata or {}
+    profile_id, situation_id = metadata.get("profile_id"), metadata.get("situation_id")
+    if not profile_id or not situation_id:
+        return None
+    return _model_slug(log.eval.model), f"{profile_id}-{situation_id}"
+
+
+def collect_runs(log_paths: list[Path], include_errors: bool, latest_only: bool):
+    """(model_slug, log, sample, suffix, version) tuples to export.
+
+    Every non-errored sample is kept unless ``include_errors``. For each
+    (model, profile-situation) key the samples are ordered by eval creation
+    time and numbered 1..N (versions); the newest version keeps the plain
+    directory name, older ones get a ``-v<version>`` suffix. ``latest_only``
+    collapses each key to just its newest sample (version 1, plain name).
+    """
+    candidates: dict[tuple, list] = {}
+    for path in sorted(log_paths):  # filenames embed timestamps => oldest first
+        log = read_eval_log(path)
+        print(f"{path.name}: model={log.eval.model} samples={len(log.samples or [])}")
+        for sample in log.samples or []:
+            if sample.error and not include_errors:
+                continue
+            key = sample_key(log, sample)
+            if key is None:
+                continue
+            candidates.setdefault(key, []).append((log, sample))
+    pairs = []
+    for key, entries in candidates.items():
+        # Newest last: order first by eval creation time, then epoch.
+        entries.sort(key=lambda pair: (pair[0].eval.created or "", pair[1].epoch))
+        entries = entries[-1:] if latest_only else entries
+        n = len(entries)
+        for version, (log, sample) in enumerate(entries, start=1):
+            suffix = None if (n < 2 or version == n) else f"-v{version}"
+            pairs.append((key[0], log, sample, suffix, version))
+    return pairs
+
+
+def build_manifest(rows: list[dict], output_dir: Path) -> dict:
+    """The discovery document the website fetches before loading any runs.
+
+    Written as ``index.json`` next to ``index.csv``; the website
+    (``website/src/components/SimulationViewer.tsx``) fetches it from the
+    bucket and uses ``base_url + run_dir/<file>`` for every run file.
+    """
+    import os
+
+    bucket_id = os.environ.get("HF_BUCKET", DEFAULT_BUCKET).strip("/")
+
+    profiles_by_id: dict[str, dict] = {}
+    situations_list = []
+    for profile_id in sorted({row.get("profile") for row in rows}):
+        try:
+            spec = profile_spec(get_profile(profile_id))
+        except Exception:
+            continue
+        profiles_by_id[profile_id] = {"name": spec["name"]}
+        try:
+            for s in situations(profile_id):
+                situations_list.append(
+                    {
+                        "profile_id": profile_id,
+                        "profile_name": spec["name"],
+                        "situation_id": s["id"],
+                        "name": s["name"],
+                        "type": s.get("type"),
+                    }
+                )
+        except Exception:
+            pass
+
+    return {
+        "schema": "wvs-sim-runs-index/v1",
+        "bucket": bucket_id,
+        "base_url": (f"https://huggingface.co/buckets/{bucket_id}/resolve/bs/runs/"),
+        "profiles": profiles_by_id,
+        "situations": sorted(
+            situations_list, key=lambda s: (s["profile_id"], s["situation_id"])
+        ),
+        "models": sorted({row.get("model") for row in rows}),
+        "runs": [
+            {
+                "model": row.get("model"),
+                "profile_id": row.get("profile"),
+                "situation_id": row.get("situation"),
+                "type": row.get("type"),
+                "status": row.get("status"),
+                "version": int(row.get("version") or 1),
+                "created": row.get("created"),
+                "run_dir": row.get("run_dir"),
+                "judge_score": row.get("judge_score"),
+                "judge_verdict": row.get("judge_verdict"),
+            }
+            for row in rows
+        ],
+    }
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
@@ -159,6 +344,17 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         default=str(Path(__file__).resolve().parent / "output" / "runs"),
         help="Directory to write the per-run outputs into.",
     )
+    p.add_argument(
+        "--latest-only",
+        action="store_true",
+        help="Export only the most recent run per (model, profile-situation) "
+        "instead of keeping every run as a numbered version.",
+    )
+    p.add_argument(
+        "--include-errors",
+        action="store_true",
+        help="Also export samples from interrupted/failed runs (no scores).",
+    )
     return p.parse_args(argv)
 
 
@@ -173,17 +369,72 @@ def main(argv: list[str] | None = None) -> None:
             f"no eval logs found in {log_dir} (run run_simulations.py first)"
         )
 
-    all_rows = []
-    for path in log_paths:
-        log = read_eval_log(path)
-        print(f"{path.name}: model={log.eval.model} samples={len(log.samples or [])}")
-        all_rows.extend(export_log(log, output_dir))
+    pairs = collect_runs(log_paths, args.include_errors, args.latest_only)
+    if not pairs:
+        raise SystemExit(
+            "no exportable runs found "
+            "(skipped errored/interrupted samples; try --include-errors)"
+        )
+
+    rows = []
+    # One timestamped parent dir per model per export session so every
+    # scenario dir is uniquely addressable, but only the newest session per
+    # model is kept: any earlier session dir for that model is removed first
+    # so re-exports never accumulate duplicate snapshots.
+    session_stamp = dt.datetime.now().strftime("%Y%m%d-%H%M%S")
+    model_sessions: dict[str, Path] = {}
+    for model_slug, _, _, _, _ in pairs:
+        if model_slug in model_sessions:
+            continue
+        run_dir = output_dir / f"{model_slug}-{session_stamp}"
+        model_sessions[model_slug] = run_dir
+        for stale in output_dir.glob(f"{model_slug}-*"):
+            if stale.is_dir() and stale != run_dir:
+                shutil.rmtree(stale, ignore_errors=True)
+    for model_slug, log, sample, suffix, version in pairs:
+        metadata = sample.metadata or {}
+        dir_name = (
+            f"{metadata.get('profile_id', '?')}-{metadata.get('situation_id', '?')}"
+        )
+        if suffix:
+            dir_name += suffix
+        run_dir = model_sessions[model_slug] / dir_name
+        export_sample(log, sample, run_dir, version=version)
+
+        judge: dict = {}
+        score = (sample.scores or {}).get("scenario_judge")
+        if score is not None:
+            judge["score"] = score.value
+            judge["structured"] = (score.metadata or {}).get("judge_summary") or {}
+        rows.append(
+            {
+                "model": log.eval.model,
+                "profile": metadata.get("profile_id"),
+                "situation": metadata.get("situation_id"),
+                "type": metadata.get("scenario_type"),
+                "status": "error" if sample.error else "complete",
+                "version": version,
+                "created": log.eval.created,
+                "run_dir": str(run_dir.relative_to(output_dir)),
+                "judge_score": judge.get("score"),
+                "judge_verdict": judge.get("structured", {})
+                .get("overall", {})
+                .get("verdict"),
+            }
+        )
 
     index_path = output_dir / "index.csv"
     index_path.parent.mkdir(parents=True, exist_ok=True)
-    pd.DataFrame(all_rows).to_csv(index_path, index=False)
-    print(f"\nWrote {len(all_rows)} run(s) to {output_dir}/")
+    pd.DataFrame(rows).to_csv(index_path, index=False)
+
+    manifest_path = output_dir / "index.json"
+    manifest_path.write_text(
+        json.dumps(build_manifest(rows, output_dir), indent=2) + "\n"
+    )
+
+    print(f"\nWrote {len(rows)} run(s) to {output_dir}/")
     print(f"Summary index: {index_path}")
+    print(f"Webapp manifest: {manifest_path}")
 
 
 if __name__ == "__main__":

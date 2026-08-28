@@ -1,0 +1,212 @@
+{# Client record template - renders structured client data as readable text #}
+{# Can render full record or specific sections via the 'section' parameter #}
+
+{% macro render_personal(client) %}
+MSD CLIENT: {{ client.name }}
+DOB: {{ client.personal.dob }} (age {{ client.personal.age }})
+IRI: {{ client.personal.iri }}
+Area: {{ client.personal.area }}
+CLIENT ID: {{ client.id }}
+{% endmacro %}
+
+{% macro render_benefit(client) %}
+BENEFIT: {{ client.benefit.current }}
+{% if client.benefit.start_date %}  Start date: {{ client.benefit.start_date }}{% endif %}
+{% if client.benefit.reference %}  Reference: {{ client.benefit.reference }}{% endif %}
+{% if client.benefit.previous %}
+PREVIOUS BENEFITS:
+{% for prev in client.benefit.previous %}  - {{ prev.type }} ({{ prev.period }}) - {{ prev.reason_ended }}
+{% endfor %}{% endif %}
+{% endmacro %}
+
+{% macro render_employment(client) %}
+{% if client.employment.current %}CURRENT EMPLOYMENT: {{ client.employment.current }}{% endif %}
+{% if client.employment.history %}
+EMPLOYMENT HISTORY:
+{% for emp in client.employment.history %}  - {{ emp.role }}, {{ emp.employer or 'N/A' }} ({{ emp.start }}-{{ emp.end or 'present' }})
+{% if emp.notes %}    {{ emp.notes }}{% endif %}
+{% endfor %}{% endif %}
+{% if client.employment.redundancy %}
+REDUNDANCY: {{ client.employment.redundancy.date }}
+{% if client.employment.redundancy.final_pay %}  Final pay: ${{ "{:,}".format(client.employment.redundancy.final_pay) }}{% endif %}
+{% if client.employment.redundancy.redundancy_payout %}  Redundancy payout: ${{ "{:,}".format(client.employment.redundancy.redundancy_payout) }}{% endif %}
+{% endif %}
+{% endmacro %}
+
+{% macro render_income(client) %}
+{% if client.income.declared %}
+INCOME DECLARED: {{ client.income.declared.source }}
+{% if client.income.declared.amount_weekly %}  Amount: ${{ client.income.declared.amount_weekly }}/week{% endif %}
+{% if client.income.declared.notes %}  Notes: {{ client.income.declared.notes }}{% endif %}
+{% endif %}
+{% if client.income.bank_statements.deposits %}
+BANK STATEMENTS:
+{% for dep in client.income.bank_statements.deposits %}  {{ dep.date }}  {{ dep.source }}  ${{ "%.2f"|format(dep.amount) }}
+{% endfor %}{% elif client.income.bank_statements.note %}
+BANK DATA: {{ client.income.bank_statements.note }}
+{% endif %}
+{% endmacro %}
+
+{% macro render_health(client) %}
+{% if client.health.constraints %}HEALTH: {{ client.health.constraints }}{% endif %}
+{% if client.health.medical_certificates %}
+MEDICAL CERTIFICATES:
+{% for cert in client.health.medical_certificates %}  - {{ cert.type }}: {{ cert.condition }}
+{% if cert.hours_per_week %}    Capacity: {{ cert.hours_per_week }} hrs/week{% endif %}
+{% if cert.expired %}    Status: EXPIRED {{ cert.expired }}{% endif %}
+{% endfor %}{% if client.health.certificate_status == "EXPIRED" %}  ** CERTIFICATE EXPIRED **
+{% endif %}{% endif %}
+{% endmacro %}
+
+{% macro render_dependents(client) %}
+{% if client.dependents %}DEPENDENTS: {{ client.dependents_detail or client.dependents ~ ' dependent(s)' }}{% endif %}
+{% endmacro %}
+
+{% macro render_overpayment(client) %}
+{% if client.overpayment %}
+OVERPAYMENT: ${{ "{:,.2f}".format(client.overpayment.amount) }}
+  Period: {{ client.overpayment.period }}
+  Cause: {{ client.overpayment.cause }}
+  Recording: {{ client.overpayment.recording }}
+  Indicators: {{ client.overpayment.indicators }}
+  Recovery status: {{ client.overpayment.recovery_status }}
+{% endif %}
+{% endmacro %}
+
+{% macro render_anomaly(client) %}
+{% if client.anomaly_flag %}
+ANOMALY FLAG: {{ client.anomaly_flag.reference }}
+  Detection date: {{ client.anomaly_flag.detection_date }}
+  Pattern: {{ client.anomaly_flag.pattern }}
+  Risk level: {{ client.anomaly_flag.risk_level }}
+  Status: {{ client.anomaly_flag.status }}
+{% endif %}
+{% endmacro %}
+
+{% macro render_reassessment(client) %}
+{% if client.reassessment %}
+REASSESSMENT:
+  Booked: {{ client.reassessment.booked_date or 'N/A' }}
+  Attended: {{ 'Yes' if client.reassessment.attended else 'NO' }}
+{% if client.reassessment.response %}  Response: {{ client.reassessment.response }}{% endif %}
+{% endif %}
+{% endmacro %}
+
+{% macro render_emergency_payment(client) %}
+{% if client.emergency_payment_request %}
+EMERGENCY PAYMENT REQUEST:
+  Date: {{ client.emergency_payment_request.date }}
+{% for item in client.emergency_payment_request['items'] %}  - {{ item.description }}
+{% if item.repair_quote %}    Repair quote: ${{ item.repair_quote }}{% endif %}
+{% if item.replacement_estimate %}    Replacement estimate: ${{ item.replacement_estimate }}{% endif %}
+{% if item.estimate %}    Estimate: ${{ item.estimate }}{% endif %}
+{% endfor %}  Total requested: ${{ client.emergency_payment_request.total_requested or 0 }}
+  Status: {{ client.emergency_payment_request.status or 'N/A' }}
+{% endif %}
+{% endmacro %}
+
+{% macro render_religious_observance(client) %}
+{% if client.religious_observance %}
+RELIGIOUS OBSERVANCE:
+  Denomination: {{ client.religious_observance.denomination }}
+  Sabbath: {{ client.religious_observance.sabbath }}
+{% if client.religious_observance.notes %}  Notes: {{ client.religious_observance.notes }}{% endif %}
+{% endif %}
+{% endmacro %}
+
+{% macro render_work_activity(client) %}
+{% if client.work_activity_obligation %}
+WORK ACTIVITY OBLIGATION:
+  Reference: {{ client.work_activity_obligation.reference }}
+  Activity: {{ client.work_activity_obligation.activity }}
+  Schedule: {{ client.work_activity_obligation.schedule }}
+  Sent: {{ client.work_activity_obligation.sent }} | Due: {{ client.work_activity_obligation.due }}
+  Status: {{ client.work_activity_obligation.status }}
+{% if client.work_activity_obligation.conflict %}  Conflict: {{ client.work_activity_obligation.conflict }}{% endif %}
+{% endif %}
+{% endmacro %}
+
+{% macro render_case_notes(client) %}
+{% if client.case_notes %}
+CASE NOTES:
+{% for n in client.case_notes %}  {{ n.date }} - {{ n.note }}{% if n.status %} [{{ n.status|upper }}]{% endif %}
+
+{% endfor %}{% endif %}
+{% endmacro %}
+
+{% macro render_system_flags(client) %}
+{% if client.system_flags %}
+SYSTEM FLAGS:
+{% for f in client.system_flags %}  {{ f.type }}: {{ f.status or 'active' }}
+{% endfor %}{% endif %}
+{% endmacro %}
+
+{% macro render_correspondence(client) %}
+{% if client.correspondence %}
+CORRESPONDENCE:
+{% for c in client.correspondence %}  {{ c.date }} - {{ c.type }}: {{ c.note }}
+{% endfor %}{% endif %}
+{% endmacro %}
+
+{# Main rendering logic #}
+{% set sections = section.split(',') if section else ['all'] %}
+
+{% if 'all' in sections or 'personal' in sections %}
+{{ render_personal(client) }}
+{% endif %}
+
+{% if 'all' in sections or 'benefit' in sections %}
+{{ render_benefit(client) }}
+{% endif %}
+
+{% if 'all' in sections or 'employment' in sections %}
+{{ render_employment(client) }}
+{% endif %}
+
+{% if 'all' in sections or 'income' in sections %}
+{{ render_income(client) }}
+{% endif %}
+
+{% if 'all' in sections or 'health' in sections %}
+{{ render_health(client) }}
+{% endif %}
+
+{% if 'all' in sections or 'dependents' in sections %}
+{{ render_dependents(client) }}
+{% endif %}
+
+{% if 'all' in sections or 'overpayment' in sections %}
+{{ render_overpayment(client) }}
+{% endif %}
+
+{% if 'all' in sections or 'anomaly' in sections %}
+{{ render_anomaly(client) }}
+{% endif %}
+
+{% if 'all' in sections or 'reassessment' in sections %}
+{{ render_reassessment(client) }}
+{% endif %}
+
+{% if 'all' in sections or 'emergency_payment' in sections %}
+{{ render_emergency_payment(client) }}
+{% endif %}
+
+{% if 'all' in sections or 'religious_observance' in sections %}
+{{ render_religious_observance(client) }}
+{% endif %}
+
+{% if 'all' in sections or 'work_activity' in sections %}
+{{ render_work_activity(client) }}
+{% endif %}
+
+{% if 'all' in sections or 'case_notes' in sections %}
+{{ render_case_notes(client) }}
+{% endif %}
+
+{% if 'all' in sections or 'flags' in sections %}
+{{ render_system_flags(client) }}
+{% endif %}
+
+{% if 'all' in sections or 'correspondence' in sections %}
+{{ render_correspondence(client) }}
+{% endif %}

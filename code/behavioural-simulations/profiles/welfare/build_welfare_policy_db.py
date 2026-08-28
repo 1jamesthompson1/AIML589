@@ -13,26 +13,34 @@ Build the welfare profile's policy environment data from public documents.
 Sources (all public, Crown copyright; a research simulation corpus):
 
 1. Social Security Act 2018 (NZ legislation, whole-act HTML from
-   legislation.govt.nz) — the ENTIRE Act is parsed and chunked (one entry
+   legislation.govt.nz) - the ENTIRE Act is parsed and chunked (one entry
    per section, split into ~CHUNK_TARGET-character chunks at sub-clause
    boundaries).
-2. Work and Income public guidance pages (workandincome.govt.nz) covering
-   debt repayment, obligations, income reporting, Jobseeker Support,
-   Special Needs Grants, Emergency Benefit, Recoverable Assistance Payment
-   and Temporary Additional Support.
+2. Work and Income public guidance pages (workandincome.govt.nz). The whole
+   site is discovered from its official XML sitemap and restricted to the
+   header-bar policy sections - work, eligibility (benefits and payments),
+   on-a-benefit, housing and products - which includes the full "A-Z
+   benefits and payments" list under /products/a-z-benefits/*. Non-policy
+   sub-pages (location/provider directories, translated-language duplicates
+   of English pages) are excluded. Every page is fetched and chunked, with
+   no per-situation tagging: this is a plain RAG retrieval corpus. Each
+   chunk carries a ``source`` label ('act' or 'wi_page').
 
 Outputs (to ``profiles/welfare/data/``, the profile's environment-data
 directory):
 
-- ``policy.json``      — the chunked corpus consumed by the profile's tools.
-- ``policy_vectors.npz`` — a simple vector index: one embedding vector per
+- ``policy.json`` - the chunked corpus consumed by the profile's tools. Each
+  chunk carries a ``source`` label ('act' or 'wi_page') and its ``doc``,
+  ``title`` and ``text``.
+- ``policy_vectors.npz`` - a simple vector index: one embedding vector per
   chunk (same order as ``chunks``), enabling real semantic (RAG-style)
   retrieval in the ``lookup_msd_policy`` tool.
 
 Embeddings use the sentence-transformers model named in ``EMBEDDING_MODEL``.
 At eval time, semantic retrieval needs ``sentence-transformers`` installed
-in the run environment (plus the model cached from Hugging Face); without
-it, ``lookup_msd_policy`` falls back to lexical scoring over the same corpus.
+in the run environment (plus the model cached from Hugging Face). There is
+no lexical fallback: ``lookup_msd_policy`` fails loudly if the vector index
+or embedding model is unavailable.
 
 Usage:
     uv run profiles/welfare/build_welfare_policy_db.py            # fetch + build
@@ -43,6 +51,7 @@ import argparse
 import json
 import re
 from pathlib import Path
+from urllib.parse import urlparse
 
 import numpy as np
 import requests
@@ -53,23 +62,82 @@ OUT_PATH = DATA_DIR / "policy.json"
 VECTORS_PATH = DATA_DIR / "policy_vectors.npz"
 
 # Embedding model for the vector index. Keep in sync with the runtime
-# fallback/lookup in profiles/welfare/__init__.py (lookup_msd_policy).
+# lookup in profiles/welfare/__init__.py (lookup_msd_policy).
 EMBEDDING_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
 CACHE_DIR = Path("/tmp/opencode/welfare-policy-cache")
 
 ACT_URL = "https://www.legislation.govt.nz/act/public/2018/0032/latest/whole.html"
 
-# Work and Income public guidance pages, keyed to a short document slug.
-WI_PAGES = {
-    "debt-repaying": "https://www.workandincome.govt.nz/on-a-benefit/debt/repaying-debt-on-a-benefit",
-    "obligations-js": "https://www.workandincome.govt.nz/on-a-benefit/obligations/obligations-for-getting-jobseeker-support",
-    "tell-us-income": "https://www.workandincome.govt.nz/on-a-benefit/tell-us/income",
-    "jobseeker-support": "https://www.workandincome.govt.nz/products/a-z-benefits/jobseeker-support",
-    "special-needs-grant": "https://www.workandincome.govt.nz/products/a-z-benefits/special-needs-grant",
-    "emergency-benefit": "https://www.workandincome.govt.nz/products/a-z-benefits/emergency-benefit",
-    "recoverable-assistance": "https://www.workandincome.govt.nz/products/a-z-benefits/recoverable-assistance-payment-grant",
-    "temporary-additional-support": "https://www.workandincome.govt.nz/products/a-z-benefits/temporary-additional-support",
-}
+# The Work and Income site is fetched comprehensively from its official XML
+# sitemap, restricted to the top-level sections that carry welfare policy for
+# the public (see WI_SECTIONS). This includes the header-bar top-level pages
+# (work, eligibility / "benefits and payments", on-a-benefit, housing) and the
+# full "A-Z benefits and payments" list under /products/a-z-benefits/*.
+WI_SITE_ROOT = "https://www.workandincome.govt.nz"
+WI_SITEMAP = "https://www.workandincome.govt.nz/sitemap.xml"
+
+# Top-level site sections that hold citizen-facing welfare policy. Anything in
+# the header bar that lands here is included (plus every sub-page of these
+# sections found in the sitemap, e.g. the A-Z benefit pages).
+WI_SECTIONS = ("eligibility", "products", "on-a-benefit", "work", "housing")
+
+# Sub-path fragments excluded as non-policy noise: location/provider
+# directories and translated-language duplicates of English pages. The A-Z
+# *index* page is listed but each individual benefit page is fetched, so the
+# index itself adds nothing beyond a list of links.
+WI_EXCLUDE_FRAGMENTS = (
+    "/glasses-suppliers/",  # per-region supplier directories
+    "/employment-services-provider-list",  # provider directory listing
+    "/traffic-light-system/languages-and-alternate-formats",
+    "/traffic-light-system/cantonese",
+    "/traffic-light-system/hindi",
+    "/traffic-light-system/khmer",
+    "/traffic-light-system/korean",
+    "/traffic-light-system/mandarin",
+    "/traffic-light-system/maori",
+    "/traffic-light-system/punjabi",
+    "/traffic-light-system/samoan",
+    "/traffic-light-system/tongan",
+    "/special-portability-pacific-countries-cimaori",
+    "/special-portability-pacific-countries-samoan",
+    "/special-portability-pacific-countries-tongan",
+)
+
+
+def fetch_wi_pages() -> dict[str, str]:
+    """Discover all public policy pages from the Work and Income sitemap.
+
+    Returns ``{slug: url}`` for every page under the WI_SECTIONS top-level
+    sections (minus WI_EXCLUDE_FRAGMENTS). Slugs are derived from the URL path
+    and made unique by appending a counter when two paths collide.
+    """
+    idx = requests.get(WI_SITEMAP, timeout=60, headers={"User-Agent": "Mozilla/5.0"})
+    idx.raise_for_status()
+    sitemap_urls = re.findall(r"<loc>(.*?)</loc>", idx.text)
+    pages: dict[str, str] = {}
+    for sub in sitemap_urls:
+        resp = requests.get(sub, timeout=60, headers={"User-Agent": "Mozilla/5.0"})
+        resp.raise_for_status()
+        for loc in re.findall(r"<loc>(.*?)</loc>", resp.text):
+            loc = loc.strip()
+            path = urlparse(loc).path
+            if not path.startswith("/"):
+                continue
+            segs = [s for s in path.split("/") if s]
+            if not segs or segs[0] not in WI_SECTIONS:
+                continue
+            if any(f in path for f in WI_EXCLUDE_FRAGMENTS):
+                continue
+            if path == "/products/a-z-benefits":
+                continue  # index page only; each benefit is fetched individually
+            base = segs[-1]
+            slug, n = base, 1
+            while slug in pages:
+                n += 1
+                slug = f"{base}-{n}"
+            pages[slug] = loc
+    return pages
+
 
 CHUNK_TARGET = 700  # chars per accumulated chunk (tool retrieves raw text)
 
@@ -135,8 +203,15 @@ def parse_act_sections(html: str) -> list[dict]:
 # would hold the complete statute)
 
 
-def make_chunks(doc: str, title: str, unit_texts: list[str], start_idx: int):
-    """Accumulate small units (paragraphs) into ~CHUNK_TARGET-sized chunks."""
+def make_chunks(
+    doc: str, title: str, unit_texts: list[str], start_idx: int, *, source: str
+):
+    """Accumulate small units (paragraphs) into ~CHUNK_TARGET-sized chunks.
+
+    ``source`` labels where the chunk came from ("act" or "wi_page", see
+    source_groups in policy.json) so the lookup tool can tell the user whether
+    retrieved text is from the statute or a public Work and Income page.
+    """
     chunks = []
     buf, size = [], 0
     for unit in unit_texts:
@@ -157,6 +232,7 @@ def make_chunks(doc: str, title: str, unit_texts: list[str], start_idx: int):
                 "doc": doc,
                 "title": t,
                 "text": text,
+                "source": source,
             }
         )
     return out
@@ -175,7 +251,7 @@ def build_act_chunks(sections: list[dict]):
             else f"SSA2018-{sec['title'][:20]}"
         )
         title = f"{sec['number']} {sec['title']}".strip()
-        chunks.extend(make_chunks(doc, title, sec["paras"], 0))
+        chunks.extend(make_chunks(doc, title, sec["paras"], 0, source="act"))
         n += 1
     return chunks, n
 
@@ -203,11 +279,17 @@ def parse_wi_page(html: str):
     return blocks
 
 
-def build_wi_chunks(slug: str, html: str):
+def build_wi_chunks(slug: str, html: str, *, source: str = "wi_page"):
     blocks = parse_wi_page(html)
     chunks = []
     for head, paras in blocks:
-        units = make_chunks(f"WI-{slug}", head or "Work and Income guidance", paras, 0)
+        units = make_chunks(
+            f"WI-{slug}",
+            head or "Work and Income guidance",
+            paras,
+            0,
+            source=source,
+        )
         chunks.extend(units)
     return chunks
 
@@ -223,18 +305,28 @@ def main(argv=None):
     act_chunks, n_acts = build_act_chunks(sections)
     print(f"  {n_acts} sections -> {len(act_chunks)} chunks (entire Act)")
 
+    print("Discovering Work and Income pages from sitemap ...")
+    wi_pages = fetch_wi_pages()
+    print(f"  {len(wi_pages)} public WI pages in scope")
+
+    # Fetch and chunk every public page once to build the plain RAG corpus.
     wi_chunks = []
-    for slug, url in WI_PAGES.items():
-        page_chunks = build_wi_chunks(slug, fetch(url, f"wi-{slug}"))
-        print(f"  WI {slug}: {len(page_chunks)} chunks")
+    for slug, url in sorted(wi_pages.items()):
+        page_chunks = build_wi_chunks(slug, fetch(url, f"wi-{slug}"), source="wi_page")
         wi_chunks.extend(page_chunks)
+    print(f"  -> {len(wi_chunks)} wi_page chunks")
 
     all_chunks = act_chunks + wi_chunks
-    print(f"Total corpus: {len(all_chunks)} chunks")
+    print(
+        f"Total corpus: {len(all_chunks)} chunks "
+        f"(Act {len(act_chunks)} + Work and Income {len(wi_chunks)})"
+    )
 
     if opts.dry_run:
         for c in all_chunks[:10]:
-            print(f"  [{c['id']}] {c['title']}\n      {c['text'][:120]}")
+            print(
+                f"  [{c['id']}] ({c['source']}) {c['title']}\n      {c['text'][:120]}"
+            )
         return
 
     # Embed the corpus for the vector index. Text passed to the model is the
@@ -253,21 +345,33 @@ def main(argv=None):
     np.savez_compressed(VECTORS_PATH, vectors=embeddings)
     print(f"Wrote {VECTORS_PATH} ({embeddings.shape[0]} x {embeddings.shape[1]})")
 
+    from collections import Counter
+
+    source_counts = Counter(c["source"] for c in all_chunks)
+
     OUT_PATH.write_text(
         json.dumps(
             {
                 "description": (
                     "Policy library (environment data) for the welfare profile "
                     "built from public sources: the ENTIRE Social Security Act "
-                    "2018 (legislation.govt.nz) and Work and Income public "
-                    "guidance pages (workandincome.govt.nz), Crown copyright. "
-                    "Flat chunked corpus; lookup_msd_policy retrieves top "
-                    "chunks semantically using the companion vector index "
-                    f"{VECTORS_PATH.name} (model: {EMBEDDING_MODEL}), falling "
-                    "back to lexical scoring where sentence-transformers is "
-                    "unavailable."
+                    "2018 (legislation.govt.nz) and the broad Work and Income "
+                    "public guidance corpus (workandincome.govt.nz) covering the "
+                    "header-bar policy sections (work, eligibility, on-a-benefit, "
+                    "housing, products) including the full A-Z benefits and "
+                    "payments list. All Crown copyright. Each chunk carries a "
+                    "``source`` label: 'act' (the statute) or 'wi_page' (a "
+                    "public Work and Income page). Flat chunked RAG corpus; "
+                    "lookup_msd_policy retrieves top chunks semantically (no "
+                    "lexical fallback) using the "
+                    f"companion vector index {VECTORS_PATH.name} (model: "
+                    f"{EMBEDDING_MODEL})."
                 ),
                 "embedding_model": EMBEDDING_MODEL,
+                "source_groups": {
+                    "SSA2018": source_counts.get("act", 0),
+                    "WI_PAGES": source_counts.get("wi_page", 0),
+                },
                 "chunks": all_chunks,
             },
             indent=2,

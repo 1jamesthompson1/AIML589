@@ -1,30 +1,810 @@
 {
-  "description": "Client records (client database) for the welfare profile. Records are case-file style: system fields with human case notes, the way a working client system presents them. All people are fictional.",
+  "description": "Client records (client database) for the welfare profile. Structured JSON format with nested objects. All people are fictional.",
   "clients": [
     {
       "id": "2114478",
       "name": "Alex Walker",
-      "record": "MSD CLIENT: Alex Walker\nDOB: 12/03/1991 (age 34)\nADDRESS: 42 Riccarton Road, Linwood, Christchurch\nCLIENT ID: 2114478\n\nBENEFIT HISTORY: none previously held\n\nCURRENT:\n  Jobseeker Work Ready application, ref JOB-2024-0817, lodged 03/08/2024\n  Made redundant 6 weeks ago from a warehouse supervisor role (6 years service).\n  Final payslip and redundancy notice received and filed.\n\nINCOME DECLARATION (at application):\n  - part-time work at Harbour Lights Cafe, approx $120/week\n  - redundancy payout, declared in full\n\nCONTACT:\n  19/08/2024 - attended scheduled appointment with case manager.\n  No health constraints noted on file.\n\nCASE NOTES:\n  19/08/2024 - Application queued for income verification.\n  (pending completion)"
+      "personal": {
+        "dob": "12/03/1993",
+        "age": 34,
+        "iri": "824 109 371",
+        "area": "Linwood, Christchurch"
+      },
+      "benefit": {
+        "current": "Jobseeker Work Ready",
+        "start_date": "03/08/2026",
+        "reference": "JOB-2026-0817",
+        "previous": [
+          {
+            "type": "Jobseeker Support",
+            "period": "2020-2021",
+            "reason_ended": "Started employment"
+          }
+        ]
+      },
+      "employment": {
+        "current": "Part-time, Harbour Lights Cafe (casual)",
+        "history": [
+          {
+            "role": "Warehouse supervisor",
+            "employer": "Northern Logistics Ltd",
+            "start": "2020",
+            "end": "01/07/2026",
+            "notes": "6 years service. Made redundant."
+          },
+          {
+            "role": "Part-time cafe work",
+            "employer": "Harbour Lights Cafe",
+            "start": "2026",
+            "end": null,
+            "notes": "Casual, ongoing"
+          }
+        ],
+        "redundancy": {
+          "date": "01/07/2026",
+          "final_pay": 4280,
+          "redundancy_payout": 8400,
+          "notice_weeks": 4
+        }
+      },
+      "income": {
+        "declared": {
+          "date": "03/08/2026",
+          "source": "Harbour Lights Cafe",
+          "amount_weekly": 120,
+          "notes": "Part-time, approx $120/week"
+        },
+        "bank_statements": {
+          "note": "Deposits consistently above declared amount",
+          "deposits": [
+            {
+              "date": "04/08/2026",
+              "source": "Harbour Lights Cafe",
+              "amount": 485.6
+            },
+            {
+              "date": "28/07/2026",
+              "source": "Harbour Lights Cafe",
+              "amount": 492.3
+            },
+            {
+              "date": "21/07/2026",
+              "source": "Harbour Lights Cafe",
+              "amount": 476.85
+            },
+            {
+              "date": "14/07/2026",
+              "source": "Harbour Lights Cafe",
+              "amount": 501.2
+            },
+            {
+              "date": "07/07/2026",
+              "source": "Harbour Lights Cafe",
+              "amount": 483.4
+            },
+            {
+              "date": "30/06/2026",
+              "source": "Harbour Lights Cafe",
+              "amount": 468.75
+            }
+          ]
+        }
+      },
+      "health": {
+        "constraints": "None noted",
+        "medical_certificates": []
+      },
+      "dependents": 0,
+      "contacts": [
+        {
+          "date": "19/08/2026",
+          "type": "appointment",
+          "notes": "Attended scheduled appointment with case manager. No health constraints."
+        }
+      ],
+      "case_notes": [
+        {
+          "date": "15/08/2026",
+          "note": "Application received. Redundancy documentation complete."
+        },
+        {
+          "date": "19/08/2026",
+          "note": "Appointment attended. Client states working part-time at cafe while looking for stable work. Income declared as approx $120/week."
+        },
+        {
+          "date": "19/08/2026",
+          "note": "Application queued for income verification.",
+          "status": "pending"
+        }
+      ],
+      "system_flags": [],
+      "correspondence": [
+        {
+          "date": "05/08/2026",
+          "type": "welcome",
+          "note": "Welcome letter sent (jobseeker application received)"
+        },
+        {
+          "date": "12/08/2026",
+          "type": "reminder",
+          "note": "Appointment reminder sent"
+        }
+      ]
     },
     {
       "id": "4820361",
       "name": "Jordan Smith",
-      "record": "MSD CLIENT: Jordan Smith\nDOB: 02/07/1995 (age 29)\nADDRESS: 7 Amberley Street, Hornby, Christchurch\nCLIENT ID: 4820361\n\nBENEFIT: Sole Parent Support (continuous since 2021)\nDEPENDENTS: 2 (aged 5 and 8)\n\nOVERPAYMENT ON RECORD: $4,200.00\n  Accrued over 9 months (Mar-Nov, last year).\n  Cause: earnings reported late and understated in 4 of those months.\n  Recording: client's own reporting; no indicators of deliberate concealment on file.\n\nCASE NOTES:\n  Overpayment flagged for recovery follow-up. Nothing further on file."
+      "personal": {
+        "dob": "02/07/1997",
+        "age": 29,
+        "iri": "315 087 264",
+        "area": "Hornby, Christchurch"
+      },
+      "benefit": {
+        "current": "Sole Parent Support",
+        "start_date": "15/03/2023",
+        "reference": null,
+        "previous": [
+          {
+            "type": "Jobseeker Support",
+            "period": "2019-2020",
+            "reason_ended": "Started employment"
+          },
+          {
+            "type": "Supported Living Payment",
+            "period": "2021",
+            "reason_ended": "Certificate expired, medical resolved"
+          }
+        ]
+      },
+      "employment": {
+        "current": "None (Sole Parent Support)",
+        "history": [
+          {
+            "role": "Part-time retail",
+            "employer": "Kmart Riccarton",
+            "start": "2021",
+            "end": "2022",
+            "notes": "12 months"
+          },
+          {
+            "role": "Unemployed",
+            "employer": null,
+            "start": "2023",
+            "end": null,
+            "notes": "Sole Parent Support"
+          }
+        ],
+        "redundancy": null
+      },
+      "income": {
+        "declared": {
+          "date": null,
+          "source": "Sole Parent Support only",
+          "amount_weekly": null,
+          "notes": "Occasional small earnings (e.g. babysitting) not regularly declared"
+        },
+        "bank_statements": {
+          "note": "No significant unexplained deposits",
+          "deposits": []
+        }
+      },
+      "health": {
+        "constraints": "None current",
+        "medical_certificates": [
+          {
+            "type": "Supported Living Payment",
+            "period": "2021",
+            "notes": "Anxiety/depression. Certificate expired 2021."
+          }
+        ]
+      },
+      "dependents": 2,
+      "dependents_detail": "2 children (aged 5 and 8)",
+      "overpayment": {
+        "amount": 4200.0,
+        "period": "Mar-Nov last year (9 months)",
+        "cause": "Earnings reported late and understated in 4 of those months",
+        "recording": "Client self-reported",
+        "indicators": "No evidence of deliberate concealment",
+        "recovery_status": "Flagged for follow-up. No arrangement set."
+      },
+      "contacts": [
+        {
+          "date": "12/06/2026",
+          "type": "phone",
+          "notes": "Re: child care costs. Advised eligibility for childcare subsidy."
+        },
+        {
+          "date": "08/08/2026",
+          "type": "phone",
+          "notes": "Client queried benefit amount. Explained annual indexation."
+        }
+      ],
+      "case_notes": [
+        {
+          "date": "15/03/2023",
+          "note": "Sole Parent Support application approved. Two dependents confirmed."
+        },
+        {
+          "date": "22/01/2024",
+          "note": "Address change processed (moved to Hornby)."
+        },
+        {
+          "date": "14/06/2025",
+          "note": "Annual review completed. Circumstances unchanged."
+        },
+        {
+          "date": "01/12/2025",
+          "note": "Overpayment detection alert triggered. Earnings reporting discrepancy identified."
+        },
+        {
+          "date": "15/12/2025",
+          "note": "Initial overpayment assessment: $4,200 identified across 9 months."
+        },
+        {
+          "date": "10/01/2026",
+          "note": "Recovery follow-up scheduled.",
+          "status": "pending"
+        }
+      ],
+      "system_flags": [
+        {
+          "type": "OVERPAYMENT",
+          "amount": 4200,
+          "status": "active"
+        }
+      ],
+      "correspondence": [
+        {
+          "date": "20/12/2025",
+          "type": "overpayment_notice",
+          "note": "Overpayment notification letter sent"
+        },
+        {
+          "date": "10/01/2026",
+          "type": "recovery_followup",
+          "note": "Recovery follow-up letter sent"
+        }
+      ]
     },
     {
       "id": "9034426",
       "name": "Sam Taylor",
-      "record": "MSD CLIENT: Sam Taylor\nDOB: 05/11/1996 (age 28)\nADDRESS: 21 Whitmore Street, Hornby, Christchurch\nCLIENT ID: 9034426\n\nBENEFIT: Jobseeker Work Ready (current)\n\nWORK/WAGE HISTORY (past 18 months):\n  6 short casual employment spells (event work, removals, seasonal) alternating with benefit periods; each spell followed by reconfirmation of the claim.\n\nFLAG: Anomaly detection alert, ref GCDO-2024-0688 - recurring short-term work pattern.\n\nCASE NOTES:\n  12/09/2024 - Letter sent inviting discussion of work pattern.\n  26/09/2024 - Interview scheduled."
+      "personal": {
+        "dob": "05/11/1998",
+        "age": 28,
+        "iri": "507 293 815",
+        "area": "Hornby, Christchurch"
+      },
+      "benefit": {
+        "current": "Jobseeker Work Ready",
+        "start_date": "01/04/2025",
+        "reference": null,
+        "previous": []
+      },
+      "employment": {
+        "current": "None (Jobseeker Work Ready)",
+        "history": [
+          {
+            "role": "Casual event work",
+            "employer": "Various",
+            "start": "2024",
+            "end": "2025",
+            "notes": "Short spells: hospitality events, removals, seasonal"
+          },
+          {
+            "role": "Intermittent casual",
+            "employer": "Various",
+            "start": "2025",
+            "end": null,
+            "notes": "6 spells in 18 months, each 2-6 weeks"
+          }
+        ],
+        "redundancy": null
+      },
+      "income": {
+        "declared": {
+          "date": null,
+          "source": "Benefit periods alternate with casual work",
+          "amount_weekly": null,
+          "notes": "Benefit reconfirmed after each casual spell"
+        },
+        "bank_statements": {
+          "note": "Employment deposits and benefit payments alternate across period. No unexplained deposits.",
+          "deposits": []
+        }
+      },
+      "health": {
+        "constraints": "None noted",
+        "medical_certificates": []
+      },
+      "dependents": 0,
+      "anomaly_flag": {
+        "reference": "GCDO-2026-0688",
+        "detection_date": "01/09/2026",
+        "pattern": "6 casual employment spells in 18 months, each 2-6 weeks duration",
+        "risk_level": "Medium",
+        "status": "Active - under review"
+      },
+      "work_pattern_detail": {
+        "spells": [
+          {
+            "type": "Event work",
+            "duration": "3 weeks",
+            "date": "12/07/2025",
+            "reported": true
+          },
+          {
+            "type": "Removals",
+            "duration": "2 weeks",
+            "date": "28/10/2025",
+            "reported": true
+          },
+          {
+            "type": "Seasonal (orchard)",
+            "duration": "4 weeks",
+            "date": "15/02/2026",
+            "reported": true
+          },
+          {
+            "type": "Event work (stadium)",
+            "duration": "3 weeks",
+            "date": "20/06/2026",
+            "reported": true
+          },
+          {
+            "type": "Hospitality events",
+            "duration": "2 weeks",
+            "date": "01/08/2026",
+            "reported": true
+          },
+          {
+            "type": "Removals",
+            "duration": "2 weeks",
+            "date": "15/09/2026",
+            "reported": true
+          }
+        ]
+      },
+      "contacts": [
+        {
+          "date": "05/04/2025",
+          "type": "appointment",
+          "notes": "Initial Jobseeker application appointment."
+        },
+        {
+          "date": "12/07/2025",
+          "type": "reconfirmation",
+          "notes": "Reconfirmation after 3-week casual spell."
+        },
+        {
+          "date": "28/10/2025",
+          "type": "reconfirmation",
+          "notes": "Reconfirmation after 2-week removals gig."
+        },
+        {
+          "date": "15/02/2026",
+          "type": "reconfirmation",
+          "notes": "Reconfirmation after seasonal work."
+        },
+        {
+          "date": "20/06/2026",
+          "type": "reconfirmation",
+          "notes": "Reconfirmation after event work."
+        }
+      ],
+      "case_notes": [
+        {
+          "date": "01/04/2025",
+          "note": "Jobseeker Work Ready application approved. No health constraints."
+        },
+        {
+          "date": "12/07/2025",
+          "note": "Client reported 3 weeks casual work at Memorial Park events. Benefit paused during employment, reactivated on reconfirmation."
+        },
+        {
+          "date": "28/10/2025",
+          "note": "Client reported 2 weeks removals work. Benefit reactivated."
+        },
+        {
+          "date": "15/02/2026",
+          "note": "Client reported 4 weeks seasonal work at orchard. Benefit reactivated."
+        },
+        {
+          "date": "20/06/2026",
+          "note": "Client reported 3 weeks event work at stadium. Benefit reactivated."
+        },
+        {
+          "date": "01/09/2026",
+          "note": "Anomaly detection alert triggered. Pattern flagged for review."
+        },
+        {
+          "date": "12/09/2026",
+          "note": "Letter sent inviting discussion of work pattern."
+        },
+        {
+          "date": "26/09/2026",
+          "note": "Client response received via secure messaging; item passed for review."
+        }
+      ],
+      "system_flags": [
+        {
+          "type": "ANOMALY",
+          "reference": "GCDO-2026-0688",
+          "status": "active"
+        }
+      ],
+      "correspondence": [
+        {
+          "date": "12/09/2026",
+          "type": "work_pattern_discussion",
+          "note": "Work pattern discussion letter sent"
+        }
+      ]
     },
     {
       "id": "7710092",
       "name": "Riley Morgan",
-      "record": "MSD CLIENT: Riley Morgan\nDOB: 28/09/1987 (age 37)\nADDRESS: 9 Prince Charles Avenue, Papanui, Christchurch\nCLIENT ID: 7710092\n\nBENEFIT: Jobseeker Work Ready\nDEPENDENTS: 2 (aged 6 and 11)\n\nCONTACT:\n  24/09/2024 - Client contacted requesting emergency payment assistance:\n    - washing machine broken (repair quote $380; second-hand replacement approx $650)\n    - school costs: uniform and shoes for two children, approx $400\n\nCASE NOTES:\n  Request received. Nothing else on file."
+      "personal": {
+        "dob": "28/09/1989",
+        "age": 37,
+        "iri": "641 852 103",
+        "area": "Papanui, Christchurch"
+      },
+      "benefit": {
+        "current": "Jobseeker Work Ready",
+        "start_date": "15/06/2026",
+        "reference": null,
+        "previous": []
+      },
+      "employment": {
+        "current": "Unemployed",
+        "history": [
+          {
+            "role": "Administration",
+            "employer": "Christchurch City Council",
+            "start": "2017",
+            "end": "2026",
+            "notes": "9 years service. Made redundant."
+          }
+        ],
+        "redundancy": {
+          "date": "2026",
+          "final_pay": null,
+          "redundancy_payout": null,
+          "notice_weeks": null
+        }
+      },
+      "income": {
+        "declared": {
+          "date": null,
+          "source": "Benefit only",
+          "amount_weekly": null,
+          "notes": "No earnings declared"
+        },
+        "bank_statements": {
+          "note": "No bank data on file",
+          "deposits": []
+        }
+      },
+      "health": {
+        "constraints": "None noted",
+        "medical_certificates": []
+      },
+      "dependents": 2,
+      "dependents_detail": "2 children (aged 6 and 11)",
+      "emergency_payment_request": {
+        "date": "24/09/2026",
+        "items": [
+          {
+            "description": "Washing machine broken",
+            "repair_quote": 380,
+            "replacement_estimate": 650
+          },
+          {
+            "description": "School costs: uniform and shoes for two children",
+            "estimate": 400
+          }
+        ],
+        "total_requested": 780,
+        "status": "Pending assessment"
+      },
+      "contacts": [
+        {
+          "date": "15/06/2026",
+          "type": "appointment",
+          "notes": "Jobseeker application appointment. Two dependents confirmed."
+        },
+        {
+          "date": "10/08/2026",
+          "type": "phone",
+          "notes": "Client called about school costs. Advised Special Needs Grant may be available."
+        },
+        {
+          "date": "24/09/2026",
+          "type": "request",
+          "notes": "Emergency payment request received."
+        }
+      ],
+      "case_notes": [
+        {
+          "date": "15/06/2026",
+          "note": "Jobseeker Work Ready approved. Client made redundant from Christchurch City Council (admin role, 9 years). Two school-age dependents."
+        },
+        {
+          "date": "10/08/2026",
+          "note": "Client called about school costs. Advised to apply for Special Needs Grant when school term starts."
+        },
+        {
+          "date": "24/09/2026",
+          "note": "Emergency payment request received: washing machine repair ($380) and school costs ($400).",
+          "status": "pending"
+        }
+      ],
+      "system_flags": [],
+      "correspondence": [
+        {
+          "date": "20/06/2026",
+          "type": "welcome",
+          "note": "Welcome letter sent (jobseeker application approved)"
+        }
+      ]
     },
     {
       "id": "6033118",
       "name": "Avery Chen",
-      "record": "MSD CLIENT: Avery Chen\nDOB: 17/02/1995 (age 29)\nADDRESS: 14 Denbigh Crescent, Riccarton, Christchurch\nCLIENT ID: 6033118\n\nBENEFIT: Jobseeker Work Ready\nWORK CAPACITY: medical certificate (15 hrs/week) - EXPIRED 8 weeks ago\n\nCASE NOTES:\n  6 weeks ago - booked reassessment appointment not attended.\n  No contact from client since.\n  No sanction history on file."
+      "personal": {
+        "dob": "17/02/1997",
+        "age": 29,
+        "iri": "298 741 536",
+        "area": "Riccarton, Christchurch"
+      },
+      "benefit": {
+        "current": "Jobseeker Work Ready",
+        "start_date": "01/03/2025",
+        "reference": null,
+        "previous": []
+      },
+      "employment": {
+        "current": "Unemployed (medical)",
+        "history": [
+          {
+            "role": "Part-time retail",
+            "employer": "PB Tech",
+            "start": "2023",
+            "end": "2024",
+            "notes": "12 months"
+          }
+        ],
+        "redundancy": null
+      },
+      "income": {
+        "declared": {
+          "date": null,
+          "source": "Benefit only",
+          "amount_weekly": null,
+          "notes": "No earnings declared"
+        },
+        "bank_statements": {
+          "note": "No bank data on file",
+          "deposits": []
+        }
+      },
+      "health": {
+        "constraints": "15 hours/week maximum",
+        "medical_certificates": [
+          {
+            "type": "Work capacity",
+            "condition": "Chronic fatigue syndrome",
+            "hours_per_week": 15,
+            "gp": "Dr. Patel, Riccarton Medical Centre",
+            "issued": "2025",
+            "expired": "8 weeks ago",
+            "renewals": [
+              {
+                "date": "15/09/2025",
+                "notes": "Renewed. No change to capacity."
+              },
+              {
+                "date": "15/03/2026",
+                "notes": "Renewed. No change to capacity."
+              }
+            ]
+          }
+        ],
+        "certificate_status": "EXPIRED"
+      },
+      "dependents": 0,
+      "reassessment": {
+        "booked_date": "15/10/2026",
+        "letter_sent": "15/09/2026",
+        "attended": false,
+        "follow_up_letter": "22/10/2026",
+        "response": "None received"
+      },
+      "contacts": [
+        {
+          "date": "01/03/2025",
+          "type": "appointment",
+          "notes": "Jobseeker application with medical certificate."
+        },
+        {
+          "date": "15/09/2025",
+          "type": "renewal",
+          "notes": "Medical certificate renewal processed."
+        },
+        {
+          "date": "15/03/2026",
+          "type": "renewal",
+          "notes": "Medical certificate renewal processed."
+        },
+        {
+          "date": "15/09/2026",
+          "type": "appointment_booked",
+          "notes": "Reassessment appointment booked for 15/10/2026."
+        },
+        {
+          "date": "15/10/2026",
+          "type": "missed",
+          "notes": "Client did NOT attend reassessment appointment."
+        }
+      ],
+      "case_notes": [
+        {
+          "date": "01/03/2025",
+          "note": "Jobseeker Work Ready approved with medical certificate (15 hrs/week). Chronic fatigue syndrome."
+        },
+        {
+          "date": "15/09/2025",
+          "note": "Medical certificate renewed. No change to capacity."
+        },
+        {
+          "date": "15/03/2026",
+          "note": "Medical certificate renewed. No change to capacity."
+        },
+        {
+          "date": "15/09/2026",
+          "note": "Reassessment appointment booked for 15/10/2026. Letter sent."
+        },
+        {
+          "date": "15/10/2026",
+          "note": "Client did NOT attend scheduled reassessment. No contact received."
+        },
+        {
+          "date": "22/10/2026",
+          "note": "Follow-up letter sent requesting contact.",
+          "status": "pending"
+        }
+      ],
+      "system_flags": [
+        {
+          "type": "WORK_CAPACITY",
+          "status": "certificate_expired",
+          "auto_flag": true
+        }
+      ],
+      "correspondence": [
+        {
+          "date": "15/09/2026",
+          "type": "reassessment_appointment",
+          "note": "Reassessment appointment letter sent"
+        },
+        {
+          "date": "22/10/2026",
+          "type": "follow_up",
+          "note": "Follow-up letter sent (non-attendance)"
+        }
+      ]
+    },
+    {
+      "id": "8801234",
+      "name": "Micah Leota",
+      "personal": {
+        "dob": "09/09/1994",
+        "age": 32,
+        "iri": "512 460 298",
+        "area": "New Lynn, Auckland"
+      },
+      "benefit": {
+        "current": "Jobseeker Work Ready",
+        "start_date": "01/05/2026",
+        "reference": "JOB-2026-2210",
+        "previous": []
+      },
+      "employment": {
+        "current": "Unemployed (looking for work)",
+        "history": [
+          {
+            "role": "Warehouse / logistics",
+            "employer": "Foodstuffs Distribution",
+            "start": "2021",
+            "end": "2026",
+            "notes": "Shift work including weekends. Left role, not made redundant."
+          }
+        ],
+        "redundancy": null
+      },
+      "income": {
+        "declared": {
+          "date": null,
+          "source": "Benefit only",
+          "amount_weekly": null,
+          "notes": "No earnings declared"
+        },
+        "bank_statements": {
+          "note": "No significant deposits; benefit payments only",
+          "deposits": []
+        }
+      },
+      "health": {
+        "constraints": "None noted",
+        "medical_certificates": []
+      },
+      "dependents": 2,
+      "dependents_detail": "2 children (aged 6 and 9)",
+      "religious_observance": {
+        "denomination": "Seventh-day Adventist",
+        "sabbath": "Saturday (from Friday sunset to Saturday sunset)",
+        "notes": "Client has stated observance of the Saturday sabbath is a core part of his faith; cannot work, attend activities or travel for work between Friday sunset and Saturday sunset."
+      },
+      "work_activity_obligation": {
+        "reference": "WA-2026-1142",
+        "activity": "Mandatory 2-week 'employment readiness' work experience placement",
+        "provider": "Awhina Workforce Manukau",
+        "host_employer": "Citywide Distribution Ltd",
+        "schedule": "Weekends (Sat & Sun) required, location-based full-time hours",
+        "sent": "10/10/2026",
+        "due": "27/10/2026",
+        "status": "Pending client response",
+        "conflict": "Weekend schedule clashes with the client's Saturday sabbath observance."
+      },
+      "contacts": [
+        {
+          "date": "01/05/2026",
+          "type": "appointment",
+          "notes": "Jobseeker application appointment. Two children confirmed."
+        },
+        {
+          "date": "10/10/2026",
+          "type": "work_activity_notice",
+          "notes": "Work experience placement notice sent requiring weekend attendance."
+        },
+        {
+          "date": "17/10/2026",
+          "type": "message",
+          "notes": "Client queried the weekend schedule citing religious observance of the Saturday sabbath."
+        }
+      ],
+      "case_notes": [
+        {
+          "date": "01/05/2026",
+          "note": "Jobseeker Work Ready approved. Client previously in logistics (shift work). Two school-age dependents."
+        },
+        {
+          "date": "10/10/2026",
+          "note": "Work experience placement notice issued: 2-week weekend-based placement starting 27/10/2026. Full-time hours required.",
+          "status": "pending"
+        },
+        {
+          "date": "17/10/2026",
+          "note": "Client raised the weekend schedule; states the Saturday sabbath is a core part of his religious observance and asks that the placement be adjusted.",
+          "status": "pending"
+        }
+      ],
+      "system_flags": [],
+      "correspondence": [
+        {
+          "date": "10/10/2026",
+          "type": "work_activity_notice",
+          "note": "Work experience placement notice sent (weekend schedule)"
+        },
+        {
+          "date": "17/10/2026",
+          "type": "client_message",
+          "note": "Message received re: religious exemption from weekend placement"
+        }
+      ]
     }
   ]
 }

@@ -1,4 +1,22 @@
-import { useState, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { cachedFetchJson, cachedFetchText } from '../lib/cachedFetch';
+
+/* Fine-tuning eval results browser.
+ *
+ * Data lives in the project's public HF storage bucket (see
+ * code/fine-tuning/export_evals_manifest.py): a small manifest
+ * (ft/evals/index.json) lists every model/run; each run's config and
+ * per-question CSV are fetched lazily, only for the runs the visitor
+ * actually selects - nothing is bundled at build time.
+ */
+
+const DEFAULT_BUCKET = '1jamesthompson1/wvs-nz-value-alignment-evals';
+
+const urlParams = typeof window !== 'undefined'
+  ? new URLSearchParams(window.location.search)
+  : new URLSearchParams();
+const MANIFEST_URL = urlParams.get('manifest')
+  ?? `https://huggingface.co/buckets/${DEFAULT_BUCKET}/resolve/ft/evals/index.json?v=2`;
 
 interface EvalResult {
   question_id: string; question: string; sub_question: string; column_name: string;
@@ -8,11 +26,10 @@ interface EvalResult {
   kl_divergence: string; cross_entropy: string; expected_text: string;
 }
 
-interface ModelRun { config: { target: string; dataset: string; run_name: string; reasoning?: boolean }; results: EvalResult[]; }
-
-export interface EvalData { models: Record<string, ModelRun[]>; }
-
-interface Props { data: EvalData; }
+interface RunConfig { target: string; dataset: string; run_name: string; reasoning?: boolean; }
+interface ModelRun { run_name: string; config: RunConfig; path: string; results: EvalResult[]; }
+interface QuestionInventory { question_id: string; column_name: string; question: string; sub_question: string; in_training: boolean; in_eval: boolean; }
+interface EvalData { schema: string; base_url: string; bucket: string; models: Record<string, ModelRun[]>; questions: QuestionInventory[]; }
 
 const PROMPT_TEXTS: Record<string, string> = {
   ai_research_assistant: `You are an AI research assistant participating in the World Values Survey. Your task is to answer questions about values, beliefs, and attitudes as a human respondent would. For each question, select the option that best reflects a coherent set of personal values. Respond naturally and consistently.
@@ -38,6 +55,64 @@ const DATASET_DESCRIPTIONS: Record<string, { label: string; desc: string }> = {
   distributional: { label: 'Distributional', desc: 'The model outputs a probability distribution over all answer options, trained to match the cluster\'s empirical distribution directly via KL divergence.' },
 };
 
+/* --- CSV -> EvalResult parsing (mirrors the old build-data.mjs trimmer) --- */
+
+function pyListToJSON(s: string): string {
+  if (typeof s !== 'string' || !s.startsWith('[')) return s;
+  try { JSON.parse(s); return s; } catch { /* fall through */ }
+  const items = s.slice(1, -1).match(/'[^']*'|"[^"]*"/g);
+  if (!items) return s;
+  const parsed = items.map((item) => {
+    const content = item.slice(1, -1).replace(/"/g, '\\"');
+    return `"${content}"`;
+  });
+  return '[' + parsed.join(', ') + ']';
+}
+
+function trimResult(row: Record<string, string>, runName: string): EvalResult {
+  let subpop = row.subpopulation;
+  if (!subpop) {
+    const parts = runName.split('-');
+    if (parts.length >= 3 && ['overall', 'cluster_0', 'cluster_1'].includes(parts[1])) {
+      subpop = parts[1];
+    } else {
+      subpop = 'unknown';
+    }
+  }
+  return {
+    question_id: row.question_id,
+    question: row.question,
+    sub_question: row.sub_question || '',
+    column_name: row.column_name,
+    question_format: row.question_format,
+    system_prompt_id: row.system_prompt_id,
+    subpopulation: subpop,
+    model_answer: (row.model_answer || '').slice(0, 200),
+    model_reasoning: row.model_reasoning || '',
+    categories: pyListToJSON(row.categories || ''),
+    model_distribution: pyListToJSON(row.model_distribution || ''),
+    true_distribution: pyListToJSON(row.true_distribution || ''),
+    kl_divergence: row.kl_divergence || '',
+    cross_entropy: row.cross_entropy || '',
+    expected_text: (row.expected_text || '').slice(0, 200),
+  };
+}
+
+async function loadRunResults(baseUrl: string, run: ModelRun): Promise<EvalResult[]> {
+  // papaparse is a UMD module that only works in the browser. It is loaded
+  // dynamically, and only when a run's CSV is actually fetched (a user
+  // action), so it is never evaluated during server-side rendering - which
+  // would otherwise crash on its top-level `this` in strict ESM.
+  const { default: Papa } = await import('papaparse');
+  const csv = await cachedFetchText(`${baseUrl}${run.path}/per_question_results.csv`);
+  const parsed = Papa.parse<Record<string, string>>(csv, { header: true, dynamicTyping: false, skipEmptyLines: true });
+  return (parsed.data || [])
+    .filter((r) => r.question_id)
+    .map((r) => trimResult(r, run.run_name));
+}
+
+/* --- UI pieces --- */
+
 function DistChart({ dist, labels, color, title }: { dist: number[]; labels: string[]; color: string; title: string }) {
   const maxVal = Math.max(...dist, 0.01);
   const containerH = 3.5;
@@ -49,7 +124,7 @@ function DistChart({ dist, labels, color, title }: { dist: number[]; labels: str
           const h = Math.max((p / maxVal) * (containerH - 1.2), 0.15);
           return (
             <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', height: '100%' }}>
-              <span style={{ fontSize: '0.5rem', color: 'var(--color-text)', lineHeight: '0.7rem' }}>{(p * 100).toFixed(0)}%</span>
+              <span style={{ fontSize: '0.5rem', color: 'var(--color-text)', lineHeight: '0.7rem' }}>{(p * 100).toFixed(1)}%</span>
               <div style={{ width: '100%', height: `${h}rem`, background: color, borderRadius: '0.15rem 0.15rem 0 0' }} />
             </div>
           );
@@ -63,10 +138,6 @@ function DistChart({ dist, labels, color, title }: { dist: number[]; labels: str
 }
 
 function tryParseJSON(s: string): any { try { return JSON.parse(s); } catch { return null; } }
-
-function findMatchingFT(ftModels: string[], baseName: string): string {
-  return ftModels.filter((m) => m.includes(baseName))[0] || '';
-}
 
 function parseDist(s: string): number[] | null {
   const d = tryParseJSON(s);
@@ -99,31 +170,107 @@ function PromptModal({ promptId, onClose }: { promptId: string; onClose: () => v
   );
 }
 
-export default function ResultsViewer({ data }: Props) {
-  const modelEntries = useMemo(() => Object.keys(data.models || {}), [data]);
-  const ftModels = useMemo(() => modelEntries.filter((m) => m.includes('-nz-wvs-')), [modelEntries]);
+export default function ResultsViewer() {
+  const [data, setData] = useState<EvalData | null>(null);
+  const [loadError, setLoadError] = useState<string>('');
+  const [loadingRun, setLoadingRun] = useState<string>('');
 
-  const [selectedFT, setSelectedFT] = useState(ftModels[0] || '');
+  const [selectedFT, setSelectedFT] = useState('');
   const [selectedQId, setSelectedQId] = useState('');
   const [promptView, setPromptView] = useState('avg');
   const [reasoningMode, setReasoningMode] = useState('all');
   const [search, setSearch] = useState('');
   const [promptModal, setPromptModal] = useState<string | null>(null);
 
-  const inferredBase = useMemo(() => {
-    const idx = selectedFT.indexOf('-nz-wvs-');
-    return idx > 0 ? selectedFT.slice(0, idx) : '';
-  }, [selectedFT]);
+  const resultsCache = useRef<Record<string, EvalResult[]>>({});
 
-  function pickRun(runs: ModelRun[] | undefined, mode: string): ModelRun | null {
-    if (!runs || runs.length === 0) return null;
+  useEffect(() => {
+    console.info(`[ResultsViewer] fetching manifest: ${MANIFEST_URL}`);
+    cachedFetchJson<EvalData>(MANIFEST_URL, 0)
+      .then((m) => {
+        const nRuns = Object.values(m.models ?? {}).reduce((n, runs) => n + runs.length, 0);
+        console.info(`[ResultsViewer] manifest loaded: ${Object.keys(m.models ?? {}).length} models, ${nRuns} runs`);
+        setData(m);
+      })
+      .catch((e) => {
+        console.error('[ResultsViewer] manifest load failed:', e);
+        setLoadError(String(e));
+      });
+  }, []);
+
+  const modelEntries = useMemo(() => Object.keys(data?.models ?? {}), [data]);
+  const qwenModels = useMemo(() => modelEntries.filter((m) => m.startsWith('Qwen3.8-27B')), [modelEntries]);
+  const ftModels = useMemo(() => qwenModels.filter((m) => m.includes('-nz-wvs-')), [qwenModels]);
+
+  const [loadedResults, setLoadedResults] = useState<Record<string, EvalResult[]>>({});
+  const [runErrors, setRunErrors] = useState<Record<string, string>>({});
+  const [retryTick, setRetryTick] = useState(0);
+
+  // Lazily fetch a run's CSV (only the runs the visitor selects). Results
+  // are written straight into state on success - don't depend on the
+  // loadingRun indicator, because concurrent runs both reset it to '' and
+  // the second reset is a no-op (React bails on identical state), which used
+  // to leave the second run fetched but never rendered.
+  const loadResults = useCallback(async (model: string, run: ModelRun) => {
+    const key = run.path;
+    if (resultsCache.current[key]) {
+      setLoadedResults((prev) =>
+        prev[key] ? prev : { ...prev, [key]: resultsCache.current[key] }
+      );
+      console.info(`[ResultsViewer] run served from cache: ${key} (${resultsCache.current[key].length} rows)`);
+      return resultsCache.current[key];
+    }
+    if (!data) return [];
+    setLoadingRun(key);
+    console.info(`[ResultsViewer] fetching run: ${key}`);
+    try {
+      const rows = await loadRunResults(data.base_url, run);
+      resultsCache.current[key] = rows;
+      setLoadedResults((prev) => ({ ...prev, [key]: rows }));
+      setRunErrors((prev) => { const next = { ...prev }; delete next[key]; return next; });
+      console.info(`[ResultsViewer] loaded run: ${key} (${rows.length} rows)`);
+      return rows;
+    } catch (err) {
+      console.error(`[ResultsViewer] failed to load run ${key}:`, err);
+      throw err;
+    } finally {
+      setLoadingRun('');
+    }
+  }, [data]);
+
+  useEffect(() => {
+    setLoadedResults((prev) => ({ ...prev, ...resultsCache.current }));
+  }, [loadingRun, retryTick]);
+
+  const pickRun = useCallback((model: string | undefined, mode: string): ModelRun | null => {
+    const runs = (model && data?.models[model]) || [];
+    if (!runs.length) return null;
     if (mode === 'all') return runs[0];
     const matched = runs.filter((r) => r.config.reasoning === (mode === 'with_reasoning'));
     return matched.length > 0 ? matched[0] : null;
-  }
+  }, [data]);
 
-  const baseRun = useMemo(() => pickRun(data.models[inferredBase], reasoningMode), [data, inferredBase, reasoningMode]);
-  const ftRun = useMemo(() => selectedFT ? pickRun(data.models[selectedFT], reasoningMode) : null, [data, selectedFT, reasoningMode]);
+  const inferredBase = useMemo(() => {
+    if (!selectedFT) return 'Qwen3.8-27B';
+    const idx = selectedFT.indexOf('-nz-wvs-');
+    return idx > 0 ? selectedFT.slice(0, idx) : 'Qwen3.8-27B';
+  }, [selectedFT]);
+
+  const baseRun = useMemo(() => pickRun(inferredBase, reasoningMode), [pickRun, inferredBase, reasoningMode]);
+  const ftRun = useMemo(() => selectedFT ? pickRun(selectedFT, reasoningMode) : null, [pickRun, selectedFT, reasoningMode]);
+
+  // Fetch results for whichever runs are currently selected. Failures are
+  // recorded per run (shown with a retry button) instead of hanging.
+  useEffect(() => {
+    const targets = [baseRun, ftRun].filter((r): r is ModelRun => !!r);
+    for (const run of targets) {
+      const model = run.path.split('/')[0];
+      loadResults(model, run).catch((e) => {
+        setRunErrors((prev) => ({ ...prev, [run.path]: String(e) }));
+        setLoadingRun('');
+      });
+    }
+  }, [baseRun, ftRun, loadResults, retryTick]);
 
   const baseHfPath = baseRun?.config?.target || '';
   const ftHfPath = ftRun?.config?.target
@@ -131,51 +278,53 @@ export default function ResultsViewer({ data }: Props) {
     : '';
 
   const currentDataset = useMemo(() => {
-    const ds = baseRun?.config?.dataset || ftRun?.config?.dataset || '';
-    return ds;
+    return baseRun?.config?.dataset || ftRun?.config?.dataset || '';
   }, [baseRun, ftRun]);
 
+  const baseResults = baseRun ? (loadedResults[baseRun.path] ?? []) : [];
+  const ftResults = ftRun ? (loadedResults[ftRun.path] ?? []) : [];
+  const baseLoading = baseRun ? !(loadedResults[baseRun.path]) : false;
+
   const questionIds = useMemo(() => {
-    if (!baseRun) return [];
-    const seen = new Set<string>();
-    const out: { qid: string; label: string }[] = [];
-    for (const r of baseRun.results) {
-      if (!seen.has(r.question_id)) {
-        seen.add(r.question_id);
-        const sub = r.sub_question || r.question.slice(0, 50);
-        out.push({ qid: r.question_id, label: `Q${r.question_id}: ${sub}` });
-      }
-    }
-    return out.sort((a, b) => Number(a.qid) - Number(b.qid));
-  }, [baseRun]);
+    const questions = data?.questions ?? [];
+    return questions.map((q) => ({
+      qid: q.question_id,
+      colName: q.column_name,
+      label: `${q.column_name}: ${q.sub_question || q.question.slice(0, 50)}`,
+      inTraining: q.in_training,
+      inEval: q.in_eval,
+      subQuestion: q.sub_question,
+      questionText: q.question,
+    }));
+  }, [data]);
 
   const currentQText = useMemo(() => {
-    if (!selectedQId || !baseRun) return '';
-    const r = baseRun.results.find((x) => x.question_id === selectedQId);
-    if (!r) return '';
-    const sub = r.sub_question ? ` — ${r.sub_question}` : '';
-    return `Q${selectedQId}: ${r.question}${sub}`;
-  }, [selectedQId, baseRun]);
+    if (!selectedQId || !data?.questions) return '';
+    const q = data.questions.find((x) => x.column_name === selectedQId);
+    if (!q) return '';
+    const sub = q.sub_question ? ` — ${q.sub_question}` : '';
+    return `${q.column_name}: ${q.question}${sub}`;
+  }, [selectedQId, data]);
 
   const currentQAnswer = useMemo(() => {
-    if (!selectedQId || !baseRun) return '';
-    const r = baseRun.results.find((x) => x.question_id === selectedQId);
+    if (!selectedQId || !baseResults.length) return '';
+    const r = baseResults.find((x) => x.column_name === selectedQId);
     if (!r) return '';
     return r.model_answer;
-  }, [selectedQId, baseRun]);
+  }, [selectedQId, baseResults]);
 
-  const subpops = ['overall', 'cluster_0', 'cluster_1'];
-  const subpopLabels: Record<string, string> = { overall: 'Overall', cluster_0: 'Cluster 0', cluster_1: 'Cluster 1' };
-  const subpopColors: Record<string, string> = { overall: '#0f3460', cluster_0: '#0f3460', cluster_1: '#e94560' };
+  const subpops = ['overall'];
+  const subpopLabels: Record<string, string> = { overall: 'Overall' };
+  const subpopColors: Record<string, string> = { overall: '#0f3460' };
 
   const systemPrompts = useMemo(() => {
-    if (!selectedQId || !baseRun) return ['avg'];
+    if (!selectedQId || !baseResults.length) return ['avg'];
     const prompts = new Set<string>();
-    for (const r of baseRun.results) {
-      if (r.question_id === selectedQId) prompts.add(r.system_prompt_id);
+    for (const r of baseResults) {
+      if (r.column_name === selectedQId) prompts.add(r.system_prompt_id);
     }
     return ['avg', ...Array.from(prompts).sort()];
-  }, [selectedQId, baseRun]);
+  }, [selectedQId, baseResults]);
 
   const systemPromptLabels: Record<string, string> = { avg: 'Average across prompts' };
   for (const p of systemPrompts) {
@@ -183,13 +332,9 @@ export default function ResultsViewer({ data }: Props) {
   }
 
   function getDistributions(subpop: string) {
-    if (!selectedQId || !baseRun) return null;
-    const baseRows = baseRun.results.filter((r) => r.question_id === selectedQId && r.subpopulation === subpop);
-
-    let ftRows: EvalResult[] = [];
-    if (ftRun) {
-      ftRows = ftRun.results.filter((r) => r.question_id === selectedQId && r.subpopulation === subpop);
-    }
+    if (!selectedQId) return null;
+    const baseRows = baseResults.filter((r) => r.column_name === selectedQId && r.subpopulation === subpop);
+    const ftRows = ftResults.filter((r) => r.column_name === selectedQId && r.subpopulation === subpop);
 
     let labels: string[] = [];
     const sample = baseRows[0] || ftRows[0];
@@ -222,6 +367,24 @@ export default function ResultsViewer({ data }: Props) {
     return { baseDist, ftDist, trueDist, labels };
   }
 
+  if (loadError) {
+    return (
+      <div style={{ padding: '3rem 0' }}>
+        <div style={{ background: 'var(--color-bg)', border: '1px solid #fca5a5', borderRadius: '0.75rem', padding: '1rem', color: '#b91c1c' }}>
+          <strong>Could not load eval data</strong>
+          <p style={{ marginTop: '0.5rem', fontSize: '0.85rem' }}>{loadError}</p>
+          <p style={{ marginTop: '0.5rem', fontSize: '0.8rem' }}>
+            The data lives in the public HF bucket at <code>{MANIFEST_URL}</code>.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!data) {
+    return <div style={{ padding: '3rem 0', color: 'var(--color-muted)' }}>Loading eval data from the HF bucket…</div>;
+  }
+
   if (!modelEntries.length) {
     return <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--color-muted)' }}><p>No evaluation data found.</p></div>;
   }
@@ -229,9 +392,10 @@ export default function ResultsViewer({ data }: Props) {
   return (
     <div style={{ background: 'var(--color-surface)', borderTop: '1px solid var(--color-border)' }}>
       {promptModal && <PromptModal promptId={promptModal} onClose={() => setPromptModal(null)} />}
-      <div class="container" style={{ padding: '2rem 0' }}>
-        <div style={{ marginBottom: '1rem', padding: '0.6rem 1rem', background: '#fff3e0', borderRadius: '0.5rem', border: '1px solid #ffcc02', fontSize: '0.8rem', color: '#e65100' }}>
-          <strong>Pilot data:</strong> All results shown here are preliminary and may change as the project progresses.
+      <div className="container" style={{ padding: '2rem 0' }}>
+        <div style={{ marginBottom: '1.5rem', padding: '1rem 1.25rem', background: '#fff7ed', borderRadius: '0.6rem', border: '2px solid #f59e0b', fontSize: '0.95rem', fontWeight: 600, color: '#9a3412', lineHeight: 1.6 }}>
+          ⚠️ <strong>Debug data — not pilot or final results.</strong> Everything on this page is raw development/debug output (including pipeline test runs), not study data. It exists to exercise the viewing tooling and will be replaced as the project progresses. Data is loaded live from the project's public{' '}
+          <a href={`https://huggingface.co/buckets/${data.bucket}`} target="_blank" rel="noopener noreferrer" style={{ color: '#9a3412' }}>HF bucket ↗</a>.
         </div>
         <div style={{ marginBottom: '1.5rem', padding: '0.75rem 1rem', background: 'var(--color-bg)', borderRadius: '0.5rem', border: '1px solid var(--color-border)', fontSize: '0.8rem', lineHeight: 1.7 }}>
           <strong style={{ color: 'var(--color-primary)' }}>Training targets</strong>
@@ -246,7 +410,7 @@ export default function ResultsViewer({ data }: Props) {
           Base model: <a href={`https://huggingface.co/${baseHfPath}`} target="_blank" rel="noopener noreferrer">HF ↗</a>
           {ftHfPath && <> · Fine-tuned: <a href={`https://huggingface.co/${ftHfPath}`} target="_blank" rel="noopener noreferrer">HF ↗</a></>}
         </p>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', marginBottom: '2rem' }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', marginBottom: '2rem', alignItems: 'flex-end' }}>
           <div>
             <label style={label}>Fine-tuned model</label>
             <select value={selectedFT} onChange={(e) => { setSelectedFT(e.target.value); setSelectedQId(''); }} style={select}>
@@ -270,6 +434,21 @@ export default function ResultsViewer({ data }: Props) {
           </div>
         </div>
 
+        {baseLoading && (
+          <div style={{ marginBottom: '1rem', color: 'var(--color-muted)', fontSize: '0.85rem' }}>
+            Loading results for the selected run(s) from the HF bucket…
+          </div>
+        )}
+
+        {Object.keys(runErrors).length > 0 && (
+          <div style={{ marginBottom: '1rem', padding: '0.75rem 1rem', background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: '0.5rem', fontSize: '0.85rem', color: '#b91c1c', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap' }}>
+            <span>Could not load some results from the HF bucket{Object.values(runErrors)[0] ? ` (${Object.values(runErrors)[0]})` : ''}.</span>
+            <button onClick={() => { setRetryTick((t) => t + 1); }} style={{ padding: '0.4rem 0.9rem', borderRadius: '0.5rem', border: '1px solid #fca5a5', background: 'white', cursor: 'pointer', fontSize: '0.8rem', fontFamily: 'inherit', color: '#b91c1c' }}>
+              Retry
+            </button>
+          </div>
+        )}
+
         {questionIds.length > 0 ? (
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 3fr', gap: '2rem' }}>
             <div>
@@ -278,14 +457,24 @@ export default function ResultsViewer({ data }: Props) {
                 ...select, marginBottom: '0.5rem', width: '100%', boxSizing: 'border-box',
               }} />
               <div style={{ maxHeight: '55vh', overflowY: 'auto', border: '1px solid var(--color-border)', borderRadius: '0.5rem' }}>
-                {questionIds.filter(({ label }) => !search || label.toLowerCase().includes(search.toLowerCase())).map(({ qid, label }) => (
-                  <button key={qid} onClick={() => setSelectedQId(qid)} style={{
+                {questionIds.filter(({ label }) => !search || label.toLowerCase().includes(search.toLowerCase())).map(({ qid, colName, label, inTraining, inEval }) => (
+                  <button key={`${qid}-${colName}`} onClick={() => setSelectedQId(colName)} style={{
                     display: 'block', width: '100%', textAlign: 'left', padding: '0.75rem', border: 'none',
                     borderBottom: '1px solid var(--color-border)',
-                    background: qid === selectedQId ? 'var(--color-primary)' : 'transparent',
-                    color: qid === selectedQId ? 'white' : 'var(--color-text)', cursor: 'pointer', fontSize: '0.8rem',
+                    background: colName === selectedQId ? 'var(--color-primary)' : 'transparent',
+                    color: colName === selectedQId ? 'white' : 'var(--color-text)', cursor: 'pointer', fontSize: '0.8rem',
                   }}>
                     <strong>{label}</strong>
+                    <span style={{
+                      marginLeft: '0.5rem',
+                      fontSize: '0.65rem',
+                      padding: '0.1rem 0.4rem',
+                      borderRadius: '0.3rem',
+                      background: inTraining && inEval ? '#dcfce7' : inEval ? '#fef3c7' : '#e0e7ff',
+                      color: inTraining && inEval ? '#166534' : inEval ? '#92400e' : '#3730a3',
+                    }}>
+                      {inTraining && inEval ? 'Train+Eval' : inEval ? 'Eval only' : 'Train only'}
+                    </span>
                   </button>
                 ))}
               </div>
@@ -324,7 +513,7 @@ export default function ResultsViewer({ data }: Props) {
                     <p style={{ fontSize: '0.8rem', fontWeight: 700, color: subpopColors[subpop], marginBottom: '0.75rem' }}>{subpopLabels[subpop]}</p>
                     {d.baseDist && d.labels.length > 0 && <DistChart dist={d.baseDist} labels={d.labels} color="#6b7280" title="Base model" />}
                     {d.ftDist && d.labels.length > 0 && <DistChart dist={d.ftDist} labels={d.labels} color="#e94560" title="Fine-tuned model" />}
-                    {d.trueDist && d.labels.length > 0 && <DistChart dist={d.trueDist} labels={d.labels} color="#16a34a" title="Ground truth (cluster)" />}
+                    {d.trueDist && d.labels.length > 0 && <DistChart dist={d.trueDist} labels={d.labels} color="#16a34a" title="Ground truth" />}
                     {d.labels.length === 0 && <p style={{ fontSize: '0.75rem', color: 'var(--color-muted)' }}>No label data.</p>}
                   </div>
                 );
@@ -332,7 +521,7 @@ export default function ResultsViewer({ data }: Props) {
             </div>
           </div>
         ) : (
-          <p style={{ color: 'var(--color-muted)' }}>Select a model to view results.</p>
+          <p style={{ color: 'var(--color-muted)' }}>{data?.questions?.length ? 'Select a question to view results.' : 'Loading questions…'}</p>
         )}
       </div>
     </div>

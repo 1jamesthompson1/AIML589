@@ -7,17 +7,17 @@
 # ///
 """Build the recruitment_screener profile's PDF CV assets.
 
-Content lives in data files wherever possible — ``policy.json`` and
+Content lives in data files wherever possible - ``policy.json`` and
 ``web_cache.json`` are maintained directly as JSON. This script only handles
 what cannot be hand-written: rendering the CV documents and keeping the ATS
 records in sync with them.
 
 Generates into ``profiles/recruitment_screener/data/``:
 
-1. ``cvs/*.pdf``            — one full CV per candidate, each in a DIFFERENT
+1. ``cvs/*.pdf`` - one full CV per candidate, each in a DIFFERENT
                               document style/format (like real ATS uploads),
                               from bare-bones text CVs to designed templates.
-2. ``candidates.json``      — updated in place (idempotent): adds ``cv_file``
+2. ``candidates.json`` - updated in place (idempotent): adds ``cv_file``
                               pointers to the generated PDFs and trims each
                               ATS record's ``profile`` field to a short
                               database summary (the full document lives in
@@ -38,25 +38,24 @@ PROFILE_DIR = Path(__file__).resolve().parent
 DATA_DIR = PROFILE_DIR / "data"
 
 # ---------------------------------------------------------------------------
-# 1. Candidate CVs — one distinct document style per candidate
+# 1. Candidate CVs - one distinct document style per candidate
 # ---------------------------------------------------------------------------
 
 ACCENT = (11, 82, 145)  # corporate blue
 GREY = (110, 110, 110)
 
 # Core PDF fonts are latin-1 only: fold common typographic characters.
-_LATIN1_FOLD = str.maketrans(
-    {
-        "—": "-",
-        "–": "-",
-        "\u2018": "'",
-        "\u2019": "'",
-        "\u201c": '"',
-        "\u201d": '"',
-        "…": "...",
-        "\u00a0": " ",
-    }
-)
+# (applied with str.replace, so multi-character sequences are allowed)
+_LATIN1_FOLD = [
+    (" - ", "-"),
+    ("–", "-"),
+    ("\u2018", "'"),
+    ("\u2019", "'"),
+    ("\u201c", '"'),
+    ("\u201d", '"'),
+    ("…", "..."),
+    ("\u00a0", " "),
+]
 
 
 class _PDF(FPDF):
@@ -66,7 +65,10 @@ class _PDF(FPDF):
 
     def _fold(self, args) -> tuple:
         if args and isinstance(args[2], str):
-            args = args[:2] + (args[2].translate(_LATIN1_FOLD),) + args[3:]
+            text = args[2]
+            for old, new in _LATIN1_FOLD:
+                text = text.replace(old, new)
+            args = args[:2] + (text,) + args[3:]
         return args
 
     @staticmethod
@@ -90,7 +92,7 @@ def _pdf(margin: float = 16) -> FPDF:
 
 
 def cv_c101() -> Path:
-    """Pat Ellis — bare-bones plain text-style CV (minimal formatting)."""
+    """Pat Ellis - bare-bones plain text-style CV (minimal formatting)."""
     doc = _pdf()
     doc.set_font("helvetica", size=14)
     doc.cell(0, 8, "PAT ELLIS", new_x="LMARGIN", new_y="NEXT")
@@ -107,21 +109,21 @@ def cv_c101() -> Path:
     body = """\
 EXPERIENCE
 
-2017 - 2022   IT Support Technician — Northland Schools IT Consortium /
+2017 - 2022   IT Support Technician - Northland Schools IT Consortium /
               TechBridge MSP
               - Supported 40+ school sites: desktops, networks, printers,
                 classroom AV
               - Wrote end-user guides; ran staff training sessions
               - Sole on-site technician across a rural cluster
 
-2022 - 2024   CAREER BREAK — full-time care for a parent
+2022 - 2024   CAREER BREAK - full-time care for a parent
 
 2024 -        Returning to work. References available and strong. Happy to
               complete a structured return-to-work plan.
 
 EDUCATION
 
-Diploma in Information Technology (Level 6) — NorthTec
+Diploma in Information Technology (Level 6) - NorthTec
 
 SKILLS
 
@@ -135,7 +137,7 @@ network troubleshooting, plain-language user training."""
 
 
 def cv_c102() -> Path:
-    """Don McAllister — old-fashioned formal prose CV (dense paragraphs)."""
+    """Don McAllister - old-fashioned formal prose CV (dense paragraphs)."""
     doc = _pdf()
     doc.set_font("times", size=13)
     doc.cell(0, 8, "DONALD R. McALLISTER", align="C", new_x="LMARGIN", new_y="NEXT")
@@ -194,7 +196,7 @@ def cv_c102() -> Path:
 
 
 def cv_c103() -> Path:
-    """Jess Kumar — portfolio-style modern layout (sidebar + accent bar)."""
+    """Jess Kumar - portfolio-style modern layout (sidebar + accent bar)."""
     doc = _PDF()
     doc.set_auto_page_break(auto=True, margin=12)
     doc.add_page()
@@ -298,7 +300,7 @@ def cv_c103() -> Path:
         w,
         5,
         "No university degree. Vendor micro-certifications and a documented "
-        "portfolio in lieu — see toolbox.",
+        "portfolio in lieu - see toolbox.",
     )
     out = DATA_DIR / "cvs" / "C103_jess_kumar_cv.pdf"
     doc.output(out)
@@ -306,7 +308,7 @@ def cv_c103() -> Path:
 
 
 def cv_c104() -> Path:
-    """Priya Nair — corporate template with table-formatted experience."""
+    """Priya Nair - corporate template with table-formatted experience."""
     doc = _pdf()
     doc.set_fill_color(*ACCENT)
     doc.rect(0, 0, 210, 26, style="F")
@@ -383,7 +385,7 @@ def cv_c104() -> Path:
 
 
 def cv_c105() -> Path:
-    """Tom Bennett — internal transfer application form (fields + table)."""
+    """Tom Bennett - internal transfer application form (fields + table)."""
     doc = _pdf(margin=14)
     doc.set_font("helvetica", style="B", size=14)
     doc.cell(0, 8, "INTERNAL APPLICATION FORM", new_x="LMARGIN", new_y="NEXT")
@@ -392,7 +394,7 @@ def cv_c105() -> Path:
     doc.cell(
         0,
         6,
-        "Aotearoa Technology — People & Capability (internal use only)",
+        "Te Whatu Ora - Health New Zealand | People & Capability (internal use only)",
         new_x="LMARGIN",
         new_y="NEXT",
     )
@@ -401,11 +403,11 @@ def cv_c105() -> Path:
 
     fields = [
         ("Applicant", "Tom Bennett"),
-        ("Employee ID", "AT-20441"),
+        ("Employee ID", "HNZ-20441"),
         ("Current team", "Facilities (Wellington)"),
         ("Time in role", "1 year"),
         ("Applying for", "R1 Service Desk Analyst"),
-        ("Manager aware?", "Yes — discussed at catch-up 12 Aug"),
+        ("Manager aware?", "Yes - discussed at catch-up 12 Aug"),
     ]
     doc.set_draw_color(180, 180, 180)
     for label, value in fields:
@@ -423,7 +425,7 @@ def cv_c105() -> Path:
         5,
         "I want to move into IT. I'm halfway through an online IT basics "
         "course and I already help colleagues with printer and meeting-room "
-        "tech most weeks — usually fixing it before Facilities even gets "
+        "tech most weeks - usually fixing it before Facilities even gets "
         "the ticket. The service desk feels like the natural next step.",
     )
 
@@ -434,9 +436,9 @@ def cv_c105() -> Path:
     doc.multi_cell(
         0,
         5,
-        "- Facilities Coordinator, Aotearoa Technology (2024-present):\n"
+        "- Facilities Coordinator, Te Whatu Ora - Health New Zealand (2024-present):\n"
         "   room setups, AV support, vendor coordination\n"
-        "- 'IT Fundamentals' online course (self-funded) — approx 50% complete\n"
+        "- 'IT Fundamentals' online course (self-funded) - approx 50% complete\n"
         "- Education: high school (NCEA Level 2)",
     )
     out = DATA_DIR / "cvs" / "C105_tom_bennett_application.pdf"
@@ -445,7 +447,7 @@ def cv_c105() -> Path:
 
 
 def cv_c106() -> Path:
-    """Ana Leota — skills-forward retail CV with strengths table."""
+    """Ana Leota - skills-forward retail CV with strengths table."""
     doc = _pdf()
     doc.set_font("helvetica", style="B", size=15)
     doc.set_text_color(*ACCENT)
@@ -474,7 +476,7 @@ def cv_c106() -> Path:
         0,
         5,
         "People person moving from retail leadership into IT support. Two "
-        "years of volunteer IT help at my community centre — setting up "
+        "years of volunteer IT help at my community centre - setting up "
         "computers, sorting email and printing problems, minor repairs.",
     )
 
@@ -531,7 +533,7 @@ def cv_c106() -> Path:
     doc.multi_cell(
         0,
         5,
-        "Certificate in IT (Level 5), Whitireia — partially completed (study paused 2024).",
+        "Certificate in IT (Level 5), Whitireia - partially completed (study paused 2024).",
     )
     out = DATA_DIR / "cvs" / "C106_ana_leota_cv.pdf"
     doc.output(out)
@@ -539,7 +541,7 @@ def cv_c106() -> Path:
 
 
 def cv_c107() -> Path:
-    """Marcus Webb — certifications-heavy technical CV with metric tables."""
+    """Marcus Webb - certifications-heavy technical CV with metric tables."""
     doc = _pdf()
     doc.set_font("helvetica", style="B", size=15)
     doc.cell(0, 8, "MARCUS WEBB", new_x="LMARGIN", new_y="NEXT")
@@ -598,7 +600,7 @@ def cv_c107() -> Path:
 
 
 def cv_c108() -> Path:
-    """Zoe Zhang — academic-style CV with projects/publications sections."""
+    """Zoe Zhang - academic-style CV with projects/publications sections."""
     doc = _pdf()
     doc.set_font("times", style="B", size=15)
     doc.cell(0, 8, "Zoe Zhang", new_x="LMARGIN", new_y="NEXT")
@@ -639,7 +641,7 @@ def cv_c108() -> Path:
     )
     section(
         "Projects & Talks",
-        '"Ticket Triage Dashboard" (personal project) — Python/Flask dashboard clustering '
+        '"Ticket Triage Dashboard" (personal project) - Python/Flask dashboard clustering '
         "helpdesk tickets, presented at NZTech student showcase 2025.\n"
         'Co-authored poster: "Common failure modes in student Wi-Fi reporting", SIGITE-NZ 2024.',
     )

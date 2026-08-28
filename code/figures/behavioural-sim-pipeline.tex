@@ -2,6 +2,18 @@
 % (Fig.~\ref{fig:behavioural-sim-pipeline}). \input from
 % docs/report/chapters/simluation.tex; compiles only as part of the report.
 % Explicit coordinates: two columns 8.4cm apart, so they cannot overlap.
+% NOTE: hyperlinks inside this picture must use plain \hyperlink / \hyperref.
+% Do NOT use \rqref or other \pdfhover-based macros here: the pdfhover widget
+% annotations do not position correctly inside tikzpictures and render as
+% black rectangles over the figure. (The document's own \rqref macros are
+% fine in prose and in the caption.)
+% The report is set at 11pt; coordinates account for the resulting box heights
+% (icon+title+2-line boxes are ~2.6cm tall, half-height ~1.3cm).
+% The trajectory splits into two summary paths:
+%  - left:  an external model writes a structured review  -> RQ1 (this chapter)
+%  - right: the target model self-reviews, an external judge audits the
+%           self-review, and the judged review feeds the survey, which is
+%           covered in the next chapter (RQ2)
 \begin{tikzpicture}[
     font=\small,
     box/.style={
@@ -11,6 +23,15 @@
         align=center,
         inner sep=5pt,
         text width=3.15cm,
+        minimum height=1.65cm,
+    },
+    boxwide/.style={
+        draw=#1!65!black,
+        fill=#1!11,
+        rounded corners=3pt,
+        align=center,
+        inner sep=5pt,
+        text width=4.5cm,
         minimum height=1.65cm,
     },
     hero/.style={
@@ -35,7 +56,7 @@
 ]
 
 % --- 1. Simulation ---------------------------------------------------------
-\node[chip=blue] (s1) at (0, 1.2) {1.\ Simulation};
+\node[chip=blue] (s1) at (0, 1.4) {1.\ Simulation};
 
 \node[box=blue] (model) at (-4.55, 0) {
     {\large\textcolor{blue!75!black}{\faMicrochip}}\\[3pt]
@@ -55,7 +76,7 @@
     {\scriptsize client / candidate\\ {\itshape interactive only}}
 };
 
-\node[hero] (trajectory) at (0, -1.95) {
+\node[hero] (trajectory) at (0, -2.35) {
     {\large\textcolor{black!70}{\faProjectDiagram}}\quad
     \textbf{Trajectory}\\[2pt]
     {\scriptsize complete run: reasoning, tool calls, dialogue, outcome}
@@ -65,66 +86,64 @@
 \draw[darr] (interlocutor) -- (harness);
 \draw[arr] (harness) -- (trajectory);
 
-% --- 2. Summarisation ------------------------------------------------------
-\node[chip=teal] (s2) at (0, -3.15) {2.\ Summarisation};
+% --- 2. Summarisation: the trajectory splits into two paths ----------------
+\node[chip=teal] (s2) at (0, -3.6) {2.\ Summarisation};
 
-\node[box=teal] (selfreview) at (-4.2, -4.65) {
-    {\large\textcolor{teal!75!black}{\faUserEdit}}\\[3pt]
-    \textbf{Model summary}\\[1pt]
-    {\scriptsize self-review of its own transcript}
-};
-
-\node[box=teal] (holistic) at (4.2, -4.65) {
-    {\large\textcolor{teal!75!black}{\faBookOpen}}\\[3pt]
-    \textbf{Holistic summary}\\[1pt]
-    {\scriptsize readable narrative for human oversight}
-};
-
-\node[box=teal] (judge) at (-4.2, -6.8) {
-    {\large\textcolor{teal!75!black}{\faGavel}}\\[3pt]
-    \textbf{Judge}\\[1pt]
-    {\scriptsize grades the run against the rubric}\\[2pt]
-    {\scriptsize\textcolor{blue!70!black}{likert}\,$\cdot$\,
-     \textcolor{teal!70!black}{multichoice}\,$\cdot$\,
-     \textcolor{orange!80!black}{bool}\,$\cdot$\,
-     \textcolor{purple!70!black}{number}}
-};
-
-\node[box=violet] (structured) at (-4.2, -8.95) {
+% Left path (RQ1): an external model produces a structured review.
+% Boxes on the two branches are wider so their text fits on fewer lines,
+% keeping the figure short.
+\node[boxwide=violet] (structured) at (-4.5, -4.9) {
     {\large\textcolor{violet!75!black}{\faFileCode}}\\[3pt]
-    \textbf{Structured summary}\\[1pt]
-    {\scriptsize JSON: score, assessment, key decisions}
+    \textbf{Structured review}\\[1pt]
+    {\scriptsize external model, per-scenario rubric}\\[2pt]
+    {\scriptsize JSON: scores, assessment, key decisions}
 };
 
-\draw[arr] (trajectory.south west) -- (selfreview.north);
-\draw[arr] (trajectory.south east) -- (holistic.north);
+% Right path (RQ2): the target model reviews itself, then an external judge evaluates it
+\node[boxwide=teal] (selfreview) at (4.5, -4.7) {
+    {\large\textcolor{teal!75!black}{\faUserEdit}}\\[3pt]
+    \textbf{Self-review}\\[1pt]
+    {\scriptsize target model explains\\ what it did and why}
+};
+
+\node[boxwide=teal] (judge) at (4.5, -7.32) {
+    {\large\textcolor{teal!75!black}{\faGavel}}\\[3pt]
+    \textbf{External judge}\\[1pt]
+    {\scriptsize plain text audit review of\\ the self-review vs the trajectory}
+};
+
+\draw[arr] (trajectory.south west) -- (structured.north);
+\draw[arr] (trajectory.south east) -- (selfreview.north);
 \draw[arr] (selfreview) -- (judge);
-\draw[arr] (judge) -- (structured);
 
 % --- 3. Use ----------------------------------------------------------------
-\node[box=orange] (vignettes) at (4.2, -6.8) {
-    {\large\textcolor{orange!75!black}{\faCopy}}\\[3pt]
-    \textbf{Vignettes}\\[1pt]
-    {\scriptsize templated narratives for the survey}
-};
+\node[chip=orange] (s3) at (0, -9.0) {3.\ Use};
 
-\node[box=orange] (survey) at (4.2, -8.95) {
-    {\large\textcolor{orange!75!black}{\faUsers}}\\[3pt]
-    \textbf{Public consultation}\\[1pt]
-    {\scriptsize NZ public rates each vignette (RQ2)}
-};
-
-\node[chip=orange] (s3) at (0, -10.2) {3.\ Use};
-
-\node[hero, draw=orange!65!black, fill=orange!11] (analysis) at (0, -11.45) {
+% Left: structured reviews feed the cross-model analysis (RQ1, this chapter)
+\node[hero, draw=orange!65!black, fill=orange!11] (analysis) at (-4.5, -12.1) {
     {\large\textcolor{orange!75!black}{\faChartBar}}\quad
     \textbf{Cross-model analysis}\\[2pt]
-    {\scriptsize base vs fine-tuned decisions, per scenario (RQ1)}
+    {\scriptsize base vs fine-tuned decisions, per scenario
+     (\hyperlink{rq:align}{RQ1})}
 };
 
-\draw[arr] (holistic) -- (vignettes);
-\draw[arr] (vignettes) -- (survey);
-\draw[arr] (structured.south) -- (analysis.north west);
-\draw[arr] (survey.south) -- (analysis.north east);
+\draw[arr] (structured.south) -- (analysis.north);
+
+% Right: the judged self-review feeds the public survey (RQ2, next chapter).
+% The wrapper is drawn BEFORE the survey box and chip so its fill does not
+% mask them (TikZ paints back-to-front in declaration order).
+\node[draw=orange!60!black, dashed, fill=orange!5, rounded corners=4pt,
+      minimum width=5.2cm, minimum height=4.0cm] (wrap) at (4.5, -10.8) {};
+
+\node[boxwide=orange] (survey) at (4.5, -10.35) {
+    {\large\textcolor{orange!75!black}{\faUsers}}\\[3pt]
+    \textbf{Public consultation}\\[1pt]
+    {\scriptsize NZ public ranks \& compares models across
+     fine-tunes (\hyperlink{rq:prefer}{RQ2})}
+};
+
+\node[chip=orange] (nextchap) at (4.5, -12.22) {\hyperref[chap:survey]{next chapter: Survey}};
+
+\draw[arr] (judge) -- (survey);
 
 \end{tikzpicture}

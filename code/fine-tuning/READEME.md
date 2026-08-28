@@ -46,6 +46,16 @@ Below are sections for each step of the pipeline
 
 ### Evaluation
 
+Runs land in `output/evals/<model>/<run>/` (`config.json` +
+`per_question_results.csv`). To make them browsable on the public website
+(which fetches eval data live from the HF bucket), regenerate the webapp
+manifest and sync:
+
+```bash
+uv run export_evals_manifest.py   # writes output/evals/index.json (~KB)
+make artifacts-sync               # pushes ft/evals/index.json to the bucket
+```
+
 ### Capability Evaluation
 
 ### Analysis

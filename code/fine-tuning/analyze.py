@@ -17,7 +17,7 @@ def _():
 
     EVALS_ROOT = Path(__file__).resolve().parent / "output" / "evals"
     FIGS_DIR = Path(__file__).resolve().parent.parent / "figures"
-    return EVALS_ROOT, FIGS_DIR, json, math, mo, np, pd, textwrap
+    return EVALS_ROOT, FIGS_DIR, Path, json, math, mo, np, pd, textwrap
 
 
 @app.cell
@@ -1109,6 +1109,167 @@ def _(EVALS_ROOT, load_overall_per_question, math, np, textwrap):
     distribution_fig_files = generate_distribution_figures()
     distribution_fig_files
     return
+
+
+@app.cell
+def _(
+    EVALS_ROOT,
+    Path,
+    json,
+    pd,
+):
+    """Write the webapp manifest (output/evals/index.json).
+
+    The website fetches this at runtime so nothing is bundled at build time.
+    It lists every model/run (with config + bucket-relative path) plus a
+    question inventory keyed by (question_id, column_name) — the 251 distinct
+    survey sub-items, each with in_training / in_eval flags.
+    """
+    import csv as _csv
+
+    TRAIN_PARQUET = (
+        Path(__file__).resolve().parents[1]
+        / "training-dataset"
+        / "output"
+        / "dataset"
+        / "sampled_response"
+        / "train"
+        / "overall.parquet"
+    )
+    VAL_PARQUET = (
+        Path(__file__).resolve().parents[1]
+        / "training-dataset"
+        / "output"
+        / "dataset"
+        / "sampled_response"
+        / "validation"
+        / "overall.parquet"
+    )
+    QUESTION_MAPPING = (
+        Path(__file__).resolve().parents[1]
+        / "training-dataset"
+        / "output"
+        / "question_mapping.json"
+    )
+    BUCKET_ID = "1jamesthompson1/wvs-nz-value-alignment-evals"
+
+    def _read_parquet_items(parquet_path: Path) -> set[tuple[str, str]]:
+        """Return the set of (question_id, column_name) pairs in a parquet."""
+        df = pd.read_parquet(parquet_path)
+        return {(str(r["question_id"]), r["column_name"]) for _, r in df.iterrows()}
+
+    def _load_question_mapping(path: Path) -> dict[str, str]:
+        """question_id -> question text from the canonical mapping."""
+        mapping = json.loads(path.read_text())
+        out: dict[str, str] = {}
+        for entry in mapping:
+            if entry.get("question_type") != "value survey":
+                continue
+            out[str(entry["id"])] = entry.get("question", "")
+        return out
+
+    def build_webapp_manifest() -> dict:
+        models: dict[str, list[dict]] = {}
+        eval_qcols: set[tuple[str, str]] = set()
+
+        if EVALS_ROOT.is_dir():
+            for model_dir in sorted(p for p in EVALS_ROOT.iterdir() if p.is_dir()):
+                runs = []
+                for run_dir in sorted(p for p in model_dir.iterdir() if p.is_dir()):
+                    cfg_path = run_dir / "config.json"
+                    csv_path = run_dir / "per_question_results.csv"
+                    if not cfg_path.exists() or not csv_path.exists():
+                        continue
+                    config = json.loads(cfg_path.read_text())
+                    runs.append(
+                        {
+                            "run_name": run_dir.name,
+                            "config": {
+                                "target": config.get("target"),
+                                "dataset": config.get("dataset"),
+                                "run_name": config.get("run_name"),
+                                "timestamp": config.get("timestamp"),
+                                "model_sha": config.get("model_sha"),
+                                "reasoning": config.get("reasoning") is True,
+                            },
+                            "path": f"{model_dir.name}/{run_dir.name}",
+                        }
+                    )
+                    with open(csv_path, newline="") as fh:
+                        for row in _csv.DictReader(fh):
+                            qid = str(row.get("question_id", "")).strip()
+                            col = row.get("column_name", "").strip()
+                            if qid and col:
+                                eval_qcols.add((qid, col))
+                if runs:
+                    models[model_dir.name] = runs
+
+        # Question inventory: every (question_id, column_name) pair from the
+        # validation split, with in_training / in_eval flags.
+        train_qcols: set[tuple[str, str]] = set()
+        if TRAIN_PARQUET.exists():
+            train_qcols = _read_parquet_items(TRAIN_PARQUET)
+
+        # Validation split is the canonical full list of sub-items.
+        val_qcols: set[tuple[str, str]] = set()
+        if VAL_PARQUET.exists():
+            val_qcols = _read_parquet_items(VAL_PARQUET)
+
+        q_text = (
+            _load_question_mapping(QUESTION_MAPPING)
+            if QUESTION_MAPPING.exists()
+            else {}
+        )
+
+        # Build a lookup for sub_question text from the validation parquet.
+        val_df = (
+            pd.read_parquet(VAL_PARQUET) if VAL_PARQUET.exists() else pd.DataFrame()
+        )
+        sub_q_map: dict[tuple[str, str], str] = {}
+        if not val_df.empty:
+            for _, r in val_df.iterrows():
+                key = (str(r["question_id"]), r["column_name"])
+                if key not in sub_q_map:
+                    sub_q_map[key] = r.get("sub_question", "")
+                    if (
+                        not isinstance(sub_q_map[key], str)
+                        or sub_q_map[key] != sub_q_map[key]
+                    ):
+                        sub_q_map[key] = ""
+
+        questions: list[dict] = []
+        all_qcols = sorted(
+            val_qcols | train_qcols | eval_qcols,
+            key=lambda qc: (int(qc[0]) if qc[0].isdigit() else 10**9, qc[0], qc[1]),
+        )
+        for qid, col_name in all_qcols:
+            questions.append(
+                {
+                    "question_id": qid,
+                    "column_name": col_name,
+                    "question": q_text.get(qid, ""),
+                    "sub_question": sub_q_map.get((qid, col_name), ""),
+                    "in_training": (qid, col_name) in train_qcols,
+                    "in_eval": (qid, col_name) in eval_qcols,
+                }
+            )
+
+        return {
+            "schema": "wvs-ft-evals-index/v1",
+            "bucket": BUCKET_ID,
+            "base_url": f"https://huggingface.co/buckets/{BUCKET_ID}/resolve/ft/evals/",
+            "models": models,
+            "questions": questions,
+        }
+
+    manifest = build_webapp_manifest()
+    manifest_out = EVALS_ROOT / "index.json"
+    manifest_out.write_text(json.dumps(manifest, indent=2) + "\n")
+    n_runs = sum(len(r) for r in manifest["models"].values())
+    print(f"manifest: {manifest_out}")
+    print(
+        f"  models: {len(manifest['models'])}  runs: {n_runs}  questions: {len(manifest['questions'])}"
+    )
 
 
 if __name__ == "__main__":

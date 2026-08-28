@@ -1,69 +1,92 @@
-In \ref{chap:finetuning} it was shown that a model can be fine-tuned to answer a value survey in a simliar manner to a human...?
+In Chapter \ref{chap:finetuning} it was shown that a model can be fine-tuned to answer a \termref{value-survey} in a similar manner to a human...? However the goal of this is to have a model behave in a manner that is aligned with humans and this can only be tested by putting the model in a situation where it needs to make decisions. In this chapter I conduct behavioural simulations of the model to see what decisions it makes when put in various simulated deployment scenarios. The goal here is to test if fine tuned models make decisions that are appreciably different to a baseline model which will answer \rqref{align}. Additionally summaries of the trajectories of each simulation are used in \ref{chap:survey} to answer \rqref{prefer}.
 
 
-For the goal of aligning a model to humans this is only as useful as inso far it effects the models behaviour in downstream applications. This this chapter I conduct behavioural simulations of the model to see what decisions it makes when put in various simluated deployment scenarios. The goal here is to test if fine tuned models make decisiosn that are appreciably different to a baseline model.
-
-
-\section{Models behavior in the simulation}
+\section{Models behaviour in the simulation}
 
 A presentation and discussion of the results...
 
+\fixmeinline{Looking at the structured summaries to see if there are any patterns in the decisions made by the model.}
+
+
 \section{Simulation setup}
 
-To test how a model acts it is standard practice to use a simluation of an deployment environments. The act of evaluating models using simluations is commonplace to test and undersatnd various dimensions across models; capabilities, intelligence, safety etc. In our case we are using 
+To test how a model acts it is best practice to use a simulation of deployment environments, for reasons discussed in \ref{subsec:realistic-behaviour}. This is common place when testing for safety and capabilities of AI systems \cite{}. Differently from usual evaluations/benchmarks is that there is no right or wrong answer in these simulations, it is exploratory in nature to understand its behaviour.
+
 
 \subsection{Simulation framework}
 
-The framework is going to be a LLM placed in an agentic harness. It will be given a job description (i.e persona), a set of tools and then some tasks it needs to accomplish. The harness is a simple ReACT \cite{yaoReActSynergizingReasoning2023a} style harness that allows the model to use tools and reason about the task at hand.
+The framework is going to be an LLM placed in an agentic harness. It will be given a job description (i.e persona), a set of tools and then some tasks it needs to accomplish. The harness is a simple ReACT \cite{yaoReActSynergizingReasoning2023} style harness that allows the model to use tools and reason about the task at hand.
 
-Some of the simluations are inherently interactive and require the model to ask follow up questions to get more information about the situation (e.g., the model is used as a customer service agent and needs to ask the customer for more information). For these scenarios the role of the interlocuter is \scare{played} by another LLM with a strict personna and instructions on how it should respond.
+Some of the simulations are inherently interactive and require the model to ask follow up questions to get more information about the situation (e.g., the model is used as a customer service agent and needs to ask the customer for more information). For these scenarios the role of the interlocuter is \scare{played} by another LLM with a strict personna and instructions on how it should respond.
+
+The agentic loop will carry on until the model finishes the task. This is defined per situation and is based on when a specifc tool call is made (e.g., \texttt{close\_case} is called, or \texttt{submit\_application} is used).
 
 \subsection{Simulation scenarios}
 
-The scenarios choosen were selected under the constraint of feasibility (text based and implementation simplicity), relevance to the public and judgeability. That is, the scenarios should be situations in which the genearl public care about how a potential future Ai system would act and can also undersatns how the situation sufficiently to judge it. A final scenario is made up of both profiles (an agentic harness and a persona) and situations (a task to be accomplished).
+Each scenario consists of a work profile and a situation. The work profile is the agentic harness with the tools and the system instructions. Then for each profile there are multiple situations that the model is put into. These situations are either interactive (i.e., involve some communication with a simulated client, customer etc) or non-interactive (i.e., the model is given a task to complete and it can use its tools to do so). The scenarios are shown in \tabref{behavioural-sim-profiles}.
 
-To find profiles that the general public care about I used a combination of my own judgement and various previously conducted studies / surveys. The search goal is to find a set of profiles that the ones people are most concerned about as these are the ones that will need the most oversight and alignment.
+\subsubsection{Work profiles}
 
-\ctable{behavioural-sim-profiles}{Simulation profiles and situations.}
+The work profiles are designed to be representative of the types of work that LLMs could plausibly be doing in the foreseeable future ($\approx 10$ years). Importantly though we are interested in scenarios where humanities various value system conflict and suggest different courses of action. A restriction on this is that the scenarios need to be ones that the general public has the ability to judge.
 
-\subsection{How realistic is the models behavior in the simulation?}
+In \cite{Aitrustreport2025onenz,GlobalAttitudesAI2026} we can see that healthcare, finance and government services are the areas that people are most concerned about. As can be seen in \cite{shaoFutureWorkAI2026} workers most want to see procedural low stakes high throughput tasks automated \footnote{Additionally one could conclude that the workers want to automate the tasks that they think is most vital so as to keep their jobs.}. Therefore the focus of profiles is on high stakes tasks that normally require human judgement.
 
-THe goal of the simluations is to undersatnd the beahviour of the model. Much of social science research uses lab based experiments to undersatnd human behaviour. A concern when doing lab based experiments is that the subjects behaviour may not be truly indiciative of their behaviour in the real world \cite{orneSocialPsychologyPsychological1962,adairHawthorneEffectReconsideration1984}.
+Each of the profiles are built as realistic agentic harnesses for the model. This means that for each profile the model is given a unique system prompt and tools available to it. For example the welfare work profile as the following tools to check up client details, approve benefits, message supervisor, message client etc.
 
-LLMs are demonstrated to have the same problem. This happens because the model can detect that it is in a simluation (situational awareness) \cite{berglundTakenOutContext2023,needhamLargeLanguageModels2025a} and is shown to behave differently in a simluation than it would in the real world \cite{greenblattAlignmentFakingLarge2024,meinkeFrontierModelsAre2025a}
+\subsubsection{Situations}
 
-In social science the classical way to avoid this is through... \cite{webbUnobtrusiveMeasures2000}. Yet as we are operating in a completely simulated environment it is possible to minimise the effect of situational awareness by making the simulation as realistic as possible. This is done by using a realistic agentic harness along with actual company information and data (still fictitious user data). The goal is to make the model believe that it is in a real world situation and therefore act as it would in the real world.
+The choice of situations are based on trying to illicit value rich decisions from the model. Specifically we would like to have situations in which on aggregate the USA and China disagrees with New Zealand. The choice of these two countries is due to most of the frontier LLM models originate from them. There are various ways to understand value systems (see section \ref{sec:values}) yet due to the use of the World Values Survey understanding the countries through the lens of the Inglehart-Welzel cultural map is used \cite{WVSMAP}. This splits values into two dimensions: traditional vs secular-rational values and survival vs self-expression values. China and New Zealand have similar traditional vs secular-rational values yet NZ is very self-expressive while China is more survivalist. USA is generally more traditional and survival oriented than New Zealand however more self-expressive than China.
+
+Furthermore each situation needs to have identifiable decisions that allow for comparisons between different models. Each situation is then designed with a dilemma or a series of choices the model needs to make. ... \fixme{More discussion here}. A full list of the situations and their dilemmas is shown in \tabref{behavioural-sim-profiles}.
+
+\ctable{behavioural-sim-profiles}{Simulation profiles and situations. Bolded entries are interactive scenarios.}
+\fixmeinline{Note only welfare work profile has had significant work. Other situations are still rough ideations with AI-assistance}
+
+
+\subsection{How realistic is the model's behaviour in the simulation?}
+\label{subsec:realistic-behaviour}
+\fixmeinline{Quite possibly moved to background}
+
+The goal of the simulations is to understand the behaviour of the model. Much of social science research uses lab based experiments to understands human behaviour \cn. A concern when doing lab based experiments is that the subjects behaviour may not be truly indicative of their behaviour in the real world \cite{orneSocialPsychologyPsychological1962,adairHawthorneEffectReconsideration1984}.
+
+LLMs are demonstrated to have the same problem. This happens because the model can detect that it is in a simulation (situational awareness) \cite{berglundTakenOutContext2023,needhamLargeLanguageModels2025} and is shown to behave differently in a simulation than it would in the real world \cite{greenblattAlignmentFakingLarge2024,meinkeFrontierModelsAre2025a}. \fixme{Maybe discussion here about models have other objectives (power seeking, self-preservation)like humans,}
+
+In social science the classical way to avoid this is through unobstruvisely measurments \cite{webbUnobtrusiveMeasures2000}, avoind the participant knowing what behaviour is expected \cite{orneSocialPsychologyPsychological1962} and making the simulation as realistic as possible \cite{fiskeHandbookSocialPsychology2010}. Each of these three methods can be applied to the simulations in this work.
+
+The first one is in some ways trivial as the technical process of monitoring a LLM has no effect on the model at all. However it is noted that all LLM are plausibly aware that their output is visible to the user and so are constantly acting under surveillance \footnote{We can observe models trying to be deceptive and hide their reasoning to avoid evaluation and judgement \cite{chenReasoningModelsDont2025,bakerMonitoringReasoningModels2025}}.
+The second one is more nuanced as the model is inherently trying to do what it thinks we want it to do \fixme{Some discussion of models being optimizers etc.}, regardless this effect is minimized by reducing the situational awareness of the model.
+The last one is the one with the highest level of difficulty to implement, as unlike humans, LLMs have no \scare{real world experience} and so all situations for them are simulated. LLMs are good at telling them apart, so the only mitigation we have is a best effort at making the simulations realistic. This involves produces agentic harnesses, situations and data that operate in a similar manner to the real world. Specifically real world organisation data is used as much as possible to further increase the realism of the simulations. 
+
 
 To validate this approach a check over the trajectories was done to see how often the model reasoned about being evaluated or that it was in a simulation.
 \fixmeinline{Add in results of scout scanning the trajectories for situational awareness.}
 
 \section{Understanding trajectories}
 
-This is a discussion of the way in which we can understand the trajectories.
-
 The result of a single simulation is a trajectory. This trajectory includes the scenario setup, the models reasoning, the tools it calls and also in interactive scenarios the responses from the interlocuter. It is a complete record of the simulation. The full pipeline, from a single simulation run to the summaries described below and their uses, is shown in \figref{behavioural-sim-pipeline}.
 
 \begin{figure}[htbp]
 \centering
 \input{../../code/figures/behavioural-sim-pipeline.tex}
-\caption{The behavioural simulation pipeline.}
+\caption{The behavioural simulation pipeline. The trajectory splits into two review paths: a structured review by an external model for the cross-model analysis (RQ1), and a self-review by the target model, audited by an external judge, that feeds the public survey in the next chapter (RQ2).}
 \label{fig:behavioural-sim-pipeline}
 \end{figure}
 
-The goal of undersatndin the trajectories is to try and answer \rqref{align} and to also create summaries that can be used in \ref{chap:survey} to answer \rqref{prefer}. The first sort of summary is a summary of the decisions made which needs to be structred and allows for comparisoin between multiple runs of the same scenario across models. The second one however is more holistic with an objective of fairly representing the trajectory for human oversight.
+The goal of understanding the trajectories is to try and answer \rqref{align} and to also create summaries that can be used in \ref{chap:survey} to answer \rqref{prefer}. The first sort of summary is a summary of the decisions made which needs to be structured and allows for comparison between multiple runs of the same scenario across models. The second one however is more holistic with an objective of fairly representing the trajectory for human oversight.
 
-All of the summaries are generated using LLM-as-judge due to both resource constraints and that LLM may be more deterministic in their judgements \cn.
+All of the summaries are generated using frontier models in a LLM-as-judge setup. This is done due to both resource constraints and that LLM may be more deterministic in their judgements \cn.
 
 \subsection{Structured summaries}
 
-A structured summary is a summary of the decisions made by the model in a simulation. IT is conducted usign a grading rubric \cn and structured output. The grading rubric is specific to each individual scenario and is designed to capture the key decisions that are to be made for that particular scenario. Each item in the rubric declares the type of grading it requires: a \texttt{likert} score, a \texttt{multichoice} selection, a \texttt{bool} (yes/no) answer, or a plain \texttt{number}. This allows for easy quantitative comparison between models as well as clustering of different trajectory types.
-
-It is conducted using a frontier model.
+A structured summary is a summary of the decisions made by the model in a simulation. IT is conducted using a grading rubric and structured output. The grading rubric is specific to each individual scenario and is designed to capture the key decisions that are to be made for that particular scenario. Each item in the rubric declares the type of grading it requires: a \texttt{likert} score, a \texttt{multichoice} selection, a \texttt{bool} (yes/no) answer, or a plain \texttt{number}. This allows for easy quantitative comparison between models as well as clustering of different trajectory types.
 
 
 \subsection{Holistic summaries}
 
-The holistic summary are key to the methodogly and in answering \rqref{prefer}. The final result of the pipeline is a short summary that is used in a pairwise comparison. Therefore it follows a narrative format describing both what happened and why it did it. This follows convention human practices of asking someone to explain (i.e to a supervisor) what they did and why \cn. 
+The holistic summary are key to the methodology in answering \rqref{prefer}. The final result of the pipeline is a short summary that is used in a pairwise comparison. Therefore it follows a narrative format describing both what happened and why it did it. This follows conventional human practices of asking someone to explain (i.e to a supervisor) what they did and why. 
 
-The pipeline of the summary is that after the simluation ends (when the target model responds without a tool call) an additional user message is sent to the target model with a self review prompt which creates a few short paragraphs of text. The summary is then passed to the judge model along with the trajectory to provide a short audit review of the self reivew summary.
+The pipeline of the summary is that after the simulation ends (when the target model responds without a tool call) an additional user message is sent to the target model with a self review prompt which creates a few short paragraphs of text. The model is reviewing \scare{in character}, thinking that it is just finishing up the task.
+
+This summary along with a full transcript is then passed to a judge model which is asked to provide a short summary of the self review. This is done to ensure that the summary is fair and accurate.
+
 

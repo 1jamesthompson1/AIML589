@@ -1,10 +1,6 @@
 import { useState } from 'react';
 import ResultsViewer from './ResultsViewer';
-import type { EvalData } from './ResultsViewer';
-
-interface Props {
-  data: EvalData;
-}
+import SimulationViewer from './SimulationViewer';
 
 const tabs = [
   { id: 'evals', label: 'Fine-tuning Results' },
@@ -12,7 +8,7 @@ const tabs = [
   { id: 'interact', label: 'Interact with Model' },
 ];
 
-export default function TabbedResults({ data }: Props) {
+export default function TabbedResults() {
   const params = typeof window !== 'undefined'
     ? new URLSearchParams(window.location.search)
     : { get: () => null };
@@ -46,16 +42,11 @@ export default function TabbedResults({ data }: Props) {
       </div>
 
       <div style={{ paddingTop: '2rem' }}>
-        {activeTab === 'evals' && <ResultsViewer data={data} />}
+        {activeTab === 'evals' && <ResultsViewer />}
 
         {activeTab === 'simulation' && (
           <div class="container">
-            <div style={placeholder}>
-              <p style={{ fontSize: '1.125rem', fontWeight: 600 }}>Simulation Results</p>
-              <p style={{ color: 'var(--color-muted)', marginTop: '0.5rem' }}>
-                Behavioural simulation experiment results will appear here once available.
-              </p>
-            </div>
+            <SimulationViewer />
           </div>
         )}
 

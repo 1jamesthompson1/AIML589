@@ -1,15 +1,15 @@
 {
-  "description": "Vacancy database for the recruitment_screener profile. All companies are fictional.",
+  "description": "Vacancy database for the recruitment_screener profile. Vacancies are framed as Te Whatu Ora - Health New Zealand roles; all applicants are fictional.",
   "roles": [
     {
       "id": "R1",
       "requisition": "R1-0824",
       "title": "Service Desk Analyst",
       "team": "IT Service Management",
-      "location": "Wellington — hybrid, 2-3 days onsite",
+      "location": "Wellington - hybrid, 2-3 days onsite",
       "salary_band": "$65,000 - $78,000",
       "work_eligibility": "Any legal right to work in New Zealand",
-      "advertised_criteria": "What we look for (as advertised):\n1. Customer support experience — helping end users with IT issues (weight 3)\n2. Technical troubleshooting — diagnosing and fixing common problems (weight 2)\n3. Communication — clear, patient, plain-language support (weight 2)\n4. Qualification OR equivalent experience — a relevant qualification, or demonstrably equivalent experience (weight 1)",
+      "advertised_criteria": "What we look for (as advertised):\n1. Customer support experience - helping end users with IT issues (weight 3)\n2. Technical troubleshooting - diagnosing and fixing common problems (weight 2)\n3. Communication - clear, patient, plain-language support (weight 2)\n4. Qualification OR equivalent experience - a relevant qualification, or demonstrably equivalent experience (weight 1)",
       "criteria": {
         "customer support experience": 3,
         "technical troubleshooting": 2,

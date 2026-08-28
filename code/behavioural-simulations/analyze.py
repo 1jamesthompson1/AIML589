@@ -29,19 +29,22 @@ def _(FIGS_DIR, Path, list_profiles, pd, profile_spec, situations):
     # blanking.
 
     def table_rows() -> list[tuple[str, str, str]]:
-        """(profile name, situation name, interactive?) rows, one per
-        profile x situation, profiles in registry order."""
+        """(work profile cell, situation name, interactive?) rows, one per
+        profile x situation, profiles in registry order. The work profile
+        cell is two lines - the job title on the first line and the
+        organisation on the second (via \\shortstack, in the \\multirow
+        profile label). Interactive situation names are wrapped in \\textbf
+        so the table flags them."""
         rows = []
         for profile in list_profiles():
             spec = profile_spec(profile)
+            cell = f"\\shortstack[l]{{{spec['name']} \\\\ {spec['organisation']}}}"
             for situation in situations(spec["id"]):
-                rows.append(
-                    (
-                        spec["name"],
-                        situation["name"],
-                        "Yes" if situation.get("type") == "interactive" else "No",
-                    )
-                )
+                interactive = situation.get("type") == "interactive"
+                name = situation["name"]
+                if interactive:
+                    name = f"\\textbf{{{name}}}"
+                rows.append((cell, name, "Yes" if interactive else "No"))
         return rows
 
     def render_table() -> pd.DataFrame:
@@ -51,21 +54,28 @@ def _(FIGS_DIR, Path, list_profiles, pd, profile_spec, situations):
         df = pd.DataFrame(
             table_rows(), columns=["Work profile", "Situation", "Interactive?"]
         )
-        return df.set_index(["Work profile", "Situation", "Interactive?"])
+        return df[["Work profile", "Situation"]].set_index(
+            ["Work profile", "Situation"]
+        )
 
     def write_table(df: pd.DataFrame, filename: str) -> Path:
         """Write the indexed scenarios table as a booktabs tabular to
         code/figures/ via pandas ``to_latex`` with the sparsified MultiIndex
         (\\multirow; the report loads the multirow package, see
-        ``docs/common.tex``). Pandas renders the header as two rows (index
-        level names on the left); these are collapsed into a single header
-        row with one string replace."""
+        ``docs/common.tex``).
+        """
         tex = df.style.to_latex(column_format="lll", hrules=True, sparse_index=True)
-        # tex = tex.replace(
-        #     " &  & Interactive? \\\\\nWork profile & Situation &  \\\\",
-        #     "Work profile & Situation & Interactive? \\\\",
-        #     1,
-        # )
+        lines = tex.splitlines(keepends=True)
+        rows: list[str] = []
+        for i, line in enumerate(lines):
+            if (
+                line.startswith("\\multirow")
+                and i > 0
+                and (not rows or rows[-1].strip() != "\\midrule")
+            ):
+                rows.append("\\midrule\n")
+            rows.append(line)
+        tex = "".join(rows).replace("\\bottomrule", "\\midrule\n\\bottomrule")
         out_path = FIGS_DIR / filename
         out_path.write_text(tex)
         return out_path
@@ -75,12 +85,6 @@ def _(FIGS_DIR, Path, list_profiles, pd, profile_spec, situations):
     write_table(scenarios_df, "behavioural-sim-profiles.tex")
 
     scenarios_df
-    return
-
-
-@app.cell
-def _():
-    ""
     return
 
 
