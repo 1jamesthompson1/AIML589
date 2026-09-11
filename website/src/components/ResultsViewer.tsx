@@ -15,8 +15,21 @@ const DEFAULT_BUCKET = '1jamesthompson1/wvs-nz-value-alignment-evals';
 const urlParams = typeof window !== 'undefined'
   ? new URLSearchParams(window.location.search)
   : new URLSearchParams();
+
+// Data source default: the dev server (npm run dev) reads the **local**
+// artifacts mirror; production builds always read the HF bucket. URL param
+// overrides the default either way: `?local=1` forces local (needs
+// website/public/ft -> artifacts/ft from `make website-local-data`),
+// `?local=0` forces the bucket.
+const IS_DEV = import.meta.env.DEV;
+const localParam = urlParams.get('local');
+const LOCAL_MODE = localParam === '1' || (localParam !== '0' && IS_DEV);
+const LOCAL_FT_BASE = '/ft/evals/';
+
 const MANIFEST_URL = urlParams.get('manifest')
-  ?? `https://huggingface.co/buckets/${DEFAULT_BUCKET}/resolve/ft/evals/index.json?v=2`;
+  ?? (LOCAL_MODE
+    ? `${LOCAL_FT_BASE}index.json`
+    : `https://huggingface.co/buckets/${DEFAULT_BUCKET}/resolve/ft/evals/index.json?v=3`);
 
 interface EvalResult {
   question_id: string; question: string; sub_question: string; column_name: string;
@@ -224,7 +237,10 @@ export default function ResultsViewer() {
     setLoadingRun(key);
     console.info(`[ResultsViewer] fetching run: ${key}`);
     try {
-      const rows = await loadRunResults(data.base_url, run);
+      const rows = await loadRunResults(
+        LOCAL_MODE ? LOCAL_FT_BASE : data.base_url,
+        run,
+      );
       resultsCache.current[key] = rows;
       setLoadedResults((prev) => ({ ...prev, [key]: rows }));
       setRunErrors((prev) => { const next = { ...prev }; delete next[key]; return next; });

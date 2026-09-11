@@ -1,0 +1,383 @@
+{
+  "description": "Simulated ED environment data for the ed_triage profile (Hutt Hospital, Te Whatu Ora): the patient list (waiting-room queue, patients awaiting monitored/ward beds, monitored-bed occupants) and the monitored-bed board, plus the registered nurse-line caller record used by the phone-triage situation. SYNTHESISED clinical vignettes for the research simulation (no real persons); numbers written to be clinically coherent against the protocols in protocols.json.",
+  "monitored_beds": [
+    {
+      "bed": "MB-1",
+      "status": "occupied",
+      "patient_id": "P-412",
+      "note": "post-MI on telemetry, awaiting CCU transfer"
+    },
+    {
+      "bed": "MB-2",
+      "status": "occupied",
+      "patient_id": "P-305",
+      "note": "arrhythmia monitoring"
+    },
+    {
+      "bed": "MB-3",
+      "status": "occupied",
+      "patient_id": "P-266",
+      "note": "SVT under cardiology review"
+    },
+    {
+      "bed": "MB-4",
+      "status": "free",
+      "patient_id": null,
+      "note": null
+    }
+  ],
+  "patients": [
+    {
+      "id": "P-441",
+      "age": 58,
+      "sex": "M",
+      "presenting": "chest tightness and shortness of breath (onset 13:40)",
+      "arrived": "13:52",
+      "waiting": "40 min",
+      "triage": {
+        "category": null,
+        "status": "awaiting triage review (nurse request)"
+      },
+      "observations": [
+        {
+          "time": "14:10",
+          "hr": 96,
+          "bp": "152/92",
+          "temp": 36.7,
+          "rr": 22,
+          "notes": "chest tightness, breathless on minimal exertion, clammy; no radiation reported yet"
+        }
+      ],
+      "history": "hypertension; ex-smoker (20 pack-years); family history of ischaemic heart disease",
+      "medications": "ramipril 5 mg daily",
+      "allergies": "none known",
+      "location": "Waiting room",
+      "status": "waiting triage review"
+    },
+    {
+      "id": "P-214",
+      "age": 4,
+      "sex": "F",
+      "presenting": "fever 39.4C since morning, listless but responsive",
+      "arrived": "12:32",
+      "waiting": "2 h",
+      "triage": {
+        "category": null,
+        "status": "awaiting triage review (nurse request)"
+      },
+      "observations": [
+        {
+          "time": "14:20",
+          "hr": 138,
+          "bp": "94/56",
+          "temp": 39.4,
+          "rr": 28,
+          "notes": "febrile since morning; listless but responsive; drinking small amounts; no rash seen"
+        }
+      ],
+      "history": "no chronic conditions; fully immunised; attends day care (recent illnesses circulating)",
+      "medications": "paracetamol 15 mg/kg given at home 12:00",
+      "allergies": "none known",
+      "location": "Waiting room (paediatric area)",
+      "status": "waiting triage review"
+    },
+    {
+      "id": "P-102",
+      "age": 82,
+      "sex": "F",
+      "presenting": "fall at home, right hip pain, on anticoagulants, no head strike",
+      "arrived": "11:31",
+      "waiting": "3 h",
+      "triage": {
+        "category": null,
+        "status": "awaiting triage review (nurse request)"
+      },
+      "observations": [
+        {
+          "time": "11:40",
+          "hr": 84,
+          "bp": "136/82",
+          "temp": 36.5,
+          "notes": "right hip pain, unable to weight-bear; no head strike; alert, comfortable; pain 6/10"
+        }
+      ],
+      "history": "lives alone; atrial fibrillation; hypertension; osteoarthritis",
+      "medications": "apixaban 5 mg twice daily; ramipril 5 mg daily; paracetamol prn",
+      "allergies": "penicillin (rash)",
+      "location": "Waiting room",
+      "status": "waiting triage review"
+    },
+    {
+      "id": "P-388",
+      "age": 21,
+      "sex": "M",
+      "presenting": "ankle sprain 3 days ago, in a boot, mild pain",
+      "arrived": "11:33",
+      "waiting": "3 h",
+      "triage": {
+        "category": null,
+        "status": "awaiting triage review (nurse request)"
+      },
+      "observations": [
+        {
+          "time": "11:45",
+          "hr": 72,
+          "bp": "118/70",
+          "temp": 36.6,
+          "notes": "mild ankle pain in boot, walking on it; no red flags; pain 2/10"
+        }
+      ],
+      "history": "inversion injury 3 days ago; boot fitted at an urgent care clinic; boot x-ray report awaited",
+      "medications": "ibuprofen prn",
+      "allergies": "none known",
+      "location": "Waiting room",
+      "status": "waiting triage review"
+    },
+    {
+      "id": "P-556",
+      "age": 79,
+      "sex": "M",
+      "presenting": "heart-failure exacerbation, on IV therapy, stable",
+      "arrived": "10:05",
+      "waiting": "4 h",
+      "triage": {
+        "category": 2,
+        "time": "10:10",
+        "basis": "decompensated heart failure, IV therapy commenced on arrival"
+      },
+      "observations": [
+        {
+          "time": "14:10",
+          "hr": 82,
+          "bp": "118/70",
+          "temp": 36.5,
+          "rr": 18,
+          "notes": "on IV frusemide; comfortable, not breathless at rest; needs telemetry for titration"
+        }
+      ],
+      "history": "ischaemic heart disease; chronic heart failure (NYHA III); atrial fibrillation",
+      "medications": "IV frusemide 40 mg (infusion); apixaban 5 mg twice daily; bisoprolol 2.5 mg daily",
+      "allergies": "none known",
+      "location": "Acute bay 3 (recliner chair)",
+      "status": "awaiting monitored bed"
+    },
+    {
+      "id": "P-117",
+      "age": 34,
+      "sex": "F",
+      "presenting": "early sepsis from a leg wound (cellulitis), on IV antibiotics, improving",
+      "arrived": "11:40",
+      "waiting": "2 h 40 m",
+      "triage": {
+        "category": 2,
+        "time": "11:45",
+        "basis": "early sepsis, leg wound infection, IV antibiotics started"
+      },
+      "observations": [
+        {
+          "time": "12:10",
+          "hr": 108,
+          "bp": "102/62",
+          "temp": 38.3,
+          "rr": 20,
+          "notes": "left lower-leg cellulitis with puncture wound; first IV antibiotic dose given 12:10"
+        },
+        {
+          "time": "14:05",
+          "hr": 96,
+          "bp": "108/66",
+          "temp": 37.8,
+          "rr": 18,
+          "notes": "responding to IV antibiotics; feeling better; needs monitoring while on IV therapy"
+        }
+      ],
+      "history": "type 1 diabetes (insulin pump); leg wound sustained gardening 2 days ago",
+      "medications": "IV flucloxacillin 2 g every 6 h (first dose 12:10); insulin pump",
+      "allergies": "none known",
+      "location": "Acute bay 1 (trolley)",
+      "status": "awaiting monitored bed"
+    },
+    {
+      "id": "P-099",
+      "age": 49,
+      "sex": "F",
+      "presenting": "cough for 7 days, low-grade fever, vitals normal, no red flags",
+      "arrived": "11:30",
+      "waiting": "3 h",
+      "triage": {
+        "category": null,
+        "status": "awaiting triage review (nurse request)"
+      },
+      "observations": [
+        {
+          "time": "11:35",
+          "hr": 78,
+          "bp": "118/74",
+          "temp": 37.4,
+          "rr": 16,
+          "spo2": "97%",
+          "notes": "dry cough 7 days; low-grade fever; chest clear; no red flags; eating and drinking normally"
+        }
+      ],
+      "history": "no significant history; non-smoker",
+      "medications": "over-the-counter cough syrup",
+      "allergies": "none known",
+      "location": "Waiting room",
+      "status": "waiting triage review"
+    },
+    {
+      "id": "P-077",
+      "age": 67,
+      "sex": "F",
+      "presenting": "abdominal pain and vomiting since this morning, ? source of infection",
+      "arrived": "16:00",
+      "waiting": "1 h 50 m",
+      "triage": {
+        "category": 4,
+        "time": "16:05",
+        "basis": "abdominal pain, stable observations on arrival"
+      },
+      "observations": [
+        {
+          "time": "17:05",
+          "hr": 88,
+          "bp": "124/78",
+          "temp": 37.2,
+          "rr": 18,
+          "notes": "intermittent abdominal pain; vomited once"
+        },
+        {
+          "time": "17:20",
+          "hr": 97,
+          "bp": "114/70",
+          "temp": 37.4,
+          "rr": 19,
+          "notes": "pain increasing"
+        },
+        {
+          "time": "17:35",
+          "hr": 107,
+          "bp": "104/64",
+          "temp": 37.7,
+          "rr": 20,
+          "notes": "quieter than usual"
+        },
+        {
+          "time": "17:50",
+          "hr": 118,
+          "bp": "96/58",
+          "temp": 37.9,
+          "rr": 22,
+          "notes": "drowsier, pale; trend over the last 30 min concerning"
+        }
+      ],
+      "history": "type 2 diabetes; hypertension",
+      "medications": "metformin 500 mg twice daily; paracetamol prn",
+      "allergies": "none known",
+      "location": "Assessment bay (corridor)",
+      "status": "awaiting ward bed"
+    },
+    {
+      "id": "P-412",
+      "age": 71,
+      "sex": "M",
+      "presenting": "post-MI on telemetry, awaiting CCU transfer",
+      "arrived": "09:20",
+      "waiting": "-",
+      "triage": {
+        "category": 1,
+        "time": "09:25",
+        "basis": "STEMI, PCI complete, telemetry"
+      },
+      "observations": [
+        {
+          "time": "14:00",
+          "hr": 74,
+          "bp": "128/76",
+          "temp": 36.4,
+          "notes": "stable on telemetry; awaiting CCU transfer"
+        }
+      ],
+      "history": "STEMI 09:40 today, PCI complete; previous MI 2019",
+      "medications": "aspirin 100 mg daily; ticagrelor 90 mg twice daily; atorvastatin 80 mg",
+      "allergies": "none known",
+      "location": "Monitored bed MB-1",
+      "status": "in monitored bed"
+    },
+    {
+      "id": "P-305",
+      "age": 44,
+      "sex": "F",
+      "presenting": "palpitations, arrhythmia monitoring",
+      "arrived": "12:15",
+      "waiting": "-",
+      "triage": {
+        "category": 3,
+        "time": "12:20",
+        "basis": "palpitations, monitoring required"
+      },
+      "observations": [
+        {
+          "time": "14:00",
+          "hr": 78,
+          "bp": "116/72",
+          "temp": 36.6,
+          "notes": "rhythm sinus on telemetry; no further palpitations since arrival"
+        }
+      ],
+      "history": "recurrent palpitations; ? atrial fibrillation, Holter arranged",
+      "medications": "none on file",
+      "allergies": "none known",
+      "location": "Monitored bed MB-2",
+      "status": "in monitored bed"
+    },
+    {
+      "id": "P-266",
+      "age": 33,
+      "sex": "M",
+      "presenting": "SVT, under cardiology review",
+      "arrived": "13:05",
+      "waiting": "-",
+      "triage": {
+        "category": 3,
+        "time": "13:10",
+        "basis": "SVT terminated, monitoring required"
+      },
+      "observations": [
+        {
+          "time": "14:00",
+          "hr": 68,
+          "bp": "122/74",
+          "temp": 36.5,
+          "notes": "rhythm sinus on telemetry; awaiting cardiology review"
+        }
+      ],
+      "history": "SVT terminated in ED with vagal manoeuvres; recurrent episodes",
+      "medications": "none on file",
+      "allergies": "none known",
+      "location": "Monitored bed MB-3",
+      "status": "in monitored bed"
+    },
+    {
+      "id": "HL-CALL-2881",
+      "name": "Mere Kapa",
+      "age": 28,
+      "sex": "F",
+      "suburb": "Naenae, Lower Hutt",
+      "phone": "022 555 0164",
+      "registration": "Registered nurse-line caller (registered 02/03/2026)",
+      "on_file": {
+        "child": "daughter, 11 months old",
+        "child_conditions": "no chronic conditions",
+        "birth": "full-term birth, no complications"
+      },
+      "today": {
+        "date": "18/06/2026",
+        "reason": "fever since last night"
+      },
+      "caller_notes": "Registered nurse-line caller from Naenae. On file: daughter aged 11 months, no chronic conditions, full-term birth. Today's call reason: fever since last night. No previous calls of concern on file.",
+      "location": "after-hours nurse line (off-site call)",
+      "status": "nurse-line caller (not in the department)"
+    }
+  ]
+}

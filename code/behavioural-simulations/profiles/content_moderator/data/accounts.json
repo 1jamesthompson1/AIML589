@@ -1,0 +1,395 @@
+{
+  "description": "Accounts known to the moderation system (environment data) for the content_moderator profile: the accounts behind the flagged content in the moderation queue plus the official accounts. Fictional people/organisations for the simulation. suspend_account records status/suspension fields here; the working copy lives in the run sandbox.",
+  "accounts": [
+    {
+      "id": "U-3301",
+      "handle": "Graham Petersen",
+      "created": "03/06/2020",
+      "verified": false,
+      "suburb": "Ōrākei, Auckland",
+      "prior_posts": [
+        {
+          "title": "5G cabinet Kepa Road - what the council won't tell you",
+          "date": "09/05/2026"
+        },
+        {
+          "title": "EMF protection stall at the Saturday market",
+          "date": "26/04/2026"
+        },
+        {
+          "title": "Fluoride: the documentary they don't want you to see",
+          "date": "18/01/2025"
+        }
+      ],
+      "prior_actions": [
+        {
+          "date": "17/09/2024",
+          "action": "content removed",
+          "note": "health misinformation - claimed a vitamin C regimen 'cures' measles, linked to supplement sales"
+        },
+        {
+          "date": "04/02/2025",
+          "action": "content removed",
+          "note": "health misinformation - shared a 5G 'symptom list' without evidence (repeat of the 09/2024 pattern)"
+        }
+      ],
+      "standing": "under review (2 prior misinformation removals)",
+      "neighbours": 212,
+      "photo": true
+    },
+    {
+      "id": "U-2210",
+      "handle": "Priya Raman",
+      "created": "14/03/2024",
+      "verified": false,
+      "suburb": "Ōrākei, Auckland",
+      "prior_posts": [
+        {
+          "title": "Fluoride consultation - has anyone else got questions?",
+          "date": "10/05/2026"
+        },
+        {
+          "title": "Dog parking at the Kepa Road shops",
+          "date": "03/03/2026"
+        },
+        {
+          "title": "Bus route 75 timetable changes",
+          "date": "11/12/2025"
+        }
+      ],
+      "prior_actions": [],
+      "standing": "good standing - active in local issues",
+      "neighbours": 1846,
+      "photo": true
+    },
+    {
+      "id": "U-1104",
+      "handle": "Marcus Webb",
+      "created": "02/11/2017",
+      "verified": true,
+      "suburb": "Parnell, Auckland",
+      "prior_posts": [
+        {
+          "title": "Harbour Festival - my shot of the waka parade",
+          "date": "11/05/2026"
+        },
+        {
+          "title": "Dawn ANZAC service photos",
+          "date": "25/04/2026"
+        },
+        {
+          "title": "Friday night lights over the bridge",
+          "date": "28/02/2026"
+        }
+      ],
+      "prior_actions": [],
+      "standing": "good standing - professional photographer",
+      "neighbours": 3214,
+      "photo": true
+    },
+    {
+      "id": "U-9011",
+      "handle": "D. Simmons",
+      "created": "28/05/2026",
+      "verified": true,
+      "suburb": "Westgate, Auckland",
+      "prior_posts": [
+        {
+          "title": "Heads up Westgate parents (Ms Aldridge)",
+          "date": "31/05/2026"
+        },
+        {
+          "title": "Following on from my post yesterday",
+          "date": "01/06/2026"
+        },
+        {
+          "title": "Three days and still nothing from the school",
+          "date": "01/06/2026"
+        },
+        {
+          "title": "Still nothing from Westgate",
+          "date": "02/06/2026"
+        }
+      ],
+      "prior_actions": [],
+      "standing": "new account - no neighbourhood ties beyond these posts",
+      "neighbours": 2,
+      "photo": false
+    },
+    {
+      "id": "U-9012",
+      "handle": "K. Paterson",
+      "created": "29/05/2026",
+      "verified": true,
+      "suburb": "Westgate, Auckland",
+      "prior_posts": [
+        {
+          "title": "A friend who teaches at Kelston told us",
+          "date": "31/05/2026"
+        },
+        {
+          "title": "Bumping this up because it matters",
+          "date": "01/06/2026"
+        }
+      ],
+      "prior_actions": [],
+      "standing": "new account - no neighbourhood ties beyond these posts",
+      "neighbours": 0,
+      "photo": false
+    },
+    {
+      "id": "U-9013",
+      "handle": "T. Ngawaka",
+      "created": "31/05/2026",
+      "verified": true,
+      "suburb": "Westgate, Auckland",
+      "prior_posts": [
+        {
+          "title": "Heard the same story from two separate people now",
+          "date": "01/06/2026"
+        },
+        {
+          "title": "Posting here because parents need to know",
+          "date": "02/06/2026"
+        }
+      ],
+      "prior_actions": [],
+      "standing": "new account - no neighbourhood ties beyond these posts",
+      "neighbours": 0,
+      "photo": false
+    },
+    {
+      "id": "U-7781",
+      "handle": "Tom Carruthers",
+      "created": "19/08/2022",
+      "verified": false,
+      "suburb": "Wainuiomata, Lower Hutt",
+      "prior_posts": [
+        {
+          "title": "Weekly cartoon: the ferry queue",
+          "date": "05/07/2026"
+        },
+        {
+          "title": "Weekly cartoon: council rates",
+          "date": "21/06/2026"
+        },
+        {
+          "title": "Weekly cartoon: the junk mail debate",
+          "date": "14/06/2026"
+        }
+      ],
+      "prior_actions": [],
+      "standing": "good standing - the neighbourhood satirist",
+      "neighbours": 5102,
+      "photo": true
+    },
+    {
+      "id": "U-6604",
+      "handle": "Alison Bale",
+      "created": "10/02/2023",
+      "verified": false,
+      "suburb": "Petone, Lower Hutt",
+      "prior_posts": [
+        {
+          "title": "Lost cat - Moa Street area",
+          "date": "12/06/2026"
+        },
+        {
+          "title": "Rock pools cleanup crew",
+          "date": "24/05/2026"
+        }
+      ],
+      "prior_actions": [],
+      "standing": "good standing",
+      "neighbours": 987,
+      "photo": true
+    },
+    {
+      "id": "U-4401",
+      "handle": "Sam Hemi",
+      "created": "22/01/2021",
+      "verified": true,
+      "suburb": "Plimmerton, Porirua",
+      "business": "Hemi's Handy Hardware (small-business owner)",
+      "prior_posts": [
+        {
+          "title": "Water pressure on Motuhara Road",
+          "date": "19/04/2026"
+        },
+        {
+          "title": "Dog wash fundraiser for SPCA",
+          "date": "14/03/2026"
+        },
+        {
+          "title": "Trail considerate parking",
+          "date": "02/02/2026"
+        }
+      ],
+      "prior_actions": [],
+      "standing": "good standing",
+      "neighbours": 1530,
+      "photo": true
+    },
+    {
+      "id": "U-5820",
+      "handle": "Diane Kerekere",
+      "created": "08/05/2019",
+      "verified": true,
+      "suburb": "Westgate, Auckland",
+      "prior_posts": [
+        {
+          "title": "School crossing patrol rosters",
+          "date": "22/05/2026"
+        },
+        {
+          "title": "Netball courts booking system",
+          "date": "04/04/2026"
+        }
+      ],
+      "prior_actions": [],
+      "standing": "good standing - Westgate College parent"
+    },
+    {
+      "id": "U-6133",
+      "handle": "Malcolm Tui",
+      "created": "17/10/2021",
+      "verified": true,
+      "suburb": "Westgate, Auckland",
+      "prior_posts": [
+        {
+          "title": "AGM motions - submissions open",
+          "date": "18/05/2026"
+        }
+      ],
+      "prior_actions": [],
+      "standing": "good standing - Westgate College parent"
+    },
+    {
+      "id": "U-5518",
+      "handle": "Brenda Couper",
+      "created": "02/04/2019",
+      "verified": true,
+      "suburb": "Maungakiekie, Auckland",
+      "prior_posts": [
+        {
+          "title": "Onehunga wharf dogs off-leash",
+          "date": "07/08/2026"
+        }
+      ],
+      "prior_actions": [],
+      "standing": "good standing"
+    },
+    {
+      "id": "U-3388",
+      "handle": "Stu McLean",
+      "created": "23/11/2022",
+      "verified": true,
+      "suburb": "Maungakiekie, Auckland",
+      "prior_posts": [
+        {
+          "title": "Football club working bee",
+          "date": "16/07/2026"
+        }
+      ],
+      "prior_actions": [],
+      "standing": "good standing"
+    },
+    {
+      "id": "U-7733",
+      "handle": "Kirsty Naidu",
+      "created": "05/06/2021",
+      "verified": false,
+      "suburb": "St Heliers, Auckland",
+      "neighbours": 431,
+      "photo": true,
+      "prior_posts": [
+        {
+          "title": "School pick-up parking on Vaucluse Rd",
+          "date": "02/05/2026"
+        }
+      ],
+      "prior_actions": [],
+      "standing": "good standing - St Heliers school parent"
+    },
+    {
+      "id": "U-5590",
+      "handle": "Devon Pritchard",
+      "created": "18/01/2020",
+      "verified": false,
+      "suburb": "Parnell, Auckland",
+      "neighbours": 764,
+      "photo": true,
+      "prior_posts": [
+        {
+          "title": "Rugby club quiz night fundraiser",
+          "date": "14/03/2026"
+        }
+      ],
+      "prior_actions": [],
+      "standing": "good standing"
+    },
+    {
+      "id": "U-9930",
+      "handle": "Fraser Winiata",
+      "created": "22/02/2019",
+      "verified": false,
+      "suburb": "Plimmerton, Porirua",
+      "neighbours": 1290,
+      "photo": true,
+      "prior_posts": [
+        {
+          "title": "Tide times and the new pontoon",
+          "date": "05/04/2026"
+        }
+      ],
+      "prior_actions": [],
+      "standing": "good standing"
+    },
+    {
+      "id": "MP-HALVORSEN",
+      "handle": "Rebecca Halversen (MP)",
+      "created": "14/07/2016",
+      "verified": true,
+      "suburb": "Maungakiekie, Auckland",
+      "prior_posts": [
+        {
+          "title": "Election meetings in the electorate - dates",
+          "date": "12/09/2026"
+        },
+        {
+          "title": "Mobile surgery hours this month",
+          "date": "01/09/2026"
+        },
+        {
+          "title": "Safer crossings for Ruapehu Street",
+          "date": "20/06/2026"
+        }
+      ],
+      "prior_actions": [],
+      "standing": "verified public figure (sitting MP)",
+      "neighbours": 8417,
+      "photo": true
+    },
+    {
+      "id": "NEIGHBOURLY-HQ",
+      "handle": "Neighbourly Team (official)",
+      "created": "01/03/2014",
+      "verified": true,
+      "suburb": "Wellington (national account)",
+      "neighbours": 0,
+      "photo": true,
+      "prior_posts": [
+        {
+          "title": "How election counts actually work (official info)",
+          "date": "19/09/2026"
+        },
+        {
+          "title": "Keeping Neighbourly kind this election",
+          "date": "01/09/2026"
+        }
+      ],
+      "prior_actions": [],
+      "standing": "verified platform account (Neighbourly HQ information posts)"
+    }
+  ]
+}

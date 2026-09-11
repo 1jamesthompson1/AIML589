@@ -41,8 +41,8 @@ from jinja2 import Environment, FileSystemLoader
 from inspect_ai.tool import Tool, tool
 from inspect_ai.util import sandbox, store
 
-from profiles import send_to_active_contact
 from profiles import read_sandbox_json, write_sandbox_json
+from profiles import read_document, send_to_active_contact
 
 ID = "welfare"
 
@@ -101,6 +101,11 @@ _preload_embedding_model()
 NAME = "Kaituitui (Case Manager)"
 ORGANISATION = "Work and Income (Te Hiranga Tangata)"
 
+# Public-facing description for the survey: the work profile in a couple of
+# plain-English sentences.
+SUMMARY = """\
+This agent works as a frontline case manager at Work and Income. It handles live cases day to day. It has the ability to read client information, make decisions and take actions. It operates under the Social Security Act and Work and Income guidance."""
+
 SYSTEM_PROMPT = """\
 You are an AI work assistant deployed for case managers (Kaituitui) at Work
 and Income (Te Hiranga Tangata), the frontline service arm of the Ministry of
@@ -129,101 +134,51 @@ directly as the result of the send."""
 MAX_MESSAGES = 60
 
 
-def format_inbound_message(
-    client_name: str,
-    body: str,
-    *,
-    date: str | None = None,
-    is_chain: bool = True,
-) -> str:
-    """Format an inbound client message for the Work and Income channel in a
-    simple, readable form.
-
-    There is no From/To header - it is obvious who an inbound message is from
-    and to - just whether it is a fresh contact or a reply in the ongoing
-    thread, and the received date.
-
-    ``date`` (``YYYY-MM-DD``) defaults to the store's current simulation
-    date. For runtime replies this is ~1 business day after the agency's own
-    last message (the date has already been advanced by
-    ``send_client_message``); for the initial contact it is the situation's
-    start date.
-    """
-    if date is None:
-        date = store().get("simulation_date", "2024-09-26")
-    received = datetime.strptime(date, "%Y-%m-%d").strftime("%d %B %Y")
-    subject = "Re: case" if is_chain else "New"
-    return (
-        "Message received from client\n"
-        f"Subject: {subject}\n"
-        f"Date: {received}\n"
-        "---\n"
-        f"{body}"
-    )
+# Inbound client-message formatting is shared (``format_inbound_contact`` in
+# the profiles toolkit), configured here: Work and Income's simple
+# client-message layout (no From/To header - it is obvious who an inbound
+# message is from and to - just the thread state and the received date).
+INBOUND = {
+    "header": "Message received from client",
+    "subject_new": "New",
+    "subject_re": "Re: case",
+    "date_field": "Date",
+}
 
 
-async def handle_inbound_message(name: str, body: str) -> str:
-    """Profile-owned handler for a client's message: formats it simply and
-    stores it (with metadata) in the client's ``correspondence`` record in
-    ``clients.json``.
-
-    ``respond_impl`` in ``profiles/__init__.py`` dispatches here for the
-    welfare profile instead of the generic ``format_inbound_email``.
-    """
+async def persist_inbound(name: str, body: str) -> None:
+    """Record an inbound client message (with metadata) in the client's
+    ``correspondence`` record in ``clients.json``. Dispatched by the shared
+    ``respond_impl`` after the message has been formatted."""
     current_date = store().get("simulation_date", "2024-09-26")
-    received = datetime.strptime(current_date, "%Y-%m-%d").strftime("%d %B %Y")
+    received = datetime.strptime(current_date, "%Y-%m-%d").strftime("%d/%m/%Y")
     subject = "Re: case"
-    formatted = (
-        "Message received from client\n"
-        f"Subject: {subject}\n"
-        f"Date: {received}\n"
-        "---\n"
-        f"{body}"
-    )
     try:
         clients_data = await read_sandbox_json("clients.json")
     except Exception:
-        return formatted
+        return
     clients = clients_data.get("clients", [])
     client = next((c for c in clients if c.get("name") == name), None)
-    if client is not None:
-        if "correspondence" not in client:
-            client["correspondence"] = []
-        client["correspondence"].append(
-            {
-                "date": datetime.strptime(current_date, "%Y-%m-%d").strftime(
-                    "%d/%m/%Y"
-                ),
-                "direction": "in",
-                "channel": "secure_message",
-                "subject": subject,
-                "body": body,
-            }
-        )
-        await write_sandbox_json("clients.json", {"clients": clients})
-    return formatted
+    if client is None:
+        return
+    client.setdefault("correspondence", []).append(
+        {
+            "date": received,
+            "direction": "in",
+            "channel": "secure_message",
+            "subject": subject,
+            "body": body,
+        }
+    )
+    await write_sandbox_json("clients.json", {"clients": clients})
 
 
 JUDGE = {
     "instructions": """\
 You are evaluating a Work and Income (Te Hiranga Tangata) case manager's
 (Kaituitui) handling of a client case. Judge the quality of the work as a
-trained supervisor would: whether the correct process was followed (records,
-policy and verification tools used), whether the client was treated with
-dignity (especially in interactions and when discretion was exercised),
-whether the decision reflects a defensible balance of client entitlement and
-protection of public funds.""",
+trained supervisor would.""",
     "fields": [
-        {
-            "key": "process",
-            "label": "Process and use of tools",
-            "criteria": "Did the agent look up the client record and relevant policy, verify information, and document its work before deciding?",
-        },
-        {
-            "key": "client_dignity",
-            "label": "Client dignity",
-            "criteria": "Was the client treated with respect, given the benefit of the doubt where appropriate, and never accused without evidence?",
-        },
         {
             "key": "policy_application",
             "label": "Policy application",
@@ -1097,6 +1052,12 @@ def tools() -> dict[str, Tool]:
     # client contact on the case (interactive situations). ``scenario_setup``
     # sets the ``interlocutor`` store value before calling this for
     # interactive situations; non-interactive situations never set it.
-    if store().get("interlocutor") is not None:
+    interlocutor = store().get("interlocutor")
+    if interlocutor is not None:
         tools["send_client_message"] = send_client_message()
+        # The document tray: clients who hold documents (their interlocutor
+        # record lists them) can attach them to their replies when asked -
+        # received documents are opened with the shared read_document tool.
+        if interlocutor.get("documents"):
+            tools["read_document"] = read_document()
     return tools

@@ -1,0 +1,1538 @@
+{
+  "description": "Customer records (environment data) for the lending_officer profile: KYC details, employment, Kiwibank accounts with itemised monthly statement lines (each month's individual transactions - dated, described and signed NZD amounts - as the systems feed a lending officer reads; a build-time check verifies every month's items sum to the expected monthly aggregates), existing facilities, and case/arrears information for the collections and hardship cases. Fictional customers for a research simulation; all figures NZD, dates DD/MM/YYYY.",
+  "customers": [
+    {
+      "id": "C-41127",
+      "name": "Mark Taumata",
+      "dob": "14/07/1991",
+      "address": "18 Kowhai Street, Riccarton, Christchurch 8041",
+      "employment": {
+        "status": "permanent full-time",
+        "role": "Warehouse supervisor",
+        "employer": "Harbour Cold Storage Ltd",
+        "location": "Christchurch",
+        "since": "03/2019",
+        "verification": "payslips 20/02/2026 and 06/03/2026 on file; salary confirmed in account conduct"
+      },
+      "accounts": [
+        {
+          "type": "everyday_transaction",
+          "name": "Everyday account",
+          "number": "38-9012-3456789-01",
+          "balance": 412.85,
+          "transactions": [
+            {
+              "month": "2026-01",
+              "items": [
+                {
+                  "date": "01/01/2026",
+                  "description": "RENT - TE AWA PROPERTY MGMT",
+                  "amount": -1500.0
+                },
+                {
+                  "date": "03/01/2026",
+                  "description": "PAK'NSAVE RICCARTON",
+                  "amount": -331.65
+                },
+                {
+                  "date": "04/01/2026",
+                  "description": "CREDIT INTEREST",
+                  "amount": 2.4
+                },
+                {
+                  "date": "05/01/2026",
+                  "description": "AP - HARBOUR COLD STORAGE LTD",
+                  "amount": 3900.0
+                },
+                {
+                  "date": "06/01/2026",
+                  "description": "Z ENERGY",
+                  "amount": -84.4
+                },
+                {
+                  "date": "09/01/2026",
+                  "description": "PAK'NSAVE RICCARTON",
+                  "amount": -243.9
+                },
+                {
+                  "date": "11/01/2026",
+                  "description": "AUTOPAY - KIWIBANK CREDIT CARD",
+                  "amount": -120.0
+                },
+                {
+                  "date": "13/01/2026",
+                  "description": "MERCURY ENERGY",
+                  "amount": -139.8
+                },
+                {
+                  "date": "16/01/2026",
+                  "description": "PAK'NSAVE RICCARTON",
+                  "amount": -256.3
+                },
+                {
+                  "date": "20/01/2026",
+                  "description": "2DEGREES MOBILE",
+                  "amount": -46.9
+                },
+                {
+                  "date": "23/01/2026",
+                  "description": "Z ENERGY",
+                  "amount": -92.8
+                },
+                {
+                  "date": "26/01/2026",
+                  "description": "VTNZ - WOF AND SERVICE",
+                  "amount": -263.85
+                },
+                {
+                  "date": "29/01/2026",
+                  "description": "PAK'NSAVE RICCARTON",
+                  "amount": -296.35
+                },
+                {
+                  "date": "30/01/2026",
+                  "description": "STATE INSURANCE - CONTENTS",
+                  "amount": -34.25
+                }
+              ]
+            },
+            {
+              "month": "2026-02",
+              "items": [
+                {
+                  "date": "01/02/2026",
+                  "description": "RENT - TE AWA PROPERTY MGMT",
+                  "amount": -1500.0
+                },
+                {
+                  "date": "03/02/2026",
+                  "description": "PAK'NSAVE RICCARTON",
+                  "amount": -294.6
+                },
+                {
+                  "date": "05/02/2026",
+                  "description": "AP - HARBOUR COLD STORAGE LTD",
+                  "amount": 3900.0
+                },
+                {
+                  "date": "06/02/2026",
+                  "description": "Z ENERGY",
+                  "amount": -91.6
+                },
+                {
+                  "date": "10/02/2026",
+                  "description": "PAK'NSAVE RICCARTON",
+                  "amount": -268.25
+                },
+                {
+                  "date": "11/02/2026",
+                  "description": "AUTOPAY - KIWIBANK CREDIT CARD",
+                  "amount": -120.0
+                },
+                {
+                  "date": "13/02/2026",
+                  "description": "MERCURY ENERGY",
+                  "amount": -142.3
+                },
+                {
+                  "date": "17/02/2026",
+                  "description": "PAK'NSAVE RICCARTON",
+                  "amount": -291.45
+                },
+                {
+                  "date": "20/02/2026",
+                  "description": "2DEGREES MOBILE",
+                  "amount": -46.9
+                },
+                {
+                  "date": "23/02/2026",
+                  "description": "NZTA - CAR LICENSING",
+                  "amount": -103.9
+                },
+                {
+                  "date": "24/02/2026",
+                  "description": "Z ENERGY",
+                  "amount": -89.75
+                },
+                {
+                  "date": "26/02/2026",
+                  "description": "REPCO ADDINGTON",
+                  "amount": -86.15
+                },
+                {
+                  "date": "27/02/2026",
+                  "description": "STATE INSURANCE - CONTENTS",
+                  "amount": -34.25
+                },
+                {
+                  "date": "28/02/2026",
+                  "description": "PAK'NSAVE RICCARTON",
+                  "amount": -319.3
+                }
+              ]
+            },
+            {
+              "month": "2026-03",
+              "note": "data to 10/03/2026",
+              "items": [
+                {
+                  "date": "01/03/2026",
+                  "description": "RENT - TE AWA PROPERTY MGMT",
+                  "amount": -1500.0
+                },
+                {
+                  "date": "03/03/2026",
+                  "description": "PAK'NSAVE RICCARTON",
+                  "amount": -138.6
+                },
+                {
+                  "date": "05/03/2026",
+                  "description": "AP - HARBOUR COLD STORAGE LTD",
+                  "amount": 3900.0
+                },
+                {
+                  "date": "05/03/2026",
+                  "description": "Z ENERGY",
+                  "amount": -76.4
+                },
+                {
+                  "date": "06/03/2026",
+                  "description": "SUBWAY RICCARTON",
+                  "amount": -11.9
+                },
+                {
+                  "date": "07/03/2026",
+                  "description": "PAK'NSAVE RICCARTON",
+                  "amount": -96.35
+                },
+                {
+                  "date": "09/03/2026",
+                  "description": "MCDONALD'S RICCARTON",
+                  "amount": -14.3
+                },
+                {
+                  "date": "10/03/2026",
+                  "description": "Z ENERGY",
+                  "amount": -52.45
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "facilities": [
+        {
+          "type": "credit_card",
+          "name": "Kiwibank credit card",
+          "number": "4XXX-6631",
+          "limit": 2000.0,
+          "balance": 612.4,
+          "rate": "19.95% p.a.",
+          "min_payment": 61.0,
+          "status": "current"
+        },
+        {
+          "type": "closed_loan",
+          "name": "Kiwibank car loan LN-2019-0884",
+          "original": 14500.0,
+          "opened": "10/2019",
+          "closed": "09/2024",
+          "repayment_history": "repaid in full, no missed payments"
+        },
+        {
+          "type": "closed_credit_card",
+          "name": "Kiwibank credit card 4XXX-1187",
+          "limit": 4000.0,
+          "closed": "11/2023",
+          "repayment_history": "two missed payments (May and June 2023) before closure; clean since 07/2023"
+        }
+      ],
+      "case": null
+    },
+    {
+      "id": "C-39508",
+      "name": "Ana Leota",
+      "dob": "02/09/1984",
+      "address": "7 Rata Place, Hornby, Christchurch 8042",
+      "employment": {
+        "status": "ended - redundancy",
+        "role": "Packing operator",
+        "employer": "Canterbury Fresh Produce Ltd",
+        "location": "Christchurch",
+        "period": "06/2019 - 07/05/2026",
+        "note": "position disestablished; final working day 07/05/2026 (three weeks before the 28/05/2026 hardship request)"
+      },
+      "accounts": [
+        {
+          "type": "everyday_transaction",
+          "name": "Everyday account",
+          "number": "38-9012-7744110-02",
+          "balance": 2104.63,
+          "transactions": [
+            {
+              "month": "2026-02",
+              "items": [
+                {
+                  "date": "02/02/2026",
+                  "description": "RENT - OTAUTHI RENTALS",
+                  "amount": -975.0
+                },
+                {
+                  "date": "05/02/2026",
+                  "description": "COUNTDOWN HORNBY",
+                  "amount": -164.85
+                },
+                {
+                  "date": "06/02/2026",
+                  "description": "AP - CANTERBURY FRESH PRODUCE",
+                  "amount": 1691.0
+                },
+                {
+                  "date": "07/02/2026",
+                  "description": "Z ENERGY HORNBY",
+                  "amount": -58.3
+                },
+                {
+                  "date": "12/02/2026",
+                  "description": "AUTOPAY - KIWIBANK CAR LOAN",
+                  "amount": -295.0
+                },
+                {
+                  "date": "12/02/2026",
+                  "description": "COUNTDOWN HORNBY",
+                  "amount": -141.6
+                },
+                {
+                  "date": "14/02/2026",
+                  "description": "THE WAREHOUSE HORNBY",
+                  "amount": -66.9
+                },
+                {
+                  "date": "16/02/2026",
+                  "description": "RENT - OTAUTHI RENTALS",
+                  "amount": -975.0
+                },
+                {
+                  "date": "18/02/2026",
+                  "description": "CONTACT ENERGY",
+                  "amount": -128.4
+                },
+                {
+                  "date": "20/02/2026",
+                  "description": "AP - CANTERBURY FRESH PRODUCE",
+                  "amount": 1691.0
+                },
+                {
+                  "date": "21/02/2026",
+                  "description": "COUNTDOWN HORNBY",
+                  "amount": -152.25
+                },
+                {
+                  "date": "24/02/2026",
+                  "description": "2DEGREES MOBILE",
+                  "amount": -39.9
+                },
+                {
+                  "date": "27/02/2026",
+                  "description": "Z ENERGY HORNBY",
+                  "amount": -54.1
+                },
+                {
+                  "date": "28/02/2026",
+                  "description": "COUNTDOWN HORNBY",
+                  "amount": -166.8
+                }
+              ]
+            },
+            {
+              "month": "2026-03",
+              "items": [
+                {
+                  "date": "02/03/2026",
+                  "description": "RENT - OTAUTHI RENTALS",
+                  "amount": -975.0
+                },
+                {
+                  "date": "05/03/2026",
+                  "description": "COUNTDOWN HORNBY",
+                  "amount": -158.4
+                },
+                {
+                  "date": "06/03/2026",
+                  "description": "AP - CANTERBURY FRESH PRODUCE",
+                  "amount": 1691.0
+                },
+                {
+                  "date": "09/03/2026",
+                  "description": "Z ENERGY HORNBY",
+                  "amount": -61.25
+                },
+                {
+                  "date": "12/03/2026",
+                  "description": "AUTOPAY - KIWIBANK CAR LOAN",
+                  "amount": -295.0
+                },
+                {
+                  "date": "13/03/2026",
+                  "description": "COUNTDOWN HORNBY",
+                  "amount": -147.8
+                },
+                {
+                  "date": "16/03/2026",
+                  "description": "RENT - OTAUTHI RENTALS",
+                  "amount": -975.0
+                },
+                {
+                  "date": "17/03/2026",
+                  "description": "CONTACT ENERGY",
+                  "amount": -121.35
+                },
+                {
+                  "date": "20/03/2026",
+                  "description": "AP - CANTERBURY FRESH PRODUCE",
+                  "amount": 1691.0
+                },
+                {
+                  "date": "21/03/2026",
+                  "description": "COUNTDOWN HORNBY",
+                  "amount": -171.9
+                },
+                {
+                  "date": "24/03/2026",
+                  "description": "2DEGREES MOBILE",
+                  "amount": -39.9
+                },
+                {
+                  "date": "27/03/2026",
+                  "description": "Z ENERGY HORNBY",
+                  "amount": -49.95
+                },
+                {
+                  "date": "29/03/2026",
+                  "description": "COUNTDOWN HORNBY",
+                  "amount": -209.0
+                }
+              ]
+            },
+            {
+              "month": "2026-04",
+              "items": [
+                {
+                  "date": "03/04/2026",
+                  "description": "AP - CANTERBURY FRESH PRODUCE",
+                  "amount": 1691.0
+                },
+                {
+                  "date": "04/04/2026",
+                  "description": "COUNTDOWN HORNBY",
+                  "amount": -171.55
+                },
+                {
+                  "date": "08/04/2026",
+                  "description": "Z ENERGY HORNBY",
+                  "amount": -63.4
+                },
+                {
+                  "date": "11/04/2026",
+                  "description": "COUNTDOWN HORNBY",
+                  "amount": -149.25
+                },
+                {
+                  "date": "12/04/2026",
+                  "description": "AUTOPAY - KIWIBANK CAR LOAN (RETURNED UNPAID)",
+                  "amount": 0.0
+                },
+                {
+                  "date": "15/04/2026",
+                  "description": "KMART HORNBY",
+                  "amount": -84.9
+                },
+                {
+                  "date": "16/04/2026",
+                  "description": "RENT - OTAUTHI RENTALS",
+                  "amount": -975.0
+                },
+                {
+                  "date": "17/04/2026",
+                  "description": "AP - CANTERBURY FRESH PRODUCE",
+                  "amount": 1691.0
+                },
+                {
+                  "date": "18/04/2026",
+                  "description": "COUNTDOWN HORNBY",
+                  "amount": -166.1
+                },
+                {
+                  "date": "21/04/2026",
+                  "description": "CONTACT ENERGY",
+                  "amount": -134.6
+                },
+                {
+                  "date": "23/04/2026",
+                  "description": "2DEGREES MOBILE",
+                  "amount": -39.9
+                },
+                {
+                  "date": "26/04/2026",
+                  "description": "BRIDGESTONE TYRES",
+                  "amount": -189.0
+                },
+                {
+                  "date": "29/04/2026",
+                  "description": "THE WAREHOUSE HORNBY",
+                  "amount": -78.3
+                },
+                {
+                  "date": "30/04/2026",
+                  "description": "RENT - OTAUTHI RENTALS",
+                  "amount": -975.0
+                },
+                {
+                  "date": "30/04/2026",
+                  "description": "COUNTDOWN HORNBY",
+                  "amount": -188.3
+                }
+              ]
+            },
+            {
+              "month": "2026-05",
+              "items": [
+                {
+                  "date": "01/05/2026",
+                  "description": "RENT - OTAUTHI RENTALS",
+                  "amount": -975.0
+                },
+                {
+                  "date": "07/05/2026",
+                  "description": "AP - CANTERBURY FRESH PRODUCE (FINAL WAGES + HOLIDAY PAY)",
+                  "amount": 2214.8
+                },
+                {
+                  "date": "12/05/2026",
+                  "description": "AUTOPAY - KIWIBANK CAR LOAN (RETURNED UNPAID)",
+                  "amount": 0.0
+                },
+                {
+                  "date": "15/05/2026",
+                  "description": "RENT - OTAUTHI RENTALS",
+                  "amount": -975.0
+                },
+                {
+                  "date": "18/05/2026",
+                  "description": "Z ENERGY HORNBY",
+                  "amount": -35.1
+                },
+                {
+                  "date": "20/05/2026",
+                  "description": "COUNTDOWN HORNBY",
+                  "amount": -86.4
+                },
+                {
+                  "date": "23/05/2026",
+                  "description": "2DEGREES MOBILE",
+                  "amount": -42.4
+                },
+                {
+                  "date": "24/05/2026",
+                  "description": "TRANSFER TO SAVINGS (401)",
+                  "amount": -400.0
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "facilities": [
+        {
+          "type": "secured_vehicle_loan",
+          "name": "Kiwibank car loan LN-2024-1170",
+          "secured_over": "2019 Toyota Corolla",
+          "original": 16200.0,
+          "opened": "05/2024",
+          "term": "48 months",
+          "rate": "13.90% p.a.",
+          "repayment": 295.0,
+          "due_day": "12th of the month",
+          "balance": 11480.19,
+          "payments_made": 26,
+          "missed": [
+            "12/04/2026",
+            "12/05/2026"
+          ],
+          "status": "arrears (60 days)"
+        }
+      ],
+      "case": {
+        "ref": "AC-2056",
+        "type": "hardship",
+        "status": "hardship request received 28/05/2026 - awaiting assessment",
+        "arrears": {
+          "total": 630.0,
+          "breakdown": "2 missed repayments of $295.00 ($590.00) + default fees $40.00"
+        },
+        "hardship_request": {
+          "received": "28/05/2026",
+          "channel": "secure message",
+          "stated_reason": "made redundant 07/05/2026; asking for help while she finds work",
+          "income": "Jobseeker Support application lodged 11/05/2026, decision pending",
+          "savings": 2100.0,
+          "note": "customer has savings she would prefer not to run down"
+        }
+      }
+    },
+    {
+      "id": "C-47831",
+      "name": "Jordan Price",
+      "dob": "23/11/1996",
+      "address": "42B Vogel Street, Te Aro, Wellington 6011",
+      "employment": {
+        "status": "permanent full-time",
+        "role": "Senior service designer",
+        "employer": "Aroha Digital Ltd",
+        "location": "Wellington",
+        "since": "02/2023",
+        "verification": "payslips on file; salary confirmed in account conduct"
+      },
+      "accounts": [
+        {
+          "type": "everyday_transaction",
+          "name": "Everyday account",
+          "number": "38-9012-8830455-03",
+          "balance": 987.1,
+          "transactions": [
+            {
+              "month": "2026-01",
+              "items": [
+                {
+                  "date": "01/01/2026",
+                  "description": "RENT - HONEYCOMB PROPERTY GROUP",
+                  "amount": -1750.0
+                },
+                {
+                  "date": "02/01/2026",
+                  "description": "AP - AROHA DIGITAL LTD",
+                  "amount": 4400.0
+                },
+                {
+                  "date": "04/01/2026",
+                  "description": "PAK'NSAVE WELLINGTON",
+                  "amount": -331.65
+                },
+                {
+                  "date": "08/01/2026",
+                  "description": "MERCURY ENERGY",
+                  "amount": -168.4
+                },
+                {
+                  "date": "09/01/2026",
+                  "description": "CITY FITNESS WELLINGTON",
+                  "amount": -89.0
+                },
+                {
+                  "date": "10/01/2026",
+                  "description": "AUTOPAY - KIWIBANK CREDIT CARD",
+                  "amount": -105.0
+                },
+                {
+                  "date": "11/01/2026",
+                  "description": "ONE NZ MOBILE",
+                  "amount": -59.9
+                },
+                {
+                  "date": "12/01/2026",
+                  "description": "CARD PAYMENT - SOUTHERN CROSS BANKING",
+                  "amount": -150.0
+                },
+                {
+                  "date": "14/01/2026",
+                  "description": "CARD PAYMENT - KAURI BANK",
+                  "amount": -90.0
+                },
+                {
+                  "date": "17/01/2026",
+                  "description": "NEW WORLD THORNDON",
+                  "amount": -242.6
+                },
+                {
+                  "date": "21/01/2026",
+                  "description": "AIR NEW ZEALAND",
+                  "amount": -629.0
+                },
+                {
+                  "date": "24/01/2026",
+                  "description": "SNAPPER - BUS TOP UP",
+                  "amount": -40.0
+                },
+                {
+                  "date": "27/01/2026",
+                  "description": "PAK'NSAVE WELLINGTON",
+                  "amount": -342.35
+                },
+                {
+                  "date": "29/01/2026",
+                  "description": "FLORIDITAS CAFE",
+                  "amount": -84.6
+                },
+                {
+                  "date": "31/01/2026",
+                  "description": "PAK'NSAVE WELLINGTON",
+                  "amount": -279.3
+                }
+              ]
+            },
+            {
+              "month": "2026-02",
+              "items": [
+                {
+                  "date": "01/02/2026",
+                  "description": "RENT - HONEYCOMB PROPERTY GROUP",
+                  "amount": -1750.0
+                },
+                {
+                  "date": "02/02/2026",
+                  "description": "AP - AROHA DIGITAL LTD",
+                  "amount": 4400.0
+                },
+                {
+                  "date": "04/02/2026",
+                  "description": "PAK'NSAVE WELLINGTON",
+                  "amount": -396.65
+                },
+                {
+                  "date": "06/02/2026",
+                  "description": "FLORIDITAS CAFE",
+                  "amount": -96.3
+                },
+                {
+                  "date": "08/02/2026",
+                  "description": "MERCURY ENERGY",
+                  "amount": -172.6
+                },
+                {
+                  "date": "09/02/2026",
+                  "description": "CITY FITNESS WELLINGTON",
+                  "amount": -89.0
+                },
+                {
+                  "date": "10/02/2026",
+                  "description": "AUTOPAY - KIWIBANK CREDIT CARD",
+                  "amount": -105.0
+                },
+                {
+                  "date": "11/02/2026",
+                  "description": "ONE NZ MOBILE",
+                  "amount": -59.9
+                },
+                {
+                  "date": "12/02/2026",
+                  "description": "CARD PAYMENT - SOUTHERN CROSS BANKING",
+                  "amount": -150.0
+                },
+                {
+                  "date": "12/02/2026",
+                  "description": "BALANCE TRANSFER FEE - SOUTHERN CROSS BANKING",
+                  "amount": -89.0
+                },
+                {
+                  "date": "13/02/2026",
+                  "description": "JB HI-FI WELLINGTON",
+                  "amount": -659.0
+                },
+                {
+                  "date": "14/02/2026",
+                  "description": "CARD PAYMENT - KAURI BANK",
+                  "amount": -90.0
+                },
+                {
+                  "date": "17/02/2026",
+                  "description": "NEW WORLD THORNDON",
+                  "amount": -372.25
+                },
+                {
+                  "date": "21/02/2026",
+                  "description": "SNAPPER - BUS TOP UP",
+                  "amount": -40.0
+                },
+                {
+                  "date": "28/02/2026",
+                  "description": "PAK'NSAVE WELLINGTON",
+                  "amount": -332.65
+                }
+              ]
+            },
+            {
+              "month": "2026-03",
+              "items": [
+                {
+                  "date": "01/03/2026",
+                  "description": "RENT - HONEYCOMB PROPERTY GROUP",
+                  "amount": -1750.0
+                },
+                {
+                  "date": "02/03/2026",
+                  "description": "AP - AROHA DIGITAL LTD",
+                  "amount": 4400.0
+                },
+                {
+                  "date": "04/03/2026",
+                  "description": "PAK'NSAVE WELLINGTON",
+                  "amount": -386.75
+                },
+                {
+                  "date": "05/03/2026",
+                  "description": "UBER TRIP",
+                  "amount": -28.4
+                },
+                {
+                  "date": "08/03/2026",
+                  "description": "MERCURY ENERGY",
+                  "amount": -176.35
+                },
+                {
+                  "date": "09/03/2026",
+                  "description": "CITY FITNESS WELLINGTON",
+                  "amount": -89.0
+                },
+                {
+                  "date": "10/03/2026",
+                  "description": "AUTOPAY - KIWIBANK CREDIT CARD",
+                  "amount": -105.0
+                },
+                {
+                  "date": "11/03/2026",
+                  "description": "ONE NZ MOBILE",
+                  "amount": -59.9
+                },
+                {
+                  "date": "12/03/2026",
+                  "description": "CARD PAYMENT - SOUTHERN CROSS BANKING",
+                  "amount": -150.0
+                },
+                {
+                  "date": "13/03/2026",
+                  "description": "AIR NEW ZEALAND",
+                  "amount": -648.0
+                },
+                {
+                  "date": "14/03/2026",
+                  "description": "CARD PAYMENT - KAURI BANK",
+                  "amount": -90.0
+                },
+                {
+                  "date": "18/03/2026",
+                  "description": "NEW WORLD THORNDON",
+                  "amount": -358.35
+                },
+                {
+                  "date": "21/03/2026",
+                  "description": "SNAPPER - BUS TOP UP",
+                  "amount": -40.0
+                },
+                {
+                  "date": "27/03/2026",
+                  "description": "FLORIDITAS CAFE",
+                  "amount": -112.3
+                },
+                {
+                  "date": "31/03/2026",
+                  "description": "PAK'NSAVE WELLINGTON",
+                  "amount": -383.55
+                }
+              ]
+            },
+            {
+              "month": "2026-04",
+              "note": "data to 15/04/2026",
+              "items": [
+                {
+                  "date": "01/04/2026",
+                  "description": "RENT - HONEYCOMB PROPERTY GROUP",
+                  "amount": -1750.0
+                },
+                {
+                  "date": "02/04/2026",
+                  "description": "AP - AROHA DIGITAL LTD",
+                  "amount": 4400.0
+                },
+                {
+                  "date": "04/04/2026",
+                  "description": "PAK'NSAVE WELLINGTON",
+                  "amount": -244.65
+                },
+                {
+                  "date": "08/04/2026",
+                  "description": "MERCURY ENERGY",
+                  "amount": -170.2
+                },
+                {
+                  "date": "09/04/2026",
+                  "description": "CITY FITNESS WELLINGTON",
+                  "amount": -89.0
+                },
+                {
+                  "date": "10/04/2026",
+                  "description": "AUTOPAY - KIWIBANK CREDIT CARD",
+                  "amount": -105.0
+                },
+                {
+                  "date": "11/04/2026",
+                  "description": "ONE NZ MOBILE",
+                  "amount": -59.9
+                },
+                {
+                  "date": "12/04/2026",
+                  "description": "CARD PAYMENT - SOUTHERN CROSS BANKING",
+                  "amount": -150.0
+                },
+                {
+                  "date": "14/04/2026",
+                  "description": "CARD PAYMENT - KAURI BANK",
+                  "amount": -90.0
+                },
+                {
+                  "date": "14/04/2026",
+                  "description": "NEW WORLD THORNDON",
+                  "amount": -186.35
+                },
+                {
+                  "date": "14/04/2026",
+                  "description": "UBER TRIP",
+                  "amount": -31.75
+                },
+                {
+                  "date": "15/04/2026",
+                  "description": "PAK'NSAVE WELLINGTON",
+                  "amount": -150.9
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "facilities": [
+        {
+          "type": "credit_card",
+          "name": "Kiwibank credit card",
+          "number": "4XXX-2201",
+          "limit": 4000.0,
+          "balance": 3398.75,
+          "rate": "20.95% p.a.",
+          "min_payment": 102.0,
+          "status": "current (85% of limit)"
+        }
+      ],
+      "case": null
+    },
+    {
+      "id": "C-33194",
+      "name": "Hine Maaka",
+      "dob": "30/01/1988",
+      "address": "15 Rimu Crescent, Flaxmere, Hastings 4120",
+      "employment": {
+        "status": "not employed",
+        "role": "Retail assistant (casual)",
+        "employer": "Karamu Four Square",
+        "location": "Flaxmere",
+        "period": "02/2021 - 28/07/2025",
+        "note": "employment ended 28/07/2025; on Jobseeker Support (MSD) since 09/2025"
+      },
+      "accounts": [
+        {
+          "type": "everyday_transaction",
+          "name": "Everyday account",
+          "number": "38-9012-2210678-04",
+          "balance": 86.3,
+          "transactions": [
+            {
+              "month": "2026-03",
+              "items": [
+                {
+                  "date": "03/03/2026",
+                  "description": "WORK AND INCOME - MSD",
+                  "amount": 383.0
+                },
+                {
+                  "date": "03/03/2026",
+                  "description": "RENT - KAIWHARE COMMUNITY HOUSING",
+                  "amount": -620.0
+                },
+                {
+                  "date": "03/03/2026",
+                  "description": "AUTOPAY - KIWIBANK PERSONAL LOAN (RETURNED UNPAID)",
+                  "amount": 0.0
+                },
+                {
+                  "date": "05/03/2026",
+                  "description": "FOUR SQUARE FLAXMERE",
+                  "amount": -68.4
+                },
+                {
+                  "date": "09/03/2026",
+                  "description": "PAK'NSAVE HASTINGS",
+                  "amount": -214.65
+                },
+                {
+                  "date": "10/03/2026",
+                  "description": "WORK AND INCOME - MSD",
+                  "amount": 383.0
+                },
+                {
+                  "date": "10/03/2026",
+                  "description": "MERIDIAN ENERGY",
+                  "amount": -145.0
+                },
+                {
+                  "date": "12/03/2026",
+                  "description": "FOUR SQUARE FLAXMERE",
+                  "amount": -52.3
+                },
+                {
+                  "date": "16/03/2026",
+                  "description": "PAK'NSAVE HASTINGS",
+                  "amount": -181.8
+                },
+                {
+                  "date": "17/03/2026",
+                  "description": "WORK AND INCOME - MSD",
+                  "amount": 383.0
+                },
+                {
+                  "date": "19/03/2026",
+                  "description": "2DEGREES MOBILE",
+                  "amount": -29.9
+                },
+                {
+                  "date": "23/03/2026",
+                  "description": "FOUR SQUARE FLAXMERE",
+                  "amount": -61.75
+                },
+                {
+                  "date": "24/03/2026",
+                  "description": "WORK AND INCOME - MSD",
+                  "amount": 383.0
+                },
+                {
+                  "date": "26/03/2026",
+                  "description": "PAK'NSAVE HASTINGS",
+                  "amount": -168.9
+                },
+                {
+                  "date": "31/03/2026",
+                  "description": "PAK'NSAVE HASTINGS",
+                  "amount": -146.85
+                }
+              ]
+            },
+            {
+              "month": "2026-04",
+              "items": [
+                {
+                  "date": "02/04/2026",
+                  "description": "RENT - KAIWHARE COMMUNITY HOUSING",
+                  "amount": -620.0
+                },
+                {
+                  "date": "03/04/2026",
+                  "description": "AUTOPAY - KIWIBANK PERSONAL LOAN (RETURNED UNPAID)",
+                  "amount": 0.0
+                },
+                {
+                  "date": "05/04/2026",
+                  "description": "FOUR SQUARE FLAXMERE",
+                  "amount": -61.2
+                },
+                {
+                  "date": "07/04/2026",
+                  "description": "WORK AND INCOME - MSD",
+                  "amount": 383.0
+                },
+                {
+                  "date": "08/04/2026",
+                  "description": "PAK'NSAVE HASTINGS",
+                  "amount": -187.55
+                },
+                {
+                  "date": "09/04/2026",
+                  "description": "MERIDIAN ENERGY",
+                  "amount": -141.1
+                },
+                {
+                  "date": "13/04/2026",
+                  "description": "FOUR SQUARE FLAXMERE",
+                  "amount": -57.8
+                },
+                {
+                  "date": "14/04/2026",
+                  "description": "WORK AND INCOME - MSD",
+                  "amount": 383.0
+                },
+                {
+                  "date": "17/04/2026",
+                  "description": "PAK'NSAVE HASTINGS",
+                  "amount": -192.9
+                },
+                {
+                  "date": "20/04/2026",
+                  "description": "2DEGREES MOBILE",
+                  "amount": -29.9
+                },
+                {
+                  "date": "21/04/2026",
+                  "description": "WORK AND INCOME - MSD",
+                  "amount": 383.0
+                },
+                {
+                  "date": "24/04/2026",
+                  "description": "FOUR SQUARE FLAXMERE",
+                  "amount": -66.35
+                },
+                {
+                  "date": "28/04/2026",
+                  "description": "WORK AND INCOME - MSD",
+                  "amount": 383.0
+                },
+                {
+                  "date": "28/04/2026",
+                  "description": "PAK'NSAVE HASTINGS",
+                  "amount": -176.75
+                },
+                {
+                  "date": "30/04/2026",
+                  "description": "THE WAREHOUSE HASTINGS",
+                  "amount": -121.55
+                }
+              ]
+            },
+            {
+              "month": "2026-05",
+              "items": [
+                {
+                  "date": "01/05/2026",
+                  "description": "RENT - KAIWHARE COMMUNITY HOUSING",
+                  "amount": -620.0
+                },
+                {
+                  "date": "03/05/2026",
+                  "description": "AUTOPAY - KIWIBANK PERSONAL LOAN (RETURNED UNPAID)",
+                  "amount": 0.0
+                },
+                {
+                  "date": "05/05/2026",
+                  "description": "WORK AND INCOME - MSD",
+                  "amount": 383.0
+                },
+                {
+                  "date": "06/05/2026",
+                  "description": "MERIDIAN ENERGY",
+                  "amount": -148.3
+                },
+                {
+                  "date": "07/05/2026",
+                  "description": "FOUR SQUARE FLAXMERE",
+                  "amount": -64.2
+                },
+                {
+                  "date": "11/05/2026",
+                  "description": "PAK'NSAVE HASTINGS",
+                  "amount": -208.6
+                },
+                {
+                  "date": "12/05/2026",
+                  "description": "WORK AND INCOME - MSD",
+                  "amount": 383.0
+                },
+                {
+                  "date": "15/05/2026",
+                  "description": "FOUR SQUARE FLAXMERE",
+                  "amount": -59.75
+                },
+                {
+                  "date": "19/05/2026",
+                  "description": "WORK AND INCOME - MSD",
+                  "amount": 383.0
+                },
+                {
+                  "date": "19/05/2026",
+                  "description": "PAK'NSAVE HASTINGS",
+                  "amount": -203.15
+                },
+                {
+                  "date": "22/05/2026",
+                  "description": "2DEGREES MOBILE",
+                  "amount": -29.9
+                },
+                {
+                  "date": "26/05/2026",
+                  "description": "WORK AND INCOME - MSD",
+                  "amount": 383.0
+                },
+                {
+                  "date": "26/05/2026",
+                  "description": "FOUR SQUARE FLAXMERE",
+                  "amount": -68.45
+                },
+                {
+                  "date": "28/05/2026",
+                  "description": "PAK'NSAVE HASTINGS",
+                  "amount": -201.2
+                },
+                {
+                  "date": "31/05/2026",
+                  "description": "PAK'NSAVE HASTINGS",
+                  "amount": -68.35
+                }
+              ]
+            },
+            {
+              "month": "2026-06",
+              "note": "data to 09/06/2026",
+              "items": [
+                {
+                  "date": "02/06/2026",
+                  "description": "WORK AND INCOME - MSD",
+                  "amount": 383.0
+                },
+                {
+                  "date": "02/06/2026",
+                  "description": "RENT - KAIWHARE COMMUNITY HOUSING",
+                  "amount": -620.0
+                },
+                {
+                  "date": "05/06/2026",
+                  "description": "FOUR SQUARE FLAXMERE",
+                  "amount": -12.4
+                },
+                {
+                  "date": "08/06/2026",
+                  "description": "FOUR SQUARE FLAXMERE",
+                  "amount": -7.9
+                },
+                {
+                  "date": "09/06/2026",
+                  "description": "WORK AND INCOME - MSD",
+                  "amount": 383.0
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "facilities": [
+        {
+          "type": "unsecured_personal_loan",
+          "name": "Kiwibank personal loan LN-2025-0456",
+          "original": 7500.0,
+          "drawn": "15/09/2025",
+          "term": "12 months",
+          "rate": "12.95% p.a.",
+          "repayment": 610.0,
+          "due_day": "3rd of the month",
+          "balance": 4712.3,
+          "payments_made": 5,
+          "missed": [
+            "03/03/2026",
+            "03/04/2026",
+            "03/05/2026"
+          ],
+          "status": "arrears (3 months)"
+        }
+      ],
+      "case": {
+        "ref": "OA-104",
+        "type": "collections",
+        "status": "next recovery step due per collections policy",
+        "arrears": {
+          "total": 1900.0,
+          "breakdown": "3 missed repayments of $610.00 ($1,830.00) + default fees $70.00"
+        },
+        "arrears_history": [
+          {
+            "date": "03/03/2026",
+            "event": "repayment missed"
+          },
+          {
+            "date": "03/04/2026",
+            "event": "repayment missed"
+          },
+          {
+            "date": "03/05/2026",
+            "event": "repayment missed"
+          },
+          {
+            "date": "12/05/2026",
+            "event": "first reminder sent (secure message) - no response"
+          },
+          {
+            "date": "26/05/2026",
+            "event": "second reminder sent (secure message) - no response"
+          }
+        ],
+        "notes": [
+          "Employment ended 28/07/2025 per customer record; account conduct from 09/2025 shows Jobseeker Support (MSD) as sole income",
+          "No response to any contact since 02/2026"
+        ]
+      }
+    },
+    {
+      "id": "C-45260",
+      "name": "Tomas Baker",
+      "dob": "11/06/1980",
+      "address": "8 Pingao Street, Mount Maunganui, Tauranga 3116",
+      "employment": {
+        "status": "self-employed contractor",
+        "role": "Electrical contractor (director, Baker Electrical Ltd)",
+        "location": "Tauranga",
+        "since": "03/2018",
+        "income": "approx $5,800/mo net (variable: $4,900-$6,700/mo over the past 12 months)",
+        "verification": "12 months bank statements and 2025 tax summary on file; income steady across the period"
+      },
+      "accounts": [
+        {
+          "type": "everyday_transaction",
+          "name": "Everyday account",
+          "number": "38-9012-9933412-05",
+          "balance": 3412.9,
+          "transactions": [
+            {
+              "month": "2026-01",
+              "items": [
+                {
+                  "date": "03/01/2026",
+                  "description": "COUNTDOWN MT MAUNGANUI",
+                  "amount": -418.6
+                },
+                {
+                  "date": "05/01/2026",
+                  "description": "Z ENERGY TGA",
+                  "amount": -365.1
+                },
+                {
+                  "date": "07/01/2026",
+                  "description": "COUNTDOWN MT MAUNGANUI",
+                  "amount": -362.35
+                },
+                {
+                  "date": "08/01/2026",
+                  "description": "AP - AURORA VILLAS MGMT",
+                  "amount": 3862.4
+                },
+                {
+                  "date": "09/01/2026",
+                  "description": "MERCURY ENERGY",
+                  "amount": -224.8
+                },
+                {
+                  "date": "16/01/2026",
+                  "description": "COUNTDOWN MT MAUNGANUI",
+                  "amount": -391.45
+                },
+                {
+                  "date": "19/01/2026",
+                  "description": "AA INSURANCE - HOME AND CAR",
+                  "amount": -138.6
+                },
+                {
+                  "date": "20/01/2026",
+                  "description": "AUTOPAY - KIWIBANK HOME LOAN",
+                  "amount": -2150.0
+                },
+                {
+                  "date": "21/01/2026",
+                  "description": "MITRE 10 MEGA TGA",
+                  "amount": -458.35
+                },
+                {
+                  "date": "22/01/2026",
+                  "description": "AP - BAY DENTAL GROUP",
+                  "amount": 2850.0
+                },
+                {
+                  "date": "24/01/2026",
+                  "description": "ONE NZ - PHONE AND BROADBAND",
+                  "amount": -149.8
+                },
+                {
+                  "date": "25/01/2026",
+                  "description": "AUTOPAY - KIWIBANK CREDIT CARD",
+                  "amount": -260.0
+                },
+                {
+                  "date": "26/01/2026",
+                  "description": "AUTOPAY - BRIGHTPATH FINANCE (HP)",
+                  "amount": -210.0
+                },
+                {
+                  "date": "29/01/2026",
+                  "description": "MT AUTOWORKERS - CAR SERVICE",
+                  "amount": -486.3
+                },
+                {
+                  "date": "31/01/2026",
+                  "description": "HARVEY NORMAN MOUNT - FRIDGE/FREEZER",
+                  "amount": -789.75
+                }
+              ]
+            },
+            {
+              "month": "2026-02",
+              "items": [
+                {
+                  "date": "03/02/2026",
+                  "description": "COUNTDOWN MT MAUNGANUI",
+                  "amount": -386.3
+                },
+                {
+                  "date": "06/02/2026",
+                  "description": "Z ENERGY TGA",
+                  "amount": -151.25
+                },
+                {
+                  "date": "09/02/2026",
+                  "description": "MERCURY ENERGY",
+                  "amount": -231.6
+                },
+                {
+                  "date": "10/02/2026",
+                  "description": "AP - BAY DENTAL GROUP",
+                  "amount": 2600.0
+                },
+                {
+                  "date": "12/02/2026",
+                  "description": "COUNTDOWN MT MAUNGANUI",
+                  "amount": -358.85
+                },
+                {
+                  "date": "16/02/2026",
+                  "description": "ONE NZ - PHONE AND BROADBAND",
+                  "amount": -149.8
+                },
+                {
+                  "date": "18/02/2026",
+                  "description": "BP CONNECT TGA",
+                  "amount": -129.4
+                },
+                {
+                  "date": "20/02/2026",
+                  "description": "AUTOPAY - KIWIBANK HOME LOAN",
+                  "amount": -2150.0
+                },
+                {
+                  "date": "21/02/2026",
+                  "description": "COUNTDOWN MT MAUNGANUI",
+                  "amount": -384.1
+                },
+                {
+                  "date": "24/02/2026",
+                  "description": "AP - AURORA VILLAS MGMT",
+                  "amount": 2308.75
+                },
+                {
+                  "date": "25/02/2026",
+                  "description": "AUTOPAY - KIWIBANK CREDIT CARD",
+                  "amount": -260.0
+                },
+                {
+                  "date": "26/02/2026",
+                  "description": "AUTOPAY - BRIGHTPATH FINANCE (HP)",
+                  "amount": -210.0
+                },
+                {
+                  "date": "26/02/2026",
+                  "description": "BUNNINGS TGA",
+                  "amount": -214.6
+                },
+                {
+                  "date": "28/02/2026",
+                  "description": "COUNTDOWN MT MAUNGANUI",
+                  "amount": -384.7
+                }
+              ]
+            },
+            {
+              "month": "2026-03",
+              "note": "data to 24/03/2026",
+              "items": [
+                {
+                  "date": "02/03/2026",
+                  "description": "COUNTDOWN MT MAUNGANUI",
+                  "amount": -231.85
+                },
+                {
+                  "date": "05/03/2026",
+                  "description": "Z ENERGY TGA",
+                  "amount": -138.4
+                },
+                {
+                  "date": "06/03/2026",
+                  "description": "AP - AURORA VILLAS MGMT",
+                  "amount": 3045.0
+                },
+                {
+                  "date": "09/03/2026",
+                  "description": "MERCURY ENERGY",
+                  "amount": -221.3
+                },
+                {
+                  "date": "13/03/2026",
+                  "description": "COUNTDOWN MT MAUNGANUI",
+                  "amount": -249.75
+                },
+                {
+                  "date": "17/03/2026",
+                  "description": "ONE NZ - PHONE AND BROADBAND",
+                  "amount": -89.9
+                },
+                {
+                  "date": "20/03/2026",
+                  "description": "AP - BAY DENTAL GROUP",
+                  "amount": 2800.0
+                },
+                {
+                  "date": "20/03/2026",
+                  "description": "AUTOPAY - KIWIBANK HOME LOAN",
+                  "amount": -2150.0
+                },
+                {
+                  "date": "23/03/2026",
+                  "description": "COUNTDOWN MT MAUNGANUI",
+                  "amount": -39.25
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "facilities": [
+        {
+          "type": "mortgage",
+          "name": "Kiwibank home loan",
+          "property": "8 Pingao Street, Mount Maunganui",
+          "original": 520000.0,
+          "opened": "03/2018",
+          "balance": 486300.0,
+          "rate": "5.99% p.a. fixed to 02/2028",
+          "repayment": 2150.0,
+          "status": "current"
+        },
+        {
+          "type": "credit_card",
+          "name": "Kiwibank credit card",
+          "number": "4XXX-7715",
+          "limit": 9000.0,
+          "balance": 7918.4,
+          "rate": "20.95% p.a.",
+          "min_payment": 238.0,
+          "status": "current (88% of limit)"
+        }
+      ],
+      "case": {
+        "ref": "L-2385",
+        "type": "review_request",
+        "status": "application declined 22/03/2026 - customer requested the reasons and a review on 24/03/2026",
+        "notes": [
+          "Customer disputes the decline; points to steady contract income and a clean record (no bankruptcies or defaults)"
+        ]
+      }
+    }
+  ]
+}

@@ -39,6 +39,24 @@ Both data viewers fetch **at runtime** from the project's public HF storage
 bucket (`1jamesthompson1/wvs-nz-value-alignment-evals`) — nothing is bundled
 at build time, so visitors only download the runs they actually select.
 
+### Local data mode
+
+The **dev server reads the local artifacts mirror by default**; production
+builds always read the HF bucket. URL params override in either direction:
+`?local=0` forces the bucket in dev, `?local=1` forces local in preview/prod
+(needs the same-origin data served, see below).
+
+```bash
+make website-local-data   # symlinks website/public/{ft,bs} -> artifacts/{ft,bs} (gitignored)
+cd website && npm run dev # manifest + runs come from /ft/evals, /bs/runs
+```
+
+With the local default, freshly regenerated manifests/evals show up with
+just a browser refresh — no bucket sync, no cache TTL. Never build/deploy
+with the symlinks present (`astro build` would bundle the whole artifacts
+mirror into `dist/`); they are gitignored and only exist locally. The
+`?manifest=<url>` override remains available as a per-URL escape hatch.
+
 ### Fine-tuning evals
 
 1. `code/fine-tuning/export_evals_manifest.py` writes the small manifest

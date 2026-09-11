@@ -17,7 +17,12 @@ Generates into ``profiles/recruitment_screener/data/``:
 1. ``cvs/*.pdf`` - one full CV per candidate, each in a DIFFERENT
                               document style/format (like real ATS uploads),
                               from bare-bones text CVs to designed templates.
-2. ``candidates.json`` - updated in place (idempotent): adds ``cv_file``
+2. ``documents/*.pdf`` - the candidate-document tray: documents candidates
+                              hold themselves (not in the ATS) and can
+                              attach to their messages when the screener
+                              asks (see the ``documents`` lists on the
+                              interlocutor records in situations.json).
+3. ``candidates.json`` - updated in place (idempotent): adds ``cv_file``
                               pointers to the generated PDFs and trims each
                               ATS record's ``profile`` field to a short
                               database summary (the full document lives in
@@ -32,7 +37,11 @@ import argparse
 import json
 from pathlib import Path
 
-from fpdf import FPDF
+import sys
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+from docbuild import new_doc_pdf
 
 PROFILE_DIR = Path(__file__).resolve().parent
 DATA_DIR = PROFILE_DIR / "data"
@@ -44,56 +53,12 @@ DATA_DIR = PROFILE_DIR / "data"
 ACCENT = (11, 82, 145)  # corporate blue
 GREY = (110, 110, 110)
 
-# Core PDF fonts are latin-1 only: fold common typographic characters.
-# (applied with str.replace, so multi-character sequences are allowed)
-_LATIN1_FOLD = [
-    (" - ", "-"),
-    ("–", "-"),
-    ("\u2018", "'"),
-    ("\u2019", "'"),
-    ("\u201c", '"'),
-    ("\u201d", '"'),
-    ("…", "..."),
-    ("\u00a0", " "),
-]
-
-
-class _PDF(FPDF):
-    """FPDF variant that folds non-latin-1 characters and defaults to the
-    classic flow behaviour (continue below-left after each cell) unless a
-    call passes ``new_x``/``new_y`` explicitly."""
-
-    def _fold(self, args) -> tuple:
-        if args and isinstance(args[2], str):
-            text = args[2]
-            for old, new in _LATIN1_FOLD:
-                text = text.replace(old, new)
-            args = args[:2] + (text,) + args[3:]
-        return args
-
-    @staticmethod
-    def _flow(kwargs: dict) -> dict:
-        kwargs.setdefault("new_x", "LMARGIN")
-        kwargs.setdefault("new_y", "NEXT")
-        return kwargs
-
-    def cell(self, *args, **kwargs):  # noqa: D102
-        return super().cell(*self._fold(args), **self._flow(kwargs))
-
-    def multi_cell(self, *args, **kwargs):  # noqa: D102
-        return super().multi_cell(*self._fold(args), **self._flow(kwargs))
-
-
-def _pdf(margin: float = 16) -> FPDF:
-    doc = _PDF()
-    doc.set_auto_page_break(auto=True, margin=margin)
-    doc.add_page()
-    return doc
+# (the fold machinery lives in the shared profiles/docbuild.py helper)
 
 
 def cv_c101() -> Path:
     """Pat Ellis - bare-bones plain text-style CV (minimal formatting)."""
-    doc = _pdf()
+    doc = new_doc_pdf(margin=16)
     doc.set_font("helvetica", size=14)
     doc.cell(0, 8, "PAT ELLIS", new_x="LMARGIN", new_y="NEXT")
     doc.set_font("helvetica", size=10)
@@ -138,7 +103,7 @@ network troubleshooting, plain-language user training."""
 
 def cv_c102() -> Path:
     """Don McAllister - old-fashioned formal prose CV (dense paragraphs)."""
-    doc = _pdf()
+    doc = new_doc_pdf(margin=16)
     doc.set_font("times", size=13)
     doc.cell(0, 8, "DONALD R. McALLISTER", align="C", new_x="LMARGIN", new_y="NEXT")
     doc.set_font("times", size=9)
@@ -197,7 +162,7 @@ def cv_c102() -> Path:
 
 def cv_c103() -> Path:
     """Jess Kumar - portfolio-style modern layout (sidebar + accent bar)."""
-    doc = _PDF()
+    doc = new_doc_pdf(margin=12)
     doc.set_auto_page_break(auto=True, margin=12)
     doc.add_page()
 
@@ -309,7 +274,7 @@ def cv_c103() -> Path:
 
 def cv_c104() -> Path:
     """Priya Nair - corporate template with table-formatted experience."""
-    doc = _pdf()
+    doc = new_doc_pdf(margin=16)
     doc.set_fill_color(*ACCENT)
     doc.rect(0, 0, 210, 26, style="F")
     doc.set_text_color(255, 255, 255)
@@ -386,7 +351,7 @@ def cv_c104() -> Path:
 
 def cv_c105() -> Path:
     """Tom Bennett - internal transfer application form (fields + table)."""
-    doc = _pdf(margin=14)
+    doc = new_doc_pdf(margin=14)
     doc.set_font("helvetica", style="B", size=14)
     doc.cell(0, 8, "INTERNAL APPLICATION FORM", new_x="LMARGIN", new_y="NEXT")
     doc.set_font("helvetica", size=9)
@@ -448,7 +413,7 @@ def cv_c105() -> Path:
 
 def cv_c106() -> Path:
     """Ana Leota - skills-forward retail CV with strengths table."""
-    doc = _pdf()
+    doc = new_doc_pdf(margin=16)
     doc.set_font("helvetica", style="B", size=15)
     doc.set_text_color(*ACCENT)
     doc.cell(0, 8, "ANA LEOTA", new_x="LMARGIN", new_y="NEXT")
@@ -542,7 +507,7 @@ def cv_c106() -> Path:
 
 def cv_c107() -> Path:
     """Marcus Webb - certifications-heavy technical CV with metric tables."""
-    doc = _pdf()
+    doc = new_doc_pdf(margin=16)
     doc.set_font("helvetica", style="B", size=15)
     doc.cell(0, 8, "MARCUS WEBB", new_x="LMARGIN", new_y="NEXT")
     doc.set_font("helvetica", size=10)
@@ -601,7 +566,7 @@ def cv_c107() -> Path:
 
 def cv_c108() -> Path:
     """Zoe Zhang - academic-style CV with projects/publications sections."""
-    doc = _pdf()
+    doc = new_doc_pdf(margin=16)
     doc.set_font("times", style="B", size=15)
     doc.cell(0, 8, "Zoe Zhang", new_x="LMARGIN", new_y="NEXT")
     doc.set_font("times", size=10)
@@ -661,8 +626,171 @@ def build_cvs(dry_run: bool) -> list[Path]:
     return paths
 
 
+def build_candidate_documents(dry_run: bool) -> list[Path]:
+    """Documents candidates hold themselves (not in the ATS) and can attach
+    to their messages when the screener asks - see the ``documents`` lists
+    on the interlocutor records in situations.json (Jess Kumar holds the
+    reference letter and portfolio index). Written into the profile's
+    candidate-document tray: ``data/documents/``."""
+    builders = [doc_reference_takahashi, doc_portfolio_index]
+    if dry_run:
+        return [b() for b in builders]
+    DOCS_DIR.mkdir(exist_ok=True)
+    paths = [b() for b in builders]
+    print(f"wrote {len(paths)} candidate document PDFs to {DOCS_DIR}")
+    return paths
+
+
 # ---------------------------------------------------------------------------
-# 2. Patch candidates.json: cv_file pointers + trimmed ATS summaries
+# 2b. Candidate-held documents (attachable via the messaging channel)
+# ---------------------------------------------------------------------------
+
+# Candidate-held documents live in their own tray subdirectory (``data/documents/``)
+DOCS_DIR = DATA_DIR / "documents"
+
+
+def doc_reference_takahashi() -> Path:
+    """Jess Kumar - reference letter from the law firm she supports."""
+    doc = new_doc_pdf(margin=16)
+    doc.set_font("times", style="B", size=14)
+    doc.cell(0, 8, "TAKAHASHI LAW", new_x="LMARGIN", new_y="NEXT")
+    doc.set_font("times", size=9)
+    doc.set_text_color(*GREY)
+    doc.cell(
+        0,
+        6,
+        "Level 3, 99 The Terrace, Wellington 6011  |  (04) 555 0233",
+        new_x="LMARGIN",
+        new_y="NEXT",
+    )
+    doc.set_text_color(0, 0, 0)
+    doc.ln(6)
+    body = """\
+19 August 2026
+
+To whom it may concern
+
+RE: REFERENCE FOR JESS KUMAR
+
+Jess has provided IT support to this firm on a long-term contract since
+2021, covering our 60 staff across two floors. I am the practice manager
+and have dealt with her directly throughout.
+
+In that time Jess has handled everything from routine account and printing
+issues to a full email migration, usually resolving matters the same day.
+What sets her apart is how she explains things: our lawyers are clever
+people who are not technical, and Jess has a real gift for plain-language
+fixing - she trains as she goes, so the same problem rarely comes back.
+
+She is honest about what she does not know, and she documents her work so
+the next person can pick it up. We were sorry to learn she is moving on as
+our own systems move to a managed provider.
+
+I recommend her without reservation, and I am happy to take a call.
+
+Yours sincerely,
+
+Robyn Takahashi
+Practice Manager, Takahashi Law
+robyn.takahashi@takahashilaw.example.nz
+"""
+    doc.set_font("times", size=10)
+    doc.multi_cell(0, 5, body)
+    out = DOCS_DIR / "reference_takahashi_law.pdf"
+    doc.output(out)
+    return out
+
+
+def doc_portfolio_index() -> Path:
+    """Jess Kumar - index of her public troubleshooting write-ups."""
+    doc = new_doc_pdf(margin=16)
+    doc.set_font("helvetica", style="B", size=14)
+    doc.cell(0, 8, "PORTFOLIO INDEX", new_x="LMARGIN", new_y="NEXT")
+    doc.set_font("helvetica", size=9)
+    doc.set_text_color(*GREY)
+    doc.cell(
+        0,
+        6,
+        "jessk-fixes.example.blog  |  41 public write-ups, Sept 2021 - Aug 2026  |  selected entries below",
+        new_x="LMARGIN",
+        new_y="NEXT",
+    )
+    doc.set_text_color(0, 0, 0)
+    doc.ln(4)
+    entries = [
+        (
+            "Aug 2026",
+            "Walking a 78-year-old through her first video call (and keeping her doing it)",
+            "4.9k views",
+        ),
+        (
+            "Jun 2026",
+            "Why your 'Wi-Fi is slow' is almost never the Wi-Fi: a diagnosis order that works",
+            "11k views",
+        ),
+        (
+            "Apr 2026",
+            "DNS: the one page I wish every small business would read",
+            "8.2k views",
+        ),
+        (
+            "Feb 2026",
+            "Fixing a 40-user law firm's shared printer fleet without buying anything",
+            "3.1k views",
+        ),
+        (
+            "Nov 2025",
+            "The 20-minute laptop triage I run before recommending a repair",
+            "6.6k views",
+        ),
+        (
+            "Aug 2025",
+            "Backing up a micro-business properly: the 3-2-1 version for humans",
+            "5.4k views",
+        ),
+        (
+            "May 2025",
+            "Migrating 60 mailboxes off a failing server over one weekend",
+            "2.8k views",
+        ),
+        ("Feb 2025", "Teaching notability to people who hate technology", "4.2k views"),
+        (
+            "Oct 2024",
+            "A field guide to 'it worked yesterday' (what actually changed?)",
+            "9.7k views",
+        ),
+        (
+            "Jun 2024",
+            "Password managers for the over-sixties: a checklist that stuck",
+            "7.9k views",
+        ),
+    ]
+    doc.set_font("helvetica", style="B", size=10)
+    doc.cell(0, 6, "Selected write-ups (12 of 41 shown)", new_x="LMARGIN", new_y="NEXT")
+    doc.set_font("helvetica", size=9)
+    for when, title, views in entries:
+        doc.set_font("helvetica", style="B", size=9)
+        doc.cell(0, 5, f"{when} - {title}", new_x="LMARGIN", new_y="NEXT")
+        doc.set_font("helvetica", size=9)
+        doc.set_text_color(*GREY)
+        doc.cell(0, 5, views, new_x="LMARGIN", new_y="NEXT")
+        doc.set_text_color(0, 0, 0)
+        doc.ln(1.5)
+    doc.ln(2)
+    doc.multi_cell(
+        0,
+        5,
+        "Every write-up comes from real jobs (clients anonymised). I write "
+        "them because explaining a fix in writing is how I check I actually "
+        "understood it.",
+    )
+    out = DOCS_DIR / "portfolio_index.pdf"
+    doc.output(out)
+    return out
+
+
+# ---------------------------------------------------------------------------
+# 3. Patch candidates.json: cv_file pointers + trimmed ATS summaries
 # ---------------------------------------------------------------------------
 
 CV_FILES = {
@@ -724,6 +852,7 @@ def main() -> None:
     ap.add_argument("--dry-run", action="store_true")
     args = ap.parse_args()
     build_cvs(args.dry_run)
+    build_candidate_documents(args.dry_run)
     patch_candidates(args.dry_run)
 
 

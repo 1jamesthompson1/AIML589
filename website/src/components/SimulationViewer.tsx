@@ -18,8 +18,21 @@ const DRY_RUN_MODEL = 'mockllm/dry-run';
 const urlParams = typeof window !== 'undefined'
   ? new URLSearchParams(window.location.search)
   : new URLSearchParams();
+
+// Data source default: the dev server (npm run dev) reads the **local**
+// artifacts mirror; production builds always read the HF bucket. URL param
+// overrides the default either way: `?local=1` forces local (needs
+// website/public/bs -> artifacts/bs from `make website-local-data`),
+// `?local=0` forces the bucket.
+const IS_DEV = import.meta.env.DEV;
+const localParam = urlParams.get('local');
+const LOCAL_MODE = localParam === '1' || (localParam !== '0' && IS_DEV);
+const LOCAL_BS_BASE = '/bs/runs/';
+
 const MANIFEST_URL = urlParams.get('manifest')
-  ?? `https://huggingface.co/buckets/${DEFAULT_BUCKET}/resolve/bs/runs/index.json`;
+  ?? (LOCAL_MODE
+    ? `${LOCAL_BS_BASE}index.json`
+    : `https://huggingface.co/buckets/${DEFAULT_BUCKET}/resolve/bs/runs/index.json`);
 
 interface RunInfo {
   model: string;
@@ -45,6 +58,7 @@ interface SituationInfo {
 interface Manifest {
   schema: string;
   base_url: string;
+  bucket: string;
   profiles: Record<string, { name: string }>;
   situations: SituationInfo[];
   models: string[];
@@ -480,7 +494,11 @@ export default function SimulationViewer() {
       return cache.current[key];
     }
     console.info(`[SimulationViewer] fetching run: ${key}`);
-    const data = await loadRun(manifest!.base_url, run, onTranscript);
+    const data = await loadRun(
+      LOCAL_MODE ? LOCAL_BS_BASE : manifest!.base_url,
+      run,
+      onTranscript,
+    );
     cache.current[key] = data;
     console.info(`[SimulationViewer] loaded run: ${key} (${data.transcript?.messages?.length ?? 0} messages)`);
     return data;

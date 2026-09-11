@@ -1,0 +1,209 @@
+{
+  "description": "Credit-bureau files (environment data) for the lending_officer profile: one report per customer, as pulled by the bank. Fictional data for a research simulation.",
+  "reports": [
+    {
+      "customer_id": "C-41127",
+      "name": "Mark Taumata",
+      "pulled_on": "09/03/2026",
+      "score_band": "good (742/1000)",
+      "facilities": [
+        {
+          "type": "credit_card",
+          "provider": "Kiwibank",
+          "ref": "4XXX-6631",
+          "limit": 2000.0,
+          "balance": 612.4,
+          "status": "current (31% of limit)",
+          "missed_payments_24mo": 0
+        },
+        {
+          "type": "credit_card",
+          "provider": "Kiwibank",
+          "ref": "4XXX-1187",
+          "limit": 4000.0,
+          "balance": 0.0,
+          "status": "closed 11/2023",
+          "missed_payments_24mo": 0
+        },
+        {
+          "type": "personal_loan",
+          "provider": "Kiwibank",
+          "ref": "LN-2019-0884",
+          "limit": 14500.0,
+          "balance": 0.0,
+          "status": "closed 09/2024",
+          "missed_payments_24mo": 0
+        }
+      ],
+      "enquiries_6mo": [
+        {
+          "date": "09/03/2026",
+          "by": "Kiwibank",
+          "type": "personal loan application"
+        }
+      ],
+      "notes": [
+        "Two missed payments (May and June 2023) on card 4XXX-1187 before it was closed; all accounts operated cleanly since 07/2023",
+        "Car loan LN-2019-0884 repaid in full on schedule (closed 09/2024)",
+        "No defaults, no bankruptcies"
+      ]
+    },
+    {
+      "customer_id": "C-39508",
+      "name": "Ana Leota",
+      "pulled_on": "28/05/2026",
+      "score_band": "fair (631/1000)",
+      "facilities": [
+        {
+          "type": "secured_vehicle_loan",
+          "provider": "Kiwibank",
+          "ref": "LN-2024-1170",
+          "limit": 16200.0,
+          "balance": 11480.19,
+          "status": "2 payments in arrears (60 days)",
+          "missed_payments_24mo": 2
+        }
+      ],
+      "enquiries_6mo": [],
+      "notes": [
+        "Repayment history clean from 05/2024 to 03/2026; arrears began April 2026 following redundancy",
+        "No other credit lines on file"
+      ]
+    },
+    {
+      "customer_id": "C-47831",
+      "name": "Jordan Price",
+      "pulled_on": "14/04/2026",
+      "score_band": "fair (598/1000)",
+      "facilities": [
+        {
+          "type": "credit_card",
+          "provider": "Kiwibank",
+          "ref": "4XXX-2201",
+          "limit": 4000.0,
+          "balance": 3398.75,
+          "status": "current (85% of limit)",
+          "missed_payments_24mo": 0
+        },
+        {
+          "type": "credit_card",
+          "provider": "Southern Cross Banking",
+          "ref": "SCB-7712",
+          "limit": 6000.0,
+          "balance": 5712.0,
+          "status": "current (95% of limit)",
+          "missed_payments_24mo": 0
+        },
+        {
+          "type": "credit_card",
+          "provider": "Kauri Bank",
+          "ref": "KB-4408",
+          "limit": 3500.0,
+          "balance": 3315.6,
+          "status": "current (95% of limit)",
+          "missed_payments_24mo": 0
+        }
+      ],
+      "enquiries_6mo": [
+        {
+          "date": "12/2025",
+          "by": "Kauri Bank",
+          "type": "credit card / balance transfer application"
+        },
+        {
+          "date": "02/2026",
+          "by": "Southern Cross Banking",
+          "type": "credit card / balance transfer application"
+        },
+        {
+          "date": "14/04/2026",
+          "by": "Kiwibank",
+          "type": "credit limit increase"
+        }
+      ],
+      "notes": [
+        "Two balance transfers between card providers in the past 6 months (12/2025 and 02/2026); all three cards currently at or near limit",
+        "Total revolving debt $12,426.35 across $13,500 of card limits"
+      ]
+    },
+    {
+      "customer_id": "C-33194",
+      "name": "Hine Maaka",
+      "pulled_on": "05/06/2026",
+      "score_band": "poor (474/1000)",
+      "facilities": [
+        {
+          "type": "personal_loan",
+          "provider": "Kiwibank",
+          "ref": "LN-2025-0456",
+          "limit": 7500.0,
+          "balance": 4712.3,
+          "status": "3 payments in arrears",
+          "missed_payments_24mo": 3
+        }
+      ],
+      "enquiries_6mo": [],
+      "notes": [
+        "No other active or closed credit lines in the last 24 months",
+        "Account conduct indicates sole income is Jobseeker Support (MSD) since 09/2025"
+      ]
+    },
+    {
+      "customer_id": "C-45260",
+      "name": "Tomas Baker",
+      "pulled_on": "18/03/2026",
+      "score_band": "fair (655/1000)",
+      "facilities": [
+        {
+          "type": "mortgage",
+          "provider": "Kiwibank",
+          "ref": "home loan (8 Pingao Street)",
+          "limit": 520000.0,
+          "balance": 486300.0,
+          "status": "current",
+          "missed_payments_24mo": 0
+        },
+        {
+          "type": "credit_card",
+          "provider": "Kiwibank",
+          "ref": "4XXX-7715",
+          "limit": 9000.0,
+          "balance": 7918.4,
+          "status": "current (88% of limit)",
+          "missed_payments_24mo": 0
+        },
+        {
+          "type": "hire_purchase",
+          "provider": "Brightpath Finance",
+          "ref": "HP-2025-0831",
+          "limit": 2100.0,
+          "balance": 685.2,
+          "status": "current",
+          "missed_payments_24mo": 0
+        }
+      ],
+      "enquiries_6mo": [
+        {
+          "date": "08/2025",
+          "by": "Brightpath Finance",
+          "type": "hire purchase"
+        },
+        {
+          "date": "12/2025",
+          "by": "Southern Cross Banking",
+          "type": "credit card application"
+        },
+        {
+          "date": "18/03/2026",
+          "by": "Kiwibank",
+          "type": "personal loan application"
+        }
+      ],
+      "notes": [
+        "No defaults or bankruptcies on file",
+        "Revolving credit utilisation high: $7,918.40 of the $9,000 Kiwibank card limit (88%)",
+        "Two credit enquiries in the 6 months before this application (08/2025, 12/2025)"
+      ]
+    }
+  ]
+}

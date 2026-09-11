@@ -16,7 +16,8 @@ under a timestamped parent per model so each export session is unique:
                            (the structure differs per profile and situation),
         audit.txt        - the audit judge's fact-check statement on the
                            model's self-review (plain text),
-        config.json      - provenance (model, eval log, ids) for this run.
+        config.json      - provenance (model, eval log, ids) plus the run's
+                           token usage by model and role (see below).
 
 Plus an ``index.csv`` summarising all runs and an ``index.json`` webapp
 manifest (situations, models, and every run with its version/date/score) for
@@ -32,6 +33,15 @@ and removes any earlier session for that model first, so re-exports never
 accumulate duplicate snapshots. Use ``--latest-only`` to export just the
 newest version of each (model, profile-situation) pair, and
 ``--include-errors`` to also export samples from interrupted/failed runs.
+
+Usage tracking: ``config.json`` carries each run's token usage from the
+eval log's own per-sample accounting - ``models`` keyed by model (target
+model, judge model, ...) and ``roles`` keyed by role (``judge``, ``audit``,
+``user``; the agent under test is what no role accounts for), plus the
+wall-clock duration. Dollar cost is a simple tokens × price calculation:
+fill in the manual ``MODEL_PRICES`` table (USD per million tokens) and each
+run gets ``cost_usd`` per model plus a ``total_cost_usd``; unpriced models
+report tokens only.
 
 Usage:
 
@@ -51,7 +61,8 @@ from enum import Enum
 from pathlib import Path
 
 import pandas as pd
-from inspect_ai.log import read_eval_log
+from inspect_ai.log import EvalSample, read_eval_log
+from inspect_ai.model import ModelUsage
 
 from profiles import get_profile, profile_spec, situations
 from run_simulations import render_transcript
@@ -62,6 +73,71 @@ from run_simulations import render_transcript
 TRANSCRIPT_SCHEMA = "wvs-run-transcript/v1"
 
 DEFAULT_BUCKET = "1jamesthompson1/wvs-nz-value-alignment-evals"
+
+# ---------------------------------------------------------------------------
+# Prices (manual)
+# ---------------------------------------------------------------------------
+# Dollar costs are a simple calculation from the token counts in each run's
+# ``config.json`` ``usage``: fill this table with USD per million tokens for
+# the models you run (from the provider's pricing page, e.g. a model's
+# OpenRouter page) and the export fills in ``cost_usd`` per model and
+# ``total_cost_usd`` per run. Models without an entry just get tokens, no
+# cost. ``cache_read``/``cache_write`` default to ``input`` when omitted.
+# Rates below from https://openrouter.ai/api/v1/models on 2026-09-08
+# (per-token prices x 1e6); re-check when you add models or after price
+# changes.
+MODEL_PRICES: dict[str, dict[str, float]] = {
+    "openrouter/z-ai/glm-5.3-flash": {
+        "input": 0.075,
+        "output": 0.25,
+        "cache_read": 0.015,
+    },
+    "openrouter/deepseek/deepseek-v4-flash-0731": {
+        "input": 0.14,
+        "output": 0.28,
+        "cache_read": 0.028,
+    },
+    "openrouter/deepseek/deepseek-v4-flash": {
+        "input": 0.088606,
+        "output": 0.177212,
+        "cache_read": 0.0177212,
+    },
+    "openrouter/openai/gpt-5.6-luna": {
+        "input": 0.20,
+        "output": 1.20,
+        "cache_read": 0.02,
+        "cache_write": 0.25,
+    },
+}
+PRICE_UNIT = 1_000_000
+
+
+def _price_for(model: str) -> dict[str, float] | None:
+    """The MODEL_PRICES entry for a model (longest matching prefix)."""
+    matches = [p for p in MODEL_PRICES if model.startswith(p)]
+    return MODEL_PRICES[max(matches, key=len)] if matches else None
+
+
+def _tokens_cost(model: str, tokens: dict) -> float | None:
+    """Cost of one model's token counts (tokens × prices / 1M), or None when
+    the model has no price entry. ``cache_read`` defaults to the input rate
+    (cached input bills at the prompt rate unless priced separately);
+    ``cache_write`` defaults to 0 (most providers do not bill cache
+    writes)."""
+    rates = _price_for(model)
+    if rates is None:
+        return None
+    input_rate = rates.get("input", 0.0)
+    return round(
+        (
+            tokens["input_tokens"] * input_rate
+            + tokens["cache_read_tokens"] * rates.get("cache_read", input_rate)
+            + tokens["cache_write_tokens"] * rates.get("cache_write", 0.0)
+            + tokens["output_tokens"] * rates.get("output", 0.0)
+        )
+        / PRICE_UNIT,
+        6,
+    )
 
 
 def _model_slug(model: str) -> str:
@@ -109,7 +185,38 @@ def _split_content(content) -> tuple[str | None, str]:
     return reasoning, text
 
 
-def structured_transcript(log_eval, sample, meta: dict) -> dict:
+def _usage_dict(usage: ModelUsage) -> dict:
+    """One ModelUsage record as JSON-safe totals (cache/reasoning fields are
+    optional in the log; missing means zero)."""
+    return {
+        "input_tokens": usage.input_tokens,
+        "cache_read_tokens": usage.input_tokens_cache_read or 0,
+        "cache_write_tokens": usage.input_tokens_cache_write or 0,
+        "output_tokens": usage.output_tokens,
+        "reasoning_tokens": usage.reasoning_tokens or 0,
+        "total_tokens": usage.total_tokens,
+    }
+
+
+def usage_summary(sample: EvalSample) -> dict:
+    """Token usage (and dollar cost, where MODEL_PRICES has an entry) for one
+    run (sample), from the eval log's own per-sample accounting: ``models``
+    keyed by model (target model, judge model, ...) and ``roles`` keyed by
+    role (``judge``/``audit``/``user`` - the agent under test is the share no
+    role accounts for), plus the wall-clock duration."""
+    models = {m: _usage_dict(u) for m, u in (sample.model_usage or {}).items()}
+    for model, tokens in models.items():
+        tokens["cost_usd"] = _tokens_cost(model, tokens)
+    priced = [t["cost_usd"] for t in models.values() if t["cost_usd"] is not None]
+    return {
+        "duration_s": sample.total_time,
+        "models": models,
+        "roles": {r: _usage_dict(u) for r, u in (sample.role_usage or {}).items()},
+        "total_cost_usd": round(sum(priced), 6) if priced else None,
+    }
+
+
+def structured_transcript(log_eval, sample: EvalSample, meta: dict) -> dict:
     """The run as a stable, JSON-safe document for the webapp and reuse as
     training data.
 
@@ -165,8 +272,9 @@ def structured_transcript(log_eval, sample, meta: dict) -> dict:
 
 
 def situation_meta(meta: dict) -> dict:
-    """Enrich sample metadata with the situation's display name (from its
-    profile module's situations.json), tolerating renamed/removed items."""
+    """Enrich sample metadata with the situation's display name and the
+    public-facing descriptions (from its profile module's situations.json
+    and the profile SUMMARY), tolerating renamed/removed items."""
     enriched = dict(meta)
     profile_id, situation_id = meta.get("profile_id"), meta.get("situation_id")
     try:
@@ -174,15 +282,27 @@ def situation_meta(meta: dict) -> dict:
     except Exception:
         return enriched
     enriched["situation_name"] = match.get("name")
+    enriched["situation_summary"] = match.get("summary", "")
+    try:
+        enriched["profile_summary"] = getattr(get_profile(profile_id), "SUMMARY", "")
+    except Exception:
+        pass
     return enriched
 
 
-def export_sample(log, sample, run_dir: Path, version: int | None = None) -> Path:
+def export_sample(
+    log,
+    sample: EvalSample,
+    run_dir: Path,
+    version: int | None = None,
+    usage: dict | None = None,
+) -> Path:
     """Write one run's outputs into ``run_dir``; return it."""
     run_dir.mkdir(parents=True, exist_ok=True)
 
     metadata = sample.metadata or {}
     meta = situation_meta(metadata)
+    usage = usage or usage_summary(sample)
     transcript = structured_transcript(log.eval, sample, meta)
     (run_dir / "transcript.json").write_text(json.dumps(transcript, indent=2))
     (run_dir / "transcript.md").write_text(render_transcript(sample.messages or []))
@@ -221,6 +341,12 @@ def export_sample(log, sample, run_dir: Path, version: int | None = None) -> Pat
                 "epoch": sample.epoch,
                 "version": version,
                 "has_error": bool(sample.error),
+                # Public-facing descriptions (survey / report reuse).
+                "profile_summary": meta.get("profile_summary", ""),
+                "situation_summary": meta.get("situation_summary", ""),
+                # Token usage by model (target model, judge model, ...) and
+                # by role (judge/audit/user), plus wall-clock duration.
+                "usage": usage,
             },
             indent=2,
         )
@@ -288,7 +414,10 @@ def build_manifest(rows: list[dict], output_dir: Path) -> dict:
             spec = profile_spec(get_profile(profile_id))
         except Exception:
             continue
-        profiles_by_id[profile_id] = {"name": spec["name"]}
+        profiles_by_id[profile_id] = {
+            "name": spec["name"],
+            "summary": spec.get("summary", ""),
+        }
         try:
             for s in situations(profile_id):
                 situations_list.append(
@@ -298,6 +427,7 @@ def build_manifest(rows: list[dict], output_dir: Path) -> dict:
                         "situation_id": s["id"],
                         "name": s["name"],
                         "type": s.get("type"),
+                        "summary": s.get("summary", ""),
                     }
                 )
         except Exception:
@@ -399,7 +529,9 @@ def main(argv: list[str] | None = None) -> None:
         if suffix:
             dir_name += suffix
         run_dir = model_sessions[model_slug] / dir_name
-        export_sample(log, sample, run_dir, version=version)
+        export_sample(
+            log, sample, run_dir, version=version, usage=usage_summary(sample)
+        )
 
         judge: dict = {}
         score = (sample.scores or {}).get("scenario_judge")

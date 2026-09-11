@@ -25,7 +25,7 @@ SRV_TGTS := $(foreach src,$(SRV_SRCS), \
 
 ALL_TGTS := $(DOC_TGTS) $(SRV_TGTS)
 
-.PHONY: all clean watch setup help wordcount artifacts-sync artifacts-pull artifacts-backup artifacts-precommit
+.PHONY: all clean watch setup help wordcount artifacts-sync artifacts-pull artifacts-backup artifacts-precommit website-local-data
 
 all: $(ALL_TGTS)
 
@@ -101,6 +101,21 @@ artifacts-pull:
 	  BUCKET=hf://buckets/$${HF_BUCKET:-1jamesthompson1/wvs-nz-value-alignment-evals}; \
 	  mkdir -p artifacts; \
 	  exec "$$HF" buckets sync "$$BUCKET" ./artifacts'
+
+# Point the website dev server at the local artifacts mirror instead of the
+# HF bucket: creates website/public/{ft,bs} symlinks (gitignored) used by the
+# viewers' `?local=1` mode. See website/README.md.
+website-local-data:
+	@mkdir -p website/public
+	@for pair in "ft:artifacts/ft" "bs:artifacts/bs"; do \
+	  name=$${pair%%:*}; target=$${pair#*:}; \
+	  if [ -e "website/public/$$name" ] || [ -L "website/public/$$name" ]; then \
+	    echo "website/public/$$name already exists — leaving it alone"; \
+	  else \
+	    ln -s "../../$$target" "website/public/$$name"; \
+	    echo "linked website/public/$$name -> ../../$$target"; \
+	  fi; \
+	done
 
 # Borg backup of artifacts/ (unencrypted, auto-initialised).
 artifacts-backup:
