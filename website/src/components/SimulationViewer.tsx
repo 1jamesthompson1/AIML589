@@ -5,8 +5,8 @@ import { cachedFetchJson, cachedFetchText } from '../lib/cachedFetch';
  *
  * Data lives in the project's public HF storage bucket (see
  * code/behavioural-simulations/export_results.py): a manifest (index.json)
- * lists every run; each run directory holds transcript.json, judge.json,
- * self_review.txt and audit.txt. This component fetches the manifest from
+ * lists every run; each run directory holds transcript.json, judge.json and
+ * self_review.txt. This component fetches the manifest from
  * the bucket and lets visitors compare two runs side by side - across two
  * different models, or across different runs (versions) of the same model
  * and scenario.
@@ -35,6 +35,7 @@ const MANIFEST_URL = urlParams.get('manifest')
     : `https://huggingface.co/buckets/${DEFAULT_BUCKET}/resolve/bs/runs/index.json`);
 
 interface RunInfo {
+  run_id?: string;
   model: string;
   profile_id: string;
   situation_id: string;
@@ -82,7 +83,6 @@ interface RunData {
   transcript: Transcript | null;
   judge: JudgeDoc | null;
   selfReview: string;
-  audit: string;
   error?: string;
 }
 
@@ -96,13 +96,12 @@ async function loadRun(
   // fetch has ~1s of redirect/CDN overhead, so the review files load in the
   // background rather than blocking the transcript).
   const transcript = await cachedFetchJson<Transcript>(`${base}transcript.json`);
-  onTranscript?.({ transcript, judge: null, selfReview: '', audit: '' });
-  const [judge, selfReview, audit] = await Promise.all([
+  onTranscript?.({ transcript, judge: null, selfReview: '' });
+  const [judge, selfReview] = await Promise.all([
     cachedFetchJson<JudgeDoc>(`${base}judge.json`).catch(() => null),
     cachedFetchText(`${base}self_review.txt`).catch(() => ''),
-    cachedFetchText(`${base}audit.txt`).catch(() => ''),
   ]);
-  return { transcript, judge, selfReview, audit };
+  return { transcript, judge, selfReview };
 }
 
 function fmtDate(iso: string | null | undefined): string {
@@ -274,6 +273,7 @@ function RunPanel({ title, run, data, highlightIndex, onSelect, showReasoning, a
         {run && data?.transcript && (
           <p style={{ fontSize: '0.72rem', color: 'var(--color-muted)', marginTop: '0.4rem' }}>
             {data.transcript.run.situation_name ?? run.situation_id} · run {run.version} · {fmtDate(data.transcript.run.created)}
+            {run.run_id ? ` · ${run.run_id}` : ''}
           </p>
         )}
       </div>
@@ -327,21 +327,10 @@ function RunPanel({ title, run, data, highlightIndex, onSelect, showReasoning, a
               );
             })()}
 
-            {(data.selfReview || data.audit) && (
+            {data.selfReview && (
               <div style={{ background: '#fffbeb', border: '2px solid #f59e0b', borderRadius: '0.75rem', padding: '0.9rem 1rem', boxShadow: '0 2px 8px rgba(245,158,11,0.12)' }}>
-                <p style={{ fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.06em', color: '#b45309', marginBottom: '0.5rem' }}>🧭 Model summary & audit</p>
-                {data.selfReview && (
-                  <>
-                    <p style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#b45309', marginBottom: '0.25rem' }}>Self-review</p>
-                    <div style={{ margin: '0 0 0.75rem' }}><ThinkingAwareText text={data.selfReview} /></div>
-                  </>
-                )}
-                {data.audit && (
-                  <>
-                    <p style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#b45309', marginBottom: '0.25rem' }}>Audit</p>
-                    <div><ThinkingAwareText text={data.audit} /></div>
-                  </>
-                )}
+                <p style={{ fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.06em', color: '#b45309', marginBottom: '0.75rem' }}>🧭 Model summary</p>
+                <div><ThinkingAwareText text={data.selfReview} /></div>
               </div>
             )}
           </div>
@@ -360,26 +349,173 @@ function RunPanel({ title, run, data, highlightIndex, onSelect, showReasoning, a
   );
 }
 
-interface SideConfig { model: string; version: number; }
+/* ---------------------------------------------------------------------------
+ * Comparisons (build_comparisons.py output): one JSON file per trajectory
+ * pair, indexed by `bs/comparisons/index.csv`
+ * (comparison_id -> agent run ids + models).
+ * ------------------------------------------------------------------------ */
+
+interface ComparisonRow {
+  comparison_id: string;
+  scenario: string;
+  model_pair: string;
+  agent1_run_id: string;
+  agent1_model: string;
+  agent2_run_id: string;
+  agent2_model: string;
+}
+interface ComparisonAudit { agent: string; model: string; raw: string; }
+interface ComparisonDoc {
+  schema: string;
+  comparison_id: string;
+  scenario: {
+    profile_id: string;
+    situation_id: string;
+    profile_summary?: string;
+    situation_summary?: string;
+  };
+  summary: { model: string; reasoning_effort?: string; text: string };
+  audits: Record<string, ComparisonAudit>;
+}
+
+function splitCsvLine(line: string): string[] {
+  const fields: string[] = [];
+  let cur = '';
+  let quoted = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (quoted) {
+      if (ch === '"' && line[i + 1] === '"') { cur += '"'; i++; }
+      else if (ch === '"') quoted = true;
+    } else if (ch === '"') quoted = true;
+    else if (ch === ',') { fields.push(cur); cur = ''; }
+    else cur += ch;
+  }
+  fields.push(cur);
+  return fields;
+}
+
+function parseComparisonCsv(text: string): ComparisonRow[] {
+  const lines = text.trim().split(/\r?\n/).filter(Boolean);
+  if (!lines.length) return [];
+  const headers = splitCsvLine(lines[0]);
+  return lines.slice(1).map((line) => {
+    const cells = splitCsvLine(line);
+    const row = {} as ComparisonRow;
+    headers.forEach((h, i) => { (row as unknown as Record<string, string>)[h] = cells[i] ?? ''; });
+    return row;
+  });
+}
+
+function comparisonsBase(): string {
+  if (LOCAL_MODE) return '/bs/comparisons/';
+  // The manifest sits in `bs/runs/index.json`; comparisons live next to it.
+  return MANIFEST_URL.replace(/bs\/runs\/?.*$/, 'bs/comparisons/');
+}
+
+const VIEW_MODES = [
+  { id: 'single' as const, label: 'Single run' },
+  { id: 'compare' as const, label: 'Comparison' },
+];
+
+const modeButton = (active: boolean): React.CSSProperties => ({
+  padding: '0.45rem 1rem', borderRadius: '0.5rem',
+  border: `1px solid ${active ? 'var(--color-primary)' : 'var(--color-border)'}`,
+  background: active ? 'var(--color-primary)' : 'white',
+  color: active ? 'white' : 'var(--color-text)',
+  cursor: 'pointer', fontSize: '0.85rem', fontFamily: 'inherit', fontWeight: active ? 700 : 400,
+});
+
+function findComparison(rows: ComparisonRow[], a: string, b: string): ComparisonRow | undefined {
+  return rows.find(
+    (r) =>
+      (r.agent1_run_id === a && r.agent2_run_id === b) ||
+      (r.agent1_run_id === b && r.agent2_run_id === a),
+  );
+}
+
+/* The round-by-round difference summary written by the summary model, with
+ * each generating model's audit of that summary, shown above the two
+ * side-by-side trajectories. */
+function ComparisonPanel({ comparison, row }: { comparison: ComparisonDoc | null; row: ComparisonRow | null }) {
+  if (!row) return null;
+  return (
+    <div style={{ ...card, marginBottom: '1.5rem', background: 'var(--color-surface)' }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem', alignItems: 'center', marginBottom: '0.9rem' }}>
+        <p style={{ fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--color-muted)', margin: 0 }}>
+          ⚖ Cross-model comparison
+        </p>
+        {comparison && (
+          <span style={{ fontSize: '0.75rem', color: 'var(--color-muted)' }}>
+            summary by {comparison.summary.model.replace(/^openrouter\//, '')}
+          </span>
+        )}
+        {comparison?.scenario?.situation_summary && (
+          <p style={{ fontSize: '0.8rem', color: 'var(--color-muted)', margin: 0, flexBasis: '100%' }}>
+            {comparison.scenario.situation_summary}
+          </p>
+        )}
+      </div>
+      {!comparison && <div style={{ color: 'var(--color-muted)', fontSize: '0.85rem' }}>Loading comparison…</div>}
+      {comparison && (
+        <>
+          <div style={{ ...card, background: '#eef2ff', borderColor: '#c7d2fe', marginBottom: '0.9rem' }}>
+            <ThinkingAwareText text={comparison.summary.text} />
+          </div>
+          {Object.entries(comparison.audits ?? {}).map(([runId, audit]) => (
+            audit.raw && (
+              <div key={runId} style={{ ...card, marginBottom: '0.6rem' }}>
+                <p style={{ fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--color-muted)', marginBottom: '0.4rem' }}>
+                  🔎 Audit ({audit.agent} · {audit.model.replace(/^openrouter\//, '')})
+                </p>
+                <ThinkingAwareText text={audit.raw} />
+              </div>
+            )
+          ))}
+        </>
+      )}
+    </div>
+  );
+}
 
 export default function SimulationViewer() {
   const [manifest, setManifest] = useState<Manifest | null>(null);
+  const [compRows, setCompRows] = useState<ComparisonRow[] | null>(null);
   const [loadError, setLoadError] = useState<string>('');
   const [situationKey, setSituationKey] = useState<string>('');
-  const [sideA, setSideA] = useState<SideConfig | null>(null);
-  const [sideB, setSideB] = useState<SideConfig | null>(null);
+  const [mode, setMode] = useState<'single' | 'compare'>('single');
+
+  // Single mode: the run to watch (by globally unique run_id).
+  const [singleRunId, setSingleRunId] = useState<string | null>(null);
+  // Compare mode: the comparison row resolved from deep-link params.
+  const [deepLinkPair, setDeepLinkPair] = useState<{ a: string | null; b: string | null }>({ a: null, b: null });
+
+  // Loaded documents.
+  const [dataSingle, setDataSingle] = useState<RunData | null>(null);
   const [dataA, setDataA] = useState<RunData | null>(null);
   const [dataB, setDataB] = useState<RunData | null>(null);
+  const [comparison, setComparison] = useState<ComparisonDoc | null>(null);
+
   const [highlightIndex, setHighlightIndex] = useState<number | null>(null);
   const [highlightOrigin, setHighlightOrigin] = useState<'A' | 'B' | null>(null);
   const [showReasoning, setShowReasoning] = useState(true);
   const [showDryRun, setShowDryRun] = useState(false);
+
   const cache = useRef<Record<string, RunData>>({});
+  const compCache = useRef<Record<string, ComparisonDoc>>({});
+  const retryTickRef = useRef(0);
+  const [, forceRerender] = useState(0);
+  const bumpRetry = useCallback(() => {
+    retryTickRef.current += 1;
+    forceRerender(retryTickRef.current);
+  }, []);
+
+  /* ------------------------------- data ------------------------------- */
 
   useEffect(() => {
     console.info(`[SimulationViewer] fetching manifest: ${MANIFEST_URL}`);
-    // The manifest is the gatekeeper for new runs, so always re-fetch it (0 TTL)
-    // rather than serving a stale copy from the localStorage cache.
+    // The manifest is the gatekeeper for new runs, so always re-fetch it
+    // (0 TTL) rather than serving a stale copy from the localStorage cache.
     cachedFetchJson<Manifest>(MANIFEST_URL, 0)
       .then((m) => {
         console.info(`[SimulationViewer] manifest loaded: ${m.runs?.length ?? 0} runs, ${m.situations?.length ?? 0} situations`);
@@ -389,22 +525,31 @@ export default function SimulationViewer() {
         console.error('[SimulationViewer] manifest load failed:', e);
         setLoadError(String(e));
       });
+    cachedFetchText(`${comparisonsBase()}index.csv`, 0)
+      .then((csv) => setCompRows(parseComparisonCsv(csv)))
+      .catch((e) => {
+        console.error('[SimulationViewer] comparison index load failed:', e);
+        setCompRows([]);
+      });
   }, []);
 
   const realRuns = useMemo(
-    () => (manifest?.runs ?? []).filter((r) => (showDryRun || r.model !== DRY_RUN_MODEL) && r.status !== 'error'),
+    () => (manifest?.runs ?? [])
+      .filter((r) => (showDryRun || r.model !== DRY_RUN_MODEL) && r.status !== 'error'),
     [manifest, showDryRun],
   );
+
+  const runById = useMemo(() => {
+    const byId = new Map<string, RunInfo>();
+    for (const r of realRuns) if (r.run_id) byId.set(r.run_id, r);
+    return byId;
+  }, [realRuns]);
 
   const situations = useMemo(() => {
     const byKey = new Map<string, SituationInfo>();
     for (const s of manifest?.situations ?? []) byKey.set(`${s.profile_id}/${s.situation_id}`, s);
     return [...byKey.values()];
   }, [manifest]);
-
-  const runsForSituation = useCallback((profileId: string, situationId: string) =>
-    realRuns.filter((r) => r.profile_id === profileId && r.situation_id === situationId),
-  [realRuns]);
 
   const populatedSituationKeys = useMemo(() => {
     const keys = new Map<string, SituationInfo>();
@@ -420,13 +565,11 @@ export default function SimulationViewer() {
     return s ?? situations.find((x) => `${x.profile_id}/${x.situation_id}` === [...populatedSituationKeys.keys()][0]) ?? null;
   }, [situationKey, situations, populatedSituationKeys]);
 
-  const [curProfileId, curSituationId] = currentSituation
-    ? [currentSituation.profile_id, currentSituation.situation_id]
-    : [null, null];
-
   const runsForCurrent = useMemo(
-    () => curProfileId && curSituationId ? runsForSituation(curProfileId, curSituationId) : [],
-    [curProfileId, curSituationId, runsForSituation],
+    () => currentSituation
+      ? realRuns.filter((r) => r.profile_id === currentSituation.profile_id && r.situation_id === currentSituation.situation_id)
+      : [],
+    [currentSituation, realRuns],
   );
 
   const modelsForCurrent = useMemo(() => {
@@ -434,98 +577,204 @@ export default function SimulationViewer() {
     return [...s].sort();
   }, [runsForCurrent]);
 
-  const versionsFor = useCallback((model: string) =>
-    runsForCurrent.filter((r) => r.model === model).sort((a, b) => a.version - b.version),
+  const runsForModel = useCallback((model: string) =>
+    runsForCurrent.filter((r) => r.model === model).sort((x, y) => x.version - y.version),
   [runsForCurrent]);
 
-  const resolveSide = useCallback((side: SideConfig | null): RunInfo | null => {
-    if (!side || !modelsForCurrent.includes(side.model)) return null;
-    const versions = versionsFor(side.model);
-    return versions.find((r) => r.version === side.version) ?? versions[versions.length - 1] ?? null;
-  }, [modelsForCurrent, versionsFor]);
+  // Comparisons viewable for the current situation (both agent runs must
+  // exist in the exported runs of the manifest).
+  const comparisonsForCurrent = useMemo(() => {
+    if (!compRows || !currentSituation) return [];
+    const scenario = `${currentSituation.profile_id}-${currentSituation.situation_id}`;
+    return compRows.filter(
+      (row) => row.scenario === scenario
+        && runById.has(row.agent1_run_id)
+        && runById.has(row.agent2_run_id),
+    );
+  }, [compRows, currentSituation, runById]);
 
-  const runA = resolveSide(sideA);
-  const runB = resolveSide(sideB);
-
-  // Assurance: the two sides must never resolve to the exact same run. If a
-  // selection lands both sides on one run (defaults, swap, or a pick that
-  // matches the other side), move side B onto a different run - another
-  // model if one exists, otherwise another version of the same model.
-  useEffect(() => {
-    if (!runA || !runB || runA.run_dir !== runB.run_dir) return;
-    const others = runsForCurrent.filter((r) => r.run_dir !== runA.run_dir);
-    if (!others.length) return;
-    const otherModel = others.find((r) => r.model !== runB.model);
-    const pick = otherModel ?? others[0];
-    setSideB({ model: pick.model, version: pick.version });
-  }, [runA, runB, runsForCurrent]);
-
-  // Initial selection: pick the first populated situation once the manifest loads.
-  useEffect(() => {
-    if (!manifest || situationKey) return;
-    const firstKey = [...populatedSituationKeys.keys()][0];
-    if (firstKey) setSituationKey(firstKey);
-  }, [manifest, situationKey, populatedSituationKeys]);
-
-  useEffect(() => {
-    if (!currentSituation) return;
-    const runs = runsForCurrent;
-    if (!runs.length) return;
-    const models = [...new Set(runs.map((r) => r.model))].sort();
-
-    const mkSide = (model: string): SideConfig => {
-      const versions = versionsFor(model);
-      return { model, version: versions[versions.length - 1].version };
-    };
-    if (!sideA) setSideA(mkSide(models[0]));
-    if (!sideB) {
-      if (models.length > 1) setSideB(mkSide(models[1]));
-      else {
-        const versions = versionsFor(models[0]);
-        if (versions.length > 1) setSideB({ model: models[0], version: versions[0].version });
-      }
+  const selectedComparisonRow = useMemo(() => {
+    if (!comparisonsForCurrent.length) return null;
+    // A deep-linked pair wins; otherwise the newest row for this situation.
+    if (deepLinkPair.a && deepLinkPair.b) {
+      const match = findComparison(comparisonsForCurrent, deepLinkPair.a, deepLinkPair.b);
+      if (match) return match;
     }
-  }, [currentSituation, runsForCurrent, sideA, sideB, versionsFor]);
+    return comparisonsForCurrent[comparisonsForCurrent.length - 1];
+  }, [comparisonsForCurrent, deepLinkPair]);
 
-  const load = useCallback(async (run: RunInfo, onTranscript?: (partial: RunData) => void): Promise<RunData> => {
+  const runA = useMemo(
+    () => (selectedComparisonRow ? runById.get(selectedComparisonRow.agent1_run_id) ?? null : null),
+    [selectedComparisonRow, runById],
+  );
+  const runB = useMemo(
+    () => (selectedComparisonRow ? runById.get(selectedComparisonRow.agent2_run_id) ?? null : null),
+    [selectedComparisonRow, runById],
+  );
+
+  // Single mode resolved run: deep-linked run id, else the latest run of the
+  // first model alphabetically.
+  const singleRun = useMemo(() => {
+    if (singleRunId) return runById.get(singleRunId) ?? null;
+    const models = modelsForCurrent;
+    if (!models.length) return null;
+    const versions = runsForModel(models[0]);
+    return versions[versions.length - 1] ?? null;
+  }, [singleRunId, runById, modelsForCurrent, runsForModel]);
+
+  const load = useCallback(async (run: RunInfo): Promise<RunData> => {
     const key = run.run_dir;
-    if (cache.current[key]) {
-      console.info(`[SimulationViewer] run served from cache: ${key}`);
-      return cache.current[key];
-    }
+    if (cache.current[key]) return cache.current[key];
     console.info(`[SimulationViewer] fetching run: ${key}`);
     const data = await loadRun(
       LOCAL_MODE ? LOCAL_BS_BASE : manifest!.base_url,
       run,
-      onTranscript,
     );
     cache.current[key] = data;
     console.info(`[SimulationViewer] loaded run: ${key} (${data.transcript?.messages?.length ?? 0} messages)`);
     return data;
   }, [manifest]);
 
-  const [retryTick, setRetryTick] = useState(0);
+  useEffect(() => {
+    if (!manifest || !singleRun) { setDataSingle(null); return; }
+    let cancelled = false;
+    load(singleRun)
+      .then((d) => { if (!cancelled) setDataSingle(d); })
+      .catch((e) => {
+        console.error(`[SimulationViewer] load failed (${singleRun.run_dir}):`, e);
+        if (!cancelled) setDataSingle({ transcript: null, judge: null, selfReview: '', error: String(e) });
+      });
+    return () => { cancelled = true; };
+  }, [manifest, singleRun, load, bumpRetry]);
 
   useEffect(() => {
     if (!runA) { setDataA(null); return; }
     let cancelled = false;
-    load(runA, setDataA).then((d) => { if (!cancelled) setDataA(d); }).catch((e) => { console.error(`[SimulationViewer] load failed for side A (${runA.run_dir}):`, e); if (!cancelled) setDataA({ transcript: null, judge: null, selfReview: '', audit: '', error: String(e) }); });
+    load(runA)
+      .then((d) => { if (!cancelled) setDataA(d); })
+      .catch((e) => {
+        console.error(`[SimulationViewer] load failed for agent 1 (${runA.run_dir}):`, e);
+        if (!cancelled) setDataA({ transcript: null, judge: null, selfReview: '', error: String(e) });
+      });
     return () => { cancelled = true; };
-  }, [runA, load, retryTick]);
+  }, [runA, load, bumpRetry]);
 
   useEffect(() => {
     if (!runB) { setDataB(null); return; }
     let cancelled = false;
-    load(runB, setDataB).then((d) => { if (!cancelled) setDataB(d); }).catch((e) => { console.error(`[SimulationViewer] load failed for side B (${runB.run_dir}):`, e); if (!cancelled) setDataB({ transcript: null, judge: null, selfReview: '', audit: '', error: String(e) }); });
+    load(runB)
+      .then((d) => { if (!cancelled) setDataB(d); })
+      .catch((e) => {
+        console.error(`[SimulationViewer] load failed for agent 2 (${runB.run_dir}):`, e);
+        if (!cancelled) setDataB({ transcript: null, judge: null, selfReview: '', error: String(e) });
+      });
     return () => { cancelled = true; };
-  }, [runB, load, retryTick]);
+  }, [runB, load, bumpRetry]);
+
+  useEffect(() => {
+    if (!compRows || !selectedComparisonRow) {
+      setComparison(null);
+      return;
+    }
+    const key = selectedComparisonRow.comparison_id;
+    const cached = compCache.current[key];
+    if (cached) {
+      setComparison(cached);
+      return;
+    }
+    let cancelled = false;
+    const url = `${comparisonsBase()}${selectedComparisonRow.model_pair}/${selectedComparisonRow.scenario}/${selectedComparisonRow.comparison_id}.json`;
+    cachedFetchJson<ComparisonDoc>(url, 0)
+      .then((doc) => {
+        compCache.current[key] = doc;
+        if (!cancelled) setComparison(doc);
+      })
+      .catch((e) => {
+        console.error(`[SimulationViewer] comparison load failed: ${key}`, e);
+        if (!cancelled) setComparison(null);
+      });
+    return () => { cancelled = true; };
+  }, [compRows, selectedComparisonRow]);
+
+  /* ---------------------------- selections ---------------------------- */
+
+  // Initial selection: pick the first populated situation once the manifest
+  // loads and no deep link set one.
+  useEffect(() => {
+    if (!manifest || situationKey) return;
+    const firstKey = [...populatedSituationKeys.keys()][0];
+    if (firstKey) setSituationKey(firstKey);
+  }, [manifest, situationKey, populatedSituationKeys]);
+
+  // Deep link parameters (applied once once both indexes are in):
+  //  - `?a=<run_id>&b=<run_id>` -> comparison mode with that pair
+  //  - `?comparison=<comparison_id>` -> comparison mode, that comparison
+  //  - `?run=<run_id>` (or a lone `?a=`) -> single mode with that run
+  const autoApplied = useRef(false);
+  useEffect(() => {
+    if (!manifest || !compRows || autoApplied.current) return;
+    const applyComparison = (row: ComparisonRow | undefined): boolean => {
+      if (!row || !runById.has(row.agent1_run_id) || !runById.has(row.agent2_run_id)) return false;
+      autoApplied.current = true;
+      setMode('compare');
+      const ra = runById.get(row.agent1_run_id)!;
+      setSituationKey(`${ra.profile_id}/${ra.situation_id}`);
+      setDeepLinkPair({ a: row.agent1_run_id, b: row.agent2_run_id });
+      return true;
+    };
+
+    const comparisonId = urlParams.get('comparison');
+    if (comparisonId) {
+      if (applyComparison(compRows.find((r) => r.comparison_id === comparisonId))) return;
+    }
+    const a = urlParams.get('a') ?? urlParams.get('run');
+    const b = urlParams.get('b');
+    if (a && b && runById.has(a) && runById.has(b)) {
+      if (applyComparison(findComparison(compRows, a, b))) return;
+    }
+    if (a && runById.has(a)) {
+      const run = runById.get(a)!;
+      autoApplied.current = true;
+      setMode('single');
+      setSituationKey(`${run.profile_id}/${run.situation_id}`);
+      setSingleRunId(run.run_id!);
+    }
+  }, [manifest, compRows, runById, situationKey]);
+
+  // Keep the URL in sync with the selection (replaceState: no history spam)
+  // so the current view can be copied as a shareable deep link.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    const setOrDel = (key: string, value?: string | null) => {
+      if (value) params.set(key, value); else params.delete(key);
+    };
+    if (mode === 'single') {
+      setOrDel('run', singleRun?.run_id);
+      setOrDel('comparison'); setOrDel('a'); setOrDel('b');
+    } else {
+      setOrDel('a', runA?.run_id);
+      setOrDel('b', runB?.run_id);
+      setOrDel('run'); setOrDel('comparison');
+    }
+    const qs = params.toString();
+    const url = `${window.location.pathname}${qs ? `?${qs}` : ''}${window.location.hash}`;
+    if (url !== `${window.location.pathname}${window.location.search}${window.location.hash}`) {
+      window.history.replaceState(null, '', url);
+    }
+  });
 
   const onSelect = useCallback((origin: 'A' | 'B') => (index: number) => {
     setHighlightOrigin(origin);
     setHighlightIndex(index);
   }, []);
 
-  const swap = () => { setSideA(sideB); setSideB(sideA); };
+  const setSituation = (key: string) => {
+    setSituationKey(key);
+    setSingleRunId(null);
+    setDeepLinkPair({ a: null, b: null });
+    setHighlightIndex(null);
+  };
 
   const groupedSituations = useMemo(() => {
     const groups = new Map<string, SituationInfo[]>();
@@ -537,6 +786,8 @@ export default function SimulationViewer() {
     }
     return [...groups.entries()];
   }, [situations, populatedSituationKeys]);
+
+  /* ------------------------------ rendering ---------------------------- */
 
   if (loadError) {
     return (
@@ -565,8 +816,18 @@ export default function SimulationViewer() {
 
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', alignItems: 'flex-end', marginBottom: '1.5rem' }}>
         <div>
+          <label style={label}>View</label>
+          <div style={{ display: 'flex', gap: '0.4rem' }}>
+            {[{ id: 'single' as const, label: 'Single run' }, { id: 'compare' as const, label: 'Comparison' }].map((m) => (
+              <button key={m.id} onClick={() => { setMode(m.id); setHighlightIndex(null); }} style={modeButton(mode === m.id)}>
+                {m.label}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div>
           <label style={label}>Situation</label>
-          <select value={situationKey} onChange={(e) => { setSituationKey(e.target.value); setSideA(null); setSideB(null); setHighlightIndex(null); }} style={select}>
+          <select value={situationKey} onChange={(e) => setSituation(e.target.value)} style={select}>
             {groupedSituations.map(([pid, list]) => (
               <optgroup key={pid} label={manifest.profiles[pid]?.name ?? pid}>
                 {list.map((s) => (
@@ -578,81 +839,106 @@ export default function SimulationViewer() {
             ))}
           </select>
         </div>
+        <label style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.8rem', paddingBottom: '0.3rem' }}>
+          <input type="checkbox" checked={showReasoning} onChange={(e) => setShowReasoning(e.target.checked)} /> Reasoning
+        </label>
+        <label style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.8rem', paddingBottom: '0.3rem' }}>
+          <input type="checkbox" checked={showDryRun} onChange={(e) => setShowDryRun(e.target.checked)} /> Show test (dry-run) model
+        </label>
       </div>
 
-      {!runsForCurrent.length && (
-        <div style={card}>No runs found for this situation.</div>
+      {!runsForCurrent.length && <div style={card}>No runs found for this situation.</div>}
+
+      {currentSituation && mode === 'single' && runsForCurrent.length > 0 && (
+        <div style={{ maxWidth: '56rem', margin: '0 auto' }}>
+          <div style={{ ...card, marginBottom: '1rem' }}>
+            <p style={{ fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--color-muted)', marginBottom: '0.35rem' }}>Run</p>
+            <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'flex-end' }}>
+              <div style={{ flex: 1, minWidth: '13rem' }}>
+                <label style={label}>Model</label>
+                <select
+                  style={{ ...select, width: '100%', minWidth: 0 }}
+                  value={singleRun?.model ?? ''}
+                  onChange={(e) => {
+                    const versions = runsForModel(e.target.value);
+                    const best = versions[versions.length - 1];
+                    if (best?.run_id) setSingleRunId(best.run_id);
+                  }}
+                >
+                  {modelsForCurrent.map((m) => (
+                    <option key={m} value={m}>{shortModel(m)}{m === DRY_RUN_MODEL ? ' (test)' : ''}</option>
+                  ))}
+                </select>
+              </div>
+              <div style={{ flex: 1, minWidth: '12rem' }}>
+                <label style={label}>Run of this scenario</label>
+                <select
+                  style={{ ...select, width: '100%', minWidth: 0 }}
+                  value={singleRun?.run_id ?? ''}
+                  onChange={(e) => setSingleRunId(e.target.value)}
+                >
+                  {(singleRun ? runsForModel(singleRun.model) : []).map((r) => (
+                    <option key={r.version} value={r.run_id}>
+                      Run {r.version} · {fmtDate(r.created) || '?'}{r.judge_score != null ? ` · ${r.judge_score}/5` : ''}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              {singleRun && <ScoreBadge run={singleRun} />}
+            </div>
+          </div>
+          <RunPanel
+            title="Transcript"
+            run={singleRun}
+            data={dataSingle}
+            highlightIndex={highlightIndex}
+            onSelect={onSelect('A')}
+            showReasoning={showReasoning}
+            active
+            onRetry={bumpRetry}
+          />
+        </div>
       )}
 
-      {runsForCurrent.length > 0 && currentSituation && (
-        <>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '1.25rem' }}>
-            {([['A', sideA, setSideA, dataA, runB], ['B', sideB, setSideB, dataB, runA]] as const).map(([letter, side, setSide, data, otherRun]) => {
-              const chosenRun = letter === 'A' ? runA : runB;
-              // Runs available to pick on this side: never the run currently
-              // shown on the other side.
-              const versions = side
-                ? versionsFor(side.model).filter((r) => r.run_dir !== otherRun?.run_dir)
-                : [];
-              return (
-                <div key={letter}>
-                  <div style={{ ...card, marginBottom: '0.5rem', borderColor: letter === 'A' ? '#c7d2fe' : '#fecdd3' }}>
-                    <p style={{ fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--color-muted)', marginBottom: '0.35rem' }}>Side {letter}{letter === 'A' ? ' (left)' : ' (right)'}</p>
-                    <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'flex-end' }}>
-                      <div style={{ flex: 1, minWidth: '13rem' }}>
-                        <label style={label}>Model</label>
-                        <select style={{ ...select, width: '100%', minWidth: 0 }} value={side?.model ?? ''} onChange={(e) => {
-                          const model = e.target.value;
-                          const versions = versionsFor(model);
-                          setSide({ model, version: versions[versions.length - 1].version });
-                        }}>
-                          {modelsForCurrent.map((m) => <option key={m} value={m}>{shortModel(m)}{m === DRY_RUN_MODEL ? ' (test)' : ''}</option>)}
-                        </select>
-                      </div>
-                      <div style={{ flex: 1, minWidth: '12rem' }}>
-                        <label style={label}>Run of this scenario</label>
-                        <select style={{ ...select, width: '100%', minWidth: 0 }} value={versions.some((r) => r.version === side?.version) ? side?.version : versions[versions.length - 1]?.version ?? ''} onChange={(e) => setSide({ model: side!.model, version: Number(e.target.value) })}>
-                          {versions.map((r) => (
-                            <option key={r.version} value={r.version}>
-                              Run {r.version} · {fmtDate(r.created) || '?'}{r.judge_score != null ? ` · ${r.judge_score}/5` : ''}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                    </div>
-                    <p style={{ fontSize: '0.72rem', color: 'var(--color-muted)', marginTop: '0.35rem' }}>
-                      {versions.length} run{versions.length === 1 ? '' : 's'} of this scenario for this model.
-                    </p>
-                  </div>
-                  {chosenRun && <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-                    <span style={{ fontSize: '0.8rem', color: 'var(--color-muted)' }}>Comparing:</span>
-                    <ScoreBadge run={chosenRun} />
-                  </div>}
-                </div>
-              );
-            })}
+      {currentSituation && mode === 'compare' && (
+        comparisonsForCurrent.length === 0 ? (
+          <div style={card}>
+            No completed cross-model comparison for this situation yet (built
+            by <code>build_comparisons.py</code>, synced with{' '}
+            <code>make artifacts-sync</code>). Use the <strong>Single run</strong>{' '}
+            view to inspect runs, or pick any two in the other viewer tabs.
           </div>
-
-          <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'center', marginBottom: '1.5rem' }}>
-            <button onClick={swap} style={{ padding: '0.5rem 1rem', borderRadius: '0.5rem', border: '1px solid var(--color-border)', background: 'white', cursor: 'pointer', fontSize: '0.85rem', fontFamily: 'inherit' }}>⇄ Swap sides</button>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.8rem' }}>
-              <input type="checkbox" checked={showReasoning} onChange={(e) => setShowReasoning(e.target.checked)} /> Reasoning
-            </label>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.8rem' }}>
-              <input type="checkbox" checked={showDryRun} onChange={(e) => setShowDryRun(e.target.checked)} /> Show test (dry-run) model
-            </label>
-            <span style={{ fontSize: '0.75rem', color: 'var(--color-muted)' }}>Click a message to align it with the same step on the other side.</span>
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', alignItems: 'start' }}>
-            <div style={{ borderLeft: '4px solid #6366f1', paddingLeft: '1rem' }}>
-              <RunPanel title="Side A" run={runA} data={dataA} highlightIndex={highlightOrigin === 'A' ? null : highlightIndex} onSelect={onSelect('A')} showReasoning={showReasoning} active onRetry={() => setRetryTick((t) => t + 1)} />
+        ) : (
+          <>
+            <ComparisonPanel comparison={comparison} row={selectedComparisonRow} />
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', alignItems: 'start' }}>
+              <div style={{ borderLeft: '4px solid #6366f1', paddingLeft: '1rem' }}>
+                <RunPanel
+                  title="Agent 1"
+                  run={runA}
+                  data={dataA}
+                  highlightIndex={highlightOrigin === 'A' ? null : highlightIndex}
+                  onSelect={onSelect('A')}
+                  showReasoning={showReasoning}
+                  active
+                  onRetry={bumpRetry}
+                />
+              </div>
+              <div style={{ borderRight: '4px solid #ec4899', paddingRight: '1rem' }}>
+                <RunPanel
+                  title="Agent 2"
+                  run={runB}
+                  data={dataB}
+                  highlightIndex={highlightOrigin === 'B' ? null : highlightIndex}
+                  onSelect={onSelect('B')}
+                  showReasoning={showReasoning}
+                  active
+                  onRetry={bumpRetry}
+                />
+              </div>
             </div>
-            <div style={{ borderRight: '4px solid #ec4899', paddingRight: '1rem' }}>
-              <RunPanel title="Side B" run={runB} data={dataB} highlightIndex={highlightOrigin === 'B' ? null : highlightIndex} onSelect={onSelect('B')} showReasoning={showReasoning} active onRetry={() => setRetryTick((t) => t + 1)} />
-            </div>
-          </div>
-        </>
+          </>
+        )
       )}
     </div>
   );

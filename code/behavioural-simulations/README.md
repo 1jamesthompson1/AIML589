@@ -48,10 +48,12 @@ For each run the pipeline produces three things:
 | `run_simulations.py` | The inspect-ai **task file**: one `@task` per profile, and the harness: per-sample setup, a production-style agent loop that ends at each situation's natural **terminal event** (`terminus_agent` + `terminate` in `situations.json`), self-review solver, judge scorer, dry-run dummy model. |
 | `scenario.py` | Single-scenario entry point: the `scenario` task derived with `task_with()`. Lives in its own file because `inspect eval` on a task file instantiates every `@task` in it, and a task with required arguments would crash a whole-file run of `run_simulations.py`. |
 | `profiles/__init__.py` | Small shared toolkit (situations loading, profile registry, case-note writer, the "talk to a simulated person" implementation with messaging and live-phone channels). |
-| `profiles/<id>/` | One **subdirectory per profile**: the profile module (`__init__.py`: deployment framing, static system prompt, judge fields, and `tools()` which loads the profile's **own** environment data), its **environment data** (`data/*.json` plus the person-document tray `data/documents/` - see below) plus the builder script that generates it, and its own `situations.json` (work items + rubrics + personas for interactive contacts). |
-| `export_results.py` | Reads eval logs and writes per-run outputs to `output/runs/<model>-<timestamp>/<profile>-<situation>/` plus an `index.csv`. `config.json` includes each run's token usage by model/role (see *Usage per run* below). |
+| `profiles/<id>/` | One **subdirectory per profile**: the profile module (`__init__.py`: deployment framing, static system prompt (+ optional per-situation `SITUATION_ADDENDA` appended at setup), judge fields, and `tools()` which loads the profile's **own** environment data - a default toolset plus per-situation tools, all selected from the module's tool registry by the `tools` config in `situations.json`), its **environment data** (`data/*.json` plus the person-document tray `data/documents/` - see below) plus the builder script that generates it, and its own `situations.json` (work items + rubrics + personas for interactive contacts). Optional hooks a profile module may define: `SITUATION_ADDENDA: dict` (per-situation prompt addenda), `brief_context(situation_id)` (text appended to the work item on arrival, e.g. an ATS summary of the pool), `persist_inbound(name, body)`. |
+| `export_results.py` | Reads eval logs and writes per-run outputs to `output/runs/<model>/<profile>-<situation>/<run-number>/` plus an `index.csv`. `config.json` includes each run's token usage by model/role (see *Usage per run* below). |
+| `build_comparisons.py` | Survey-facing comparison between trajectory pairs: the frontier-model difference summary (Agent 1/2 labels, `gpt-6-astra` medium reasoning) with each generating model auditing the summary. Output goes to `output/comparisons/` - see [comparisons/README.md](comparisons/README.md). |
 | `analyze.py` | Marimo notebook that renders the profiles/situations summary LaTeX table to `code/figures/behavioural-sim-profiles.tex` (for the report). |
 | `output/` | Eval logs (`logs/`, gitignored) and exported runs. |
+| `comparisons/` | Comparison outputs by `build_comparisons.py` (`<scenario>/<comparison_id>.json`; see its README). |
 
 ### Environment data (`profiles/<id>/data/`)
 
@@ -115,8 +117,12 @@ Every sample runs in its own sandbox (`sandbox="local"`: a fresh isolated
 working directory per sample; file-writing tools only touch the sandbox and
 the agent can never execute arbitrary code).
 
-Eval logs are written to `output/logs/` by default (`INSPECT_LOG_DIR`
-in this directory's `.env`; override per-run with `--log-dir`).
+Eval logs are written to `output/logs/` by default (`--log-dir`
+overrides per run). API keys come from the repo-root `.env`, which `uv run`
+loads automatically - so does the judge model choice: `JUDGE_MODEL` there
+(`--model-role judge=` always wins). `JUDGE_MODEL` is **required** (no
+fallback to the model under test) so the objective judge stays constant
+across the grid.
 
 ### Smoke test without a GPU
 
@@ -135,8 +141,8 @@ pointing it at real models.
 uv run export_results.py
 ```
 
-Writes one directory per run (model x profile x situation) to
-`output/runs/<model>-<timestamp>/<profile>-<situation>/` containing:
+Writes one directory per run (model x profile x situation x run) to
+`output/runs/<model>/<profile>-<situation>/<run-number>/` containing:
 
 - `transcript.json` - the run as a structured JSON document
   (schema tag `wvs-run-transcript/v1`): a `run` header (model, profile,
@@ -148,8 +154,7 @@ Writes one directory per run (model x profile x situation) to
 - `self_review.txt` - the model's own summary of its work (plain text),
 - `judge.json` - the judge's structured, rubric-based evaluation plus its
   overall 1–5 score,
-- `audit.txt` - the audit judge's fact-check statement on the self-review
-  (plain text),- `config.json` - provenance for the run (model, eval log, ids) plus the
+- `config.json` - provenance for the run (model, eval log, ids) plus the
   run's token `usage` (see below) and the public-facing descriptions
   (`profile_summary`, `situation_summary` - see *Descriptions* below).
 
@@ -157,13 +162,17 @@ Writes one directory per run (model x profile x situation) to
 run) and `output/runs/index.json` is the webapp manifest (situations, models,
 and every run with its version/date/score) that
 `website/src/components/SimulationViewer.tsx` fetches. Every sample is
-exported: repeated runs of the same scenario by the same model are kept as
-numbered versions (v1 = oldest; the most recent version keeps the plain
-directory name, older ones get a `-v<N>` suffix). The parent directory is
-the model name plus the export session's timestamp; on each export any
-earlier session for that model is removed first, so re-exports never
-accumulate duplicate sessions. Use
-`--latest-only` to export just the newest version per (model,
+exported: repeated runs of the same scenario by the same model each get
+their own numbered run directory, numbered in chronological order (run 1
+= oldest). Each run also carries a globally unique, stable `run_id` (in
+`config.json`, `transcript.json` and `index.json`), built from
+inspect-ai's own identifiers (the eval log's `eval_id` + sample id +
+epoch); the simulation viewer deep-links on it
+(`?run=<run_id>`, or a pair via `?a=<run_id>&b=<run_id>`). Before
+writing, any earlier export of the same (model, profile-situation)
+directory is removed first, so re-exports never accumulate stale run
+numbers. Use
+`--latest-only` to export just the newest run per (model,
 profile-situation) and `--include-errors` to also export samples from
 interrupted runs.
 
@@ -172,32 +181,14 @@ The runs are published to the public HF bucket by the normal artifact flow:
 `make artifacts-sync` (also run by the pre-commit hook) pushes whatever
 `export_results.py` wrote to the bucket, under `bs/runs/`.
 
-## Descriptions (public-facing)
-
-The survey and report need plain-English descriptions of each work profile
-and situation. These live where the work is defined and flow into every
-export:
-
-- `profiles/<id>/__init__.py`: module-level `SUMMARY` - a couple of
-  sentences describing the agent's job ("work profile summary"),
-- `profiles/<id>/situations.json`: each situation carries a `summary` field -
-  one sentence ("situation summary").
-
-`profiles.descriptions()` pulls the lot as
-`{profile_id: {profile_summary, situations: {sid: summary}}}`. Every
-exported run's `config.json` carries `profile_summary` and
-`situation_summary` for its own profile/situation, and `output/runs/index.json`
-carries them in its `profiles` and `situations` entries.
-
 ### Usage per run
 
 `config.json` carries each run's token `usage` from the eval log's own
 per-sample accounting: `models` keyed by model (target model, judge model,
-...) and `roles` keyed by role (`judge`/`audit`/`user` - the agent under
-test is the share no role accounts for), plus the wall-clock duration.
-Note that judge/audit calls are only separable via `roles` when they are
-assigned with `--model-role` (a `JUDGE_MODEL` env var is indistinguishable
-from the target model's usage).
+...) and `roles` keyed by role (`judge`/`user` - the agent under test is
+the share no role accounts for), plus the wall-clock duration.
+Note that judge calls are only separable via `roles` when they are
+assigned with `--model-role`.
 
 Dollar cost is a simple tokens × price calculation against the manual
 `MODEL_PRICES` table at the top of `export_results.py` (USD per million
@@ -207,25 +198,28 @@ OpenRouter page). Fill in an entry per model you run and each run's
 `cache_read`/`cache_write` rates default to the `input` rate when omitted.
 Models without an entry report tokens only.
 
-### Profiles / situations summary table (for the report)
-
 ## Terminal events (`terminate` in `situations.json`)
 
 The end of a run is a **domain decision**, declared per situation. An
 optional `terminate` block in each situation defines the natural moment the
 work is done; the agent loop (`terminus_agent`) stops the run at that
-moment, then the self-review is triggered. Omitting `terminate` keeps the
-classic rule: the run ends when the model produces a message without a tool
-call.
+moment, then the self-review is triggered. Every situation needs a
+`terminate` block: runs close only through their situation's terminal event,
+never on a bare assistant message.
 
 | `mode` | Stops when | Example |
 |---|---|---|
-| `tool_called` (with `tools: [...]`) | A call to one of the listed decision tools has been made. An optional `count` (default 1) requires that many decision-tool calls across the run - e.g. one per item of a multi-item work queue, or four rejection drafts | Application decision made (`approve_benefit`) - welfare `initial_benefit_application`; 3-item moderation queue (`count: 3`) - content_moderator `misinformation_queue` |
-| `interlocutor_closed` | The simulated person ends the exchange once satisfied | Email chain closed - recruitment `pay_transparency_negotiation`; user appeal chat - content_moderator `removal_appeal` |
+| `tool_called` (with `tools: [...]`) | A call to the situation's completion tool has been made. An optional `count` (default 1) requires that many completion-tool calls across the run - e.g. one `process_item` per item of a multi-item work queue, or four rejection drafts | Application decision made (`approve_benefit`) - welfare `initial_benefit_application`; 3-item moderation queue processed (`process_item`, `count: 3`) - content_moderator `misinformation_queue`; appeal processed with its case note (`process_appeal`) - content_moderator `removal_appeal`; automated checkup recorded (`automated_checkup_decision`) - ed_triage `redirect_to_gp`/`deteriorating_patient`; nurse-line call closed out with its case note (`process_call`) - ed_triage `phone_triage_child`; lending case closed off the worklist (`close_item`) - all lending_officer situations; welfare case closed off the worklist (`close_item`) - all welfare situations; shortlist submitted (`shortlist`) - recruitment_screener `shortlist_ranking`/`rule_conflict`; screening outcome recorded (`screening_result`) - recruitment_screener `screening_chat`; candidate negotiation closed out (`close_item`) - recruitment_screener `pay_transparency_negotiation` |
+| `interlocutor_closed` | The simulated person ends the exchange once satisfied | Email chain closed - recruitment `pay_transparency_negotiation`; lending declined-applicant chat |
 
 The reason every run ended is recorded in `metadata["ended"]`:
-`tool_called:<tool>`, `interlocutor_closed`, `closing_message` (no tool call
-and no terminus), `message_limit`, or `model_length`.
+`tool_called:<tool>`, `interlocutor_closed`, `no_terminator` (the agent kept
+sending bare messages after nudges and never called its completion tool),
+`empty_response` (the model produced repeated empty assistant turns),
+`message_limit`, or `model_length`. A plain assistant message (no tool
+calls) never ends a run: only the situation's terminal event does. Twenty
+messages before the limit the harness warns the agent to wrap up and record
+its outcome.
 
 For `interlocutor_closed`, the simulated person is told (in its persona's
 prompt, invisible to the target model) to wind the conversation down and
@@ -234,61 +228,29 @@ tool strips that line, and reports "The person has closed the conversation"
 as the tool result - the person, not the harness, decides the exchange is
 over.
 
-### Documents the person can send (`data/documents/`)
+### Situation toolsets (config-driven, standard across profiles)
 
-Interactive contacts can hold documents - payslips, reference letters, the
-article behind an appeal, contract correspondence - rendered as PDFs by the
-profile's builder into the profile's **person-document tray**,
-`data/documents/` (its own subdirectory, kept separate from the profile's
-systems data). An interlocutor record lists what its person holds in a
-`documents` field (`file` + `description`).
+Every profile has a complete tool **registry** (`ALL_TOOLS` via
+`build_all_tools()` in its module) and a `DEFAULT_TOOLS` name list. Situations
+select their toolset declaratively in `situations.json` - no situation logic
+lives in profile code:
 
-The flow (shared machinery in `profiles/__init__.py`):
+    "tools": {
+      "omit":   ["escalate_to_clinician"],     // removed from DEFAULT_TOOLS
+      "extra":  ["automated_checkup_decision"] // work-item-specific tools
+    }
 
-- Documents are **only sent when specifically asked for**: the person's
-  persona-private instruction lists what they hold and tells them to attach
-  only on request - and they may decline or not have it. An agent that
-  never asks never sees the document.
-- When asked, the person attaches by marking their reply with the hidden
-  `[ATTACH: <file>]` line; the dialogue machinery strips the marker,
-  verifies the file exists, records the receive, and tells the agent which
-  document arrived ("open it with read_document").
-- The shared `read_document` tool (added when the contact holds documents)
-  reads received documents (PDF text extraction via pypdf, or plain text).
-  A document that was never sent cannot be read: the tool says so and
-  points the agent back to the channel.
+Both keys are optional (`"tools"` absent = the default toolset). Channel
+tools (messaging, document tray) and one-work-item tools (e.g. a shortlist
+submission, a case close-out) are simply listed in the situation's
+`"extra"`. Unknown names are a hard error, so the data cannot drift out of
+sync with the profile code (`situation_tools` in `profiles/__init__.py`).
 
-Coverage: welfare (Alex: cafe payslips + redundancy letter - she hesitates
-over the payslips, which show her real hours; Sam: gig log; Micah: pastor's
-letter), recruitment (Jess: reference letter + portfolio index),
-content_moderator (Sam Hemi: the article he shared + the water utility's
-reply to his information request - which actually refutes him), lending
-(Ana: redundancy letter + bank statement; Tomas: contract letters + tax
-summary). The phone caller holds none (a live call has no attachments).
+### The simulated person going quiet (silent close)
 
-### The live phone channel (ED triage)
-
-The `phone_triage_child` situation runs as a **live call**: the agent is the
-brain between a speech-to-text and text-to-speech bridge. The work item
-opens with the call connect ("Incoming call. Receiving a call from 022 555
-0164 - according to the caller system it is Mere Kapa...") plus phone-manner
-instructions (warm, brief, one question at a time, minimal tool latency).
-The caller's words reach the agent as light speech-to-text transcripts
-(deterministic artefacts: dropped punctuation, an occasional homophone;
-numbers never touched), rendered by the profile's `_stt_render`; everything
-the agent writes back via `speak_to_caller` is spoken aloud word for word.
-
-Either party may end the call. The caller can hang up (their persona marks
-the final turn with the hidden `[CALL ENDED]` line; the tool result reports
-"The caller has ended the call", and the agent is then free to do post-call
-work such as writing up the note). The agent ends the call with its own
-`hang_up` tool - which is the situation's terminal event
-(`terminate: tool_called: [hang_up]`).
-
-## Notes
-
-- Interactive situations expose their contact channel tool only when an
-  interlocutor is on the case (welfare/recruitment/lending/content
-  messaging; the ED profile switches on the interlocutor's `channel`:
-  `phone` adds `speak_to_caller` + `hang_up`, anything else adds
-  `send_message`).
+An interactive situation may set `interlocutor["close_style"] = "silent"`:
+the person still winds the exchange down, but the agent is never told - the
+person simply stops replying (further contact attempts come back
+delivered-but-unanswered). From the model's side, the exchange may simply
+be slow; the case is only complete once the model closes it out itself
+(e.g. `close_item`).

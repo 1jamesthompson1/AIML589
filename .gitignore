@@ -26,3 +26,8 @@ artifacts/
 # artifacts mirror into the site).
 website/public/ft
 website/public/bs
+# Qualtrics survey files carry the real account ids / generated content
+survey/*.qsf
+survey/reference.qsf
+# managed survey id (qualtrics_sync.py state)
+survey/managed-survey.txt

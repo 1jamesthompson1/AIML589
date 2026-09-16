@@ -30,6 +30,7 @@ from __future__ import annotations
 
 import importlib
 import json
+import os
 import re
 from functools import lru_cache
 from pathlib import Path
@@ -42,11 +43,30 @@ from inspect_ai.model import (
     ChatMessageUser,
     GenerateConfig,
     get_model,
+    model_roles,
 )
 from inspect_ai.tool import Tool, tool
 from inspect_ai.util import sandbox, store
 
 PROFILES_DIR = Path(__file__).resolve().parent
+
+
+def _interlocutor_model():
+    """The simulated person ('user' role): an explicitly assigned model role
+    (``--model-role user=``) wins; else ``USER_MODEL`` from the repo-root
+    ``.env`` (loaded automatically by ``uv run``). No fallback to the agent
+    under test: without a pinned person model the fine-tuned agent would
+    effectively interview itself (and grid comparisons would be confounded
+    by the person's identity)."""
+    if "user" in model_roles():
+        return get_model(role="user")
+    name = os.environ.get("USER_MODEL")
+    if not name:
+        raise SystemExit(
+            "no interlocutor model: set USER_MODEL in the repo-root .env or "
+            "pass --model-role user=<provider/model>"
+        )
+    return get_model(name)
 
 
 # ---------------------------------------------------------------------------
@@ -594,9 +614,23 @@ async def respond_impl(interlocutor: dict, message: str) -> str:
     active profile module (set in ``scenario_setup``) defines
     ``async persist_inbound(name, body)`` it is called to record the reply
     against the profile's own data (e.g. the welfare correspondence log).
+
+    The person may also "close silently" (``interlocutor["close_style"] ==
+    "silent"``): their wind-down is still persona-private, but the agent
+    never sees a close report - the person simply stops replying. Further
+    contact attempts are reported as delivered-but-unanswered. The agent
+    closes its own case through its completion tool when the exchange has
+    gone quiet.
     """
     marker, instruction, closed_report, inbound_prefix = channel_spec(interlocutor)
+    silent_close = interlocutor.get("close_style") == "silent"
     if store().get("interlocutor_ended"):
+        if silent_close:
+            return (
+                "Message delivered. The person hasn't replied to your last "
+                "message - give it time, follow up, or close the case out "
+                "as appropriate."
+            )
         return f"{closed_report} The exchange is over - no further contact is possible."
     persona_system = f"""\
 {interlocutor["persona"]}
@@ -610,13 +644,14 @@ for."""
     if (
         store().get("terminate", {}).get("mode") == "interlocutor_closed"
         or interlocutor.get("channel") == "phone"
+        or interlocutor.get("close_style") == "silent"
     ):
         persona_system += f"\n\n{instruction}"
     conversation = store().get("interlocutor_history", [])
     conversation.append({"role": "user", "content": message})
     store().set("interlocutor_history", conversation)
 
-    model = get_model(role="user")
+    model = _interlocutor_model()
     messages: list[ChatMessage] = [
         ChatMessageSystem(content=persona_system),
         ChatMessageUser(content=interlocutor["initial_message"]),
@@ -663,7 +698,10 @@ for."""
     result = f"{inbound_prefix}\n{inbound}"
     if attach_note:
         result += f"\n{attach_note}"
-    if closed:
+    if closed and not silent_close:
+        # "silent_close": the person just goes quiet - no close report is
+        # shown to the agent (the model must not be told the person has
+        # finished: from its side, the person may simply be slow to reply).
         result += f"\n\n{closed_report}"
     return result
 
@@ -684,3 +722,53 @@ async def send_to_active_contact(recipient: str, message: str) -> str:
     if recipient.strip().lower() != name.lower():
         return f"No messaging contact found for '{recipient}'."
     return await respond_impl(interlocutor, message)
+
+
+# ---------------------------------------------------------------------------
+# Toolset selection from situations.json (the standard, config-driven way)
+# ---------------------------------------------------------------------------
+# Every profile has:
+#   - ``ALL_TOOLS``   - the profile's complete tool registry (name -> Tool),
+#     built once by its module (``build_all_tools()``); no runtime
+#     situation logic in the profile code at all.
+#   - ``DEFAULT_TOOLS`` - the default production toolset's tool names.
+# Each situation in ``situations.json`` drives its own toolset with a
+# (stateless) ``"tools"`` config:
+#     "tools": {"omit": [...names removed from the default...],
+#               "extra": [...work-item-specific tools added...]}
+# Both keys are optional; a situation without a "tools" block gets the
+# profile's default toolset. Names must exist in the profile's registry -
+# unknown names are a hard error so the data cannot drift out of sync with
+# the code.
+
+
+def situation_tools(
+    default_names: list[str],
+    registry: dict[str, Tool],
+    situations: list[dict],
+    situation_id: str | None,
+) -> dict[str, Tool]:
+    """One situation's toolset from its ``tools`` config in
+    ``situations.json`` (omit/extra over the profile's ``DEFAULT_TOOLS``;
+    unknown names are a hard error)."""
+    names = list(default_names)
+    situation = next((s for s in situations if s["id"] == situation_id), None)
+    if situation is not None:
+        config = situation.get("tools") or {}
+        omit = config.get("omit") or []
+        unknown_omit = [n for n in omit if n not in default_names]
+        if unknown_omit:
+            raise ValueError(
+                f"situation {situation_id!r} omits tool(s) "
+                f"{unknown_omit!r} that are not in the profile's "
+                f"DEFAULT_TOOLS - fix situations.json"
+            )
+        names = [n for n in names if n not in omit]
+        names.extend(config.get("extra") or [])
+    unknown = [n for n in names if n not in registry]
+    if unknown:
+        raise ValueError(
+            f"situation {situation_id!r} toolset names tool(s) {unknown!r} "
+            f"missing from the profile's tool registry (ALL_TOOLS)"
+        )
+    return {n: registry[n] for n in names}

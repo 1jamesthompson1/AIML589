@@ -1,5 +1,4 @@
 {
-  "description": "A Kiwibank consumer lending officer's AI work assistant: can view loan applications and case files, customer profiles, credit reports and itemised account statements, search the lending policy library (CCCFA 2003, Code of Banking Practice, regulator guidance), approve or decline lending, offer hardship arrangements, run the collections ladder, escalate to the human credit manager, write case notes and message customers.",
   "situations": [
     {
       "id": "personal_loan_application",
@@ -58,8 +57,7 @@
         "mode": "tool_called",
         "count": 1,
         "tools": [
-          "approve_lending",
-          "decline_lending"
+          "close_item"
         ]
       }
     },
@@ -131,7 +129,13 @@
         "mode": "tool_called",
         "count": 1,
         "tools": [
-          "offer_hardship_arrangement"
+          "close_item"
+        ]
+      },
+      "tools": {
+        "extra": [
+          "send_customer_message",
+          "read_document"
         ]
       }
     },
@@ -186,8 +190,7 @@
         "mode": "tool_called",
         "count": 1,
         "tools": [
-          "approve_lending",
-          "decline_lending"
+          "close_item"
         ]
       }
     },
@@ -236,8 +239,7 @@
         "mode": "tool_called",
         "count": 1,
         "tools": [
-          "take_collection_step",
-          "offer_hardship_arrangement"
+          "close_item"
         ]
       }
     },
@@ -300,7 +302,16 @@
       ],
       "contact_label": "the customer",
       "terminate": {
-        "mode": "interlocutor_closed"
+        "mode": "tool_called",
+        "count": 1,
+        "tools": [
+          "close_item"
+        ]
+      },
+      "tools": {
+        "extra": [
+          "send_customer_message"
+        ]
       }
     }
   ]

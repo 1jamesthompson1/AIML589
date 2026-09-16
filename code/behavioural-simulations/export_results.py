@@ -1,10 +1,11 @@
 """Export inspect-ai eval logs into per-run outputs for the website and analysis.
 
 For every run (one sample = one run of a situation, isolated in its own
-sandbox) this writes a directory per model x profile x situation, grouped
-under a timestamped parent per model so each export session is unique:
+sandbox) this writes a directory per run, grouped by model and scenario
+with a numbered run directory per run so a model's repeated runs of the
+same scenario sit side by side:
 
-    output/runs/<model>-<timestamp>/<profile>-<situation>/
+    output/runs/<model>/<profile>-<situation>/<run-number>/
         transcript.json  - structured JSON transcript of the run: the full
                            message stream (system prompt, work item, agent
                            reasoning, tool calls, tool results and the final
@@ -14,8 +15,6 @@ under a timestamped parent per model so each export session is unique:
         self_review.txt  - the model's own summary of its work (plain text),
         judge.json       - the judge's structured, rubric-based evaluation
                            (the structure differs per profile and situation),
-        audit.txt        - the audit judge's fact-check statement on the
-                           model's self-review (plain text),
         config.json      - provenance (model, eval log, ids) plus the run's
                            token usage by model and role (see below).
 
@@ -24,15 +23,15 @@ manifest (situations, models, and every run with its version/date/score) for
 ``website/src/components/SimulationViewer.tsx``.
 
 Every sample is exported: repeated runs of the same scenario by the same
-model (re-runs, epochs) are kept as numbered versions in chronological
-order - v1 is the oldest, and the most recent version keeps the plain
-directory name while older ones get a ``-v<N>`` suffix (e.g.
-``.../welfare-initial_benefit_application-v1``). Each export session writes
-to a fresh timestamped parent per model (``output/runs/<model>-<stamp>/``)
-and removes any earlier session for that model first, so re-exports never
-accumulate duplicate snapshots. Use ``--latest-only`` to export just the
-newest version of each (model, profile-situation) pair, and
-``--include-errors`` to also export samples from interrupted/failed runs.
+model (re-runs, epochs) each get their own numbered run directory,
+numbered in chronological order - run 1 is the oldest (e.g.
+``.../welfare/initial_benefit_application/3/``). Each run's number is the
+same as its ``version`` field in ``config.json``/``index.json``. Before
+writing, any earlier export of the same (model, profile-situation)
+directory is removed, so re-exports never accumulate stale run numbers.
+Use ``--latest-only`` to export just the newest run of each
+(model, profile-situation) pair (numbered 1), and ``--include-errors`` to
+also export samples from interrupted/failed runs.
 
 Usage tracking: ``config.json`` carries each run's token usage from the
 eval log's own per-sample accounting - ``models`` keyed by model (target
@@ -52,7 +51,6 @@ Usage:
 from __future__ import annotations
 
 import argparse
-import datetime as dt
 import json
 import re
 import shutil
@@ -266,6 +264,7 @@ def structured_transcript(log_eval, sample: EvalSample, meta: dict) -> dict:
             "interactive": meta.get("scenario_type") == "interactive",
             "sample_id": sample.id,
             "epoch": sample.epoch,
+            "run_id": run_id(log_eval, sample),
         },
         "messages": messages,
     }
@@ -314,17 +313,14 @@ def export_sample(
     if score is not None:
         judge = {
             "score": score.value,
+            # Did the judge reply follow the generated schema; and was a
+            # substantive overall score recovered at all.
+            "schema_ok": (score.metadata or {}).get("structured_output"),
+            "parse_failed": (score.metadata or {}).get("parse_failed"),
             "explanation": score.explanation,
             "structured": (score.metadata or {}).get("judge_summary"),
         }
     (run_dir / "judge.json").write_text(json.dumps(judge, indent=2))
-
-    # The audit judge's plain-text fact-check of the model's summary.
-    audit_score = (sample.scores or {}).get("audit_judge")
-    fact_check = (
-        (audit_score.metadata or {}).get("fact_check") if audit_score else None
-    ) or (audit_score.explanation if audit_score else None)
-    (run_dir / "audit.txt").write_text(fact_check or "")
 
     (run_dir / "config.json").write_text(
         json.dumps(
@@ -340,6 +336,21 @@ def export_sample(
                 "sample_id": sample.id,
                 "epoch": sample.epoch,
                 "version": version,
+                "run_id": run_id(log.eval, sample),
+                # Why the agent loop ended (see run_simulations.py's
+                # terminus_agent) and whether the run is usable: runs whose
+                # harness gave out (message limit, model length, an
+                # unavailable language backbone) are marked incomplete so
+                # downstream pairing/analysis can exclude them.
+                "ended": metadata.get("ended"),
+                "run_complete": metadata.get("ended")
+                not in (
+                    None,
+                    "message_limit",
+                    "model_length",
+                    "empty_response",
+                    "no_terminator",
+                ),
                 "has_error": bool(sample.error),
                 # Public-facing descriptions (survey / report reuse).
                 "profile_summary": meta.get("profile_summary", ""),
@@ -364,14 +375,22 @@ def sample_key(log, sample) -> tuple | None:
     return _model_slug(log.eval.model), f"{profile_id}-{situation_id}"
 
 
+def run_id(eval, sample) -> str:
+    """A stable, globally unique id for the run, built from inspect-ai's own
+    identifiers: the eval spec's `eval_id` (globally unique per eval) plus
+    the sample id and epoch (unique within the eval). Deterministic across
+    re-exports, so a run keeps its id even when the export layout changes."""
+    return f"{eval.eval_id}_{sample.id}_e{sample.epoch}"
+
+
 def collect_runs(log_paths: list[Path], include_errors: bool, latest_only: bool):
-    """(model_slug, log, sample, suffix, version) tuples to export.
+    """(model_slug, log, sample, version) tuples to export.
 
     Every non-errored sample is kept unless ``include_errors``. For each
     (model, profile-situation) key the samples are ordered by eval creation
-    time and numbered 1..N (versions); the newest version keeps the plain
-    directory name, older ones get a ``-v<version>`` suffix. ``latest_only``
-    collapses each key to just its newest sample (version 1, plain name).
+    time and numbered 1..N (run numbers, oldest first; the number doubles
+    as the run directory name). ``latest_only`` collapses each key to just
+    its newest sample (run number 1).
     """
     candidates: dict[tuple, list] = {}
     for path in sorted(log_paths):  # filenames embed timestamps => oldest first
@@ -389,10 +408,8 @@ def collect_runs(log_paths: list[Path], include_errors: bool, latest_only: bool)
         # Newest last: order first by eval creation time, then epoch.
         entries.sort(key=lambda pair: (pair[0].eval.created or "", pair[1].epoch))
         entries = entries[-1:] if latest_only else entries
-        n = len(entries)
         for version, (log, sample) in enumerate(entries, start=1):
-            suffix = None if (n < 2 or version == n) else f"-v{version}"
-            pairs.append((key[0], log, sample, suffix, version))
+            pairs.append((key[0], log, sample, version))
     return pairs
 
 
@@ -449,9 +466,10 @@ def build_manifest(rows: list[dict], output_dir: Path) -> dict:
                 "situation_id": row.get("situation"),
                 "type": row.get("type"),
                 "status": row.get("status"),
-                "version": int(row.get("version") or 1),
+                "version": int(row.get("run_number") or 1),
                 "created": row.get("created"),
                 "run_dir": row.get("run_dir"),
+                "run_id": row.get("run_id"),
                 "judge_score": row.get("judge_score"),
                 "judge_verdict": row.get("judge_verdict"),
             }
@@ -507,28 +525,23 @@ def main(argv: list[str] | None = None) -> None:
         )
 
     rows = []
-    # One timestamped parent dir per model per export session so every
-    # scenario dir is uniquely addressable, but only the newest session per
-    # model is kept: any earlier session dir for that model is removed first
-    # so re-exports never accumulate duplicate snapshots.
-    session_stamp = dt.datetime.now().strftime("%Y%m%d-%H%M%S")
-    model_sessions: dict[str, Path] = {}
-    for model_slug, _, _, _, _ in pairs:
-        if model_slug in model_sessions:
-            continue
-        run_dir = output_dir / f"{model_slug}-{session_stamp}"
-        model_sessions[model_slug] = run_dir
-        for stale in output_dir.glob(f"{model_slug}-*"):
-            if stale.is_dir() and stale != run_dir:
-                shutil.rmtree(stale, ignore_errors=True)
-    for model_slug, log, sample, suffix, version in pairs:
+    # Runs are grouped under <model>/<profile>-<situation>/<run-number>/.
+    # Before writing a scenario's runs, any earlier export of that
+    # (model, scenario) directory is removed first so re-exports never
+    # accumulate stale run numbers.
+    scenario_dirs: dict[tuple, Path] = {}
+    for model_slug, log, sample, version in pairs:
         metadata = sample.metadata or {}
-        dir_name = (
+        scenario = (
             f"{metadata.get('profile_id', '?')}-{metadata.get('situation_id', '?')}"
         )
-        if suffix:
-            dir_name += suffix
-        run_dir = model_sessions[model_slug] / dir_name
+        key = (model_slug, scenario)
+        if key not in scenario_dirs:
+            scenario_dir = output_dir / model_slug / scenario
+            if scenario_dir.is_dir():
+                shutil.rmtree(scenario_dir)
+            scenario_dirs[key] = scenario_dir
+        run_dir = scenario_dirs[key] / str(version)
         export_sample(
             log, sample, run_dir, version=version, usage=usage_summary(sample)
         )
@@ -545,7 +558,8 @@ def main(argv: list[str] | None = None) -> None:
                 "situation": metadata.get("situation_id"),
                 "type": metadata.get("scenario_type"),
                 "status": "error" if sample.error else "complete",
-                "version": version,
+                "run_number": version,
+                "run_id": run_id(log.eval, sample),
                 "created": log.eval.created,
                 "run_dir": str(run_dir.relative_to(output_dir)),
                 "judge_score": judge.get("score"),

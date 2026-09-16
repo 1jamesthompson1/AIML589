@@ -48,10 +48,10 @@ Outputs (to ``profiles/content_moderator/data/``):
   entries; each entry carries a ``source`` label: 'neighbourly',
   'enforcement_policy', 'hdca_2015' or 'netsafe_hdca').
 - ``accounts.json``   - the accounts consumed by ``view_account`` (and read
-  by ``open_item`` for author summaries). Decision tools mutate the working
+  by ``view_item`` for author summaries). Decision tools mutate the working
   copy in the run sandbox.
 - ``queue.json``      - the moderation queue consumed by ``view_queue`` /
-  ``open_item`` and mutated by the decision tools (status/actions/notes).
+  ``view_item`` and mutated by the decision tools (status/actions/notes).
 
 The script is idempotent: fetches go through an on-disk cache and the
 synthesised data is literal, so re-running produces the same files.
@@ -639,7 +639,7 @@ explanations favour a side are not, by themselves, a breach.""",
         """\
 8. The escalation ladder
 
-Escalate to the human moderation team (escalate_to_human_moderator) when
+Escalate to the human moderation team (a queue decision of 'escalate' on the item) when
 any of the following holds:
 
 (a) Uncertainty - the evidence does not clearly establish the breach (e.g.
