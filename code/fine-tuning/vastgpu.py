@@ -83,7 +83,7 @@ DEFAULT_MIN_DLPREF = (
 DEFAULT_DISK = 150  # GB; template does NOT carry disk, so it is always sent explicitly
 # WVS template (wvs-llm-rtx6000): vastai/vllm:v0.27.1-cuda-13.0, ssh+direct, port 8080
 # forwarded, ~/.no_auto_tmux pre-created.
-DEFAULT_TEMPLATE_HASH = "026113b1ffdbb5456e831e6a5dd8475f"
+DEFAULT_TEMPLATE_HASH = "477e2ff9b2fa15ac44dc11126c8fefcc"
 DEFAULT_SSH_KEY = "~/.ssh/vast_ai"
 DEFAULT_ALIAS = "vast-gpu1"
 

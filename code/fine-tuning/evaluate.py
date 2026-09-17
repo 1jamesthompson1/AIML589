@@ -332,6 +332,14 @@ def parse_args(argv=None):
         "Same-adapter requests then batch on the server, fusing prefill and "
         "decode. Use 1 for a strictly sequential pass.",
     )
+    p.add_argument(
+        "--skip-adapter-check",
+        action="store_true",
+        default=False,
+        help="Skip the pre-flight check that a served adapter actually "
+        "changes outputs vs its parent base model (guards against vLLM's "
+        "silent LoRA no-op failure, which makes a whole eval worthless).",
+    )
 
     return p.parse_args(argv)
 
@@ -1026,6 +1034,99 @@ def _run_evaluation(
     return aborted
 
 
+def _adapter_fires_check(
+    client,
+    ds,
+    model: str,
+    parent_model: str,
+    reasoning: bool,
+    n_examples: int = 2,
+):
+    """Verify the served adapter actually changes the model's outputs.
+
+    vLLM has a class of silent LoRA failures where an adapter loads and its
+    name is served, but the weights are never applied — generations (and
+    logprobs) are bit-identical to the base model, with no warning beyond
+    DEBUG logs (seen on the Qwen3.5/3.6/3.8 ``qwen3_5`` family; see
+    workbench/vllm-lora-prefix-fix). A whole eval pass is worthless in that
+    state, so this pre-flight compares the first-token top-logprobs of the
+    adapter against its parent base model on a few dataset prompts and
+    aborts the run when they are indistinguishable.
+
+    Returns:
+        Dict with ``fired`` (bool), per-example ``l1`` distances and the
+        compared ``parent`` model id.
+    """
+    print()
+    print(
+        "[adapter-check] verifying the served adapter changes outputs "
+        f"(vs parent {parent_model})..."
+    )
+    # The check runs before the main pass and needs only a handful of tiny
+    # requests: use a dedicated sync client so it works regardless of the
+    # main pass's concurrency mode (AsyncOpenAI calls return coroutines).
+    from openai import OpenAI as _SyncOpenAI
+
+    check_client = _SyncOpenAI(base_url=client.base_url, api_key=client.api_key)
+    fired = False
+    distances = []
+    for i in range(min(n_examples, len(ds))):
+        ex = ds[i]
+        messages = build_messages(ex["system_prompt"], ex["user_prompt"])
+        kwargs = dict(
+            messages=messages,
+            max_tokens=1,
+            temperature=0.0,
+            top_p=1.0,
+            presence_penalty=0.0,
+            top_logprobs=20,
+            reasoning=reasoning,
+            retries=2,
+        )
+        dists = {}
+        for name in (model, parent_model):
+            try:
+                resp = _chat_with_retry(check_client, model=name, **kwargs)
+            except Exception as e:
+                print(f"  [adapter-check] request failed for {name}: {e}")
+                return {
+                    "fired": False,
+                    "l1": distances,
+                    "parent": parent_model,
+                    "error": str(e),
+                }
+            lp = resp.choices[0].logprobs
+            toks = lp.content[0].top_logprobs if lp and lp.content else []
+            dists[name] = {t.token: t.logprob for t in (toks or [])}
+        adapter_lp = dists.get(model, {})
+        base_lp = dists.get(parent_model, {})
+        keys = set(adapter_lp) | set(base_lp)
+        l1 = sum(abs(adapter_lp.get(k, -100.0) - base_lp.get(k, -100.0)) for k in keys)
+        distances.append(l1)
+        print(f"  example {i}: adapter-vs-base first-token top-logprob L1 = {l1:.4f}")
+        if l1 > 0.01:
+            fired = True
+    if not fired:
+        print()
+        print("!" * 72)
+        print("ERROR: the served adapter does NOT change the model's outputs.")
+        print(f"  adapter '{model}' and its parent '{parent_model}' produced")
+        print("  identical top-logprobs on every checked example. This is the")
+        print("  vLLM silent LoRA no-op failure (adapter loads, requests are")
+        print("  routed to it, but zero weights are applied — e.g. the")
+        print("  Qwen3.5/3.6/3.8 multimodal-wrapper prefix-mapping bug).")
+        print("  Aborting: results from this server would describe the BASE")
+        print("  model, not the fine-tuned one. Fix serve-time application")
+        print("  (see serve.py's LoRA loader patch, or merge the adapter into")
+        print("  the base weights) and rerun. --skip-adapter-check overrides.")
+        print("!" * 72)
+        print()
+    else:
+        print("  [adapter-check] OK — adapter changes outputs (fired)")
+    print()
+    return {"fired": fired, "l1": distances, "parent": parent_model}
+
+
 def main():
     from dotenv import load_dotenv, find_dotenv
 
@@ -1071,6 +1172,12 @@ def main():
     elif available:
         print(
             f"[eval] model '{args.model}' found on server ({len(available)} total models)"
+        )
+    else:
+        print(
+            "[eval] WARNING: could not list models from the server — the "
+            "target model's existence cannot be verified (if the server is "
+            "serving only the base model, every adapter request will fail)"
         )
 
     run_name = (
@@ -1142,10 +1249,12 @@ def main():
             print(f"  [skip] could not render template locally: {e}")
 
     server_created = None
+    parent_model = None
     if available:
         for m in models_data.get("data", []):
             if m["id"] == args.model:
                 server_created = m["created"]
+                parent_model = m.get("parent")
                 break
 
     if args.max_tokens is None:
@@ -1177,6 +1286,7 @@ def main():
         "concurrency": args.concurrency,
         "dataset_sha": dataset_sha,
         "model_sha": model_sha,
+        "parent_model": parent_model,
     }
     (output_dir / "config.json").write_text(json.dumps(config, indent=2))
     print(f"[save] config -> {output_dir / 'config.json'}")
@@ -1185,6 +1295,26 @@ def main():
         base_url=f"{args.api_url}/v1",
         api_key=args.api_key,
     )
+
+    # Pre-flight: when the target is a LoRA adapter (server reports a parent
+    # base model), confirm the adapter actually changes outputs before
+    # spending a full pass on it. Aborts on the silent no-op failure.
+    adapter_check = None
+    if parent_model and not args.skip_adapter_check and len(ds):
+        adapter_check = _adapter_fires_check(
+            client,
+            ds,
+            model=args.model,
+            parent_model=parent_model,
+            reasoning=args.reasoning,
+        )
+        if not adapter_check["fired"]:
+            config["adapter_check"] = adapter_check
+            config["aborted"] = "adapter_not_applied"
+            (output_dir / "config.json").write_text(json.dumps(config, indent=2))
+            sys.exit(1)
+        config["adapter_check"] = adapter_check
+        (output_dir / "config.json").write_text(json.dumps(config, indent=2))
 
     _run_evaluation(
         client=client,

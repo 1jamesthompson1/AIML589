@@ -51,6 +51,7 @@ import subprocess
 import sys
 import threading
 import time
+from pathlib import Path
 
 logging.basicConfig(
     level=logging.INFO,
@@ -229,8 +230,23 @@ def parse_args(argv=None):
     p.add_argument(
         "--max-lora-rank",
         type=int,
-        default=16,
-        help="Maximum LoRA rank (for multi-LoRA serving)",
+        default=None,
+        help="Maximum LoRA rank (for multi-LoRA serving). Default: auto-size "
+        "to the highest rank among the discovered adapters. An adapter whose "
+        "rank exceeds this is silently dropped by vLLM, so the auto default "
+        "exists to prevent adapters disappearing at serve time (which makes "
+        "their evals 404) — pass an explicit value to pin it.",
+    )
+    p.add_argument(
+        "--no-lora-loader-patch",
+        action="store_true",
+        default=False,
+        help="Skip patching vLLM's LoRA loader. By default serve.py patches "
+        "the installed vLLM so PEFT tensor names map onto runtime modules for "
+        "multimodal wrapper models (Qwen3.5/3.6/3.8 family). Without the "
+        "patch those adapters load but are SILENTLY not applied — generations "
+        "are bit-identical to the base model (vLLM issue class: silent LoRA "
+        "no-op; see workbench/vllm-lora-prefix-fix for the diagnosis).",
     )
 
     p.add_argument(
@@ -240,6 +256,93 @@ def parse_args(argv=None):
     args, remaining = p.parse_known_args(argv)
     args.vllm_args = remaining + args.vllm_args
     return args
+
+
+# ── vLLM LoRA loader patch ──────────────────────────────────────
+
+# Anchor from vllm/lora/worker_manager.py `_load_adapter`, right after the
+# unstacked mapper is built. Present in vLLM 0.27.x–0.28.x.
+_PATCH_ANCHOR = """            hf_to_vllm_mapper = getattr(model, "hf_to_vllm_mapper", None)
+            if hf_to_vllm_mapper is not None:
+                hf_to_vllm_mapper = hf_to_vllm_mapper.get_unstacked_mapper()
+"""
+_PATCH_NEW = """            hf_to_vllm_mapper = getattr(model, "hf_to_vllm_mapper", None)
+            if hf_to_vllm_mapper is not None:
+                hf_to_vllm_mapper = hf_to_vllm_mapper.get_unstacked_mapper()
+                # PATCH (serve.py): map the PEFT text-model prefix onto the
+                # runtime module path for multimodal wrapper models. Adapter
+                # tensors are named model.layers.* but the runtime language
+                # model lives at language_model.model.layers.*; without this
+                # rule every LoRA weight lookup misses and the adapter is
+                # silently not applied (generations identical to base).
+                from vllm.model_executor.models.utils import (
+                    WeightsMapper as _ServeWeightsMapper,
+                )
+
+                hf_to_vllm_mapper = hf_to_vllm_mapper | _ServeWeightsMapper(
+                    orig_to_new_prefix={"model.": "language_model.model."}
+                )
+"""
+
+
+def patch_vllm_lora_loader() -> bool:
+    """Patch the installed vLLM's LoRA weight loader in place.
+
+    Qwen3.5/3.6/3.8 (``qwen3_5`` family) and other multimodal-wrapper models
+    expose their language model at ``language_model.model.layers.*`` at
+    runtime, while PEFT adapters store ``model.layers.*``. vLLM's
+    ``hf_to_vllm_mapper`` lacks the ``model.`` -> ``language_model.model.``
+    prefix rule for these models, so every LoRA tensor lookup misses and the
+    adapter is SILENTLY not applied! Verified empirically
+    on vLLM 0.27/0.28; see workbench/vllm-lora-prefix-fix.
+
+    This issue https://github.com/vllm-project/vllm/issues/48019 and fix simliar to https://github.com/vllm-project/vllm/pull/49525.
+
+    The patch edits the installed ``vllm/lora/worker_manager.py`` inside the
+    current (ephemeral uv) environment. It only affects the LoRA *load*
+    mapper, not base weight loading, and is a no-op for models whose adapter
+    names already match runtime modules, so it is safe to apply for any
+    base model (text-only models never even hit the mapper path).
+
+    Viable to break in newer vllm verions.
+
+    Returns:
+        True if the patch was applied (or was already present).
+    """
+    import importlib.util
+
+    spec = importlib.util.find_spec("vllm")
+    if spec is None:
+        log.error("[patch] vllm not importable — cannot patch LoRA loader.")
+        return False
+    wm_path = Path(spec.origin).parent / "lora" / "worker_manager.py"
+    if not wm_path.exists():
+        log.error(
+            "[patch] %s not found — skipping LoRA loader patch. This may result in LoRA adapter not being applied silently.",
+            wm_path,
+        )
+        return False
+    src = wm_path.read_text()
+    if "_ServeWeightsMapper" in src:
+        log.error(
+            "[patch] Patch seems to already be applied, unlikely so please check vllm version and patch_vllm_lora_loader()"
+        )
+        return True
+    if _PATCH_ANCHOR not in src:
+        log.error(
+            "[patch] anchor not found in %s (vLLM version drift?) — NOT "
+            "patching. If the served adapters target a multimodal wrapper "
+            "model they will silently NOT be applied. The evaluate.py "
+            "adapter sanity check will catch this.",
+            wm_path,
+        )
+        return False
+    backup = wm_path.with_suffix(".py.pre-lora-prefix-patch")
+    if not backup.exists():
+        backup.write_text(src)
+    wm_path.write_text(src.replace(_PATCH_ANCHOR, _PATCH_NEW, 1))
+    log.info("[patch] patched %s (backup: %s)", wm_path, backup.name)
+    return True
 
 
 def main():
@@ -336,12 +439,37 @@ def main():
             name, path = entry.split("=", 1)
             adapter_modules.append((name.strip(), path.strip()))
 
-    # vLLM aborts startup if any adapter's rank exceeds --max-lora-rank, so
-    # drop those here and warn rather than crash the whole server.
+    # vLLM aborts startup on duplicate LoRA names (e.g. an --adapter entry
+    # that is also discovered from the collection), so keep the first
+    # occurrence of each name and warn about the dropped duplicates.
+    seen: set[str] = set()
+    deduped: list[tuple[str, str]] = []
+    for name, path in adapter_modules:
+        if name in seen:
+            log.warning("[adapters] duplicate adapter name %s — keeping first", name)
+            continue
+        seen.add(name)
+        deduped.append((name, path))
+    adapter_modules = deduped
+
+    # vLLM refuses adapters whose rank exceeds --max-lora-rank: it aborts
+    # server startup at load time, so drop those here. With the default
+    # (None) the limit is auto-sized to the highest discovered rank so
+    # adapters are never silently dropped; an explicit --max-lora-rank
+    # keeps the old skip-with-warning behaviour for mixed-rank collections.
     if adapter_modules:
+        ranks = {name: get_lora_rank(path, hf_token) for name, path in adapter_modules}
+        if args.max_lora_rank is None:
+            known = [r for r in ranks.values() if r is not None]
+            args.max_lora_rank = max(known) if known else 16
+            log.info(
+                "[adapters] --max-lora-rank auto-sized to %d (highest "
+                "discovered adapter rank)",
+                args.max_lora_rank,
+            )
         kept: list[tuple[str, str]] = []
         for name, path in adapter_modules:
-            rank = get_lora_rank(path, hf_token)
+            rank = ranks[name]
             if rank is None:
                 log.warning(
                     "[adapters] %s: could not determine LoRA rank, loading anyway",
@@ -352,7 +480,8 @@ def main():
                 kept.append((name, path))
             else:
                 log.warning(
-                    "[adapters] skipping %s: rank %d > --max-lora-rank %d",
+                    "[adapters] skipping %s: rank %d > --max-lora-rank %d "
+                    "(requests for it will 404 at eval time)",
                     name,
                     rank,
                     args.max_lora_rank,
@@ -363,6 +492,13 @@ def main():
                 "[adapters] no usable adapters (all rank > %d)",
                 args.max_lora_rank,
             )
+
+    # Patch vLLM's LoRA loader so multimodal-wrapper adapters are actually
+    # applied (silent no-op otherwise — see patch_vllm_lora_loader). Safe to
+    # run for any base model: it is a no-op when adapter names already match
+    # and text-only models never hit the mapper path.
+    if adapter_modules and not args.no_lora_loader_patch:
+        patch_vllm_lora_loader()
 
     if adapter_modules:
         cmd.append("--enable-lora")

@@ -15,6 +15,31 @@ To allow for easy ssh access one can add a config to `~/.ssh/config` like:
 Include [path-to-project-repo]/code/fine-tuning/.ssh_config
 ```
 
+### vLLM silent LoRA no-op (Qwen3.5/3.6/3.8 family) — important
+
+vLLM (0.27/0.28, Sep 2026) loads LoRA adapters on the `qwen3_5` multimodal
+wrapper family but **silently applies none of their weights** — generations
+are bit-identical to the base model with no warning. This invalidated every
+fine-tuned eval run through vLLM (they measured the base model); the training
+itself was fine. `serve.py` now auto-patches the installed vLLM's LoRA loader
+and `evaluate.py` aborts any run whose adapter does not change outputs.
+Full diagnosis, evidence and the standalone patch:
+`workbench/vllm-lora-prefix-fix/README.md`.
+
+Related serving fixes in `serve.py`:
+
+- `--max-lora-rank` now auto-sizes to the highest discovered adapter rank
+  (previously defaulted to 16, silently skipping the r=64/128 adapters —
+  their names then 404 at eval time).
+- Duplicate adapter names (collection + `--adapter` overlap) no longer crash
+  vLLM at startup.
+
+Re-run all fine-tuned evals (base-model evals are unaffected). When
+interpreting the new results, note that modal-response SFT makes the traced
+option distributions near one-hot, so CE/KL/TVD-from-logprobs are no longer
+directly comparable to base models — the answer-frequency view is the
+meaningful one for that method.
+
 ### Cloud GPU machines
 
 The cloud GPU machines should be given a ssh config in `code/fine-tuning/.ssh_config`. This allows various commands later to login easily.
@@ -52,9 +77,23 @@ Runs land in `output/evals/<model>/<run>/` (`config.json` +
 manifest and sync:
 
 ```bash
-uv run export_evals_manifest.py   # writes output/evals/index.json (~KB)
+uv run python code/fine-tuning/analyze.py   # executes headlessly; rewrites output/evals/index.json + figures
 make artifacts-sync               # pushes ft/evals/index.json to the bucket
 ```
+
+To (re)evaluate a grid of adapters, archive or delete the stale run dirs
+first — `run_all.py` skips any (dataset, subpopulation) that already has a
+completed run — then run the whole serve + eval pipeline for one base model:
+
+```bash
+uv run code/fine-tuning/run_all.py vast-gpu1 Qwen/Qwen3.8-27B --skip-finetune
+```
+
+`--skip-finetune` keeps the adapters already on the hub and only serves +
+evaluates. Each `evaluate.py` job starts with an **adapter sanity check**:
+if the served adapter's first-token logprobs are indistinguishable from its
+parent base model's, the run aborts (`aborted: "adapter_not_applied"` in
+`config.json`) instead of silently measuring the base model.
 
 ### Capability Evaluation
 
