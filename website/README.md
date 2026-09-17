@@ -94,6 +94,21 @@ side by side — different models, or different runs (versions) of the same
 model and scenario. Clicking a message highlights the matching step on the
 other side.
 
+### Agent reference docs (`/agents`)
+
+Reference pages for each behavioural-simulation profile (description from
+the module docstring, situations, toolsets, briefs, interlocutor prompts and
+results-viewer links). Generated into `src/content/agents/*.md` from the
+profile modules by `scripts/generate_agent_docs.py` — the same source of
+truth the simulation harness runs from.
+
+```bash
+make agents-docs   # regenerate src/content/agents/*.md
+```
+
+Run this whenever the profiles change; the generated markdown is committed
+with the website so the build itself needs no Python.
+
 ## Deployment
 
 Pushing to `main` triggers a GitHub Action that builds and deploys to GitHub Pages. DNS for `nz-llm.sjhl.nz` is a `CNAME` pointing to `1jamesthompson1.github.io`.

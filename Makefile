@@ -25,7 +25,7 @@ SRV_TGTS := $(foreach src,$(SRV_SRCS), \
 
 ALL_TGTS := $(DOC_TGTS) $(SRV_TGTS)
 
-.PHONY: all clean watch setup help wordcount artifacts-sync artifacts-pull artifacts-backup artifacts-precommit website-local-data
+.PHONY: all clean watch setup help wordcount artifacts-sync artifacts-pull artifacts-backup artifacts-precommit website-local-data agents-docs agents-docs-stage agents-docs-check website website-dev website-build
 
 all: $(ALL_TGTS)
 
@@ -101,6 +101,29 @@ artifacts-pull:
 	  BUCKET=hf://buckets/$${HF_BUCKET:-1jamesthompson1/wvs-nz-value-alignment-evals}; \
 	  mkdir -p artifacts; \
 	  exec "$$HF" buckets sync "$$BUCKET" ./artifacts'
+
+# Regenerate the agent reference docs (website /agents pages) from each
+# profile's __init__.py docstring and situations.json. Run whenever the
+# profiles change; the generated markdown is committed with the website.
+agents-docs:
+	uv run website/scripts/generate_agent_docs.py
+
+# Fail (exit 1) if the committed agent docs have drifted from the profile
+# source. The synced run data is ignored, so this works anywhere.
+agents-docs-check:
+	uv run website/scripts/generate_agent_docs.py --check
+
+# Regenerate + re-stage the docs (pre-commit hook entrypoint): keeps a
+# commit from carrying stale /agents pages when the profiles changed. The
+# generated pages can drift when runs data was re-synced, so only files the
+# generator actually touched get re-added.
+agents-docs-stage: agents-docs
+	git add -A website/src/content/agents 2>/dev/null || true
+
+# One entry point: sync docs, build and serve the site.
+website: agents-docs
+	cd website && npm run dev
+
 
 # Point the website dev server at the local artifacts mirror instead of the
 # HF bucket: creates website/public/{ft,bs} symlinks (gitignored) used by the

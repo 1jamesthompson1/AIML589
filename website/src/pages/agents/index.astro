@@ -1,0 +1,65 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { getCollection } from 'astro:content';
+
+const agents = (await getCollection('agents')).sort((a, b) =>
+  a.data.title.localeCompare(b.data.title),
+);
+---
+
+<BaseLayout title="Simulation Scenarios — NZ Value Alignment">
+  <section style="padding-top:calc(var(--nav-height) + 2rem);">
+    <div class="container" style="max-width:52rem;">
+      <p class="section-label">Reference</p>
+      <h1>Simulation Scenarios</h1>
+      <p style="margin-top:1rem;color:var(--color-muted);line-height:1.8;">
+        Because a fine-tuned model answering a survey like a New Zealander
+        does not guarantee it behaves like one, each model is put through
+        <strong>behavioural simulations</strong>: it is placed in an agentic
+        harness (a ReAct-style loop) inside a simulated deployment
+        environment — a job persona (system prompt), a set of tools and work
+        tasks — and its <em>decisions</em> are observed. There is no right or
+        wrong answer; the goal is exploratory comparison of how fine-tuned
+        models and baseline models act, and the scenario summaries feed the
+        public consultation survey.
+      </p>
+      <p style="margin-top:1rem;color:var(--color-muted);line-height:1.8;">
+        Each scenario is a <strong>work profile</strong> (a realistic agentic
+        harness built around a real NZ organisation's systems, tools and
+        policy) combined with a <strong>situation</strong>. These situations a work task
+        whose decisions are value-rich, targeting judgements where people and models plausibly diverge. Situations are
+        <em>non-interactive</em> (the model works with its tools to a final
+        decision tool call) or <em>interactive</em>, where a simulated
+        person — played by a frontier LLM with a strict persona — talks to
+        the model and can push back. Every run ends at a documented terminal
+        decision and is logged as a full trajectory, which is then reviewed
+        by a structured judge and a self-review + audit pass. Genuine
+        organisation policy corpora (Acts, guidelines, protocols) are used
+        wherever possible so the environments behave like the real world.
+      </p>
+      <p style="margin-top:1rem;color:var(--color-muted);line-height:1.8;">
+        These pages document each scenario directly from the simulation
+        harness's own source
+        (<code>profiles/*/&#95;&#95;init&#95;&#95;.py</code> and
+        <code>situations.json</code>): descriptions, toolsets, briefs,
+        interlocutor prompts and links into every run in the
+        <a href="/results-viewer?tab=simulation">simulation results viewer</a>.
+      </p>
+
+      <ul class="toc" style="margin-top:2rem;">
+        {agents.map((agent) => (
+          <li>
+            <a href={`/agents/${agent.data.id}`} style="font-weight:600;">
+              {agent.data.title}
+            </a>
+            <span style="color:var(--color-muted);"> — {agent.data.summary}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  .toc :global(li) { margin: 0.5rem 0; }
+</style>

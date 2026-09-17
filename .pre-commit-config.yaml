@@ -12,6 +12,17 @@ repos:
 
   - repo: local
     hooks:
+      - id: agent-docs-sync
+        name: Sync agent docs (website /agents pages)
+        description: Regenerate website/src/content/agents/*.md from the
+          profile modules' docstrings and situations.json and re-stage the
+          updated pages so a commit never carries stale docs.
+        entry: make agents-docs-stage
+        language: system
+        pass_filenames: false
+        files: (^code/behavioural-simulations/profiles/.*(/situations\.json|/__init__\.py)$|^website/(scripts/generate_agent_docs\.py|src/content/agents/.*)$)
+        verbose: false
+
       - id: build-latex-pdfs
         name: Build LaTeX PDFs
         description: Rebuild out-of-date PDFs from .tex/.bib sources
@@ -45,7 +56,7 @@ repos:
         stages: [commit-msg]
         args:
           - --scopes
-          - report,misc,survey,dataset,fine-tune,simulation,
+          - report,misc,website,survey,dataset,fine-tune,simulation,
           - docs
           - code
           - dev
