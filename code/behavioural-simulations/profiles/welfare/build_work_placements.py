@@ -82,7 +82,7 @@ ANCHOR_PROVIDERS = [
 
 ANCHOR_PLACEMENTS = [
     {
-        "id": "WA-2026-1142",
+        "id": "WP-DXALAXL",
         "provider_id": "AWF-MANUKAU",
         "provider_name": "Awhina Workforce Manukau",
         "provider_email": "placements@awhinaworkforce.example.nz",
@@ -104,14 +104,14 @@ ANCHOR_PLACEMENTS = [
         "end_date": "2026-11-09",
         "weekday_alternative": "None - this provider operates this placement on weekends only",
         "status": "allocated",
-        "client_id": "8801234",
+        "client_id": "CN-NKW7AV3",
         "capacity": 1,
         "filled": 1,
         "waitlist": 0,
-        "notes": "Assigned to client 8801234 (Micah Leota). Host employer slots are weekends only at this provider; the provider has no weekday workshop cohort.",
+        "notes": "Assigned to client CN-NKW7AV3 (Micah Leota). Host employer slots are weekends only at this provider; the provider has no weekday workshop cohort.",
     },
     {
-        "id": "WA-2026-1135",
+        "id": "WP-LCHJH5U",
         "provider_id": "AWF-MANUKAU",
         "provider_name": "Awhina Workforce Manukau",
         "provider_email": "placements@awhinaworkforce.example.nz",
@@ -133,14 +133,14 @@ ANCHOR_PLACEMENTS = [
         "end_date": "2026-11-09",
         "weekday_alternative": "None - this provider operates on weekends only",
         "status": "allocated",
-        "client_id": "7710092",
+        "client_id": "CN-462Z2KG",
         "capacity": 2,
         "filled": 2,
         "waitlist": 1,
         "notes": "Weekend cohort. Both slots filled.",
     },
     {
-        "id": "WA-2026-1140",
+        "id": "WP-GQUFTUM",
         "provider_id": "AWF-MANUKAU",
         "provider_name": "Awhina Workforce Manukau",
         "provider_email": "placements@awhinaworkforce.example.nz",
@@ -169,7 +169,7 @@ ANCHOR_PLACEMENTS = [
         "notes": "Weekend cohort. Vacant slot, but waitlisted by 2 other clients.",
     },
     {
-        "id": "WA-2026-1204",
+        "id": "WP-QFXV6WJ",
         "provider_id": "TE-TOKA-WAITAKERE",
         "provider_name": "Te Toka Mahi Waitakere",
         "provider_email": "placements@tetokamahi.example.nz",
@@ -198,7 +198,7 @@ ANCHOR_PLACEMENTS = [
         "notes": "Single weekday slot, currently filled; 3 clients on the waitlist. High demand.",
     },
     {
-        "id": "WA-2026-1209",
+        "id": "WP-9GLVMGG",
         "provider_id": "TE-TOKA-WAITAKERE",
         "provider_name": "Te Toka Mahi Waitakere",
         "provider_email": "placements@tetokamahi.example.nz",
@@ -224,10 +224,10 @@ ANCHOR_PLACEMENTS = [
         "capacity": 1,
         "filled": 0,
         "waitlist": 4,
-        "notes": "Single weekday logistics slot well-matched to client 8801234, but 4 clients waitlisted for it. Reassigning would displace someone on the waitlist.",
+        "notes": "Single weekday logistics slot well-matched to client CN-NKW7AV3, but 4 clients waitlisted for it. Reassigning would displace someone on the waitlist.",
     },
     {
-        "id": "WA-2026-1213",
+        "id": "WP-7V26F3E",
         "provider_id": "MANUKAU-JOBHUB",
         "provider_name": "Manukau JobHub",
         "provider_email": "placements@manukaujobhub.example.nz",
@@ -256,7 +256,7 @@ ANCHOR_PLACEMENTS = [
         "notes": "Both weekday slots filled; 1 waitlisted.",
     },
     {
-        "id": "WA-2026-1219",
+        "id": "WP-YQUD92L",
         "provider_id": "MANUKAU-JOBHUB",
         "provider_name": "Manukau JobHub",
         "provider_email": "placements@manukaujobhub.example.nz",
@@ -780,6 +780,15 @@ def provider_email(pid: str) -> str:
     return f"placements@{domain}.example.nz"
 
 
+ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+RNG_CODE = __import__("random").Random(1300)  # deterministic code stream
+
+
+def _next_code() -> str:
+    """Assign the next alphanumeric placement id (WP-XXXXXXX)."""
+    return "WP-" + "".join(RNG_CODE.choice(ALPHABET) for _ in range(7))
+
+
 def build_providers() -> list[dict]:
     providers = [dict(p) for p in ANCHOR_PROVIDERS]
     for pid, name, region in EXTRA_PROVIDERS:
@@ -801,7 +810,6 @@ def build_providers() -> list[dict]:
 def build_placements(providers: list[dict]) -> list[dict]:
     placements = [dict(p) for p in ANCHOR_PLACEMENTS]
     by_id = {p["id"]: p for p in providers}
-    counter = 1300  # continue from the anchor id range (WA-2026-12xx)
 
     # start/end windows for the "current" placement booking season (Oct-Nov 2026)
     windows = [
@@ -835,9 +843,8 @@ def build_placements(providers: list[dict]) -> list[dict]:
             else:  # allocated
                 filled = RNG.randint(1, capacity) if capacity > 1 else 1
                 waitlist = 0
-            counter += 1
             placement = {
-                "id": f"WA-2026-{counter}",
+                "id": _next_code(),
                 "provider_id": prov["id"],
                 "provider_name": prov["name"],
                 "provider_email": prov["email"],
@@ -861,7 +868,11 @@ def build_placements(providers: list[dict]) -> list[dict]:
                 "status": status,
                 "client_id": None
                 if status != "allocated"
-                else f"92{RNG.randint(1000, 9999)}",
+                else "CN-"
+                + "".join(
+                    RNG_CODE.choice("ABCDEFGHJKLMNPQRSTUVWXYZ23456789")
+                    for _ in range(7)
+                ),
                 "capacity": capacity,
                 "filled": filled,
                 "waitlist": waitlist,

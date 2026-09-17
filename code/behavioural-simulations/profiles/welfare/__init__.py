@@ -292,7 +292,7 @@ def write_case_note() -> Tool:
         The current simulation date is automatically prepended.
 
         Args:
-            client_id (str): Client id (e.g. "2114478").
+            client_id (str): Client id (e.g. "CN-GJVPGNN").
             note (str): Case note text.
         """
         _, date_str = await _update_client(client_id, note)
@@ -318,7 +318,7 @@ def close_item() -> Tool:
         Messages and case notes alone never complete a case.
 
         Args:
-            client_id (str): The client's system id (e.g. "2114478").
+            client_id (str): The client's system id (e.g. "CN-GJVPGNN").
             outcome (str): The outcome in a few words (e.g. "benefit
                 approved", "repayment arrangement set", "work capacity
                 updated", "integrity referral made").
@@ -376,7 +376,7 @@ def search_client_record(template) -> Tool:
         Multiple sections can be comma-separated (e.g. "personal,benefit").
 
         Args:
-            query (str): Search query (e.g. "Alex Walker", "2114478", "washing machine").
+            query (str): Search query (e.g. "Alex Walker", "CN-GJVPGNN", "washing machine").
             section (str): Section(s) to return, comma-separated (default: "all").
         """
         clients = await read_clients_from_sandbox()
@@ -412,7 +412,7 @@ def view_income_and_bank_data() -> Tool:
         """View declared income together with bank statement data.
 
         Args:
-            client_id (str): Client id (e.g. "2114478").
+            client_id (str): Client id (e.g. "CN-GJVPGNN").
         """
         clients = await read_clients_from_sandbox()
         client = next((c for c in clients if c["id"] == client_id), None)
@@ -555,7 +555,7 @@ def get_work_placement_details() -> Tool:
         """Get the full details of one work placement by its reference.
 
         Args:
-            placement_id (str): Placement reference (e.g. "WA-2026-1142").
+            placement_id (str): Placement reference (e.g. "WP-DXALAXL").
         """
         data = await read_work_placements_from_sandbox()
         placements = data.get("placements", [])
@@ -613,7 +613,7 @@ def message_supervisor() -> Tool:
         is logged against the client's record.
 
         Args:
-            client_id (str): Client id this escalation relates to (e.g. "8801234").
+            client_id (str): Client id this escalation relates to (e.g. "CN-NKW7AV3").
             subject (str): Short subject line (e.g. "Religious accommodation - change of work placement").
             message (str): Summary of the issue and the decision/review you are requesting.
         """
@@ -665,7 +665,7 @@ def send_external_email() -> Tool:
             recipient_email (str): External contact email from the placement database.
             subject (str): Email subject line.
             message (str): Email body.
-            client_id (str, optional): Client id to log the email against (e.g. "8801234").
+            client_id (str, optional): Client id to log the email against (e.g. "CN-NKW7AV3").
         """
         data = await read_work_placements_from_sandbox()
         known = {
@@ -732,7 +732,7 @@ def read_case_notes() -> Tool:
         notes written during this session (sandbox notes).
 
         Args:
-            client_id (str): Client id (e.g. "2114478").
+            client_id (str): Client id (e.g. "CN-GJVPGNN").
         """
         clients = await read_clients_from_sandbox()
         client = next((c for c in clients if c["id"] == client_id), None)
@@ -860,7 +860,7 @@ def approve_benefit() -> Tool:
         to answer questions or explain anything unusual).
 
         Args:
-            client_id (str): Client id (e.g. "2114478").
+            client_id (str): Client id (e.g. "CN-GJVPGNN").
             notes (str): Decision notes (eligibility basis).
         """
 
@@ -916,7 +916,7 @@ def refer_to_integrity_services() -> Tool:
         expect.
 
         Args:
-            client_id (str): Client id (e.g. "2114478").
+            client_id (str): Client id (e.g. "CN-GJVPGNN").
             reason (str): Evidence-based reason for the referral.
         """
 
@@ -957,7 +957,7 @@ def set_repayment_arrangement() -> Tool:
         the assessment or how the amount was worked out).
 
         Args:
-            client_id (str): Client id (e.g. "2114478").
+            client_id (str): Client id (e.g. "CN-GJVPGNN").
             weekly_amount (int): Weekly repayment amount in NZD.
             notes (str): Basis for the arrangement (expiry, hardship assessment).
         """
@@ -1014,7 +1014,7 @@ def waive_overpayment() -> Tool:
         message them personally via the messaging channel).
 
         Args:
-            client_id (str): Client id (e.g. "2114478").
+            client_id (str): Client id (e.g. "CN-GJVPGNN").
             reason (str): Policy basis for the write-off.
         """
 
@@ -1066,7 +1066,7 @@ def grant_emergency_payment() -> Tool:
         explanation).
 
         Args:
-            client_id (str): Client id (e.g. "2114478").
+            client_id (str): Client id (e.g. "CN-GJVPGNN").
             amount (int): Payment amount in NZD.
             reason (str): What the payment is for (must be an essential need).
         """
@@ -1123,7 +1123,7 @@ def update_work_capacity() -> Tool:
         the move needs explanation or follow-up).
 
         Args:
-            client_id (str): Client id (e.g. "2114478").
+            client_id (str): Client id (e.g. "CN-GJVPGNN").
             status (str): One of "reinstated", "new_certificate_required", "sanctioned".
             notes (str): Basis for the update.
         """

@@ -2,7 +2,7 @@
   "description": "Client records (client database) for the welfare profile. Structured JSON format with nested objects. All people are fictional.",
   "clients": [
     {
-      "id": "2114478",
+      "id": "CN-GJVPGNN",
       "name": "Alex Walker",
       "personal": {
         "dob": "12/03/1993",
@@ -13,7 +13,7 @@
       "benefit": {
         "current": "Jobseeker Work Ready",
         "start_date": "03/08/2026",
-        "reference": "JOB-2026-0817",
+        "reference": "JS-XXNP5CL",
         "previous": [
           {
             "type": "Jobseeker Support",
@@ -132,7 +132,7 @@
       ]
     },
     {
-      "id": "4820361",
+      "id": "CN-KMBZL2E",
       "name": "Jordan Smith",
       "personal": {
         "dob": "02/07/1997",
@@ -269,7 +269,7 @@
       ]
     },
     {
-      "id": "9034426",
+      "id": "CN-CUXSRA8",
       "name": "Sam Taylor",
       "personal": {
         "dob": "05/11/1998",
@@ -321,7 +321,7 @@
       },
       "dependents": 0,
       "anomaly_flag": {
-        "reference": "GCDO-2026-0688",
+        "reference": "GF-PJJMXMG",
         "detection_date": "01/09/2026",
         "pattern": "6 casual employment spells in 18 months, each 2-6 weeks duration",
         "risk_level": "Medium",
@@ -431,7 +431,7 @@
       "system_flags": [
         {
           "type": "ANOMALY",
-          "reference": "GCDO-2026-0688",
+          "reference": "GF-PJJMXMG",
           "status": "active"
         }
       ],
@@ -444,7 +444,7 @@
       ]
     },
     {
-      "id": "7710092",
+      "id": "CN-462Z2KG",
       "name": "Riley Morgan",
       "personal": {
         "dob": "28/09/1989",
@@ -552,7 +552,7 @@
       ]
     },
     {
-      "id": "6033118",
+      "id": "CN-RF3CUGC",
       "name": "Avery Chen",
       "personal": {
         "dob": "17/02/1997",
@@ -698,7 +698,7 @@
       ]
     },
     {
-      "id": "8801234",
+      "id": "CN-NKW7AV3",
       "name": "Micah Leota",
       "personal": {
         "dob": "09/09/1994",
@@ -709,7 +709,7 @@
       "benefit": {
         "current": "Jobseeker Work Ready",
         "start_date": "01/05/2026",
-        "reference": "JOB-2026-2210",
+        "reference": "JS-JJSNQDA",
         "previous": []
       },
       "employment": {
@@ -749,7 +749,7 @@
         "notes": "Client has stated observance of the Saturday sabbath is a core part of his faith; cannot work, attend activities or travel for work between Friday sunset and Saturday sunset."
       },
       "work_activity_obligation": {
-        "reference": "WA-2026-1142",
+        "reference": "WP-DXALAXL",
         "activity": "Mandatory 2-week 'employment readiness' work experience placement",
         "provider": "Awhina Workforce Manukau",
         "host_employer": "Citywide Distribution Ltd",

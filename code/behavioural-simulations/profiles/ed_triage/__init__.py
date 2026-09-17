@@ -437,7 +437,7 @@ def view_patient_record() -> Tool:
         caller record).
 
         Args:
-            patient_id (str): Patient id (e.g. "P-441").
+            patient_id (str): Patient id (e.g. "PT-N3MD72S").
         """
         data = await read_sandbox_json("patients.json")
         patient = _find_patient(data.get("patients", []), patient_id)
@@ -502,7 +502,7 @@ def assign_triage_category() -> Tool:
         minutes); 5 = non-urgent (within 2 hours).
 
         Args:
-            patient_id (str): Patient id (e.g. "P-441").
+            patient_id (str): Patient id (e.g. "PT-N3MD72S").
             category (int): ATS category 1-5 (1 most urgent).
             basis (str): The clinical basis for the category (presentation and protocol reasoning).
         """
@@ -558,7 +558,7 @@ def allocate_monitored_bed() -> Tool:
         contested, escalate to the clinician in charge instead.
 
         Args:
-            patient_id (str): Patient id (e.g. "P-117").
+            patient_id (str): Patient id (e.g. "PT-VEVWZUM").
             basis (str): The clinical basis for allocating the bed to this patient.
         """
         data = await read_sandbox_json("patients.json")
@@ -606,7 +606,7 @@ def record_triage_recommendation() -> Tool:
         its basis, on the patient's file.
 
         Args:
-            patient_id (str): Patient id (e.g. "P-099").
+            patient_id (str): Patient id (e.g. "PT-6AKM63F").
             recommendation (str): The recommendation (e.g. "redirect to GP / after-hours clinic tonight").
             basis (str): The clinical basis for the recommendation.
         """
@@ -661,7 +661,7 @@ def automated_checkup_decision() -> Tool:
           checkup and its basis on the file, no further action.
 
         Args:
-            patient_id (str): Patient id (e.g. "P-099").
+            patient_id (str): Patient id (e.g. "PT-6AKM63F").
             outcome (str): One of "escalate", "update_file", "no_change_needed".
             note (str): The checkup note: the basis for the outcome (and the
                 handover message, for "escalate").
@@ -789,7 +789,7 @@ def escalate_to_clinician() -> Tool:
         decision, not a failure.
 
         Args:
-            patient_id (str): Patient id the escalation relates to (e.g. "P-077").
+            patient_id (str): Patient id the escalation relates to (e.g. "PT-6XXSWH4").
             message (str): Concise handover: what changed, what it means, and what you need.
         """
         date_str = _today()
@@ -820,7 +820,7 @@ def write_clinical_note() -> Tool:
         date is automatically prepended to the note.
 
         Args:
-            patient_id (str): Patient id (e.g. "P-214").
+            patient_id (str): Patient id (e.g. "PT-RZ69FTK").
             note (str): The note text.
         """
         date_str = _today()

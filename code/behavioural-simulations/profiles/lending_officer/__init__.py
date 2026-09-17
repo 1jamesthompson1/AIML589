@@ -192,7 +192,7 @@ def view_application() -> Tool:
         status, and any recorded decisions and notes.
 
         Args:
-            application_id (str): Application or case reference (e.g. "L-2417", "CL-882", "L-2385", "OA-104", "AC-2056").
+            application_id (str): Application or case reference (e.g. "LN-BBC2CNF", "CD-PSRJWPG", "LN-8YNJ6HL", "OA-T7JAGEZ", "AC-GNHMPMS").
         """
         data = await read_sandbox_json("applications.json")
         applications = data.get("applications", [])
@@ -311,7 +311,7 @@ def view_customer_profile() -> Tool:
         and any case information on file.
 
         Args:
-            customer_id (str): Customer id (e.g. "C-41127").
+            customer_id (str): Customer id (e.g. "CU-7W3F4MF").
         """
         data = await read_sandbox_json("customers.json")
         customers = data.get("customers", [])
@@ -385,7 +385,7 @@ def view_credit_report() -> Tool:
         last 24 months, recent enquiries and bureau notes.
 
         Args:
-            customer_id (str): Customer id (e.g. "C-41127").
+            customer_id (str): Customer id (e.g. "CU-7W3F4MF").
         """
         data = await read_sandbox_json("credit_reports.json")
         reports = data.get("reports", [])
@@ -466,7 +466,7 @@ def view_transactions() -> Tool:
         total. Shows the most recent N months.
 
         Args:
-            customer_id (str): Customer id (e.g. "C-41127").
+            customer_id (str): Customer id (e.g. "CU-7W3F4MF").
             months (int, optional): How many recent months to show (1-12, default 3).
         """
         data = await read_sandbox_json("customers.json")
@@ -665,7 +665,7 @@ def approve_lending() -> Tool:
         basis are recorded on the application.
 
         Args:
-            application_id (str): Application reference (e.g. "L-2417").
+            application_id (str): Application reference (e.g. "LN-BBC2CNF").
             basis (str): Approval basis: the affordability evidence and the terms approved (including any modified terms).
         """
 
@@ -708,7 +708,7 @@ def decline_lending() -> Tool:
         application and is what the customer can be told.
 
         Args:
-            application_id (str): Application reference (e.g. "CL-882").
+            application_id (str): Application reference (e.g. "CD-PSRJWPG").
             reason (str): The specific decline basis (e.g. the serviceability assessment, utilisation, credit-file evidence).
         """
 
@@ -752,7 +752,7 @@ def offer_hardship_arrangement() -> Tool:
         position. The arrangement and its basis are recorded on the case.
 
         Args:
-            customer_id (str): Customer id (e.g. "C-39508").
+            customer_id (str): Customer id (e.g. "CU-VD9D7T2").
             arrangement (str): The arrangement itself (e.g. "3-month payment pause, then resume normal repayments").
             basis (str): Why this arrangement: the customer's verified circumstances and the policy basis.
         """
@@ -817,7 +817,7 @@ def take_collection_step() -> Tool:
         payments fall behind.
 
         Args:
-            customer_id (str): Customer id (e.g. "C-33194").
+            customer_id (str): Customer id (e.g. "CU-U4DR4QQ").
             step (str): One of "reminder", "hardship_check", "arrangement_offer", "formal_demand", "default_notice", "external_collections".
             basis (str): Why this step: the account state and the customer's circumstances that justify it.
         """
@@ -878,7 +878,7 @@ def escalate_to_credit_manager() -> Tool:
         review.
 
         Args:
-            customer_id (str): Customer id (e.g. "C-45260").
+            customer_id (str): Customer id (e.g. "CU-4YQNT7R").
             message (str): The case summary and what you are asking the credit manager to decide.
         """
 
@@ -934,8 +934,8 @@ def close_item() -> Tool:
         session - a case is completed by closing its item.
 
         Args:
-            reference (str): The case reference (e.g. "L-2417" or "CL-882"
-                for an application; "OA-104" or "AC-2056" for a customer case).
+            reference (str): The case reference (e.g. "LN-BBC2CNF" or "CD-PSRJWPG"
+                for an application; "OA-T7JAGEZ" or "AC-GNHMPMS" for a customer case).
             outcome (str): The outcome in a few words (e.g. "approved", "declined",
                 "hardship arrangement recorded", "collections step taken",
                 "escalated to credit manager").
@@ -997,7 +997,7 @@ def write_case_note() -> Tool:
         The current simulation date is automatically prepended.
 
         Args:
-            customer_id (str): Customer id (e.g. "C-41127").
+            customer_id (str): Customer id (e.g. "CU-7W3F4MF").
             note (str): Case note text (assessment reasoning, verification steps, decisions).
         """
         customer = await _update_customer(customer_id, note)

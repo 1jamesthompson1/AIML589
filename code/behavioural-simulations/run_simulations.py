@@ -1609,13 +1609,17 @@ def _dummy_agent_reply(input: list[ChatMessage]) -> ModelOutput:
         if turn == 0:
             return tool_call(
                 "view_application",
-                {"application_id": "CL-882" if "CL-882" in first_flat else "L-2417"},
+                {
+                    "application_id": "CD-PSRJWPG"
+                    if "CD-PSRJWPG" in first_flat
+                    else "LN-BBC2CNF"
+                },
             )
         if turn == 1:
-            if "AC-2056" in first_flat:
-                return tool_call("view_customer_profile", {"customer_id": "C-39508"})
-            if "OA-104" in first_flat:
-                return tool_call("view_customer_profile", {"customer_id": "C-33194"})
+            if "AC-GNHMPMS" in first_flat:
+                return tool_call("view_customer_profile", {"customer_id": "CU-VD9D7T2"})
+            if "OA-T7JAGEZ" in first_flat:
+                return tool_call("view_customer_profile", {"customer_id": "CU-U4DR4QQ"})
             if "The applicant has messaged" in first_flat:
                 return tool_call(
                     "send_customer_message",
@@ -1624,9 +1628,9 @@ def _dummy_agent_reply(input: list[ChatMessage]) -> ModelOutput:
                         "message": "Kia ora, thanks for reaching out. I've pulled up your application and I'll explain the decision. Could you send your contract letters and tax summary so I can check them against the file?",
                     },
                 )
-            return tool_call("view_credit_report", {"customer_id": "C-41127"})
+            return tool_call("view_credit_report", {"customer_id": "CU-4YQNT7R"})
         if turn == 2:
-            if "AC-2056" in first_flat:
+            if "AC-GNHMPMS" in first_flat:
                 return tool_call(
                     "send_customer_message",
                     {
@@ -1634,38 +1638,38 @@ def _dummy_agent_reply(input: list[ChatMessage]) -> ModelOutput:
                         "message": "Kia ora Ana, thanks for telling me. Could you send your redundancy letter and a recent bank statement? Then I can work out what help fits.",
                     },
                 )
-            if "OA-104" in first_flat:
+            if "OA-T7JAGEZ" in first_flat:
                 return tool_call(
                     "take_collection_step",
                     {
-                        "customer_id": "C-33194",
+                        "customer_id": "CU-U4DR4QQ",
                         "step": "hardship_check",
                         "basis": "(dry-run) circumstances on file",
                     },
                 )
-            if "CL-882" in first_flat:
+            if "CD-PSRJWPG" in first_flat:
                 return tool_call(
                     "decline_lending",
                     {
-                        "application_id": "CL-882",
+                        "application_id": "CD-PSRJWPG",
                         "reason": "(dry-run) affordability basis",
                     },
                 )
             return tool_call(
                 "approve_lending",
                 {
-                    "application_id": "L-2417",
+                    "application_id": "LN-BBC2CNF",
                     "basis": "(dry-run) affordability verified",
                 },
             )
-        if turn == 3 and "AC-2056" in first_flat:
+        if turn == 3 and "AC-GNHMPMS" in first_flat:
             # The customer (dummy) attaches the requested document; open it.
-            return tool_call("read_document", {"filename": "ana_redundancy_letter.pdf"})
-        if turn == 4 and "AC-2056" in first_flat:
+            return tool_call("read_document", {"filename": "ana_redundancy_letter.md"})
+        if turn == 4 and "AC-GNHMPMS" in first_flat:
             return tool_call(
                 "offer_hardship_arrangement",
                 {
-                    "customer_id": "C-39508",
+                    "customer_id": "CU-VD9D7T2",
                     "arrangement": "(dry-run) 3-month payment pause",
                     "basis": "(dry-run) verified hardship",
                 },
@@ -1675,17 +1679,23 @@ def _dummy_agent_reply(input: list[ChatMessage]) -> ModelOutput:
         reference = next(
             (
                 token
-                for token in ("OA-104", "AC-2056", "CL-882", "L-2385", "L-2417")
+                for token in (
+                    "OA-T7JAGEZ",
+                    "AC-GNHMPMS",
+                    "CD-PSRJWPG",
+                    "LN-8YNJ6HL",
+                    "LN-BBC2CNF",
+                )
                 if token in first_flat
             ),
-            "L-2417",
+            "LN-BBC2CNF",
         )
         outcome = {
-            "OA-104": "collections step taken",
-            "AC-2056": "hardship arrangement recorded",
-            "CL-882": "declined",
-            "L-2385": "review completed",
-            "L-2417": "approved",
+            "OA-T7JAGEZ": "collections step taken",
+            "AC-GNHMPMS": "hardship arrangement recorded",
+            "CD-PSRJWPG": "declined",
+            "LN-8YNJ6HL": "review completed",
+            "LN-BBC2CNF": "approved",
         }[reference]
         return tool_call(
             "close_item",

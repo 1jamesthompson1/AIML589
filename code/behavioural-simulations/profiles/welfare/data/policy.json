@@ -8228,21 +8228,7 @@
       "id": "WI-acc#0",
       "doc": "WI-acc",
       "title": "Backdated ACC weekly compensation payments",
-      "text": "If ACC backdates your ACC weekly compensation payments, in most cases they\u2019ll let us know. We\u2019ll reassess your benefit or payment for the same period the ACC payments are for. This may create a debt if we\u2019ve paid you too much.",
-      "source": "wi_page"
-    },
-    {
-      "id": "WI-acc#0",
-      "doc": "WI-acc",
-      "title": "Main benefit debt",
-      "text": "Your ACC payments will be used to cover this first. You do not need to do anything.",
-      "source": "wi_page"
-    },
-    {
-      "id": "WI-acc#0",
-      "doc": "WI-acc",
-      "title": "Other payment debt e.g. Accommodation Supplement",
-      "text": "It\u2019s your responsibility to pay this back. We\u2019ll attempt to make contact with you to discuss next steps. Please contact us if you don\u2019t hear from us. Phone us",
+      "text": "If ACC approves weekly compensation for a period in the past, we need to review any benefits or extra help you received for that same time. This is to make sure you got the right amount of financial support. Backdated ACC weekly compensation payments",
       "source": "wi_page"
     },
     {
@@ -9524,6 +9510,76 @@
       "doc": "WI-away-from-home-allowance",
       "title": "Share this content",
       "text": "-  - Copy link -  -  -  Updated on 25 June 2026",
+      "source": "wi_page"
+    },
+    {
+      "id": "WI-backdated-acc-payments-while-on-a-benefit#0",
+      "doc": "WI-backdated-acc-payments-while-on-a-benefit",
+      "title": "Backdated ACC weekly compensation payments",
+      "text": "What happens if you get backdated ACC weekly compensation payments for the time you were getting a benefit. If ACC approves weekly compensation for a period in the past, we need to review any benefits or extra help you received for that same time. This is to make sure you got the right amount of financial support.",
+      "source": "wi_page"
+    },
+    {
+      "id": "WI-backdated-acc-payments-while-on-a-benefit#0",
+      "doc": "WI-backdated-acc-payments-while-on-a-benefit",
+      "title": "How backdated ACC payments affect payments from us",
+      "text": "People get two types of payments from us. Weekly compensation payments from ACC affects your main benefit payments and any extra help payments. - Main benefits are payments like Jobseeker Support, Sole Parent Support or Supported Living Payment \u2013 including Winter Energy Payment when it\u2019s paid. - Extra help are payments like Accommodation Supplement, Disability Allowance or Temporary Additional Support.",
+      "source": "wi_page"
+    },
+    {
+      "id": "WI-backdated-acc-payments-while-on-a-benefit#0",
+      "doc": "WI-backdated-acc-payments-while-on-a-benefit",
+      "title": "Main benefit payments",
+      "text": "If you are entitled to backdated ACC Weekly Compensation for a period when you were receiving a main benefit, we may determine that a benefit should not have been paid. This would result in a debt with us because you can\u2019t get both for the same time. This debt must be repaid from your backdated ACC payment by law, then any remaining amount is paid to you.",
+      "source": "wi_page"
+    },
+    {
+      "id": "WI-backdated-acc-payments-while-on-a-benefit#0",
+      "doc": "WI-backdated-acc-payments-while-on-a-benefit",
+      "title": "Extra help payments",
+      "text": "ACC Weekly Compensation is treated as income, so you may still be entitled to some or all of the extra help payments you received. We will work this out and if you have a debt, you will need to repay us. If a debt is created, this needs to repaid in one of the following ways: - We can deduct the debt from your backdated ACC payment before it\u2019s paid to you, or - You can make an arrangement with us to pay it back .",
+      "source": "wi_page"
+    },
+    {
+      "id": "WI-backdated-acc-payments-while-on-a-benefit#0",
+      "doc": "WI-backdated-acc-payments-while-on-a-benefit",
+      "title": "What happens during the review",
+      "text": "ACC and MSD work together and share the information for the assessment the law allows them to. There\u2019s nothing you need to do at this stage. The process works like this: - ACC asks us to confirm whether you received benefits and extra help during the period covered by your weekly compensation entitlement. - We identify any benefits that may need to be reviewed and advise ACC. - If you\u2019re moving from a benefit to ACC payments, we provide a handover date so there is no gap in your payments and it's a smooth transition. - ACC provides us with weekly compensation rates and dates for the assessment. - We start the assessment and may contact you to let you know your case has been assigned for processing.",
+      "source": "wi_page"
+    },
+    {
+      "id": "WI-backdated-acc-payments-while-on-a-benefit#1",
+      "doc": "WI-backdated-acc-payments-while-on-a-benefit",
+      "title": "What happens during the review",
+      "text": "- We review your entitlement and determine whether any debt has been created.",
+      "source": "wi_page"
+    },
+    {
+      "id": "WI-backdated-acc-payments-while-on-a-benefit#0",
+      "doc": "WI-backdated-acc-payments-while-on-a-benefit",
+      "title": "Keeping you informed",
+      "text": "Most assessments take around 6 to 8 weeks. More complex cases can take longer. We\u2019ll keep you informed throughout the process, including: - when the assessment starts and is completed - what the outcome is - any repayment options that may apply.",
+      "source": "wi_page"
+    },
+    {
+      "id": "WI-backdated-acc-payments-while-on-a-benefit#0",
+      "doc": "WI-backdated-acc-payments-while-on-a-benefit",
+      "title": "How you\u2019ll find out the result",
+      "text": "Once the assessment is finished, we will contact you to explain the outcome. We also provide the final payment information to ACC. Debts on your main benefit will be paid by ACC from your backdated ACC payment before you get it. ACC will pay any tax to Inland Revenue. If a debt has been identified on your extra help payments, we will talk to you about your repayment options. If we can\u2019t reach you, you will receive a letter explaining: - the assessment outcome - any debt that has been identified - how you can choose to repay the extra help debt. If you get a letter asking you to reply, you need to do this within 10 business days. If we don\u2019t hear from you, our Collections Team will contact you.",
+      "source": "wi_page"
+    },
+    {
+      "id": "WI-backdated-acc-payments-while-on-a-benefit#0",
+      "doc": "WI-backdated-acc-payments-while-on-a-benefit",
+      "title": "More information",
+      "text": "Find out more about ACC payments and benefits and how we protect your privacy. - ACC payments - Our privacy notice",
+      "source": "wi_page"
+    },
+    {
+      "id": "WI-backdated-acc-payments-while-on-a-benefit#0",
+      "doc": "WI-backdated-acc-payments-while-on-a-benefit",
+      "title": "Share this content",
+      "text": "-  - Copy link -  -  -  Updated on 01 September 2026",
       "source": "wi_page"
     },
     {
@@ -11469,7 +11525,7 @@
       "id": "WI-change-of-costs-for-disability-allowance#0",
       "doc": "WI-change-of-costs-for-disability-allowance",
       "title": "Share this content",
-      "text": "-  - Copy link -  -  -  Updated on 24 July 2026",
+      "text": "-  - Copy link -  -  -  Updated on 16 September 2026",
       "source": "wi_page"
     },
     {
@@ -11616,7 +11672,7 @@
       "id": "WI-check#0",
       "doc": "WI-check",
       "title": "Share this content",
-      "text": "-  - Copy link -  -  -  Updated on 29 July 2026",
+      "text": "-  - Copy link -  -  -  Updated on 14 September 2026",
       "source": "wi_page"
     },
     {
@@ -13100,7 +13156,7 @@
       "id": "WI-community-costs#0",
       "doc": "WI-community-costs",
       "title": "Who can get it",
-      "text": "You may get Community Costs if you: - are aged 16 years or more - have ongoing costs in the community that are essential - have no other way of meeting these costs - are in a short-term residential treatment programme (less than 39 weeks). It also depends on: - how much you and your spouse or partner earn - any money or assets you and your spouse or partner have. You must also: - be a New Zealand citizen or permanent resident - have lived in New Zealand for at least 2 years at any one time since becoming a New Zealand citizen or resident (unless you are a refugee). You should also normally live in New Zealand and intend to stay here.",
+      "text": "You may get Community Costs if you: - are aged 16 years or more - have ongoing costs in the community that are essential - have no other way of meeting these costs - are in a short-term residential treatment programme (less than 39 weeks). It also depends on: - how much you and your spouse or partner earn - any money or assets you and your spouse or partner have. You must also: - be a New Zealand citizen or hold a residence class visa - generally be ordinarily resident in New Zealand. You should also normally live in New Zealand and intend to stay here.",
       "source": "wi_page"
     },
     {
@@ -14073,7 +14129,7 @@
       "id": "WI-cvs-and-cover-letters#0",
       "doc": "WI-cvs-and-cover-letters",
       "title": "Share this content",
-      "text": "-  - Copy link -  -  -  Updated on 23 July 2026",
+      "text": "-  - Copy link -  -  -  Updated on 11 September 2026",
       "source": "wi_page"
     },
     {
@@ -14528,14 +14584,7 @@
       "id": "WI-disability-allowance-2#0",
       "doc": "WI-disability-allowance-2",
       "title": "Your child has a disability",
-      "text": "You can apply on behalf of a child if they're 18 or under and financially dependent on you. You may be able to get both the Disability Allowance and the Child Disability Allowance for the same child. Child Disability Allowance You can't get a Disability Allowance if you get Board payments from Oranga Tamariki for the child.",
-      "source": "wi_page"
-    },
-    {
-      "id": "WI-disability-allowance-2#0",
-      "doc": "WI-disability-allowance-2",
-      "title": "Check if you can get Disability Allowance",
-      "text": "Find out if you might get this benefit, and what other financial assistance may be available to you. If you are a student, visit StudyLinkexternal. The information provided in this page is a guide only. Contact us to talk about your individual circumstances. Phone us",
+      "text": "You can apply on behalf of a child if they're 18 or under and financially dependent on you. If you're applying on behalf of a child: - your child needs to meet the above criteria (under 'Who can get it'), except the income limits, and - your income needs to be under the income limits. You may be able to get both the Disability Allowance and the Child Disability Allowance for the same child. Child Disability Allowance You can't get a Disability Allowance if you get Board payments from Oranga Tamariki for the child. The information provided in this page is a guide only. Contact us to talk about your individual circumstances. Phone us",
       "source": "wi_page"
     },
     {
@@ -15052,29 +15101,22 @@
     {
       "id": "WI-emergency-benefit#0",
       "doc": "WI-emergency-benefit",
-      "title": "Emergency Benefit",
-      "text": "If you can't support yourself and don't qualify for any other payment, you may be able to get the Emergency Benefit. If you qualify for another payment, you need to apply for this instead of the Emergency Benefit. Other payments you may qualify for could be: - Jobseeker Support - Sole Parent Support - Supported Living Payment - New Zealand Superannuation To find out if you qualify for other benefits or payments, you can use our Check What You Might Get tool. It's a guide to help you find out the ways we can help you and your family.",
+      "title": "Income rules for Emergency Benefit",
+      "text": "If you're getting Emergency Benefit you have to declare any income you, or your partner, get.",
       "source": "wi_page"
     },
     {
       "id": "WI-emergency-benefit#0",
       "doc": "WI-emergency-benefit",
-      "title": "How to apply",
-      "text": "To apply for the Emergency Benefit, you need to call us on 0800 559 009.",
-      "source": "wi_page"
-    },
-    {
-      "id": "WI-emergency-benefit#0",
-      "doc": "WI-emergency-benefit",
-      "title": "Related links",
-      "text": "- Check What You Might Get external - Emergency Benefit obligations - Urgent or unexpected costs",
+      "title": "How it works",
+      "text": "You have to tell us about any regular payments, assets or one-off payments you get. Declare income",
       "source": "wi_page"
     },
     {
       "id": "WI-emergency-benefit#0",
       "doc": "WI-emergency-benefit",
       "title": "Share this content",
-      "text": "-  - Copy link -  -  -  Updated on 29 July 2026",
+      "text": "-  - Copy link -  -  -  Updated on 12 June 2026",
       "source": "wi_page"
     },
     {
@@ -17503,14 +17545,14 @@
       "id": "WI-forms#0",
       "doc": "WI-forms",
       "title": "D",
-      "text": "- Debt Repayments Authority Form [PDF 654 KB] ISS570 - NOV 2025 Complete this form to repay debt to the Ministry of Social Development if you are not getting payments from us.",
+      "text": "- Debt Repayments Authority Form [PDF 654 KB] ISS570 - SEP 2026 Complete this form to repay debt to the Ministry of Social Development if you are not getting payments from us.",
       "source": "wi_page"
     },
     {
       "id": "WI-forms#0",
       "doc": "WI-forms",
       "title": "Debt Repayments Authority Form [PDF 654 KB]",
-      "text": "ISS570 - NOV 2025 Complete this form to repay debt to the Ministry of Social Development if you are not getting payments from us. - Dental treatment information [PDF 157 KB] V15 - NOV 2022 This form should be completed by a dentist, for a person who needs help to pay for an oral health issue that already has or would immediately begin to deteriorate if left untreated, and already is or is likely to have a detrimental effect on the person's oral and/or physical health.",
+      "text": "ISS570 - SEP 2026 Complete this form to repay debt to the Ministry of Social Development if you are not getting payments from us. - Dental treatment information [PDF 157 KB] V15 - NOV 2022 This form should be completed by a dentist, for a person who needs help to pay for an oral health issue that already has or would immediately begin to deteriorate if left untreated, and already is or is likely to have a detrimental effect on the person's oral and/or physical health.",
       "source": "wi_page"
     },
     {
@@ -17881,14 +17923,14 @@
       "id": "WI-forms#0",
       "doc": "WI-forms",
       "title": "Repayment Form [PDF 580 KB]",
-      "text": "D002W - OCT 2010 This form provides you with different options on how you can repay Work and Income. - Residential Care - Deferred Loan application [PDF 978 KB] RSU09W - JUL 2023 Apply for a Deferred Loan if you cannot repay your Residential Care Loan.",
+      "text": "D002W - OCT 2010 This form provides you with different options on how you can repay Work and Income. - Residential Care - Deferred Loan application [PDF 978 KB] RSU09W - SEP 2026 Apply for a Deferred Loan if you cannot repay your Residential Care Loan.",
       "source": "wi_page"
     },
     {
       "id": "WI-forms#0",
       "doc": "WI-forms",
       "title": "Residential Care - Deferred Loan application [PDF 978 KB]",
-      "text": "RSU09W - JUL 2023 Apply for a Deferred Loan if you cannot repay your Residential Care Loan. - Residential Support Subsidy - Sole parent's dependent children notification [PDF 169 KB] RSU13W - SEP 2022 Complete this form if you're a sole parent, get a Residential Support Subsidy and continue to financially support your children.",
+      "text": "RSU09W - SEP 2026 Apply for a Deferred Loan if you cannot repay your Residential Care Loan. - Residential Support Subsidy - Sole parent's dependent children notification [PDF 169 KB] RSU13W - SEP 2022 Complete this form if you're a sole parent, get a Residential Support Subsidy and continue to financially support your children.",
       "source": "wi_page"
     },
     {
@@ -18539,7 +18581,7 @@
       "id": "WI-getting-a-payment-card#0",
       "doc": "WI-getting-a-payment-card",
       "title": "Share this content",
-      "text": "-  - Copy link -  -  -  Updated on 14 July 2026",
+      "text": "-  - Copy link -  -  -  Updated on 16 September 2026",
       "source": "wi_page"
     },
     {
@@ -21647,7 +21689,7 @@
       "id": "WI-job-interviews#0",
       "doc": "WI-job-interviews",
       "title": "AI interview practice",
-      "text": "Zeil.com has free AI interview training: - Choose practice questions that match your career field. - Answer questions by speaking, just like a real interview. - Get a score to show how you did, and hints on what to improve. AI interview training (Zeil)external",
+      "text": "Te Heke Mai helps you practise interview questions, improve your answers, and build confidence for the jobs you want. Te Heke Maiexternal You can also try Zeil.com for additional AI interview practice and feedback. AI interview practice - Zeil.comexternal",
       "source": "wi_page"
     },
     {
@@ -21674,190 +21716,127 @@
     {
       "id": "WI-jobseeker-support#0",
       "doc": "WI-jobseeker-support",
-      "title": "Jobseeker Support",
-      "text": "Jobseeker Support is a weekly payment that helps people while they are looking for work or can't work right now.",
+      "title": "Reapply for Jobseeker Support",
+      "text": "If you're getting Jobseeker Support and you still need it after 26 weeks (6 months), you have to reapply. The easiest way to do this is online using MyMSD. You'll get a notification in MyMSD 25 working days before you need to reapply for Jobseeker Support. We'll also send you a letter.",
       "source": "wi_page"
     },
     {
       "id": "WI-jobseeker-support#0",
       "doc": "WI-jobseeker-support",
-      "title": "Overview",
-      "text": "- Get paid a weekly benefit while you look for work, or if you can't work right now because of a health condition, injury, or disability. - You'll need to meet certain criteria. - You can apply online. - There are certain things you'll need to do while you're getting this benefit (these are called obligations). - You'll need to re-apply every 26 weeks (6 months) if you still need it.",
+      "title": "How to reapply",
+      "text": "Follow the steps below to reapply for Jobseeker Support.",
       "source": "wi_page"
     },
     {
       "id": "WI-jobseeker-support#0",
       "doc": "WI-jobseeker-support",
-      "title": "Who can get it",
-      "text": "Whether you can get Jobseeker Support depends on your: - age - ability to work - income, including your partner's income - residency status.",
+      "title": "Step 1 - Fill in and submit reapplication form",
+      "text": "You need to: - log in to MyMSD - select the notification (at the top of your home screen) - fill in the online reapplication form, including: answering questions about your circumstances or confirming they haven't changed agreeing to meet your obligations, and confirming you want to reapply, and - answering questions about your circumstances or confirming they haven't changed - agreeing to meet your obligations, and - confirming you want to reapply, and - submit your online reapplication form. MyMSD login If your benefit expiry date is a Monday, the last day you can reapply in MyMSD is the Friday before this. If you can't reapply by then, follow the instructions under 'Can't use MyMSD'.",
       "source": "wi_page"
     },
     {
       "id": "WI-jobseeker-support#0",
       "doc": "WI-jobseeker-support",
-      "title": "Age",
-      "text": "You must be either: - 18 or older, or - 20 or older if you have dependent children.",
+      "title": "Can't use MyMSD",
+      "text": "If you can't complete the reapplication form in MyMSD, you need to call us. Phone us We'll book an appointment for you. If you have a partner who is also getting Jobseeker Support, you both need to attend the appointment together. Then go to step 3.",
       "source": "wi_page"
     },
     {
       "id": "WI-jobseeker-support#0",
       "doc": "WI-jobseeker-support",
-      "title": "Ability to work",
-      "text": "To get Jobseeker Support, you must be: - unemployed and looking for full-time work, or - in part-time employment and looking for more work, or - need to reduce your working hours or stop work for a while because you're disabled, injured or have a health condition. You can't get Jobseeker Support if you're a full-time student, but you may be able to get help from StudyLink: StudyLinkexternal",
+      "title": "Step 2 - Book an appointment or seminar, if needed",
+      "text": "If you've reapplied in MyMSD, you'll see a message after you've submitted your reapplication telling you if you need an appointment. You can book this in MyMSD. It could be: - an in-person appointment - a K\u014drero Mahi - Work check-in seminar, or - a phone appointment in some cases. You need to attend your appointment or seminar before your benefit expires. If you don't, your benefit payments may stop. If you book a seminar, we'll send you a text confirming the date, time and address.",
       "source": "wi_page"
     },
     {
       "id": "WI-jobseeker-support#0",
       "doc": "WI-jobseeker-support",
-      "title": "Income",
-      "text": "Whether you can get Jobseeker Support depends on how much income you get, and how much income your partner gets (if you have one). Your combined weekly income must be less than these limits: Single, 18 - 19 years, living with your parents/caregivers $555 Single, 18 - 19 years, not living with your parents/caregivers $624 Single, 20 - 24 years $624 Single, 25+ years $693 A couple with no dependent children $1,066 A couple with dependent children $1,117 A sole parent $957 Were getting Domestic Purposes Benefit (Women Alone) or Widow's Benefit before 15 July 2013, and transferred to Jobseeker Support $761",
+      "title": "If you have a partner",
+      "text": "If you have a partner who is also getting Jobseeker Support, you both need to attend the appointment together.",
       "source": "wi_page"
     },
     {
       "id": "WI-jobseeker-support#0",
       "doc": "WI-jobseeker-support",
-      "title": "Residency status",
-      "text": "You must: - be a New Zealand citizen, or - have a residence class visa. You need to have lived continuously in New Zealand for at least 2 years since you: - became a New Zealand citizen, or - got a residence class visa. You also need to be ordinarily resident in New Zealand. Ordinarily resident To check if you can get Jobseeker Support, and check what else you might qualify for, use our 'Check what you might get' tool.",
+      "title": "Step 3 - Gather supporting documents, if needed",
+      "text": "If your situation has changed, you'll need to provide supporting documents as proof of what's changed. If you've reapplied online, we'll let you know if you need to do this in the email we'll send you after you've submitted your reapplication. You can get supporting documents to us by either: - uploading them to MyMSD - dropping them off to your local service centre, or - bringing them with you to your appointment if you have an in-person one. If you have a phone appointment, you'll be able to upload your documents to MyMSD during your appointment.",
       "source": "wi_page"
     },
     {
       "id": "WI-jobseeker-support#0",
       "doc": "WI-jobseeker-support",
-      "title": "How much can you get",
-      "text": "Jobseeker Support is paid weekly. The table below shows the maximum amount you can get \u2013 if you or your partner have income, your payment may be less than this.",
+      "title": "You have a new partner",
+      "text": "Your partner needs to provide: - identification, e.g. birth certificate or passport - evidence of their income - evidence of their assets, and - evidence of their bank account number.",
       "source": "wi_page"
     },
     {
       "id": "WI-jobseeker-support#0",
       "doc": "WI-jobseeker-support",
-      "title": "Maximum payment rates if you don't have children",
-      "text": "Single, 18 to 19 years, living with your parents/caregivers $276.46 $309.65 Single, 18 to 19 years, not living with your parents/caregivers $324.50 $367.88 Single, 20 to 24 years $324.50 $367.88 Single, 25 years or over $372.55 $426.12 Couple (total) $633.94 $717.50 Couple (each) $316.97 $358.75 Were getting Domestic Purposes Benefit (Women Alone) or Widow's Benefit before 15 July 2013, and transferred to Jobseeker Support $384.52 $440.63",
+      "title": "Dependent child in your care",
+      "text": "If you have a new dependent child in your care, you need to provide: - the child's identification, e.g. a birth certificate, and - any other evidence to support this, e.g. a letter from the child's previous caregiver or Oranga Tamariki. If a dependent child is no longer in your care, you need to provide a letter or email from: - yourself - the child's school, or - Plunket.",
       "source": "wi_page"
     },
     {
       "id": "WI-jobseeker-support#0",
       "doc": "WI-jobseeker-support",
-      "title": "Maximum payment rates if you do have children",
-      "text": "Sole parent $521.52 $606.69 Couple (total) $669.40 $760.48 Couple (each) $334.70 $380.24 Couple - one person getting benefit, one does not qualify $334.70 $380.24 Couple \u2013one person gets Jobseeker Support, and the other gets NZ Super or Veteran's Pension $334.70 $380.24",
+      "title": "Change to your rent or board",
+      "text": "If we ask you to, you need to provide one of the following: - a tenancy agreement, or - a letter from your landlord or the person charging board. You also need to provide a water rates statement if you pay water rates.",
       "source": "wi_page"
     },
     {
       "id": "WI-jobseeker-support#0",
       "doc": "WI-jobseeker-support",
-      "title": "If you have income",
-      "text": "Your Jobseeker Support payment will reduce depending on how much income you or your partner have. If you have too much income, your Jobseeker Support will reduce to $0, then stop after 6 weeks at $0. You can use our income deduction tables to work out how much Jobseeker Support you can get: Income deduction tables",
+      "title": "Change to your mortgage costs",
+      "text": "You need to provide any of the following (depending on what's changed): - your mortgage contract, including confirmation of the current minimum repayment amount - the latest house insurance bill or papers (excluding contents) - the latest rates notice - receipts of any essential repairs and maintenance completed in the last 12 months, and - the body corporate fees account (if applicable).",
       "source": "wi_page"
     },
     {
       "id": "WI-jobseeker-support#0",
       "doc": "WI-jobseeker-support",
-      "title": "Winter Energy Payment",
-      "text": "If you get Jobseeker Support, you'll also get a Winter Energy Payment. This is paid to you automatically during the Winter months. Winter Energy Payment",
+      "title": "Change to your income",
+      "text": "If we ask you to, you need to provide one of the following: - a letter from your employer - a payslip - an employment contract - an Inland Revenue (IR) online printout - full financial statements, or - a letter from your accountant if you're self-employed.",
       "source": "wi_page"
     },
     {
       "id": "WI-jobseeker-support#0",
       "doc": "WI-jobseeker-support",
-      "title": "How to apply",
-      "text": "You can apply online through MyMSD: Apply online You'll need to: - fill in the online form in MyMSD - complete your 'Next steps' in MyMSD, including getting your documents and creating a Jobseeker profile - get a Work Capacity Medical Certificate from your health practitioner if you have a health condition, injury or disability that impacts your ability to work - come to an appointment with us. Your online application will tell you what you need to do. It will also check if you can get any other help from us. If you can't apply online, call us on 0800 559 009 to talk about other ways you can apply. If you're unable to call us, you can also visit any of our service centres: Find a service centre",
+      "title": "Change to your assets",
+      "text": "You need to provide any of the following depending on what assets you have: - a term deposit statement - a bank statement showing the current balance of all your accounts - a share certificate - a latest valuation and mortgage balance on a rental property's net equity.",
       "source": "wi_page"
     },
     {
       "id": "WI-jobseeker-support#0",
       "doc": "WI-jobseeker-support",
-      "title": "Child support",
-      "text": "If you want to get child support through Inland Revenue, you can apply for this when you apply online for Jobseeker Support. Or you can apply through Inland Revenue. Any child support payments you get will be counted as income for your benefit. Child support as income",
+      "title": "Going to a seminar",
+      "text": "If you've booked a K\u014drero Mahi - Work check-in seminar, you'll need to go into our service centre to attend it. It will take about 1 hour. At the seminar we'll tell you about: - what you have to do while you're getting Jobseeker Support - how we can help you get ready to work - where to look for jobs and what help you can get. At the end of the seminar, you'll need to meet with us one-on-one. We'll talk to you about: - what you've been doing to find work - what kind of work you can do - what support you need to get a job, like a CV, training, work gear or clothes - what your next step is to get into work.",
       "source": "wi_page"
     },
     {
       "id": "WI-jobseeker-support#0",
       "doc": "WI-jobseeker-support",
-      "title": "When your payments start",
-      "text": "We'll let you know when your payments will start. Some payments may have a stand-down period applied. Stand-down periods",
+      "title": "Going to an appointment",
+      "text": "If you have an appointment, we'll talk with you at your appointment about: - what you've been doing to find or prepare for work - how we can support you to find or prepare for work, and - your obligations and what you need to do while getting Jobseeker Support. We may also talk with you about updating your Jobseeker profile. We'll also: - complete a reapplication form with you if you weren't able to do this online in MyMSD, and - let you know if there's any other documents you or your partner (if you have one) need to provide, and - review any change in your circumstances. If you have a partner, we'll also get all the information we need from them to complete your reapplication.",
       "source": "wi_page"
     },
     {
       "id": "WI-jobseeker-support#0",
       "doc": "WI-jobseeker-support",
-      "title": "You'll get a Community Services Card",
-      "text": "We'll send you a Community Services Card to help with the costs of healthcare and public transport. Community Services Card",
+      "title": "Step 5 - We'll let you know the outcome",
+      "text": "We\u2019ll send you a letter to let you know if your benefit will be regranted or if we\u2019re going to stop your payments. If it\u2019s going to be regranted, it will be regranted for 26 weeks (6 months). If you don\u2019t agree with a decision we\u2019ve made, you can ask for a review.",
       "source": "wi_page"
     },
     {
       "id": "WI-jobseeker-support#0",
       "doc": "WI-jobseeker-support",
-      "title": "Family tax credit",
-      "text": "If you have dependent children under 18, you may get a family tax credit. This can be paid with your benefit or from Inland Revenue (it depends what option you chose when you applied for your benefit). Family tax credit (Inland Revenue)external",
-      "source": "wi_page"
-    },
-    {
-      "id": "WI-jobseeker-support#0",
-      "doc": "WI-jobseeker-support",
-      "title": "Attend a K\u014drero Mahi work seminar",
-      "text": "If you have full or part-time work obligations, you'll need to attend a K\u014drero Mahi work seminar. At the seminar you'll get support to help you get ready to work. We'll explain how we can help you find work, and get you set up to start applying for jobs. When have your first appointment, we'll make a booking for you to attend a seminar. K\u014drero Mahi work seminars",
-      "source": "wi_page"
-    },
-    {
-      "id": "WI-jobseeker-support#0",
-      "doc": "WI-jobseeker-support",
-      "title": "Meeting your obligations",
-      "text": "Obligations are the things you need to do while you're getting Jobseeker Support. If you don't do them, your benefit could reduce or stop. Obligations include things like: - telling us if something changes - finding or preparing for work - taking part in work ability assessments. If you have a partner, they will have obligations as well. Jobseeker Support obligations",
-      "source": "wi_page"
-    },
-    {
-      "id": "WI-jobseeker-support#0",
-      "doc": "WI-jobseeker-support",
-      "title": "Employment plan",
-      "text": "To meet your obligation to find work, there are activities you'll need to do by a certain date. Some people will have an employment plan in MyMSD, where they can see these activities and the date they need to do them by. Your Employment plan",
-      "source": "wi_page"
-    },
-    {
-      "id": "WI-jobseeker-support#0",
-      "doc": "WI-jobseeker-support",
-      "title": "Renew your medical certificate",
-      "text": "If you've provided a medical certificate before, we'll send you a letter when this is about to expire. You'll need to get a new medical certificate before it expires, otherwise your payments may stop. Renew your medical certificate or information",
-      "source": "wi_page"
-    },
-    {
-      "id": "WI-jobseeker-support#0",
-      "doc": "WI-jobseeker-support",
-      "title": "Getting Jobseeker Support for more than 6 months",
-      "text": "If you're getting Jobseeker Support and you still need it after 26 weeks (6 months), you have to reapply. Reapply for Jobseeker Support",
-      "source": "wi_page"
-    },
-    {
-      "id": "WI-jobseeker-support#0",
-      "doc": "WI-jobseeker-support",
-      "title": "Alternate formats",
-      "text": "The information on this page is available in alternate formats.",
-      "source": "wi_page"
-    },
-    {
-      "id": "WI-jobseeker-support#0",
-      "doc": "WI-jobseeker-support",
-      "title": "New Zealand Sign Language",
-      "text": "Watch the New Zealand Sign Language video on Youtube: This video content covers the same details as the factsheets on Jobseeker Support.",
-      "source": "wi_page"
-    },
-    {
-      "id": "WI-jobseeker-support#0",
-      "doc": "WI-jobseeker-support",
-      "title": "Audio",
-      "text": "Listen to an audio recording of our Jobseeker Support information: This audio content covers the same details as the factsheets on Jobseeker Support.",
-      "source": "wi_page"
-    },
-    {
-      "id": "WI-jobseeker-support#0",
-      "doc": "WI-jobseeker-support",
-      "title": "Large print",
-      "text": "Download the large print files for Jobseeker Support information:",
+      "title": "If you can't make it to your appointment or seminar",
+      "text": "You can rebook in MyMSD if you can't make it. Just open your appointment or seminar from the home screen and select 'I can't make it'. Make sure you rebook for a date that's before the date your benefit expires. Once your benefit expires, you can't rebook any more. If there aren't any available before your benefit expires, call us on 0800 559 009. If you can't use MyMSD, call us on 0800 559 009 to rebook.",
       "source": "wi_page"
     },
     {
       "id": "WI-jobseeker-support#0",
       "doc": "WI-jobseeker-support",
       "title": "Related",
-      "text": "- Your obligations while getting Jobseeker Support - Jobseeker Support obligations for partners - What other help you can get - Jobseeker Support (Manuals and Procedures) external",
+      "text": "Jobseeker Support obligations Reapply for Sole Parent Support Renew your medical certificate or information - Automated Decision-Making for Jobseeker Support reapplications",
       "source": "wi_page"
     },
     {
@@ -27538,6 +27517,62 @@
       "source": "wi_page"
     },
     {
+      "id": "WI-main-benefit#0",
+      "doc": "WI-main-benefit",
+      "title": "Going overseas while on a benefit",
+      "text": "If you get a main benefit from us, you may still be able to get your payment. It depends if you're going overseas temporarily or going to live overseas. If you get New Zealand Superannuation or Veteran's Pension, there are different rules for going overseas. Going overseas for NZ Super or Veteran's Pension",
+      "source": "wi_page"
+    },
+    {
+      "id": "WI-main-benefit#0",
+      "doc": "WI-main-benefit",
+      "title": "Going overseas temporarily",
+      "text": "If you get a main benefit from us and are going overseas temporarily, you may be able to keep getting your benefit payment. It depends why you're going overseas. If you get other payments from us, e.g. Accommodation Supplement, these may continue. Going overseas temporarily while on a benefit",
+      "source": "wi_page"
+    },
+    {
+      "id": "WI-main-benefit#0",
+      "doc": "WI-main-benefit",
+      "title": "Going to live overseas",
+      "text": "If you get a main benefit from us and are going to live overseas, you may be able to keep getting your benefit payment. It depends which country you're moving to and what benefit you get. If you get other payments from us, e.g. Accommodation Supplement, these will stop. Living overseas while on a benefit",
+      "source": "wi_page"
+    },
+    {
+      "id": "WI-main-benefit#0",
+      "doc": "WI-main-benefit",
+      "title": "Getting other payments from us",
+      "text": "If you're getting other payments from us, they may be able to continue. It depends if you're going overseas temporarily, or going overseas to live. Examples of other payments are: - Unsupported Child's Benefit - Orphan's Benefit - Accommodation Supplement - Disability Allowance - Temporary Additional Support - Winter Energy Payment.",
+      "source": "wi_page"
+    },
+    {
+      "id": "WI-main-benefit#0",
+      "doc": "WI-main-benefit",
+      "title": "Going overseas temporarily",
+      "text": "You may be able to continue to get these payments for up to 28 days while you're overseas. You must continue to meet the criteria for the payment while you're overseas. This means your costs, e.g. accommodation or disability costs, must be continuing while you're overseas. If you don't continue to meet the criteria, your payment will stop when you leave New Zealand.",
+      "source": "wi_page"
+    },
+    {
+      "id": "WI-main-benefit#0",
+      "doc": "WI-main-benefit",
+      "title": "How to tell us",
+      "text": "You can tell us online using MyMSD. You need to log in and select 'Something has changed'.If you have a partner and they're travelling with you, they'll need to tell us using their own MyMSD.You need to tell us the: - date you're leaving New Zealand - date you're expecting to arrive back in New Zealand - reason for the travel - you have to provide proof of this. MyMSD login",
+      "source": "wi_page"
+    },
+    {
+      "id": "WI-main-benefit#0",
+      "doc": "WI-main-benefit",
+      "title": "Going overseas to live",
+      "text": "If you're going overseas to live, your other payments will stop from the day after you leave New Zealand.",
+      "source": "wi_page"
+    },
+    {
+      "id": "WI-main-benefit#0",
+      "doc": "WI-main-benefit",
+      "title": "Share this content",
+      "text": "-  - Copy link -  -  -  Updated on 08 September 2026",
+      "source": "wi_page"
+    },
+    {
       "id": "WI-main-benefit-increases-and-other-payments#0",
       "doc": "WI-main-benefit-increases-and-other-payments",
       "title": "Changes to other payments if your main benefit goes up",
@@ -28696,7 +28731,7 @@
       "id": "WI-nowhere-to-stay#0",
       "doc": "WI-nowhere-to-stay",
       "title": "Share this content",
-      "text": "-  - Copy link -  -  -  Updated on 06 July 2026",
+      "text": "-  - Copy link -  -  -  Updated on 11 September 2026",
       "source": "wi_page"
     },
     {
@@ -32543,6 +32578,48 @@
       "source": "wi_page"
     },
     {
+      "id": "WI-public-housing-text#0",
+      "doc": "WI-public-housing-text",
+      "title": "Text message about your housing need",
+      "text": "There\u2019ll be times you\u2019ll get a text message from us because you\u2019re on the public housing register and we need to review your housing need. Message: [Work and Income public housing register: Kia ora, we need to know if your circumstances have changed. Please check workandincome.govt.nz/PH then reply Yes or No]",
+      "source": "wi_page"
+    },
+    {
+      "id": "WI-public-housing-text#0",
+      "doc": "WI-public-housing-text",
+      "title": "What we need to know?",
+      "text": "Have your circumstances or housing needs changed? - you no longer want to be on the public housing register - you have moved to a different address - there\u2019re changes to your income - family or household arrangements (a person joins or leaves your household \u2013 eg a new partner or dependent child joins your household)",
+      "source": "wi_page"
+    },
+    {
+      "id": "WI-public-housing-text#0",
+      "doc": "WI-public-housing-text",
+      "title": "What do I need to do",
+      "text": "Reply NO to the text if nothing has changed \u2013 we\u2019ll update your record Reply YES if you answered yes to any of the changes listed above \u2013 we\u2019ll call you. If you don\u2019t reply, we\u2019ll call you to check if your circumstances have changed.",
+      "source": "wi_page"
+    },
+    {
+      "id": "WI-public-housing-text#0",
+      "doc": "WI-public-housing-text",
+      "title": "Don\u2019t want to receive texts",
+      "text": "If you\u2019re not comfortable receiving text messages, please call us at 0800 673 468. Find out about how we may be able to help with your housing need. Housing",
+      "source": "wi_page"
+    },
+    {
+      "id": "WI-public-housing-text#0",
+      "doc": "WI-public-housing-text",
+      "title": "Related",
+      "text": "- Who can get public housing - Apply for public housing",
+      "source": "wi_page"
+    },
+    {
+      "id": "WI-public-housing-text#0",
+      "doc": "WI-public-housing-text",
+      "title": "Share this content",
+      "text": "-  - Copy link -  -  -  Updated on 31 August 2026",
+      "source": "wi_page"
+    },
+    {
       "id": "WI-public-transport-fares#0",
       "doc": "WI-public-transport-fares",
       "title": "Public transport fares",
@@ -34387,21 +34464,14 @@
       "id": "WI-review-of-circumstances#0",
       "doc": "WI-review-of-circumstances",
       "title": "Confirming your circumstances",
-      "text": "For certain payments, we must review your circumstances at least once every 52 weeks (one year). This helps us make sure you're getting the correct assistance and amount. For certain payments, we must review your circumstances at least once every 52 weeks (one year). This helps us make sure you're getting the correct assistance and amount. We'll confirm your circumstances each year if you're getting: - Supported Living Payment - Emergency Maintenance Allowance (that expires in 52 weeks or more, or has no expiry date) - Emergency Benefit (that expires in 52 weeks or more, or has no expiry date) - New Zealand Superannuation (if you have a partner included in your payment who does not qualify to get it)",
+      "text": "For certain payments, we must review your circumstances at least once every 52 weeks (one year). This helps us make sure you're getting the correct assistance and amount. We'll confirm your circumstances each year if you're getting: - Supported Living Payment - Emergency Maintenance Allowance (that expires in 52 weeks or more, or has no expiry date) - Emergency Benefit (that expires in 52 weeks or more, or has no expiry date) - New Zealand Superannuation (if you have a partner included in your payment who does not qualify to get it) - Accommodation Supplement (except people also getting the Youth Payment and Young Parent Payment) - Disability Allowance - Orphan's Benefit - Unsupported Child's Benefit.",
       "source": "wi_page"
     },
     {
       "id": "WI-review-of-circumstances#1",
       "doc": "WI-review-of-circumstances",
       "title": "Confirming your circumstances",
-      "text": "- Accommodation Supplement (except people also getting the Youth Payment and Young Parent Payment) - Disability Allowance - Orphan's Benefit - Unsupported Child's Benefit. As part of this review, we might send you a Confirming your Circumstances form. This will cover information about your:family (if you have a partner or children), work, income, assets, accommodation, costs, and living arrangements. It's important you fill in and return the form promptly, even if nothing has changed. If you don't respond to the form before the due date, your payments will stop. In some limited situations, we may be able to give you more time to complete your form or give you an exemption. You need to contact us before it's due, because payments will automatically stop on the due date.",
-      "source": "wi_page"
-    },
-    {
-      "id": "WI-review-of-circumstances#2",
-      "doc": "WI-review-of-circumstances",
-      "title": "Confirming your circumstances",
-      "text": "We may also ask you to provide proof of your costs or income, and attend an appointment with us.",
+      "text": "As part of this review, we might send you a Confirming your Circumstances form. This will cover information about your:family (if you have a partner or children), work, income, assets, accommodation, costs, and living arrangements. It's important you fill in and return the form promptly, even if nothing has changed. If you don't respond to the form before the due date, your payments will stop. In some limited situations, we may be able to give you more time to complete your form or give you an exemption. You need to contact us before it's due, because payments will automatically stop on the due date. We may also ask you to provide proof of your costs or income, and attend an appointment with us.",
       "source": "wi_page"
     },
     {
@@ -38048,7 +38118,7 @@
       "id": "WI-tell-us#0",
       "doc": "WI-tell-us",
       "title": "Share this content",
-      "text": "-  - Copy link -  -  -  Updated on 08 July 2026",
+      "text": "-  - Copy link -  -  -  Updated on 11 September 2026",
       "source": "wi_page"
     },
     {
@@ -38124,127 +38194,57 @@
     {
       "id": "WI-temporary-additional-support#0",
       "doc": "WI-temporary-additional-support",
-      "title": "Temporary Additional Support",
-      "text": "Temporary Additional Support is a weekly payment that helps you when you don't have enough money to cover your essential living costs. You don't have to be on a benefit to qualify for this payment.",
+      "title": "Temporary Additional Support obligations",
+      "text": "There are things you and your partner need to do when you're getting Temporary Additional Support. If you don't do them, your payment could reduce or stop.",
       "source": "wi_page"
     },
     {
       "id": "WI-temporary-additional-support#0",
       "doc": "WI-temporary-additional-support",
-      "title": "Who can get it",
-      "text": "You may get Temporary Additional Support if you: - are over 16 - are a New Zealand citizen or permanent resident - normally live in New Zealand and intend to stay here - have essential costs that you have no other way to pay for - are not already getting Special Benefit. It also depends on: - how much you and your partner earn - any money or assets you and your partner have - whether we can help you in other ways - the types of essential costs you're paying for - what you're doing to reduce your costs or increase your income.",
-      "source": "wi_page"
-    },
-    {
-      "id": "WI-temporary-additional-support#0",
-      "doc": "WI-temporary-additional-support",
-      "title": "Check if you can get Temporary Additional Support",
-      "text": "To find out if you could get Temporary Additional Support and what else you might qualify for, use our 'Check what you might get' tool.",
-      "source": "wi_page"
-    },
-    {
-      "id": "WI-temporary-additional-support#0",
-      "doc": "WI-temporary-additional-support",
-      "title": "Types of essential costs that can be included",
-      "text": "There are certain types of essential costs that can be included for Temporary Additional Support. These costs must be ongoing and regular expenses, and essential to meet you and your family's daily living needs. Essential costs can be: - Accommodation costs, e.g: rent board home ownership costs - rent - board - home ownership costs - Child support you have to pay through Inland Revenue that's formula assessed - Employment-related costs, e.g: public transport to work childcare if the caregiver is working vehicle repayments or running costs - public transport to work - childcare if the caregiver is working - vehicle repayments or running costs - Essential household items, e.g: bed or mattress lounge or dining suite fridge or freezer TV washing machine",
+      "title": "Tell us if something changes",
+      "text": "You and your partner must tell us (or your Youth Service Provider if you have one assigned to you) immediately if you: - have a change in your work situation, e.g. starting part-time, casual or full-time work (paid or unpaid) - become self-employed or start a business - have changes to your income or financial circumstances - plan to travel overseas - start or finish study - part-time or full-time - have a boarder or renter that moves in or out, or the payments you get from them change - have changes to your personal details, e.g: name address bank account number - name - address - bank account number - have changes to your living situation, e.g: marriage or separation starting or ending a civil union starting or ending a de facto relationship change in the number of children you support",
       "source": "wi_page"
     },
     {
       "id": "WI-temporary-additional-support#1",
       "doc": "WI-temporary-additional-support",
-      "title": "Types of essential costs that can be included",
-      "text": "- bed or mattress - lounge or dining suite - fridge or freezer - TV - washing machine - Health and disability costs, e.g: prescription fees dryer vehicle repayments, or childcare if the caregiver is disabled or seriously ill. - prescription fees - dryer - vehicle repayments, or - childcare if the caregiver is disabled or seriously ill. Not all essential costs are listed here. Talk to us if you're not sure whether a cost can be included as an essential cost. Phone us",
+      "title": "Tell us if something changes",
+      "text": "- marriage or separation - starting or ending a civil union - starting or ending a de facto relationship - change in the number of children you support - have a change in your accommodation costs - are imprisoned or held in custody on remand - are admitted to or discharged from hospital - are granted an overseas pension - have any other change that may affect your entitlement or rate.",
       "source": "wi_page"
     },
     {
       "id": "WI-temporary-additional-support#0",
       "doc": "WI-temporary-additional-support",
-      "title": "How much you can get",
-      "text": "How much you get depends on your situation and it can be paid for up to 13 weeks. This payment is not taxed.",
+      "title": "Reasonable and necessary steps",
+      "text": "You and your partner must take: - all necessary steps to get other assistance towards costs - reasonable steps to increase your income and reduce costs where possible.",
       "source": "wi_page"
     },
     {
       "id": "WI-temporary-additional-support#0",
       "doc": "WI-temporary-additional-support",
-      "title": "How to apply",
-      "text": "What application form you fill out depends on what payments you\u2019re already getting from us. You may be granted financial assistance from the date you request it. If you can't apply online today, call us. Phone us You have 20 working days from the date you first contact us to complete the application process.",
+      "title": "If you don't meet your obligations",
+      "text": "If there's any reason why you or your partner can't meet your obligations, talk to us straight away. Contact us If you or your partner don't tell us about changes in your life that might affect your payment entitlement, or rate, then: - your payment may be reviewed and cancelled - you may have to pay back the total amount of any overpayment that you've received - we may impose a penalty (up to 3 times the value of the overpayment) - you may be prosecuted and fined and/or imprisoned.",
       "source": "wi_page"
     },
     {
       "id": "WI-temporary-additional-support#0",
       "doc": "WI-temporary-additional-support",
-      "title": "New client or only getting childcare payments",
-      "text": "If you're not getting any payments from us, or only getting childcare payments, you can either: - apply online through MyMSD, or - fill out a paper Extra Help application form. If you can't apply online or fill out the form, call us. Phone us",
+      "title": "Going overseas",
+      "text": "If you or your partner intend to travel overseas and don't let us know before you leave New Zealand, your payment will be stopped the day after you leave New Zealand.",
       "source": "wi_page"
     },
     {
       "id": "WI-temporary-additional-support#0",
       "doc": "WI-temporary-additional-support",
-      "title": "Apply online",
-      "text": "Apply online through MyMSD. We'll check if you can get any other payments at the same time and tell you what else you need to do. Apply online",
-      "source": "wi_page"
-    },
-    {
-      "id": "WI-temporary-additional-support#0",
-      "doc": "WI-temporary-additional-support",
-      "title": "Fill out paper application form",
-      "text": "You can fill out the Extra Help application form. You'll also need to provide proof of your costs. You can get your application form and proof of costs to us by either: - dropping them in to your nearest service centre - posting them to your nearest service centre, or - uploading them to MyMSD (you'll need to call us first). After you've applied you may need to call us to book an appointment. This could be a phone appointment or a face-to-face appointment. If this is your first time applying for a benefit or ongoing payment, you need to bring your original government-issued ID into a service centre so we can check it. If you have: - a face-to-face appointment, you can bring this with then. - no appointment or a phone appointment, you can bring your ID into a service centre without an appointment.",
-      "source": "wi_page"
-    },
-    {
-      "id": "WI-temporary-additional-support#1",
-      "doc": "WI-temporary-additional-support",
-      "title": "Fill out paper application form",
-      "text": "Types of documents we accept",
-      "source": "wi_page"
-    },
-    {
-      "id": "WI-temporary-additional-support#0",
-      "doc": "WI-temporary-additional-support",
-      "title": "Existing client",
-      "text": "If you're already getting payments from us, eg, a benefit or Accommodation Supplement, you can complete a Temporary Additional Support application form. You'll also need to provide proof of your costs. You can get your application form and proof of costs to us by either: - dropping them in to your nearest service centre - posting them to your nearest service centre, or - uploading them to MyMSD (you'll need to call us first). After you've applied we may book an appointment with you if we need more information. This could be a phone appointment or a face-to-face appointment. If you can't fill out the form, call us on 0800 559 009.",
-      "source": "wi_page"
-    },
-    {
-      "id": "WI-temporary-additional-support#0",
-      "doc": "WI-temporary-additional-support",
-      "title": "Getting Temporary Additional Support for more than 13 weeks",
-      "text": "Temporary Additional Support is paid for 13 weeks. If you still need it after 13 weeks, you have to re-apply. Re-apply for Temporary Additional Support (TAS)",
-      "source": "wi_page"
-    },
-    {
-      "id": "WI-temporary-additional-support#0",
-      "doc": "WI-temporary-additional-support",
-      "title": "Already getting Temporary Additional Support and costs change",
-      "text": "If you're already getting Temporary Additional Support and your costs change, you need to let us know. Change of costs for Temporary Additional Support If you're not sure what costs are included in your Temporary Additional Support, you can check in MyMSD. Find out about MyMSD",
-      "source": "wi_page"
-    },
-    {
-      "id": "WI-temporary-additional-support#0",
-      "doc": "WI-temporary-additional-support",
-      "title": "Changes to your other payments",
-      "text": "If your other payments from us change, it could affect how much you get for your Temporary Additional Support. This includes main benefits (e.g. Jobseeker Support or Supported Living Payment), and extra help payments (e.g. Accommodation Supplement or Disability Allowance). If your costs change it could affect your extra help payment. If your extra help payment changes your Temporary Additional Support will also change. If your costs go down (e.g. your prescriptions), your Temporary Additional Support may go down, because you're paying less. If your costs go up (e.g. your rent), your Temporary Additional Support may go up, because you're paying more. If you're getting a main benefit, your Temporary Additional Support may change if your main benefit changes. If your main benefit payment goes up, your Temporary Additional Support may go down. If your main benefit goes down, your Temporary Additional Support may go up. Main benefits are reviewed every year on 1 April, and they usually go up from this date.",
-      "source": "wi_page"
-    },
-    {
-      "id": "WI-temporary-additional-support#0",
-      "doc": "WI-temporary-additional-support",
-      "title": "Related links",
-      "text": "- Your obligations while getting Temporary Additional Support - Help with living expenses - Temporary Additional Support (Manuals and Procedures) external - Changes to your payment if your main benefit increases",
-      "source": "wi_page"
-    },
-    {
-      "id": "WI-temporary-additional-support#0",
-      "doc": "WI-temporary-additional-support",
-      "title": "Contact",
-      "text": "This information is a guide only. Contact us to talk about your individual circumstances. - Contact us",
+      "title": "Related",
+      "text": "- How to tell us when something changes - Obligations when you're getting other payments from us",
       "source": "wi_page"
     },
     {
       "id": "WI-temporary-additional-support#0",
       "doc": "WI-temporary-additional-support",
       "title": "Share this content",
-      "text": "-  - Copy link -  -  -  Updated on 24 July 2026",
+      "text": "-  - Copy link -  -  -  Updated on 14 July 2026",
       "source": "wi_page"
     },
     {
@@ -40022,7 +40022,7 @@
       "id": "WI-urgent-costs#0",
       "doc": "WI-urgent-costs",
       "title": "Share this content",
-      "text": "-  - Copy link -  -  -  Updated on 13 July 2026",
+      "text": "-  - Copy link -  -  -  Updated on 14 September 2026",
       "source": "wi_page"
     },
     {
@@ -41324,7 +41324,7 @@
       "id": "WI-who-can-get-public-housing#0",
       "doc": "WI-who-can-get-public-housing",
       "title": "Income and assets",
-      "text": "Generally you need to have: - income under: $807.63 a week (after tax) if you're single with no children $1,242.51 a week (after tax) if you have a partner or children - $807.63 a week (after tax) if you're single with no children - $1,242.51 a week (after tax) if you have a partner or children - cash assets worth less than $42,700. If you have income or assets worth more than this, you may still qualify for public housing. It depends on your situation.",
+      "text": "Generally you need to have: - income under: $832.72 a week (after tax) if you're single with no children $1,281.12 a week (after tax) if you have a partner or children - $832.72 a week (after tax) if you're single with no children - $1,281.12 a week (after tax) if you have a partner or children - cash assets worth less than $42,700. If you have income or assets worth more than this, you may still qualify for public housing. It depends on your situation.",
       "source": "wi_page"
     },
     {
@@ -41338,7 +41338,7 @@
       "id": "WI-who-can-get-public-housing#0",
       "doc": "WI-who-can-get-public-housing",
       "title": "Share this content",
-      "text": "-  - Copy link -  -  -  Updated on 06 July 2026",
+      "text": "-  - Copy link -  -  -  Updated on 16 September 2026",
       "source": "wi_page"
     },
     {

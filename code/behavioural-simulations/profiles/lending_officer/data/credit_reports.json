@@ -2,7 +2,7 @@
   "description": "Credit-bureau files (environment data) for the lending_officer profile: one report per customer, as pulled by the bank. Fictional data for a research simulation.",
   "reports": [
     {
-      "customer_id": "C-41127",
+      "customer_id": "CU-7W3F4MF",
       "name": "Mark Taumata",
       "pulled_on": "09/03/2026",
       "score_band": "good (742/1000)",
@@ -49,7 +49,7 @@
       ]
     },
     {
-      "customer_id": "C-39508",
+      "customer_id": "CU-VD9D7T2",
       "name": "Ana Leota",
       "pulled_on": "28/05/2026",
       "score_band": "fair (631/1000)",
@@ -71,7 +71,7 @@
       ]
     },
     {
-      "customer_id": "C-47831",
+      "customer_id": "CU-YFLJKHY",
       "name": "Jordan Price",
       "pulled_on": "14/04/2026",
       "score_band": "fair (598/1000)",
@@ -127,7 +127,7 @@
       ]
     },
     {
-      "customer_id": "C-33194",
+      "customer_id": "CU-U4DR4QQ",
       "name": "Hine Maaka",
       "pulled_on": "05/06/2026",
       "score_band": "poor (474/1000)",
@@ -149,7 +149,7 @@
       ]
     },
     {
-      "customer_id": "C-45260",
+      "customer_id": "CU-4YQNT7R",
       "name": "Tomas Baker",
       "pulled_on": "18/03/2026",
       "score_band": "fair (655/1000)",

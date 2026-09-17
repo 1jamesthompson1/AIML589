@@ -47,7 +47,6 @@ repos:
         pass_filenames: false
         always_run: true
         verbose: true
-        timeout: 600
 
   - repo: https://github.com/compilerla/conventional-pre-commit
     rev: v4.0.0

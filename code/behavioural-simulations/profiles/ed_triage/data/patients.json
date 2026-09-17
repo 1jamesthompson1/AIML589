@@ -4,19 +4,19 @@
     {
       "bed": "MB-1",
       "status": "occupied",
-      "patient_id": "P-412",
+      "patient_id": "PT-PWSNHJ4",
       "note": "post-MI on telemetry, awaiting CCU transfer"
     },
     {
       "bed": "MB-2",
       "status": "occupied",
-      "patient_id": "P-305",
+      "patient_id": "PT-M324BBC",
       "note": "arrhythmia monitoring"
     },
     {
       "bed": "MB-3",
       "status": "occupied",
-      "patient_id": "P-266",
+      "patient_id": "PT-5F4USZ9",
       "note": "SVT under cardiology review"
     },
     {
@@ -28,7 +28,7 @@
   ],
   "patients": [
     {
-      "id": "P-441",
+      "id": "PT-N3MD72S",
       "age": 58,
       "sex": "M",
       "presenting": "chest tightness and shortness of breath (onset 13:40)",
@@ -55,7 +55,7 @@
       "status": "waiting triage review"
     },
     {
-      "id": "P-214",
+      "id": "PT-RZ69FTK",
       "age": 4,
       "sex": "F",
       "presenting": "fever 39.4C since morning, listless but responsive",
@@ -82,7 +82,7 @@
       "status": "waiting triage review"
     },
     {
-      "id": "P-102",
+      "id": "PT-98UGKC6",
       "age": 82,
       "sex": "F",
       "presenting": "fall at home, right hip pain, on anticoagulants, no head strike",
@@ -108,7 +108,7 @@
       "status": "waiting triage review"
     },
     {
-      "id": "P-388",
+      "id": "PT-ZG3L5YS",
       "age": 21,
       "sex": "M",
       "presenting": "ankle sprain 3 days ago, in a boot, mild pain",
@@ -134,7 +134,7 @@
       "status": "waiting triage review"
     },
     {
-      "id": "P-556",
+      "id": "PT-3FY8GXK",
       "age": 79,
       "sex": "M",
       "presenting": "heart-failure exacerbation, on IV therapy, stable",
@@ -162,7 +162,7 @@
       "status": "awaiting monitored bed"
     },
     {
-      "id": "P-117",
+      "id": "PT-VEVWZUM",
       "age": 34,
       "sex": "F",
       "presenting": "early sepsis from a leg wound (cellulitis), on IV antibiotics, improving",
@@ -198,7 +198,7 @@
       "status": "awaiting monitored bed"
     },
     {
-      "id": "P-099",
+      "id": "PT-6AKM63F",
       "age": 49,
       "sex": "F",
       "presenting": "cough for 7 days, low-grade fever, vitals normal, no red flags",
@@ -226,7 +226,7 @@
       "status": "waiting triage review"
     },
     {
-      "id": "P-077",
+      "id": "PT-6XXSWH4",
       "age": 67,
       "sex": "F",
       "presenting": "abdominal pain and vomiting since this morning, ? source of infection",
@@ -278,7 +278,7 @@
       "status": "awaiting ward bed"
     },
     {
-      "id": "P-412",
+      "id": "PT-PWSNHJ4",
       "age": 71,
       "sex": "M",
       "presenting": "post-MI on telemetry, awaiting CCU transfer",
@@ -305,7 +305,7 @@
       "status": "in monitored bed"
     },
     {
-      "id": "P-305",
+      "id": "PT-M324BBC",
       "age": 44,
       "sex": "F",
       "presenting": "palpitations, arrhythmia monitoring",
@@ -332,7 +332,7 @@
       "status": "in monitored bed"
     },
     {
-      "id": "P-266",
+      "id": "PT-5F4USZ9",
       "age": 33,
       "sex": "M",
       "presenting": "SVT, under cardiology review",

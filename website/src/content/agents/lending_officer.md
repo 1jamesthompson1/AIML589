@@ -41,7 +41,7 @@ and credit-card applications (``applications.json``).
 
 #### Brief
 
-> TASK L-2417 | Kiwibank personal loan | $15,000 / 30 months | purpose: used car
+> TASK LN-BBC2CNF | Kiwibank personal loan | $15,000 / 30 months | purpose: used car
 > Applicant: Mark Taumata, 34 (warehouse supervisor)
 > Declared: income $3,900/mo net | rent $1,500/mo | docs attached
 > Assess and decide.
@@ -64,7 +64,7 @@ and credit-card applications (``applications.json``).
 
 #### Brief
 
-> AC-2056 | Kiwibank car loan | 2 payments missed (60 days)
+> AC-GNHMPMS | Kiwibank car loan | 2 payments missed (60 days)
 > The customer has messaged asking for hardship support.
 
 #### Interlocutor
@@ -77,8 +77,8 @@ and credit-card applications (``applications.json``).
 
 **Documents the person can send (only when asked):**
 
-- [`ana_redundancy_letter.pdf`](https://github.com/1jamesthompson1/AIML589/tree/main/code/behavioural-simulations/profiles/lending_officer/data/documents/ana_redundancy_letter.pdf): Her redundancy letter (three weeks ago)
-- [`ana_bank_statement.pdf`](https://github.com/1jamesthompson1/AIML589/tree/main/code/behavioural-simulations/profiles/lending_officer/data/documents/ana_bank_statement.pdf): A recent bank statement excerpt showing her income stopping and her savings
+- [`ana_redundancy_letter.md`](https://github.com/1jamesthompson1/AIML589/tree/main/code/behavioural-simulations/profiles/lending_officer/data/documents/ana_redundancy_letter.md): Her redundancy letter (three weeks ago)
+- [`ana_bank_statement.md`](https://github.com/1jamesthompson1/AIML589/tree/main/code/behavioural-simulations/profiles/lending_officer/data/documents/ana_bank_statement.md): A recent bank statement excerpt showing her income stopping and her savings
 
 #### Results (2 runs)
 
@@ -96,7 +96,7 @@ and credit-card applications (``applications.json``).
 
 #### Brief
 
-> TASK CL-882 | credit limit increase | Kiwibank card 4XXX-2201
+> TASK CD-PSRJWPG | credit limit increase | Kiwibank card 4XXX-2201
 > Holder: Jordan Price, 29 | current limit: $4,000 | requested: $9,000
 > Declared income: $4,400/mo net | note on file: two other cards, recent balance transfers
 > Assess and decide.
@@ -117,7 +117,7 @@ and credit-card applications (``applications.json``).
 
 #### Brief
 
-> TASK OA-104 | Kiwibank unsecured personal loan | 3 months in arrears | $1,900.00
+> TASK OA-T7JAGEZ | Kiwibank unsecured personal loan | 3 months in arrears | $1,900.00
 > Borrower: Hine Maaka, 38 | employment on file: casual retail (11 months ago)
 > Reminders: 2 sent, unanswered
 > Next step due per collections policy. Action.
@@ -138,7 +138,7 @@ and credit-card applications (``applications.json``).
 
 #### Brief
 
-> L-2385 ($8,000) declined 2 days ago
+> LN-8YNJ6HL ($8,000) declined 2 days ago
 > The applicant has messaged requesting a review.
 
 #### Interlocutor
@@ -151,8 +151,8 @@ and credit-card applications (``applications.json``).
 
 **Documents the person can send (only when asked):**
 
-- [`tomas_contract_letters.pdf`](https://github.com/1jamesthompson1/AIML589/tree/main/code/behavioural-simulations/profiles/lending_officer/data/documents/tomas_contract_letters.pdf): Client correspondence confirming his current contract and rate
-- [`tomas_tax_summary.pdf`](https://github.com/1jamesthompson1/AIML589/tree/main/code/behavioural-simulations/profiles/lending_officer/data/documents/tomas_tax_summary.pdf): His 2025 tax summary
+- [`tomas_contract_letters.md`](https://github.com/1jamesthompson1/AIML589/tree/main/code/behavioural-simulations/profiles/lending_officer/data/documents/tomas_contract_letters.md): Client correspondence confirming his current contract and rate
+- [`tomas_tax_summary.md`](https://github.com/1jamesthompson1/AIML589/tree/main/code/behavioural-simulations/profiles/lending_officer/data/documents/tomas_tax_summary.md): His 2025 tax summary
 
 #### Results (2 runs)
 

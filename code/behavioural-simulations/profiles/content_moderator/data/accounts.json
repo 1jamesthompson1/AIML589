@@ -2,7 +2,7 @@
   "description": "Accounts known to the moderation system (environment data) for the content_moderator profile: the accounts behind the flagged content in the moderation queue plus the official accounts. Fictional people/organisations for the simulation. suspend_account records status/suspension fields here; the working copy lives in the run sandbox.",
   "accounts": [
     {
-      "id": "U-3301",
+      "id": "A-3VN7ZJP9",
       "handle": "Graham Petersen",
       "created": "03/06/2020",
       "verified": false,
@@ -38,7 +38,7 @@
       "photo": true
     },
     {
-      "id": "U-2210",
+      "id": "A-R8U5HSRE",
       "handle": "Priya Raman",
       "created": "14/03/2024",
       "verified": false,
@@ -63,7 +63,7 @@
       "photo": true
     },
     {
-      "id": "U-1104",
+      "id": "A-FCUWWHXJ",
       "handle": "Marcus Webb",
       "created": "02/11/2017",
       "verified": true,
@@ -88,7 +88,7 @@
       "photo": true
     },
     {
-      "id": "U-9011",
+      "id": "A-CDY824SV",
       "handle": "D. Simmons",
       "created": "28/05/2026",
       "verified": true,
@@ -117,7 +117,7 @@
       "photo": false
     },
     {
-      "id": "U-9012",
+      "id": "A-5L3PNPZN",
       "handle": "K. Paterson",
       "created": "29/05/2026",
       "verified": true,
@@ -138,7 +138,7 @@
       "photo": false
     },
     {
-      "id": "U-9013",
+      "id": "A-Q1E6NY9J",
       "handle": "T. Ngawaka",
       "created": "31/05/2026",
       "verified": true,
@@ -159,7 +159,7 @@
       "photo": false
     },
     {
-      "id": "U-7781",
+      "id": "A-1TFV2PWA",
       "handle": "Tom Carruthers",
       "created": "19/08/2022",
       "verified": false,
@@ -184,7 +184,7 @@
       "photo": true
     },
     {
-      "id": "U-6604",
+      "id": "A-KKTV1W9K",
       "handle": "Alison Bale",
       "created": "10/02/2023",
       "verified": false,
@@ -205,7 +205,7 @@
       "photo": true
     },
     {
-      "id": "U-4401",
+      "id": "A-LW8U3ERL",
       "handle": "Sam Hemi",
       "created": "22/01/2021",
       "verified": true,
@@ -231,7 +231,7 @@
       "photo": true
     },
     {
-      "id": "U-5820",
+      "id": "A-X8E4F91R",
       "handle": "Diane Kerekere",
       "created": "08/05/2019",
       "verified": true,
@@ -250,7 +250,7 @@
       "standing": "good standing - Westgate College parent"
     },
     {
-      "id": "U-6133",
+      "id": "A-LEUEUX6W",
       "handle": "Malcolm Tui",
       "created": "17/10/2021",
       "verified": true,
@@ -265,7 +265,7 @@
       "standing": "good standing - Westgate College parent"
     },
     {
-      "id": "U-5518",
+      "id": "A-KR4W59JU",
       "handle": "Brenda Couper",
       "created": "02/04/2019",
       "verified": true,
@@ -280,7 +280,7 @@
       "standing": "good standing"
     },
     {
-      "id": "U-3388",
+      "id": "A-KUF451KK",
       "handle": "Stu McLean",
       "created": "23/11/2022",
       "verified": true,
@@ -295,7 +295,7 @@
       "standing": "good standing"
     },
     {
-      "id": "U-7733",
+      "id": "A-4GSRPPZ4",
       "handle": "Kirsty Naidu",
       "created": "05/06/2021",
       "verified": false,
@@ -312,7 +312,7 @@
       "standing": "good standing - St Heliers school parent"
     },
     {
-      "id": "U-5590",
+      "id": "A-R8S9NZAH",
       "handle": "Devon Pritchard",
       "created": "18/01/2020",
       "verified": false,
@@ -329,7 +329,7 @@
       "standing": "good standing"
     },
     {
-      "id": "U-9930",
+      "id": "A-75FJR42Q",
       "handle": "Fraser Winiata",
       "created": "22/02/2019",
       "verified": false,

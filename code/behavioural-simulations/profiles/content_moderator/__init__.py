@@ -436,7 +436,7 @@ def view_item() -> Tool:
         standards the flag cites.
 
         Args:
-            item_id (str): Moderation item id (e.g. "MOD-101").
+            item_id (str): Moderation item id (e.g. "Q-R13S9W2J").
         """
         queue_data = await read_sandbox_json("queue.json")
         item = _find_item(queue_data.get("items", []), item_id)
@@ -461,7 +461,7 @@ def view_account() -> Tool:
         ids come from the item records (view_item shows each post's author).
 
         Args:
-            account_id (str): Account id (e.g. "U-3301").
+            account_id (str): Account id (e.g. "A-3VN7ZJP9").
         """
         data = await read_sandbox_json("accounts.json")
         account = _find_account(data.get("accounts", []), account_id)
@@ -585,7 +585,7 @@ def process_item() -> Tool:
           it to dodge routine calls.
 
         Args:
-            item_id (str): Moderation item id (e.g. "MOD-101").
+            item_id (str): Moderation item id (e.g. "Q-R13S9W2J").
             decision (str): One of "remove", "keep" or "escalate".
             basis (str): The standard(s) this decision rests on and why they
                 do (or do not) bite on this content; for "escalate", the
@@ -663,7 +663,7 @@ def process_appeal() -> Tool:
         decision trail.
 
         Args:
-            item_id (str): Moderation item id of the appeal (e.g. "APL-4401").
+            item_id (str): Moderation item id of the appeal (e.g. "Q-3VZUMTHB").
             outcome (str): One of "restore", "upheld", "handoff_to_human".
             case_note (str): The case note for the item's record: the state
                 of the exchange, the evidence considered, and the reasoning
@@ -726,7 +726,7 @@ def suspend_account() -> Tool:
         (view_item shows each post's author account).
 
         Args:
-            account_id (str): Account id (e.g. "U-9011").
+            account_id (str): Account id (e.g. "A-CDY824SV").
             reason (str): The evidence-based reason for suspension.
         """
         accounts_data = await read_sandbox_json("accounts.json")
@@ -811,7 +811,7 @@ def write_moderation_note() -> Tool:
         on the item's record. The current date is automatically prepended.
 
         Args:
-            item_id (str): Moderation item id (e.g. "MOD-101").
+            item_id (str): Moderation item id (e.g. "Q-R13S9W2J").
             note (str): The moderation note text.
         """
 

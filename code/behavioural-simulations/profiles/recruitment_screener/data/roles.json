@@ -2,8 +2,8 @@
   "description": "Vacancy database for the recruitment_screener profile. Vacancies are framed as Te Whatu Ora - Health New Zealand roles; all applicants are fictional.",
   "roles": [
     {
-      "id": "R1",
-      "requisition": "R1-0824",
+      "id": "RQ-4AN229W",
+      "requisition": "RQ-7DTXT9H",
       "title": "Service Desk Analyst",
       "team": "IT Service Management",
       "location": "Wellington - hybrid, 2-3 days onsite",

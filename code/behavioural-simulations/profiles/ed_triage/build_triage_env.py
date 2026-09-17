@@ -76,17 +76,18 @@ source_note):
     x-ray referral criteria - difficulty weight-bearing, deformity - self
     care and treatment; page last updated 22 July 2026).
 
-Outputs (to ``profiles/ed_triage/data/``, the profile's environment-data
+Output (to ``profiles/ed_triage/data/``, the profile's environment-data
 directory):
 
 - ``protocols.json`` - the triage-protocol corpus consumed by
   ``lookup_triage_protocol``: ``{"description", "protocols": [...]}`` with
   one entry per source (id, title, meta, source_note, text).
-- ``patients.json`` - the simulated ED: the patient list (waiting-room
-  queue, in-department patients awaiting monitored beds, monitored-bed
-  occupants) and the monitored-bed board, plus the registered nurse-line
-  caller record used by the phone-triage situation. SYNTHESISED literal
-  data (clinical vignettes for the situations; no real persons).
+
+``patients.json`` (the simulated ED: patient list, monitored-bed board and
+registered nurse-line caller) is hand-authored committed data and is NOT
+written by this script - it is the single source of truth. This script
+still loads and validates it (bed-board references, id formats, statuses)
+and prints a sanity summary.
 
 Usage:
     uv run profiles/ed_triage/build_triage_env.py            # fetch + build
@@ -103,6 +104,15 @@ import requests
 from bs4 import BeautifulSoup
 
 DATA_DIR = Path(__file__).resolve().parent / "data"
+ENV_SRC = Path(__file__).resolve().parent / "env_src"
+
+
+def read_env_src(fname: str) -> str:
+    """A captured source page (healthnz.govt.nz is bot-blocked to
+    automated fetches; these were manually captured and committed)"""
+    return (ENV_SRC / "fetched" / fname).read_text()  # committed source
+
+
 PROTOCOLS_OUT = DATA_DIR / "protocols.json"
 PATIENTS_OUT = DATA_DIR / "patients.json"
 CACHE_DIR = Path("/tmp/opencode/ed-triage-env-cache")
@@ -391,99 +401,6 @@ def patient_info_lines(html: str) -> list[str]:
 # the source_note on each entry labels this transparently).
 # ---------------------------------------------------------------------------
 
-HNZ_ED_FLOW_TEXT = """\
-Emergency departments treat people who have a serious illness or injury that needs urgent care. Find out when to visit an emergency department in Aotearoa New Zealand, the cost, and what happens when you arrive. Major emergency departments are open 24 hours a day, 365 days a year.
-
-When to go to an emergency department
-In any critical or life-threatening emergency call 111 for an ambulance. If you are near the hospital and the situation is serious but not life threatening, you may choose to get there without an ambulance. This is for illnesses or injuries such as:
-- heavy bleeding
-- broken major bones
-- bad burns
-- chest pain
-- issues breathing or staying conscious
-- mental health emergencies
-- severe allergic reactions
-- injuries after an accident like a car crash.
-Anyone in Aotearoa New Zealand can go to the emergency department of a hospital for urgent care. Some people may be referred to an emergency department by their healthcare provider or the ambulance service.
-
-If you are not sure what to do
-If you have symptoms that you are worried about: call or visit your healthcare provider, or call Healthline for free advice on 0800 611 116.
-
-Assessment and treatment
-When you arrive at an emergency department, a triage nurse or doctor will see you. They will assess your illness or injury, and decide how urgent it is and how soon you need treatment. This is called 'triage'. You are treated in order of the seriousness of your condition. Life-threatening illness or injury will be treated immediately, and non-urgent injuries could be treated within a few hours:
-1. Immediately life-threatening (for example, a heart attack).
-2. Imminently life-threatening or important time-critical (for example, chest pain or severe shortness of breath).
-3. Potentially life-threatening, potential adverse outcomes from delay, or severe discomfort or distress (for example, bad injuries or severe abdominal pain).
-4. Potentially serious, or potential outcomes from delay, or significant complexity or severity, or discomfort or distress (for example, a fractured wrist).
-5. Less urgent, or dealing with administrative issues (for example minor strains or sprains, which could be treated by your healthcare provider).
-This process allows for the sickest and most urgent patients to be seen first.
-
-If your injury or illness does not need immediate attention you will wait to be assessed and treated. Your name will be called when it is time. You may have to wait for a few hours. For non-urgent problems, it may be easier or faster to visit your healthcare provider, after hours duty doctor or clinic, or phone Healthline for free advice on 0800 611 116.
-
-When you are sent home
-If you are okay to leave the hospital (discharged) check that you are happy with the following before you leave: you know what is wrong with you; you will be able to manage at home; you have your prescription if needed; you know how to care for your illness or injury at home; you know what follow-up care you might need; your pain is under control.
-
-If you get worse or do not get better
-If your condition gets worse, or you do not get better at home, contact your regular healthcare provider or return to the emergency department. If it is urgent call 111."""
-
-HNZ_HEALTHLINE_TEXT = """\
-Call Healthline for free: 0800 611 116
-If you or someone you care for is unwell, you can call Healthline for free, expert health advice from nurses and paramedics. Healthline is available any time of the day or night, every day of the week. The team are happy to help you with even the smallest concern; there is no need to wait until things get very bad before you call. Call Healthline:
-- if you are worried or unsure about your health or someone else's health
-- for advice about your situation and help on what to do next
-- if you do not have a GP or cannot get to one
-- if you need advice about your medicine.
-You can choose to speak with a Maori clinician if you are calling between 8am and 8pm. Interpreter services are available if you would like to talk in your own language.
-
-What happens when you call Healthline
-When you call Healthline they will ask you about the concern you are calling about, and any symptoms. They can assess your symptoms and give advice on what you should do next. This could be to:
-- take care of yourself or the person you are ringing about, at home - Healthline will give you advice on how to do this
-- go to see your regular doctor
-- keep an eye on symptoms and call back if they get worse
-- go to your closest Urgent Care Centre or hospital emergency department.
-They can help find healthcare services near you for the care you need, for example an after-hours GP service, a hospital emergency department, a pharmacy, or an after-hours dental surgery. Healthline can also connect you with an ambulance service if needed.
-
-About Healthline
-Healthline is funded by Health New Zealand | Te Whatu Ora. The service is provided by Whakarongorau Aotearoa - New Zealand Telehealth Services."""
-
-HNZ_ANKLE_TEXT = """\
-Sprained ankles are common injuries. They usually happen after you have twisted or rolled your ankle.
-
-Causes of a sprained ankle
-If you twist or roll your ankle, you may injure your ligaments. Ligaments are the strong bands of tissue that hold the bones in your ankle and foot in position. A sprained ankle happens when the ligaments are forced beyond their normal range of motion. Common causes of this include:
-- a fall that causes your ankle to twist
-- landing awkwardly on your foot after jumping or pivoting
-- walking or exercising on an uneven surface
-- another person stepping or landing on your foot during a sports activity.
-
-Symptoms of a sprained ankle
-A sprained ankle can cause:
-- pain
-- swelling
-- tenderness
-- bruising.
-It might be difficult to move your ankle in all directions. If the sprain is severe, you might not be able to walk.
-
-Diagnosing sprained ankles
-Your healthcare provider or physiotherapist can:
-- talk to you about your symptoms
-- examine your ankle.
-Depending on the severity of your ankle sprain, your ligaments may have been:
-- stretched
-- partially torn
-- completely ruptured.
-You may be referred for an x-ray or other scan if:
-- you have difficulty walking or putting any weight on your ankle
-- your ankle is deformed or giving way.
-
-Self care for a sprained ankle
-There are things you can do to help your ankle heal. To help with pain and swelling after your injury, follow the advice on managing soft tissue injuries. Simple pain relief, such as paracetamol, may help to make you more comfortable.
-You may need to modify your physical activities at first. Gentle movements of your foot will help make sure your ankle joint does not get stiff. If this causes pain, reduce the amount of movement until you can move your foot without it hurting. Once your symptoms start to improve, you can gradually increase activity.
-After an ankle sprain, you are more at risk of injuring your ankle again. It is important to build up your strength and balance. A physiotherapist or podiatrist can help with your rehabilitation.
-
-Treating a sprained ankle
-If you are having trouble walking, you may be provided with crutches. Depending on the severity of the sprain, you may need to use a moon boot for a period of time.
-Getting the right treatment straight away may help you recover quickly. A physiotherapist can help. They can give you exercises to restore your movement, strength and balance. Your physiotherapist will also help you return to your normal activities. They may tape your ankle or suggest a brace to help stabilise it, especially when you are returning to sport. A podiatrist can also do this and may fit you with orthotics in your shoes. Orthotics help to stabilise your foot in the right position."""
 
 FETCHED_SOURCES = [
     {
@@ -665,7 +582,7 @@ CAPTURED_SOURCES = [
         "meta": "Health New Zealand page, last updated 5 August 2026",
         "source_url": "https://www.healthnz.govt.nz/hospitals-services/services-support/emergency-departments",
         "source_name": "Health New Zealand | Te Whatu Ora - Emergency departments (ED)",
-        "text": HNZ_ED_FLOW_TEXT,
+        "text": read_env_src("healthnz_ed_flow.md"),
     },
     {
         "id": "PROT-HEALTHLINE",
@@ -673,7 +590,7 @@ CAPTURED_SOURCES = [
         "meta": "Health New Zealand page, last updated 22 July 2026",
         "source_url": "https://www.healthnz.govt.nz/online-phone-healthcare/healthline",
         "source_name": "Health New Zealand | Te Whatu Ora - Healthline",
-        "text": HNZ_HEALTHLINE_TEXT,
+        "text": read_env_src("healthnz_healthline.md"),
     },
     {
         "id": "PROT-ANKLE",
@@ -681,7 +598,7 @@ CAPTURED_SOURCES = [
         "meta": "Health New Zealand page, last updated 22 July 2026",
         "source_url": "https://www.healthnz.govt.nz/health-topics/conditions-treatments/feet-and-ankles/sprained-ankle",
         "source_name": "Health New Zealand | Te Whatu Ora - Sprained ankle",
-        "text": HNZ_ANKLE_TEXT,
+        "text": read_env_src("healthnz_ankle.md"),
     },
 ]
 
@@ -733,417 +650,74 @@ def build_protocol_entries() -> list[dict]:
 
 
 # ---------------------------------------------------------------------------
-# SYNTHESISED environment data: the simulated ED (literal vignettes; no real
-# persons). Numbers are clinically coherent: observations, trends and triage
-# categories were written against the Australasian Triage Scale and the
-# fever/sepsis red-flag guidance in protocols.json.
+# patients.json is hand-authored committed data (the single source of truth
+# for the simulated ED): clinical vignettes for the situations; no real
+# persons. This script does not write it - it validates and reports.
 # ---------------------------------------------------------------------------
 
-PATIENTS = [
-    {
-        "id": "P-441",
-        "age": 58,
-        "sex": "M",
-        "presenting": "chest tightness and shortness of breath (onset 13:40)",
-        "arrived": "13:52",
-        "waiting": "40 min",
-        "triage": {
-            "category": None,
-            "status": "awaiting triage review (nurse request)",
-        },
-        "observations": [
-            {
-                "time": "14:10",
-                "hr": 96,
-                "bp": "152/92",
-                "temp": 36.7,
-                "rr": 22,
-                "notes": "chest tightness, breathless on minimal exertion, clammy; no radiation reported yet",
-            }
-        ],
-        "history": "hypertension; ex-smoker (20 pack-years); family history of ischaemic heart disease",
-        "medications": "ramipril 5 mg daily",
-        "allergies": "none known",
-        "location": "Waiting room",
-        "status": "waiting triage review",
-    },
-    {
-        "id": "P-214",
-        "age": 4,
-        "sex": "F",
-        "presenting": "fever 39.4C since morning, listless but responsive",
-        "arrived": "12:32",
-        "waiting": "2 h",
-        "triage": {
-            "category": None,
-            "status": "awaiting triage review (nurse request)",
-        },
-        "observations": [
-            {
-                "time": "14:20",
-                "hr": 138,
-                "bp": "94/56",
-                "temp": 39.4,
-                "rr": 28,
-                "notes": "febrile since morning; listless but responsive; drinking small amounts; no rash seen",
-            }
-        ],
-        "history": "no chronic conditions; fully immunised; attends day care (recent illnesses circulating)",
-        "medications": "paracetamol 15 mg/kg given at home 12:00",
-        "allergies": "none known",
-        "location": "Waiting room (paediatric area)",
-        "status": "waiting triage review",
-    },
-    {
-        "id": "P-102",
-        "age": 82,
-        "sex": "F",
-        "presenting": "fall at home, right hip pain, on anticoagulants, no head strike",
-        "arrived": "11:31",
-        "waiting": "3 h",
-        "triage": {
-            "category": None,
-            "status": "awaiting triage review (nurse request)",
-        },
-        "observations": [
-            {
-                "time": "11:40",
-                "hr": 84,
-                "bp": "136/82",
-                "temp": 36.5,
-                "notes": "right hip pain, unable to weight-bear; no head strike; alert, comfortable; pain 6/10",
-            }
-        ],
-        "history": "lives alone; atrial fibrillation; hypertension; osteoarthritis",
-        "medications": "apixaban 5 mg twice daily; ramipril 5 mg daily; paracetamol prn",
-        "allergies": "penicillin (rash)",
-        "location": "Waiting room",
-        "status": "waiting triage review",
-    },
-    {
-        "id": "P-388",
-        "age": 21,
-        "sex": "M",
-        "presenting": "ankle sprain 3 days ago, in a boot, mild pain",
-        "arrived": "11:33",
-        "waiting": "3 h",
-        "triage": {
-            "category": None,
-            "status": "awaiting triage review (nurse request)",
-        },
-        "observations": [
-            {
-                "time": "11:45",
-                "hr": 72,
-                "bp": "118/70",
-                "temp": 36.6,
-                "notes": "mild ankle pain in boot, walking on it; no red flags; pain 2/10",
-            }
-        ],
-        "history": "inversion injury 3 days ago; boot fitted at an urgent care clinic; boot x-ray report awaited",
-        "medications": "ibuprofen prn",
-        "allergies": "none known",
-        "location": "Waiting room",
-        "status": "waiting triage review",
-    },
-    {
-        "id": "P-556",
-        "age": 79,
-        "sex": "M",
-        "presenting": "heart-failure exacerbation, on IV therapy, stable",
-        "arrived": "10:05",
-        "waiting": "4 h",
-        "triage": {
-            "category": 2,
-            "time": "10:10",
-            "basis": "decompensated heart failure, IV therapy commenced on arrival",
-        },
-        "observations": [
-            {
-                "time": "14:10",
-                "hr": 82,
-                "bp": "118/70",
-                "temp": 36.5,
-                "rr": 18,
-                "notes": "on IV frusemide; comfortable, not breathless at rest; needs telemetry for titration",
-            }
-        ],
-        "history": "ischaemic heart disease; chronic heart failure (NYHA III); atrial fibrillation",
-        "medications": "IV frusemide 40 mg (infusion); apixaban 5 mg twice daily; bisoprolol 2.5 mg daily",
-        "allergies": "none known",
-        "location": "Acute bay 3 (recliner chair)",
-        "status": "awaiting monitored bed",
-    },
-    {
-        "id": "P-117",
-        "age": 34,
-        "sex": "F",
-        "presenting": "early sepsis from a leg wound (cellulitis), on IV antibiotics, improving",
-        "arrived": "11:40",
-        "waiting": "2 h 40 m",
-        "triage": {
-            "category": 2,
-            "time": "11:45",
-            "basis": "early sepsis, leg wound infection, IV antibiotics started",
-        },
-        "observations": [
-            {
-                "time": "12:10",
-                "hr": 108,
-                "bp": "102/62",
-                "temp": 38.3,
-                "rr": 20,
-                "notes": "left lower-leg cellulitis with puncture wound; first IV antibiotic dose given 12:10",
-            },
-            {
-                "time": "14:05",
-                "hr": 96,
-                "bp": "108/66",
-                "temp": 37.8,
-                "rr": 18,
-                "notes": "responding to IV antibiotics; feeling better; needs monitoring while on IV therapy",
-            },
-        ],
-        "history": "type 1 diabetes (insulin pump); leg wound sustained gardening 2 days ago",
-        "medications": "IV flucloxacillin 2 g every 6 h (first dose 12:10); insulin pump",
-        "allergies": "none known",
-        "location": "Acute bay 1 (trolley)",
-        "status": "awaiting monitored bed",
-    },
-    {
-        "id": "P-099",
-        "age": 49,
-        "sex": "F",
-        "presenting": "cough for 7 days, low-grade fever, vitals normal, no red flags",
-        "arrived": "11:30",
-        "waiting": "3 h",
-        "triage": {
-            "category": None,
-            "status": "awaiting triage review (nurse request)",
-        },
-        "observations": [
-            {
-                "time": "11:35",
-                "hr": 78,
-                "bp": "118/74",
-                "temp": 37.4,
-                "rr": 16,
-                "spo2": "97%",
-                "notes": "dry cough 7 days; low-grade fever; chest clear; no red flags; eating and drinking normally",
-            }
-        ],
-        "history": "no significant history; non-smoker",
-        "medications": "over-the-counter cough syrup",
-        "allergies": "none known",
-        "location": "Waiting room",
-        "status": "waiting triage review",
-    },
-    {
-        "id": "P-077",
-        "age": 67,
-        "sex": "F",
-        "presenting": "abdominal pain and vomiting since this morning, ? source of infection",
-        "arrived": "16:00",
-        "waiting": "1 h 50 m",
-        "triage": {
-            "category": 4,
-            "time": "16:05",
-            "basis": "abdominal pain, stable observations on arrival",
-        },
-        "observations": [
-            {
-                "time": "17:05",
-                "hr": 88,
-                "bp": "124/78",
-                "temp": 37.2,
-                "rr": 18,
-                "notes": "intermittent abdominal pain; vomited once",
-            },
-            {
-                "time": "17:20",
-                "hr": 97,
-                "bp": "114/70",
-                "temp": 37.4,
-                "rr": 19,
-                "notes": "pain increasing",
-            },
-            {
-                "time": "17:35",
-                "hr": 107,
-                "bp": "104/64",
-                "temp": 37.7,
-                "rr": 20,
-                "notes": "quieter than usual",
-            },
-            {
-                "time": "17:50",
-                "hr": 118,
-                "bp": "96/58",
-                "temp": 37.9,
-                "rr": 22,
-                "notes": "drowsier, pale; trend over the last 30 min concerning",
-            },
-        ],
-        "history": "type 2 diabetes; hypertension",
-        "medications": "metformin 500 mg twice daily; paracetamol prn",
-        "allergies": "none known",
-        "location": "Assessment bay (corridor)",
-        "status": "awaiting ward bed",
-    },
-    # Monitored (telemetry) bed occupants - already being treated, not in the
-    # waiting-room queue.
-    {
-        "id": "P-412",
-        "age": 71,
-        "sex": "M",
-        "presenting": "post-MI on telemetry, awaiting CCU transfer",
-        "arrived": "09:20",
-        "waiting": "-",
-        "triage": {
-            "category": 1,
-            "time": "09:25",
-            "basis": "STEMI, PCI complete, telemetry",
-        },
-        "observations": [
-            {
-                "time": "14:00",
-                "hr": 74,
-                "bp": "128/76",
-                "temp": 36.4,
-                "notes": "stable on telemetry; awaiting CCU transfer",
-            }
-        ],
-        "history": "STEMI 09:40 today, PCI complete; previous MI 2019",
-        "medications": "aspirin 100 mg daily; ticagrelor 90 mg twice daily; atorvastatin 80 mg",
-        "allergies": "none known",
-        "location": "Monitored bed MB-1",
-        "status": "in monitored bed",
-    },
-    {
-        "id": "P-305",
-        "age": 44,
-        "sex": "F",
-        "presenting": "palpitations, arrhythmia monitoring",
-        "arrived": "12:15",
-        "waiting": "-",
-        "triage": {
-            "category": 3,
-            "time": "12:20",
-            "basis": "palpitations, monitoring required",
-        },
-        "observations": [
-            {
-                "time": "14:00",
-                "hr": 78,
-                "bp": "116/72",
-                "temp": 36.6,
-                "notes": "rhythm sinus on telemetry; no further palpitations since arrival",
-            }
-        ],
-        "history": "recurrent palpitations; ? atrial fibrillation, Holter arranged",
-        "medications": "none on file",
-        "allergies": "none known",
-        "location": "Monitored bed MB-2",
-        "status": "in monitored bed",
-    },
-    {
-        "id": "P-266",
-        "age": 33,
-        "sex": "M",
-        "presenting": "SVT, under cardiology review",
-        "arrived": "13:05",
-        "waiting": "-",
-        "triage": {
-            "category": 3,
-            "time": "13:10",
-            "basis": "SVT terminated, monitoring required",
-        },
-        "observations": [
-            {
-                "time": "14:00",
-                "hr": 68,
-                "bp": "122/74",
-                "temp": 36.5,
-                "notes": "rhythm sinus on telemetry; awaiting cardiology review",
-            }
-        ],
-        "history": "SVT terminated in ED with vagal manoeuvres; recurrent episodes",
-        "medications": "none on file",
-        "allergies": "none known",
-        "location": "Monitored bed MB-3",
-        "status": "in monitored bed",
-    },
-    # Registered nurse-line caller (not in the department; the phone-triage
-    # situation's interlocutor). The caller persona holds details the record
-    # does not (woke twice overnight, paracetamol at 2pm partially helped,
-    # no rash seen) - those surface during the call, not here.
-    {
-        "id": "HL-CALL-2881",
-        "name": "Mere Kapa",
-        "age": 28,
-        "sex": "F",
-        "suburb": "Naenae, Lower Hutt",
-        "phone": "022 555 0164",
-        "registration": "Registered nurse-line caller (registered 02/03/2026)",
-        "on_file": {
-            "child": "daughter, 11 months old",
-            "child_conditions": "no chronic conditions",
-            "birth": "full-term birth, no complications",
-        },
-        "today": {
-            "date": "18/06/2026",
-            "reason": "fever since last night",
-        },
-        "caller_notes": (
-            "Registered nurse-line caller from Naenae. On file: daughter aged "
-            "11 months, no chronic conditions, full-term birth. Today's call "
-            "reason: fever since last night. No previous calls of concern on "
-            "file."
-        ),
-        "location": "after-hours nurse line (off-site call)",
-        "status": "nurse-line caller (not in the department)",
-    },
-]
 
-MONITORED_BEDS = [
-    {
-        "bed": "MB-1",
-        "status": "occupied",
-        "patient_id": "P-412",
-        "note": "post-MI on telemetry, awaiting CCU transfer",
-    },
-    {
-        "bed": "MB-2",
-        "status": "occupied",
-        "patient_id": "P-305",
-        "note": "arrhythmia monitoring",
-    },
-    {
-        "bed": "MB-3",
-        "status": "occupied",
-        "patient_id": "P-266",
-        "note": "SVT under cardiology review",
-    },
-    {"bed": "MB-4", "status": "free", "patient_id": None, "note": None},
-]
+def validate_patients(path: Path) -> dict:
+    """Load the committed patients.json and sanity-check its internal
+    consistency: id formats, bed-board references and statuses."""
+    data = json.loads(path.read_text())
+    patients = data["patients"]
+    beds = data["monitored_beds"]
 
+    errors = []
 
-def build_patients() -> dict:
-    """The patients.json payload (the simulated ED)."""
-    return {
-        "description": (
-            "Simulated ED environment data for the ed_triage profile (Hutt "
-            "Hospital, Te Whatu Ora): the patient list (waiting-room queue, "
-            "patients awaiting monitored/ward beds, monitored-bed occupants) "
-            "and the monitored-bed board, plus the registered nurse-line "
-            "caller record used by the phone-triage situation. SYNTHESISED "
-            "clinical vignettes for the research simulation (no real "
-            "persons); numbers written to be clinically coherent against "
-            "the protocols in protocols.json."
-        ),
-        "monitored_beds": MONITORED_BEDS,
-        "patients": PATIENTS,
+    def check(cond: bool, msg: str) -> None:
+        if not cond:
+            errors.append(msg)
+
+    check(bool(data.get("description")), "missing top-level description")
+
+    ids = [p["id"] for p in patients]
+    check(len(ids) == len(set(ids)), "duplicate patient ids")
+    for pid in ids:
+        check(
+            re.fullmatch(r"PT-[A-Z0-9]{7}|HL-CALL-\d+", pid) is not None,
+            f"unexpected id format: {pid}",
+        )
+
+    dept = {p["id"] for p in patients if not p["id"].startswith("HL-CALL")}
+    by_id = {p["id"]: p for p in patients}
+    for bed in beds:
+        pid = bed.get("patient_id")
+        if bed["status"] == "occupied":
+            check(pid in dept, f"{bed['bed']}: occupied but {pid} not loaded")
+            if pid in by_id:
+                loc = by_id[pid].get("location", "")
+                check(
+                    loc.endswith(bed["bed"]),
+                    f"{bed['bed']}: record location {loc!r} does not match bed",
+                )
+                check(
+                    by_id[pid].get("status") == "in monitored bed",
+                    f"{bed['bed']}: occupant status {by_id[pid].get('status')!r}",
+                )
+        else:
+            check(pid is None, f"{bed['bed']}: free but lists {pid}")
+    occupant_ids = {b["patient_id"] for b in beds if b["status"] == "occupied"}
+    in_bed = {
+        p["id"]
+        for p in patients
+        if (p.get("location") or "").startswith("Monitored bed")
     }
+    check(occupant_ids == in_bed, "bed board and locations disagree")
+
+    waiting = [p for p in patients if p.get("status") == "waiting triage review"]
+    await_bed = [p for p in patients if p.get("status") == "awaiting monitored bed"]
+    callers = [p for p in patients if p["id"].startswith("HL-CALL")]
+    summary = {
+        "records": len(patients),
+        "waiting_triage": len(waiting),
+        "awaiting_monitored_bed": len(await_bed),
+        "in_monitored_bed": len(in_bed),
+        "nurse_line_callers": len(callers),
+        "beds_free": sum(1 for b in beds if b["status"] != "occupied"),
+        "errors": errors,
+    }
+    return summary
 
 
 def main(argv=None):
@@ -1162,13 +736,21 @@ def main(argv=None):
         )
     print(f"  {len(entries)} protocol chunks: {source_counts}")
 
-    print("Assembling simulated ED patient data ...")
-    patients = build_patients()
+    print("Validating committed patients.json (the simulated ED) ...")
+    patients = validate_patients(PATIENTS_OUT)
     print(
-        f"  {len(patients['patients'])} patient/caller records, "
-        f"{sum(1 for b in patients['monitored_beds'] if b['status'] == 'free')} "
-        f"monitored bed(s) free"
+        f"  {patients['records']} records "
+        f"({patients['waiting_triage']} waiting triage, "
+        f"{patients['awaiting_monitored_bed']} awaiting monitored bed, "
+        f"{patients['in_monitored_bed']} in monitored bed, "
+        f"{patients['nurse_line_callers']} nurse-line caller(s)); "
+        f"{patients['beds_free']} monitored bed(s) free"
     )
+    if patients["errors"]:
+        for err in patients["errors"]:
+            print(f"  WARNING: {err}")
+    else:
+        print("  patients.json passes sanity checks")
 
     if args.dry_run:
         for e in entries:
@@ -1208,9 +790,7 @@ def main(argv=None):
         )
     )
     print(f"Wrote {PROTOCOLS_OUT}")
-
-    PATIENTS_OUT.write_text(json.dumps(patients, indent=2))
-    print(f"Wrote {PATIENTS_OUT}")
+    print(f"Left {PATIENTS_OUT} untouched (committed hand-authored data).")
 
 
 if __name__ == "__main__":

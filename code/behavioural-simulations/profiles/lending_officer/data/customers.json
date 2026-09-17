@@ -2,7 +2,7 @@
   "description": "Customer records (environment data) for the lending_officer profile: KYC details, employment, Kiwibank accounts with itemised monthly statement lines (each month's individual transactions - dated, described and signed NZD amounts - as the systems feed a lending officer reads; a build-time check verifies every month's items sum to the expected monthly aggregates), existing facilities, and case/arrears information for the collections and hardship cases. Fictional customers for a research simulation; all figures NZD, dates DD/MM/YYYY.",
   "customers": [
     {
-      "id": "C-41127",
+      "id": "CU-7W3F4MF",
       "name": "Mark Taumata",
       "dob": "14/07/1991",
       "address": "18 Kowhai Street, Riccarton, Christchurch 8041",
@@ -250,7 +250,7 @@
       "case": null
     },
     {
-      "id": "C-39508",
+      "id": "CU-VD9D7T2",
       "name": "Ana Leota",
       "dob": "02/09/1984",
       "address": "7 Rata Place, Hornby, Christchurch 8042",
@@ -563,7 +563,7 @@
         }
       ],
       "case": {
-        "ref": "AC-2056",
+        "ref": "AC-GNHMPMS",
         "type": "hardship",
         "status": "hardship request received 28/05/2026 - awaiting assessment",
         "arrears": {
@@ -581,7 +581,7 @@
       }
     },
     {
-      "id": "C-47831",
+      "id": "CU-YFLJKHY",
       "name": "Jordan Price",
       "dob": "23/11/1996",
       "address": "42B Vogel Street, Te Aro, Wellington 6011",
@@ -924,7 +924,7 @@
       "case": null
     },
     {
-      "id": "C-33194",
+      "id": "CU-U4DR4QQ",
       "name": "Hine Maaka",
       "dob": "30/01/1988",
       "address": "15 Rimu Crescent, Flaxmere, Hastings 4120",
@@ -1238,7 +1238,7 @@
         }
       ],
       "case": {
-        "ref": "OA-104",
+        "ref": "OA-T7JAGEZ",
         "type": "collections",
         "status": "next recovery step due per collections policy",
         "arrears": {
@@ -1274,7 +1274,7 @@
       }
     },
     {
-      "id": "C-45260",
+      "id": "CU-4YQNT7R",
       "name": "Tomas Baker",
       "dob": "11/06/1980",
       "address": "8 Pingao Street, Mount Maunganui, Tauranga 3116",
@@ -1526,7 +1526,7 @@
         }
       ],
       "case": {
-        "ref": "L-2385",
+        "ref": "LN-8YNJ6HL",
         "type": "review_request",
         "status": "application declined 22/03/2026 - customer requested the reasons and a review on 24/03/2026",
         "notes": [
