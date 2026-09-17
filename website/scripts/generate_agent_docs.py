@@ -228,25 +228,18 @@ def profile_body(spec: dict, runs: list[dict], comparisons: list[dict]) -> str:
         lines += [
             f"#### Results ({len(s_runs)} runs)",
             "",
+            f"- [Runs in the results viewer]"
+            f"({_params(VIEWER_URL, situation=f'{profile_id}-{s["id"]}')}) - "
+            f"{len(s_runs)} runs of this scenario (all models) with the judge "
+            "review, self-review and transcript.",
         ]
-        for model in sorted(runs_by_model):
-            for r in sorted(runs_by_model[model], key=lambda x: x["version"]):
-                score = (
-                    f"judge {r['judge_score']}/5"
-                    if r["judge_score"] is not None
-                    else "judge n/a"
-                )
-                if r.get("judge_verdict"):
-                    score += f" ({r['judge_verdict']})"
-                lines.append(
-                    f"- [{model} · run {r['version']} · {score}]"
-                    f"({_params(VIEWER_URL, run=r['run_id'])})"
-                )
-        for row in comps:
+        if comps:
             lines.append(
-                f"- [{row['agent1_model']} vs {row['agent2_model']} (comparison)]"
-                f"({_params(VIEWER_URL, a=row['agent1_run_id'], b=row['agent2_run_id'])})"
+                f"- [Cross-model comparisons ({len(comps)}) - pick any pair]"
+                f"({_params(VIEWER_URL, situation=f'{profile_id}-{s["id"]}', mode='compare')}) - "
+                "written difference summaries with each model's audit."
             )
+        lines = [line for line in lines if line]
         lines.append("")
     return "\n".join(lines)
 
@@ -308,7 +301,9 @@ def main() -> None:
         text = re.sub(
             r"^#### Results\b.*?(?=^### |\Z)", "", text, flags=re.MULTILINE | re.DOTALL
         )
-        return re.sub(r"\*No runs exported for this situation yet\.\*\n\n?", "", text)
+        text = re.sub(r"\*No runs exported for this situation yet\.\*\n\n?", "", text)
+        # Ignore blank-line formatting (only line content matters).
+        return "\n".join(line for line in text.splitlines() if line.strip())
 
     if args.check:
         pages = generate(include_run_data=False)

@@ -489,6 +489,8 @@ export default function SimulationViewer() {
   const [singleRunId, setSingleRunId] = useState<string | null>(null);
   // Compare mode: the comparison row resolved from deep-link params.
   const [deepLinkPair, setDeepLinkPair] = useState<{ a: string | null; b: string | null }>({ a: null, b: null });
+  // Explicit comparison pick (the selection dropdown above the panel).
+  const [comparisonPick, setComparisonPick] = useState<string | null>(null);
 
   // Loaded documents.
   const [dataSingle, setDataSingle] = useState<RunData | null>(null);
@@ -595,13 +597,18 @@ export default function SimulationViewer() {
 
   const selectedComparisonRow = useMemo(() => {
     if (!comparisonsForCurrent.length) return null;
-    // A deep-linked pair wins; otherwise the newest row for this situation.
+    // A deep-linked pair wins; then an explicit picker choice; otherwise the
+    // newest row for this situation.
     if (deepLinkPair.a && deepLinkPair.b) {
       const match = findComparison(comparisonsForCurrent, deepLinkPair.a, deepLinkPair.b);
       if (match) return match;
     }
+    if (comparisonPick) {
+      const byId = comparisonsForCurrent.find((r) => r.comparison_id === comparisonPick);
+      if (byId) return byId;
+    }
     return comparisonsForCurrent[comparisonsForCurrent.length - 1];
-  }, [comparisonsForCurrent, deepLinkPair]);
+  }, [comparisonsForCurrent, deepLinkPair, comparisonPick]);
 
   const runA = useMemo(
     () => (selectedComparisonRow ? runById.get(selectedComparisonRow.agent1_run_id) ?? null : null),
@@ -707,6 +714,8 @@ export default function SimulationViewer() {
   }, [manifest, situationKey, populatedSituationKeys]);
 
   // Deep link parameters (applied once once both indexes are in):
+  //  - `?situation=<profile_id>-<situation_id>` -> single mode, that situation
+  //    (default model/run pick inside it)
   //  - `?a=<run_id>&b=<run_id>` -> comparison mode with that pair
   //  - `?comparison=<comparison_id>` -> comparison mode, that comparison
   //  - `?run=<run_id>` (or a lone `?a=`) -> single mode with that run
@@ -723,10 +732,29 @@ export default function SimulationViewer() {
       return true;
     };
 
-    const comparisonId = urlParams.get('comparison');
-    if (comparisonId) {
-      if (applyComparison(compRows.find((r) => r.comparison_id === comparisonId))) return;
+    // A situation-only deep link lands on that situation in single mode,
+    // then lets it fall back to its usual default run pick. situations.json
+    // contains profile ids with `_`, so the first '-' separates the pair.
+    const situationParam = urlParams.get('situation');
+    if (situationParam) {
+      const [pid, ...sitParts] = situationParam.split('-');
+      const key = `${pid}/${sitParts.join('-')}`;
+      if (situations.find((s) => `${s.profile_id}/${s.situation_id}` === key)) {
+        autoApplied.current = true;
+        const wantCompare = urlParams.get('mode') === 'compare';
+        const compsForParam = compRows.filter((r) => r.scenario === situationParam
+          && runById.has(r.agent1_run_id) && runById.has(r.agent2_run_id));
+        if (wantCompare && compsForParam.length) {
+          setMode('compare');
+          setDeepLinkPair({ a: null, b: null });
+        } else {
+          setMode('single');
+        }
+        setSituationKey(key);
+        return;
+      }
     }
+    const comparisonId = urlParams.get('comparison');
     const a = urlParams.get('a') ?? urlParams.get('run');
     const b = urlParams.get('b');
     if (a && b && runById.has(a) && runById.has(b)) {
@@ -739,7 +767,7 @@ export default function SimulationViewer() {
       setSituationKey(`${run.profile_id}/${run.situation_id}`);
       setSingleRunId(run.run_id!);
     }
-  }, [manifest, compRows, runById, situationKey]);
+  }, [manifest, compRows, runById, situations, situationKey]);
 
   // Keep the URL in sync with the selection (replaceState: no history spam)
   // so the current view can be copied as a shareable deep link.
@@ -757,6 +785,7 @@ export default function SimulationViewer() {
       setOrDel('b', runB?.run_id);
       setOrDel('run'); setOrDel('comparison');
     }
+    setOrDel('mode', mode === 'compare' ? 'compare' : null);
     const qs = params.toString();
     const url = `${window.location.pathname}${qs ? `?${qs}` : ''}${window.location.hash}`;
     if (url !== `${window.location.pathname}${window.location.search}${window.location.hash}`) {
@@ -910,6 +939,22 @@ export default function SimulationViewer() {
           </div>
         ) : (
           <>
+            {comparisonsForCurrent.length > 1 && (
+              <div style={{ ...card, marginBottom: '1rem', background: 'var(--color-surface)' }}>
+                <label style={label}>Comparison — {comparisonsForCurrent.length} built for this scenario; pick any pair</label>
+                <select
+                  value={selectedComparisonRow?.comparison_id ?? ''}
+                  onChange={(e) => { setComparisonPick(e.target.value); setComparison(null); }}
+                  style={select}
+                >
+                  {comparisonsForCurrent.map((r) => (
+                    <option key={r.comparison_id} value={r.comparison_id}>
+                      {shortModel(r.agent1_model)} vs {shortModel(r.agent2_model)}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
             <ComparisonPanel comparison={comparison} row={selectedComparisonRow} />
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', alignItems: 'start' }}>
               <div style={{ borderLeft: '4px solid #6366f1', paddingLeft: '1rem' }}>
