@@ -6,56 +6,46 @@ generates the live comparison survey. Survey methodology:
 
 ## The comparison survey
 
-- `generate_survey_qsf.py` - the single standalone script (no reference
-  files) that produces the full survey QSF. It builds all 25 comparison
-  blocks (one per profile x situation: a descriptive question with the
-  profile + situation summaries and both agents' self-reviews with their
-  audit fact-checks, then the Agent 1/2 preference, process-quality,
-  reasonableness and AI-use questions), the introduction and Section C, and wires the
-  flow's BlockRandomizer to show 5 of the 25 blocks per respondent.
+One Qualtrics survey serves both recruited channels. The panel email
+distribution sets a `distribution` embedded field (`paid`); the open link
+sets `volunteer`. The survey flow (mirrored by `survey_definition.build()`):
 
-  Qualtrics identity (SurveyID/owner/response-set/quota-group ids) is read
-  from the repo root `.env` (`QUALTRICS_*` entries, documented in
-  `.env.example`); the importer requires those ids to reference real brand
-  objects, and duplicates re-import fine. All
-  `survey/*.qsf` copies are gitignored (they embed the real ids).
+1. EmbeddedData reads `distribution`
+2. Branch on `paid`/`volunteer` -> the matching introduction block
+   (information sheet; the volunteer one adds the prize-raffle paragraph)
+3. Section A - About you: demographics, every item skippable ("Prefer not
+   to say"), top of the survey for screening
+4. Section B - The comparison task: a two-sentence description of the
+   task context
+5. BlockRandomizer: 5 of the 625 comparison blocks (25 scenarios with 5 samples each and 2 models generating samples) per respondent
+6. Section C - Your thoughts: attitude and policy questions
+7. Branch on `volunteer` -> prize-draw question; a `yes` answer ends the
+   survey with a redirect
+
+- `survey_definition.py` - the definition (single source of truth).
+  Intro wording comes from `participant-information-sheet.md` including the
+  `<!--volunteer ... -->` conditional paragraph (parsed by
+  `sheet_for_channel`); comparison wording from `comparison-question.md`.
+
+- `qualtrics_sync.py` - syncs questions from definition to live qualtrics survey. Adds in quotas where Non-binary / "Prefer not to say" are unquota'd
+  and absorb rounding slack.
 
   ```bash
-  uv run survey/generate_survey_qsf.py
+  uv run survey/qualtrics_sync.py
   ```
 
-  Outputs:
-  - `ai-behaviour-survey.qsf` - import via Qualtrics (Surveys -> Create
-    survey -> Import survey). This import has been verified to work.
-  - `comparison-agent-map.json` - which exported model (glm-5.3-flash vs
-    v4-flash) played "Agent 1"/"Agent 2" per comparison (shuffled per
-    build); the analysis code needs this to decode response data.
-
-  Machine-readability: every question carries a structured export tag
-  visible in the response data: comparison questions are
-  `B_<profile>_<situation>_{0,pref,process,reasonable,aiuse}`
-  (`_0` = the scenario description, `_pref` the Agent 1/Agent 2
-  preference, `_process`/`_reasonable` the two Matrix Likerts, `_aiuse`
-  the 5-point agree-with-AI-agent-in-this-work-situation question). Combined
-  with `comparison-agent-map.json` (which model played Agent 1 / Agent 2
-  per comparison, written every build) the response data needs no
-  other lookup. (Editor notes (`NT` elements) are not shipped: Qualtrics'
-  QSF import does not accept them.)
-
-  Question text comes from the latest export session
-  (`code/behavioural-simulations/output/runs`); re-run `export_results.py`
-  in that directory to refresh, then re-run this script. Note a rebuild
-  re-shuffles the Agent 1/Agent 2 labels.
+  Agent 1/Agent 2 labels per comparison: not stored anywhere key-based - join
+  response data on the question tag's comparison_id with the pair record in
+  `code/behavioural-simulations/output/comparisons` to decode which exported
+  model played which agent.
 
 ## Survey documents
 
 Two parts to the survey: the main part is ranking which agent's actions the
-respondent prefers in a given scenario (the comparison blocks above), and a
-second part about how they view the world and AI (Section C; the WVS-derived
-cluster-assignment questions described in `survey-mockup.tex`).
+respondent prefers in a given scenario (the comparison blocks in
+Section B), and a second part about how they view the world and AI
+(Section C; the WVS-derived cluster-assignment questions).
 
-- `survey-mockup.tex` - PDF mockup of the planned questionnaire format
-  (`make watch FILE=survey-mockup`; output in `output/`).
 - `participant-information-sheet.md` / `.tex` - the information sheet
   respondents see before starting. The `.md` is the source the generator
   converts into the survey's title page (edit the `.md`, the `.tex` is the

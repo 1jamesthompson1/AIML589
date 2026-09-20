@@ -1,19 +1,55 @@
+The goal of this chapter and the survey is to be an downstream evaluation of the finetuned models to answer \rqref{prefer}. 
+
 \section{Results of the survey}
 
 The public did prefer models that were aligned with their responses... Or maybe they don't. We are still to find out.
 
 \section{How the survey was constructed}
 
-\subsection{Survey design}
 
-\subsection{Assignment of respondents to clusters}
+Two parts to the survey. Main part is ranking which agents actions they prefer in a given scenario. Second part is a set of questions to understand how they view the world and AI.
 
-At the start of the survey a handful of questions will be asked to determine which cluster the respondent belongs to. The questions selected are most information questions to help assign a respondent to a cluster.
+\subsection{Creating a fair and representative survey}
 
-Some questions are considered contreversial and so were omitted from potential cluster assignment questions. As seen in \figref{clusters/k2_analysis/figures/certainty_by_n_questions}, this has little effect on the confidence of the assignment. In the final 10 questions selected \fixmeinline{Add appendix showing questions selected.} we can assignm cluster with a mean of 0.915 and over 74\% of the WVS respondents with over 90\%.
+Paid respondents answering online using a Qualtrics survey.
 
-\cfigure{clusters/k2_analysis/figures/certainty_by_n_questions}{The confidence that we can assign a respondent accurately to a cluster by how many of the most informative questions they answer.}
+We would like a representative sample of the New Zealand population. The representativeness is in two different spaces: the demographic space and the value space. That is we want to get a wide range of people that represent different demographics but also different ways of thinking within NZ.
 
-\subsection{Selection of scenarios}
+The WVS survey is intended to be a representative sample of the New Zealand population. However as seen in \figref{wvs-nz-demographics} it is not a perfect representation of the population with it skewing to older, less educated and more female. Therefore instead of trying to get a representative sample of the WVS sample we will try to get a representation sample of the NZ population directly. Common demographically representative sample variables are age, gender, ethnicity, and education \cite{statsnz2023gss,satherley2023polling}.
+
+\cfigure{top5-wvs-vs-census}{The WVS survey vs the census across some common demographic variables. Notably Ethnicity is not present in the WVS survey.}{wvs-nz-demographics}
+
+To achieve some form of value representativeness we will use the WVS survey to select a set of variables that are most representative of the different ways of thinking in NZ. These are questions that provide the most amount of information about what the other responses would be. Looking at \figref{representative-variables} we can see that...
+
+
+
+
+To match the selected variables quota sampling is used in which we set quotas for each variable and then recruit participants until the quota is filled. THe more quotas that are used the harder it is to fill the quotas as you end up with a lot of specific quotas. Therefore the number of quotas was limited to \fixme{How many can be used.}
+
+To further help with downstream weights of the responses a few more demographic questions were asked. \fixme{Which extra ones}
+
+\subsection{Elicitation of preferences with pairwise ranking}
+
+Each participant is shown a short objective summary of a scenario which describes the work profile and the situation. They are then shown a summary of 2 different agents and their actions in the scenario. The participant is then asked 2 different questions. They are not told which model is the underlying model for each agent nor that they are LLMs (however this is expected to be inferred by the participants)
+
+First they are asked "All things considered which one did you think acted more in lined with how you would want someone to act." Likert 5 scales from strongly Agent 1 to strongly Agent 2.
+Then for they are asked "How much do you agree with an AI agent being deployed in this situation to make decisions like the ones you just saw."
+
+
+
+\subsection{Selection of trajectories}
+
+5 runs of each model were used.
+\fixmeinline{Add details on how much variance there was between models.}
+
+\subsection{Understanding respondents views on AI and the world}
+
+To help weight the responses of the participants and as a secondary line of inquiry we asked a series of questions to understand the respondents views on AI and the future.
+
+First were the question for each comparision that was about how comfortalbe they were ai being used in that situations.
+
+Then they a re asked a series of questions about their viewws on AI effecting the future. Support for government regulation of AI...
+
+
 
 \section{Analysis of the survey results}
