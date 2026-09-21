@@ -149,6 +149,12 @@ artifacts-backup:
 	  case "$$BR" in /*) ;; ~/*) BR=$$HOME/$${BR#\~/} ;; *) BR=$$HOME/$$BR ;; esac; \
 	  BORG=$${BORG_BIN:-$$HOME/.local/bin/borg}; \
 	  "$$BORG" info "$$BR" >/dev/null 2>&1 || "$$BORG" init --encryption=none "$$BR"; \
+	  # Skip archiving when nothing in artifacts/ changed since the last one. \
+	  CHANGED=$$("$$BORG" create --dry-run --list --filter=AM "$$BR::probe-$$$$-" ./artifacts 2>/dev/null | wc -l); \
+	  if [ "$$CHANGED" -eq 0 ]; then \
+	    echo "artifacts/ unchanged since last archive; skipping borg backup"; \
+	    exit 0; \
+	  fi; \
 	  "$$BORG" create --stats "$$BR::$$(hostname)-$$(date +%Y%m%d-%H%M%S)" ./artifacts; \
 	  "$$BORG" prune --keep-daily 7 --keep-weekly 4 --keep-monthly 6 "$$BR"'
 

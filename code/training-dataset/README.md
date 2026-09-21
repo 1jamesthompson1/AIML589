@@ -349,6 +349,10 @@ bootstrap stability) to help choose the number of clusters. It reads the
 `k2_analysis/` and `k3_analysis/` output dirs writes its comparison table and figures to
 `output/cluster_analysis/k2_vs_k3/`. Run it with `uv run cluster_analysis.py`.
 
+### Quota screening (`quota_analysis.py`)
+
+`quota_analysis.py` is a read-only marimo notebook for building survey
+quotas (e.g. for the public consultation). It tells you how far NZ respondents in WVS are from Census demographics and tell which demographics are most predictive of responses.
 
 ## Input data
 

@@ -1,0 +1,8 @@
+predictor,gain_added_to_age,alone_minus_age,n_outcomes
+Marital status,0.0013,1.1617,250
+Employment status,0.0014,1.1597,250
+Personal income (3-level),0.0019,1.1615,250
+Sex,0.0035,1.1607,250
+Subjective social class,0.0037,1.1605,250
+Education (3-level),0.0056,1.1574,250
+Religiosity,0.0124,1.1513,250
