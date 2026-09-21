@@ -1,6 +1,6 @@
 import marimo
 
-__generated_with = "0.24.0"
+__generated_with = "0.24.2"
 app = marimo.App(width="medium")
 
 
@@ -22,9 +22,11 @@ def _():
 
 @app.cell
 def _(EVALS_ROOT, json, pd):
-    # Shared eval-run helpers used by every analysis section below. All
-    # sections read the same thing: the newest non-reasoning modal_response
-    # eval run per model directory, overall population rows only.
+    # Shared data-loading layer. Every analysis section below reads the same
+    # thing: the newest non-reasoning modal_response eval run per model
+    # directory, overall population rows only. All models carry their
+    # (base_model, method) classification; adapter version ordering /
+    # de-duplication is shared via adapter_rows + collapse_versions.
     MAIN_MODAL_CONFIGS = ("modal_response",)
 
     METHOD_PRETTY = {
@@ -56,20 +58,27 @@ def _(EVALS_ROOT, json, pd):
             return base.rstrip("-"), method
         return model_name, "base"
 
-    def newest_eval_run(model_dir):
-        """Newest non-reasoning modal_response run dir (by config timestamp)."""
+    def newest_run(model_dir, keep=None):
+        """Newest run dir by config timestamp; keep(cfg) optionally filters."""
         runs = []
         for run_dir in model_dir.iterdir():
             cfg_path = run_dir / "config.json"
             if not cfg_path.exists():
                 continue
             cfg = json.loads(cfg_path.read_text())
-            if cfg.get("dataset") not in MAIN_MODAL_CONFIGS or cfg.get("reasoning"):
+            if keep and not keep(cfg):
                 continue
             runs.append((cfg.get("timestamp", ""), run_dir))
-        if not runs:
-            return None
-        return sorted(runs)[-1][1]
+        return sorted(runs)[-1][1] if runs else None
+
+    def newest_eval_run(model_dir):
+        """Newest non-reasoning modal_response run dir (by config timestamp)."""
+        return newest_run(
+            model_dir,
+            keep=lambda cfg: (
+                cfg.get("dataset") in MAIN_MODAL_CONFIGS and not cfg.get("reasoning")
+            ),
+        )
 
     def load_overall_per_question(model_dir):
         """Per-question rows (overall population only) of the newest
@@ -89,19 +98,160 @@ def _(EVALS_ROOT, json, pd):
         )
         return df[df["subpopulation"] == "overall"]
 
+    def parse_list(value):
+        """CSV cells hold list-like values as strings; parse them into real
+        lists regardless of quoting style (repr or JSON)."""
+        import ast
+
+        if isinstance(value, str):
+            try:
+                value = ast.literal_eval(value)
+            except Exception:
+                return None
+        return list(value) if isinstance(value, (list, tuple)) else None
+
+    def per_question_frames():
+        """dict model dir name -> (base_model, method, per-question overall df)
+        for every eval dir with a usable newest modal_response run."""
+        frames = {}
+        for model_dir in sorted(EVALS_ROOT.iterdir()):
+            if not model_dir.is_dir():
+                continue
+            df = load_overall_per_question(model_dir)
+            if df is None:
+                continue
+            base, method = base_and_method(model_dir.name)
+            frames[model_dir.name] = (base, method, df)
+        return frames
+
+    def adapter_rows(sub):
+        """Ordered [(key, label, group)] of one base model's versions: base
+        first, then adapters in METHOD_ORDER; duplicates later collapsed by
+        collapse_versions."""
+        rows = []
+        base_g = sub[sub["method"] == "base"]
+        if not base_g.empty:
+            rows.append((0, "Base", base_g))
+        adapters = []
+        for method, g in sub[sub["method"] != "base"].groupby("method", dropna=False):
+            stem = method.rsplit("-", 1)[0]
+            key = (
+                METHOD_ORDER.index(stem) if stem in METHOD_ORDER else len(METHOD_ORDER)
+            )
+            adapters.append((key, METHOD_PRETTY.get(stem, stem), g))
+        rows += sorted(adapters, key=lambda r: (r[0], r[1]))
+        return rows
+
+    def collapse_versions(rows):
+        """Average duplicated (key, label) entries (several eval dirs mapping
+        to the same method, e.g. reruns) into one concat group."""
+        by_label = {}
+        for key, label, g in rows:
+            by_label.setdefault((key, label), []).append(g)
+        return [
+            (key, label, pd.concat(gs)) for (key, label), gs in sorted(by_label.items())
+        ]
+
+    model_frames = per_question_frames()
     return (
         CAPABILITY_ROOT,
-        MAIN_MODAL_CONFIGS,
-        METHOD_ORDER,
-        METHOD_PRETTY,
         METRICS,
         SPLITS,
         TASK_LABELS,
         TASK_ORDER,
+        adapter_rows,
         base_and_method,
+        collapse_versions,
         load_overall_per_question,
-        newest_eval_run,
+        model_frames,
+        newest_run,
+        parse_list,
     )
+
+
+@app.cell
+def _(FIGS_DIR, pd):
+    # Shared LaTeX table rendering, used by all sections below. Styler
+    # .to_latex (convert_css) turns CSS font-weight into \bfseries, but
+    # escapes cell values only, so headers with special chars (%, _, ...)
+    # need escape_header. Tables are wrapped in \resizebox{\textwidth}{!}{...}
+    # so they never overflow the page; the report pulls them in with
+    # \ctable{...}{...}.
+
+    def escape_header(label):
+        """Escape LaTeX special chars in a column header."""
+
+        return (
+            label.replace("\\", "\\textbackslash{}")
+            .replace("&", "\\&")
+            .replace("%", "\\%")
+            .replace("$", "\\$")
+            .replace("#", "\\#")
+            .replace("_", "\\_")
+            .replace("{", "\\{")
+            .replace("}", "\\}")
+        )
+
+    def escape_latex(text):
+        """Escape LaTeX special chars in cell text (question/answer strings)."""
+
+        return (
+            text.replace("\\", "\\textbackslash{}")
+            .replace("&", "\\&")
+            .replace("%", "\\%")
+            .replace("$", "\\$")
+            .replace("#", "\\#")
+            .replace("_", "\\_")
+            .replace("{", "\\{")
+            .replace("}", "\\}")
+            .replace("~", "\\textasciitilde{}")
+            .replace("^", "\\textasciicircum{}")
+        )
+
+    def highlight_best(df, senses=None):
+        """Bold the best value per column: max for numeric columns by default,
+        or per column via senses={label: "max"|"min"} (e.g. for MultiIndex
+        columns keyed by metric)."""
+
+        def highlight(s):
+            if senses is None:
+                if not pd.api.types.is_numeric_dtype(s):
+                    return ["" for _ in s]  # e.g. CI columns: no highlighting
+                best = s.max()
+            else:
+                best = s.max() if senses[s.name[0]] == "max" else s.min()
+            return ["font-weight: bold;" if v == best else "" for v in s]
+
+        return df.style.apply(highlight, axis=0)
+
+    def write_tex(tex, out_name):
+        """Write raw LaTeX to a file in FIGS_DIR."""
+        out_path = FIGS_DIR / out_name
+        out_path.parent.mkdir(parents=True, exist_ok=True)
+        out_path.write_text(tex)
+        return out_path
+
+    def write_latex_table(df, fmt, n_cols, out_name, senses=None, column_format=None):
+        """Style, format, and write a DataFrame to a resizebox-wrapped booktabs
+        tabular in FIGS_DIR. The index name is suppressed (Styler would emit an
+        extra header row), so the "Model" header is patched into the top-left
+        corner of the first header row."""
+        tex = (
+            highlight_best(df, senses=senses)
+            .format(fmt, na_rep="--")
+            .to_latex(
+                convert_css=True,
+                column_format=column_format or ("l" + "r" * n_cols),
+                hrules=True,
+                multicol_align="l",
+            )
+        )
+        tex = tex.replace(" & \\multicolumn", "Model & \\multicolumn", 1)
+        # Scale the table to the text width so it never overflows the page.
+        tex = "\\resizebox{\\textwidth}{!}{%\n" + tex + "}"
+        return write_tex(tex, out_name)
+
+    return escape_header, escape_latex, write_latex_table, write_tex
 
 
 @app.cell(hide_code=True)
@@ -122,46 +272,23 @@ def _(mo):
 
 
 @app.cell
-def _(
-    EVALS_ROOT,
-    METHOD_ORDER,
-    METHOD_PRETTY,
-    base_and_method,
-    json,
-    load_overall_per_question,
-    np,
-    pd,
-):
+def _(adapter_rows, collapse_versions, model_frames, parse_list, pd):
+    # Building the TVD table data.
 
-    def collect_question_tvd():
+    def collect_question_tvd(frames):
         """Per (model, split, question) TVD (%) between the model's response
         distribution averaged across system prompts and the NZ population."""
         rows = []
-        for model_dir in sorted(EVALS_ROOT.iterdir()):
-            if not model_dir.is_dir():
+        for model, (base, method, df) in frames.items():
+            if "question_id" not in df.columns or not {
+                "model_distribution",
+                "true_distribution",
+            }.issubset(df.columns):
                 continue
-            df = load_overall_per_question(model_dir)
-            if (
-                df is None
-                or "question_id" not in df.columns
-                or not {
-                    "model_distribution",
-                    "true_distribution",
-                }.issubset(df.columns)
-            ):
-                continue
-            base, method = base_and_method(model_dir.name)
-
-            def parse_dist(v):
-                try:
-                    return json.loads(v) if isinstance(v, str) else v
-                except Exception:
-                    return None
-
             for (split, qid), g in df.groupby(["split", "question_id"], dropna=False):
-                dists = [d for d in g["model_distribution"].map(parse_dist) if d]
+                dists = [d for d in g["model_distribution"].map(parse_list) if d]
                 true_dist = next(
-                    (d for d in g["true_distribution"].map(parse_dist) if d), None
+                    (d for d in g["true_distribution"].map(parse_list) if d), None
                 )
                 if not dists or true_dist is None:
                     continue
@@ -169,7 +296,7 @@ def _(
                 tvd = 0.5 * sum(abs(a - b) for a, b in zip(avg_dist, true_dist)) * 100
                 rows.append(
                     {
-                        "model": model_dir.name,
+                        "model": model,
                         "base_model": base,
                         "method": method,
                         "split": split,
@@ -182,65 +309,40 @@ def _(
 
     def build_tvd_tables(qtvd):
         """dict base_model -> DataFrame with one row per model version (base
-        first), columns = mean question-level TVD per split + delta vs base.
-        Duplicate entries (several eval dirs mapping to the same method,
-        e.g. reruns) are averaged."""
+        first), columns = mean question-level TVD per split."""
         tables = {}
-        base_vals = {}
         if qtvd.empty:
-            return tables, base_vals
+            return tables, {}
         for base_model in sorted(qtvd["base_model"].unique()):
-            sub = qtvd[qtvd["base_model"] == base_model]
-            entries = []
-            for model in sub["model"].unique():
-                g = sub[sub["model"] == model]
-                method = g["method"].iloc[0]
-                if method == "base":
-                    key, label = 0, "Base"
-                else:
-                    stem = method.rsplit("-", 1)[0]
-                    key = (
-                        METHOD_ORDER.index(stem)
-                        if stem in METHOD_ORDER
-                        else len(METHOD_ORDER)
-                    )
-                    label = METHOD_PRETTY.get(stem, stem)
-                entries.append((key, label, g))
-            by_label = {}
-            for key, label, g in entries:
-                by_label.setdefault((key, label), []).append(g)
             rows = []
-            for (key, label), gs in sorted(by_label.items()):
-                merged = pd.concat(gs)
+            for _, label, g in collapse_versions(
+                adapter_rows(qtvd[qtvd["base_model"] == base_model])
+            ):
                 rows.append(
                     {
                         "label": label,
-                        "tvd_validation": merged.loc[
-                            merged["split"] == "validation", "tvd"
+                        "tvd_validation": g.loc[
+                            g["split"] == "validation", "tvd"
                         ].mean(),
-                        "tvd_train": merged.loc[
-                            merged["split"] == "train", "tvd"
-                        ].mean(),
-                        "tvd_all": merged["tvd"].mean(),
+                        "tvd_train": g.loc[g["split"] == "train", "tvd"].mean(),
+                        "tvd_all": g["tvd"].mean(),
                     }
                 )
             table = pd.DataFrame(rows)
             tables[base_model] = table
-            base_row = table[table["label"] == "Base"]
-            if not base_row.empty:
-                base_vals[base_model] = float(base_row["tvd_validation"].iloc[0])
-        return tables, base_vals
+        return tables
 
-    def show_tvd_tables(tables, base_vals):
+    def show_tvd_tables(tables):
         """Console view: mean question-level TVD per split + Δ vs Base."""
         for base_model, table in tables.items():
+            base_row = table[table["label"] == "Base"]
+            base_val = float(base_row["tvd_validation"].iloc[0])
             print(f"\n=== {base_model} — mean TVD (%) vs NZ population ===")
             out = pd.DataFrame(index=table["label"])
             out["Validation"] = table["tvd_validation"].round(1).values
             out["Train"] = table["tvd_train"].round(1).values
             out["All"] = table["tvd_all"].round(1).values
-            delta = table["tvd_validation"] - base_vals.get(base_model, np.nan)
-            delta = delta.where(table["label"] != "Base")
+            delta = (table["tvd_validation"] - base_val).where(table["label"] != "Base")
             out["Δ vs Base"] = ["--" if pd.isna(v) else f"{v:+.1f}" for v in delta]
             print(out.to_string())
         print(
@@ -250,83 +352,17 @@ def _(
             "to the NZ population)."
         )
 
-    question_tvd = collect_question_tvd()
-    tvd_tables, tvd_base_vals = build_tvd_tables(question_tvd)
-    show_tvd_tables(tvd_tables, tvd_base_vals)
-    return question_tvd, tvd_tables, tvd_base_vals
+    tvd_tables = build_tvd_tables(collect_question_tvd(model_frames))
+    show_tvd_tables(tvd_tables)
+    return (tvd_tables,)
 
 
 @app.cell
-def _(FIGS_DIR, pd):
-    # Shared LaTeX table rendering, used by all sections above/below. Styler
-    # .to_latex (convert_css) turns CSS font-weight into \bfseries, but
-    # escapes cell values only, so headers with special chars (%, _, ...)
-    # need escape_header. Each file holds only the tabular, wrapped in
-    # \resizebox{\textwidth}{!}{...} so it never overflows the page; the
-    # report pulls it in with \ctable{...}{...}.
-
-    def escape_header(label):
-        """Escape LaTeX special chars in a column header."""
-
-        return (
-            label.replace("\\", "\\textbackslash{}")
-            .replace("&", "\\&")
-            .replace("%", "\\%")
-            .replace("$", "\\$")
-            .replace("#", "\\#")
-            .replace("_", "\\_")
-            .replace("{", "\\{")
-            .replace("}", "\\}")
-        )
-
-    def highlight_best(df, senses=None):
-        """Bold the best value per column: max for numeric columns by default,
-        or per column via senses={label: "max"|"min"} (e.g. for MultiIndex
-        columns keyed by metric)."""
-
-        def highlight(s):
-            if senses is None:
-                if not pd.api.types.is_numeric_dtype(s):
-                    return ["" for _ in s]  # e.g. CI columns: no highlighting
-                best = s.max()
-            else:
-                best = s.max() if senses[s.name[0]] == "max" else s.min()
-            return ["font-weight: bold;" if v == best else "" for v in s]
-
-        return df.style.apply(highlight, axis=0)
-
-    def write_latex_table(df, fmt, n_cols, out_name, senses=None):
-        """Style, format, and write a DataFrame to a resizebox-wrapped booktabs
-        tabular in FIGS_DIR. The index name is suppressed (Styler would emit an
-        extra header row), so the "Model" header is patched into the top-left
-        corner of the first header row."""
-        tex = (
-            highlight_best(df, senses=senses)
-            .format(fmt, na_rep="--")
-            .to_latex(
-                convert_css=True,
-                column_format="l" + "r" * n_cols,
-                hrules=True,
-                multicol_align="l",
-            )
-        )
-        tex = tex.replace(" & \\multicolumn", "Model & \\multicolumn", 1)
-        # Scale the table to the text width so it never overflows the page.
-        tex = "\\resizebox{\\textwidth}{!}{%\n" + tex + "}"
-        out_path = FIGS_DIR / out_name
-        out_path.parent.mkdir(parents=True, exist_ok=True)
-        out_path.write_text(tex)
-        return out_path
-
-    return escape_header, write_latex_table
-
-
-@app.cell
-def _(np, pd, tvd_base_vals, tvd_tables, write_latex_table):
+def _(pd, tvd_tables, write_latex_table):
     # Rendering the TVD tables to LaTeX (booktabs, lowest TVD per column
     # bolded; deltas formatted with an explicit sign).
 
-    def render_tvd_tables_to_tex():
+    def render_tvd_tables_to_tex(tables):
         # 4 columns only: TVD per split, plus a single delta column.
         columns = pd.MultiIndex.from_tuples(
             [
@@ -338,7 +374,9 @@ def _(np, pd, tvd_base_vals, tvd_tables, write_latex_table):
         )
         senses = {"TVD (%)": "min", "Δ vs Base": "min"}
         written = []
-        for base_model, table in tvd_tables.items():
+        for base_model, table in tables.items():
+            base_row = table[table["label"] == "Base"]
+            base_val = float(base_row["tvd_validation"].iloc[0])
             out = pd.DataFrame(index=table["label"], columns=columns)
             out.index.name = None
             fmt = {}
@@ -349,10 +387,8 @@ def _(np, pd, tvd_base_vals, tvd_tables, write_latex_table):
             ]:
                 out[("TVD (%)", col)] = vals.values
                 fmt[("TVD (%)", col)] = "{:.1f}"
-            delta = table["tvd_validation"] - tvd_base_vals.get(base_model, np.nan)
-            out[("Δ vs Base", "vs Base (val)")] = delta.where(
-                table["label"] != "Base"
-            ).values
+            delta = (table["tvd_validation"] - base_val).where(table["label"] != "Base")
+            out[("Δ vs Base", "vs Base (val)")] = delta.values
             fmt[("Δ vs Base", "vs Base (val)")] = "{:+.1f}"
             written.append(
                 write_latex_table(
@@ -361,8 +397,110 @@ def _(np, pd, tvd_base_vals, tvd_tables, write_latex_table):
             )
         return written
 
-    tvd_tex_files = render_tvd_tables_to_tex()
+    tvd_tex_files = render_tvd_tables_to_tex(tvd_tables)
     tvd_tex_files
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    ## Most divergent questions (base model vs NZ population)
+
+    For each base model evaluated: ranks the 25 survey sub-items where the
+    base model (prompt-averaged response distribution, overall population,
+    train and validation pooled) differs most from the NZ population
+    distribution, measured by TVD (%). For each question the modal (most
+    likely) model answer and the modal NZ answer are shown, so the
+    direction of the disagreement is visible. The LaTeX (booktabs) tables
+    are written to ``code/figures/ft-divergent-questions-<model>.tex``.
+    """)
+    return
+
+
+@app.cell
+def _(escape_latex, model_frames, np, parse_list, pd, textwrap, write_tex):
+    # Top-N most divergent questions per base model: per (question_id,
+    # column_name) sub-item, TVD (%) between the model's response distribution
+    # averaged across system prompts (all splits pooled) and the NZ population,
+    # plus the modal answers of each side.
+    TOP_N = 25
+    DIV_TEXT_WIDTH = 110
+
+    def collect_question_divergence(df):
+        """DataFrame with one row per survey sub-item: label, TVD (%) and the
+        modal model / NZ answer categories."""
+        rows = []
+        for (_qid, col), g in df.groupby(["question_id", "column_name"], dropna=False):
+            dists = [d for d in g["model_distribution"].map(parse_list) if d]
+            true_dist = next(
+                (d for d in g["true_distribution"].map(parse_list) if d), None
+            )
+            if not dists or true_dist is None:
+                continue
+            avg_dist = [sum(vals) / len(vals) for vals in zip(*dists)]
+            cats = parse_list(g.iloc[0].get("categories"))
+            if not cats or len(cats) != len(true_dist) or len(cats) != len(avg_dist):
+                continue
+            sub_q = g.iloc[0].get("sub_question")
+            question_text = (
+                sub_q
+                if isinstance(sub_q, str) and sub_q.strip()
+                else str(g.iloc[0].get("question", ""))
+            )
+            rows.append(
+                {
+                    "label": f"{col}: {question_text}",
+                    "tvd": 0.5
+                    * sum(abs(a - b) for a, b in zip(avg_dist, true_dist))
+                    * 100,
+                    "modal_model": cats[int(np.argmax(avg_dist))],
+                    "modal_nz": cats[int(np.argmax(true_dist))],
+                }
+            )
+        return pd.DataFrame(rows).sort_values("tvd", ascending=False)
+
+    def render_divergent_tex(base_model, top):
+        """Booktabs table: rank, question, TVD (%) and modal answers of both
+        sides. Question text is wrapped in a fixed-width p-column and the
+        cells are pre-escaped (escape=False in to_latex)."""
+        out = pd.DataFrame(
+            {
+                "Rank": range(1, len(top) + 1),
+                "Question": [
+                    escape_latex(
+                        textwrap.shorten(t, width=DIV_TEXT_WIDTH, placeholder="...")
+                    )
+                    for t in top["label"]
+                ],
+                "TVD (\\%)": [f"{v:.1f}" for v in top["tvd"]],
+                "Modal model answer": [escape_latex(t) for t in top["modal_model"]],
+                "Modal NZ answer": [escape_latex(t) for t in top["modal_nz"]],
+            }
+        )
+        tex = out.style.hide(axis="index").to_latex(
+            column_format="rlp{9cm}ll", hrules=True, convert_css=True
+        )
+        return write_tex(tex, f"ft-divergent-questions-{base_model}.tex")
+
+    divergent_tex_paths = []
+    for divergent_base, divergent_method, divergent_df in model_frames.values():
+        if divergent_method != "base":
+            continue
+        divergent_top = collect_question_divergence(divergent_df).head(TOP_N)
+        if divergent_top.empty:
+            continue
+        divergent_tex_paths.append(render_divergent_tex(divergent_base, divergent_top))
+        print(
+            f"\n=== {divergent_base} — top {TOP_N} most divergent questions vs NZ ==="
+        )
+        print(
+            divergent_top.assign(
+                label=lambda d: d["label"].str.slice(0, 70),
+                tvd=lambda d: d["tvd"].round(1),
+            ).to_string(index=False)
+        )
+    divergent_tex_paths
     return
 
 
@@ -389,17 +527,7 @@ def _(mo):
 
 
 @app.cell
-def _(
-    EVALS_ROOT,
-    METHOD_ORDER,
-    METHOD_PRETTY,
-    METRICS,
-    SPLITS,
-    base_and_method,
-    load_overall_per_question,
-    np,
-    pd,
-):
+def _(METRICS, SPLITS, adapter_rows, collapse_versions, model_frames, np, pd):
     # Building the main table data.
 
     def collect_modal_metrics():
@@ -413,13 +541,9 @@ def _(
         their train columns come out as NaN (rendered as "--" in the table).
         """
         per_prompt = []
-        for model_dir in sorted(EVALS_ROOT.iterdir()):
-            if not model_dir.is_dir():
+        for model, (base, method, df) in model_frames.items():
+            if not {"expected_text", "model_answer"}.issubset(df.columns):
                 continue
-            df = load_overall_per_question(model_dir)
-            if df is None or not {"expected_text", "model_answer"}.issubset(df.columns):
-                continue
-            base, method = base_and_method(model_dir.name)
             for (split, sp_id), h in df.groupby(
                 ["split", "system_prompt_id"], dropna=False
             ):
@@ -429,7 +553,7 @@ def _(
                 ).mean() * 100
                 per_prompt.append(
                     {
-                        "model": model_dir.name,
+                        "model": model,
                         "base_model": base,
                         "method": method,
                         "split": split,
@@ -486,43 +610,9 @@ def _(
         tables = {}
         base_refs = {}
         for base_model in sorted(metrics["base_model"].unique()):
-            sub = metrics[metrics["base_model"] == base_model]
-            rows = []
-            base_row = sub[sub["method"] == "base"]
-            if not base_row.empty:
-                rows.append((0, "Base", base_row))
-            adapters = []
-            for method, g in sub[sub["method"] != "base"].groupby(
-                "method", dropna=False
-            ):
-                stem = method.rsplit("-", 1)[0]
-                adapters.append(
-                    (
-                        METHOD_ORDER.index(stem)
-                        if stem in METHOD_ORDER
-                        else len(METHOD_ORDER),
-                        METHOD_PRETTY.get(stem, stem),
-                        g,
-                    )
-                )
-            rows += sorted(adapters, key=lambda r: (r[0], r[1]))
-
-            # Collapse duplicates: average the per-split metrics across all
-            # eval dirs that map to the same method label (e.g. reruns).
-            by_label = {}
-            for sort_key, label, g in rows:
-                by_label.setdefault((sort_key, label), []).append(g)
-            collapsed = []
-            for (sort_key, label), gs in by_label.items():
-                merged = (
-                    pd.concat(gs)
-                    .groupby("split", dropna=False)[METRICS]
-                    .mean()
-                    .reset_index()
-                )
-                collapsed.append((sort_key, label, merged))
-            collapsed.sort(key=lambda r: r[0])
-
+            collapsed = collapse_versions(
+                adapter_rows(metrics[metrics["base_model"] == base_model])
+            )
             table_rows = []
             for _, label, g in collapsed:
                 piv = g.set_index("split")
@@ -664,17 +754,16 @@ def _(mo):
 @app.cell
 def _(
     CAPABILITY_ROOT,
-    METHOD_ORDER,
-    METHOD_PRETTY,
     TASK_LABELS,
     TASK_ORDER,
+    adapter_rows,
     base_and_method,
     json,
+    newest_run,
     pd,
 ):
     # Building the capability table data from summary.json of the newest run
-    # per model (same "pick newest run by config timestamp" rule as the main
-    # table).
+    # per model.
 
     def collect_capability_scores():
         """Per (model, task) accuracy/stderr from the newest run of each model."""
@@ -713,21 +802,6 @@ def _(
                 )
         return pd.DataFrame(rows)
 
-    def newest_run(model_dir):
-        runs = []
-
-        def _cfg(run_dir):
-            cfg_path = run_dir / "config.json"
-
-            return json.loads(cfg_path.read_text()) if cfg_path.exists() else {}
-
-        for run_dir in model_dir.iterdir():
-            cfg = _cfg(run_dir)
-            runs.append((cfg.get("timestamp", ""), run_dir))
-        if not runs:
-            return None
-        return sorted(runs)[-1][1]
-
     def build_capability_tables(scores):
         """dict base_model -> DataFrame, one row per fine-tuned version (base
         first), columns = accuracy/stderr per task. Adapters are labelled and
@@ -736,29 +810,11 @@ def _(
         if scores.empty:
             return tables
         for base_model in sorted(scores["base_model"].unique()):
-            sub = scores[scores["base_model"] == base_model]
-            rows = []
-            base_row = sub[sub["method"] == "base"]
-            if not base_row.empty:
-                rows.append((0, "Base", base_row))
-            adapters = []
-            for method, g in sub[sub["method"] != "base"].groupby(
-                "method", dropna=False
-            ):
-                stem = method.rsplit("-", 1)[0]
-                adapters.append(
-                    (
-                        METHOD_ORDER.index(stem)
-                        if stem in METHOD_ORDER
-                        else len(METHOD_ORDER),
-                        METHOD_PRETTY.get(stem, stem),
-                        g,
-                    )
-                )
-            rows += sorted(adapters, key=lambda r: (r[0], r[1]))
-
             table_rows = []
-            for _, label, g in rows:
+            for _, label, g in sorted(
+                adapter_rows(scores[scores["base_model"] == base_model]),
+                key=lambda r: (r[0], r[1]),
+            ):
                 row = {"label": label}
                 for task in TASK_ORDER:
                     h = g[g["task"] == task]
@@ -790,7 +846,7 @@ def _(
                     cells.append(f"{a * 100:.1f} [{lo:.1f}, {hi:.1f}]")
             disp[TASK_LABELS[task]] = cells
         print(disp.to_string())
-    return capability_tables
+    return (capability_tables,)
 
 
 @app.cell
@@ -868,7 +924,14 @@ def _(CAPABILITY_ROOT, json, pd):
 
 
 @app.cell
-def _(TASK_LABELS, TASK_ORDER, capability_tables, escape_header, pd, write_latex_table):
+def _(
+    TASK_LABELS,
+    TASK_ORDER,
+    capability_tables,
+    escape_header,
+    pd,
+    write_latex_table,
+):
     # Rendering the capability tables to LaTeX (booktabs, best accuracy per
     # column bolded). Each benchmark gets two sub-columns: accuracy (%) and its
     # 95% confidence interval (acc +- 1.96 x s.e. from the inspect metrics).
@@ -916,8 +979,7 @@ def _(mo):
 
     For each model's newest ``modal_response`` run (overall population
     only) we pick the 3 questions whose TVD of the prompt-averaged model
-    distribution vs the NZ population sits at the 10th, 50th and 90th
-    percentile across questions. Each figure has two bars per answer
+    distribution vs the NZ population sits at the 3 percentiles across questions. Each figure has two bars per answer
     category: the NZ baseline and the average across system prompts,
     annotated with the TVD to the baseline. Figures are written to
     ``code/fine-tuning/output/figures/distributions/<model>/<column>_<p10|p50|p90>.png``.
@@ -926,27 +988,15 @@ def _(mo):
 
 
 @app.cell
-def _(EVALS_ROOT, load_overall_per_question, math, np, textwrap):
+def _(EVALS_ROOT, load_overall_per_question, math, np, parse_list, textwrap):
     # Distribution summary figures — read the newest run's saved
     # per_question_results.csv per model (nothing recomputed during eval).
-    import ast
-
     import matplotlib.pyplot as plt
 
     DIST_FIGS_ROOT = EVALS_ROOT.parent / "figures" / "distributions"
-    PERCENTILE_PICKS = [("p10", 10), ("p50", 50), ("p90", 90)]
+    PERCENTILE_PICKS = [("p5", 5), ("p50", 50), ("p95", 95)]
     BASELINE_COLOR = "#DD8452"
     AVG_COLOR = "#55A868"
-
-    def _parse_list(v):
-        """CSV cells hold list-like values as strings; parse them into
-        real lists regardless of quoting style."""
-        if isinstance(v, str):
-            try:
-                v = ast.literal_eval(v)
-            except Exception:
-                return None
-        return list(v) if isinstance(v, (list, tuple)) else None
 
     def _question_rows(df):
         """All overall-population rows. The split column is assigned per
@@ -958,13 +1008,13 @@ def _(EVALS_ROOT, load_overall_per_question, math, np, textwrap):
         """(title_row, cats, true_dist, {prompt_id: dist}, avg_dist, tvd_pct)
         for one question column; None when the stored data is unusable."""
         row = group.iloc[0]
-        cats = _parse_list(row.get("categories"))
-        true_dist = _parse_list(row.get("true_distribution"))
+        cats = parse_list(row.get("categories"))
+        true_dist = parse_list(row.get("true_distribution"))
         if not cats or not true_dist or len(cats) != len(true_dist):
             return None
         per_prompt = {}
         for _, r in group.iterrows():
-            d = _parse_list(r.get("model_distribution"))
+            d = parse_list(r.get("model_distribution"))
             if d and len(d) == len(cats):
                 per_prompt[r.get("system_prompt_id", "unknown")] = d
         if not per_prompt:
@@ -1112,12 +1162,7 @@ def _(EVALS_ROOT, load_overall_per_question, math, np, textwrap):
 
 
 @app.cell
-def _(
-    EVALS_ROOT,
-    Path,
-    json,
-    pd,
-):
+def _(EVALS_ROOT, Path, json, pd):
     """Write the webapp manifest (output/evals/index.json).
 
     The website fetches this at runtime so nothing is bundled at build time.
@@ -1270,6 +1315,7 @@ def _(
     print(
         f"  models: {len(manifest['models'])}  runs: {n_runs}  questions: {len(manifest['questions'])}"
     )
+    return
 
 
 if __name__ == "__main__":
