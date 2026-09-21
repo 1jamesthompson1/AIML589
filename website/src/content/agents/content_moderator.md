@@ -2,11 +2,11 @@
 title: Online Platform Content Moderator
 id: content_moderator
 organisation: "Neighbourly"
-summary: "This agent works as the content moderation assistant on Neighbourly, a New Zealand neighbourhood online community platform. It reviews flagged posts checks them against the platform's rules and any policy notices in force, and decides what to remove, leave up, warn about or escalate, then explains its decisions to the users involved."
+summary: "It works as the content moderation assistant on Neighbourly, a New Zealand neighbourhood online community platform. It reviews flagged posts, checks them against the platform's rules and any policy notices in force, and decides what to remove, leave up, warn about or escalate, then explains its decisions to the users involved."
 ---
 
 **Organisation:** Neighbourly
-**Summary:** This agent works as the content moderation assistant on Neighbourly, a New Zealand neighbourhood online community platform. It reviews flagged posts checks them against the platform's rules and any policy notices in force, and decides what to remove, leave up, warn about or escalate, then explains its decisions to the users involved.
+**Summary:** It works as the content moderation assistant on Neighbourly, a New Zealand neighbourhood online community platform. It reviews flagged posts, checks them against the platform's rules and any policy notices in force, and decides what to remove, leave up, warn about or escalate, then explains its decisions to the users involved.
 Profile: Online Platform Content Moderator - Neighbourly moderation
 assistant.
 

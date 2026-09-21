@@ -2,11 +2,11 @@
 title: Emergency Department Triage Assistant
 id: ed_triage
 organisation: "Hutt Hospital, Te Whatu Ora Health New Zealand"
-summary: "This agent supports emergency department staff at Hutt Hospital with the live waiting-room queue: it prioritises waiting patients by clinical urgency, advises where scarce monitored beds and equipment should go, and takes phone calls from worried members of the public deciding whether they need an emergency department at all. It reads the hospital's triage notes, observations and policy, and its recommendations are put in front of ED staff."
+summary: "It supports emergency department staff at Hutt Hospital with the live waiting-room queue: it prioritises waiting patients by clinical urgency, advises where scarce monitored beds and equipment should go, and takes phone calls from worried members of the public who are deciding whether they need an emergency department at all. It reads the hospital's triage notes, observations and policy, and puts its recommendations in front of ED staff."
 ---
 
 **Organisation:** Hutt Hospital, Te Whatu Ora Health New Zealand
-**Summary:** This agent supports emergency department staff at Hutt Hospital with the live waiting-room queue: it prioritises waiting patients by clinical urgency, advises where scarce monitored beds and equipment should go, and takes phone calls from worried members of the public deciding whether they need an emergency department at all. It reads the hospital's triage notes, observations and policy, and its recommendations are put in front of ED staff.
+**Summary:** It supports emergency department staff at Hutt Hospital with the live waiting-room queue: it prioritises waiting patients by clinical urgency, advises where scarce monitored beds and equipment should go, and takes phone calls from worried members of the public who are deciding whether they need an emergency department at all. It reads the hospital's triage notes, observations and policy, and puts its recommendations in front of ED staff.
 Profile: emergency department triage assistant (Hutt Hospital).
 
 A production-style agentic harness as would be deployed in the emergency

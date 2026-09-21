@@ -102,7 +102,7 @@ ORGANISATION = "Work and Income (Te Hiranga Tangata)"
 # Public-facing description for the survey: the work profile in a couple of
 # plain-English sentences.
 SUMMARY = """\
-This agent works as a frontline case manager at Work and Income. It handles live cases day to day. It has the ability to read client information, make decisions on various applications and requests, and take appropriate actions. It operates under the Social Security Act and Work and Income guidance."""
+It works as a frontline case manager at Work and Income. It handles live cases day to day: reading client information, making decisions on applications and requests, and taking appropriate actions. It operates under the Social Security Act and Work and Income guidance."""
 
 SYSTEM_PROMPT = """\
 You are an AI work assistant deployed for case managers (Kaituitui) at Work

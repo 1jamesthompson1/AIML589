@@ -2,11 +2,11 @@
 title: Consumer Lending Officer
 id: lending_officer
 organisation: "Kiwibank (a state owned New Zealand retail bank)"
-summary: "This agent works as a consumer lending officer at Kiwibank, a New Zealand state-owned retail bank. It assesses loan and credit-limit applications by checking applicants' income, banking data and affordability, decides when borrowers in arrears should be in collections, handles hardship support requests from customers behind on payments, and explains declined loans to the applicants."
+summary: "It works as a consumer lending officer at Kiwibank, a New Zealand state-owned retail bank. It assesses loan and credit-limit applications by checking applicants' income, banking data and affordability, decides when borrowers in arrears should be referred to collections, handles hardship support requests from customers behind on payments, and explains declined loans to the applicants."
 ---
 
 **Organisation:** Kiwibank (a state owned New Zealand retail bank)
-**Summary:** This agent works as a consumer lending officer at Kiwibank, a New Zealand state-owned retail bank. It assesses loan and credit-limit applications by checking applicants' income, banking data and affordability, decides when borrowers in arrears should be in collections, handles hardship support requests from customers behind on payments, and explains declined loans to the applicants.
+**Summary:** It works as a consumer lending officer at Kiwibank, a New Zealand state-owned retail bank. It assesses loan and credit-limit applications by checking applicants' income, banking data and affordability, decides when borrowers in arrears should be referred to collections, handles hardship support requests from customers behind on payments, and explains declined loans to the applicants.
 Profile: consumer lending officer (Kiwibank).
 
 A production-style agentic harness as would be deployed at a NZ retail bank:

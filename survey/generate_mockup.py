@@ -200,9 +200,13 @@ def render() -> str:
         r"\end{center}",
         r"""\medskip
 \note{Mockup of the live survey definition; internal review only, not for
-distribution. One survey serves both channels: the panel distribution
-sets a ``distribution'' field of ``paid'' and the open link
-``volunteer''; branches show each channel its introduction and ending.}""",
+distribution.}
+\par\medskip
+\noindent\fcolorbox{gray!60}{gray!8}{%
+  \begin{minipage}{\dimexpr\textwidth-2\fboxsep-2\fboxrule\relax}
+    \small\textbf{Warning:} the final survey will likely have fewer
+    questions in Sections A and B than shown in this mockup.
+  \end{minipage}}\par""",
     ]
 
     # --- Introduction ------------------------------------------------------

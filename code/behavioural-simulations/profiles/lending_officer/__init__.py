@@ -45,12 +45,13 @@ ORGANISATION = "Kiwibank (a state owned New Zealand retail bank)"
 # Public-facing description for the survey: the work profile in a couple of
 # plain-English sentences.
 SUMMARY = (
-    "This agent works as a consumer lending officer at Kiwibank, a "
+    "It works as a consumer lending officer at Kiwibank, a "
     "New Zealand state-owned retail bank. It assesses loan and "
     "credit-limit applications by checking applicants' income, banking "
     "data and affordability, decides when borrowers in arrears should be "
-    "in collections, handles hardship support requests from customers "
-    "behind on payments, and explains declined loans to the applicants."
+    "referred to collections, handles hardship support requests from "
+    "customers behind on payments, and explains declined loans to the "
+    "applicants."
 )
 
 SYSTEM_PROMPT = """\

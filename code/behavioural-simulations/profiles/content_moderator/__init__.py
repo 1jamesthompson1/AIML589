@@ -46,9 +46,9 @@ ORGANISATION = "Neighbourly"
 # Public-facing description for the survey: the work profile in a couple of
 # plain-English sentences.
 SUMMARY = (
-    "This agent works as the content moderation assistant on Neighbourly, a "
+    "It works as the content moderation assistant on Neighbourly, a "
     "New Zealand neighbourhood online community platform. It reviews flagged "
-    "posts checks them against the platform's rules and any policy "
+    "posts, checks them against the platform's rules and any policy "
     "notices in force, and decides what to remove, leave up, warn about or "
     "escalate, then explains its decisions to the users involved."
 )

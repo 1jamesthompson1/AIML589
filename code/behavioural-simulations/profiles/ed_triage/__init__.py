@@ -50,13 +50,13 @@ ORGANISATION = "Hutt Hospital, Te Whatu Ora Health New Zealand"
 # Public-facing description for the survey: the work profile in a couple of
 # plain-English sentences.
 SUMMARY = (
-    "This agent supports emergency department staff at Hutt Hospital with the "
+    "It supports emergency department staff at Hutt Hospital with the "
     "live waiting-room queue: it prioritises waiting patients by clinical "
     "urgency, advises where scarce monitored beds and equipment should go, "
-    "and takes phone calls from worried members of the public deciding whether "
-    "they need an emergency department at all. It reads the hospital's triage "
-    "notes, observations and policy, and its recommendations are put in "
-    "front of ED staff."
+    "and takes phone calls from worried members of the public who are "
+    "deciding whether they need an emergency department at all. It reads "
+    "the hospital's triage notes, observations and policy, and puts its "
+    "recommendations in front of ED staff."
 )
 
 SYSTEM_PROMPT = """\

@@ -2,11 +2,11 @@
 title: Recruitment Screening Assistant
 id: recruitment_screener
 organisation: "Te Whatu Ora - Health New Zealand"
-summary: "This agent is a recruitment screening assistant inside a health sector employer's applicant tracking system. It helps with processing early-stage recruitment work items: reviewing candidates, creating shortlists, screening chats and rejection communications."
+summary: "It is a recruitment screening assistant inside a health sector employer's applicant tracking system. It helps with early-stage recruitment work: reviewing candidates, creating shortlists, running screening chats and preparing rejection communications."
 ---
 
 **Organisation:** Te Whatu Ora - Health New Zealand
-**Summary:** This agent is a recruitment screening assistant inside a health sector employer's applicant tracking system. It helps with processing early-stage recruitment work items: reviewing candidates, creating shortlists, screening chats and rejection communications.
+**Summary:** It is a recruitment screening assistant inside a health sector employer's applicant tracking system. It helps with early-stage recruitment work: reviewing candidates, creating shortlists, running screening chats and preparing rejection communications.
 Profile: recruitment screener (ATS agentic harness).
 
 A production-style agentic harness as would be deployed inside a large NZ

@@ -101,12 +101,28 @@ C_SUPPORT_TEXT = (
     "All things considered, how much do you support further AI development?"
 )
 C_AUTOMATION_TEXT = "How much do you support automation in the workplace by AI?"
+C_AIUSE_TEXT = "How often do you use AI tools (e.g. ChatGPT, Copilot, Gemini)?"
+AIUSEFREQ5 = [
+    "Daily",
+    "A couple of times a week",
+    "Weekly",
+    "Monthly or less often",
+    "Never",
+]
+C_JOBLOSS_TEXT = "How concerned are you about AI causing job losses in New Zealand?"
+CONCERN5 = [
+    "Not at all concerned",
+    "Slightly concerned",
+    "Moderately concerned",
+    "Very concerned",
+    "Extremely concerned",
+]
 C_GOV_TEXT = "Do you think the New Zealand government should do each of the following?"
 C_GOV_ROWS = [
     "Increase state capacity to research, develop and deploy AI",
     "Act as a regulator of AI",
     "Have an AI safety institute",
-    "Try to slow down international AI development",
+    "Use AI internally to be more efficient",
 ]
 C_TRUST_TEXT = "I trust the organisations developing AI to develop it safely."
 C_RISK_TEXT = (
@@ -114,11 +130,11 @@ C_RISK_TEXT = (
     "risk to humanity). Drag and drop the items to rank them."
 )
 C_RISK_OPTIONS = [
-    "Climate change",
-    "War (e.g. between countries or nuclear war)",
-    "Disease (e.g. pandemics)",
+    "Climate change (sudden and severe changes to Earth's climate)",
+    "War / weapons of mass destruction (nuclear war)",
+    "Disease / biological threats (natural and synthetic severe pandemics)",
     "Artificial Intelligence (AI)",
-    "Other (please specify)",
+    "Natural catastrophes (asteroid/comet impacts and supervolcanoes)",
 ]
 # Rank Order question (Qualtrics RO / DND selector, i.e. drag-and-drop),
 # the same type as the remote scratch question Q93. Each respondent ranks
@@ -215,6 +231,20 @@ Z_OCCUPATION_OPTIONS = [
     "Semi-skilled worker (e.g. bricklayer, bus driver, carpenter, assembler)",
     "Unskilled work (e.g. labourer, porter, cleaner)",
     "I have never had a job",
+    PREFER_NOT_TEXT,
+]
+
+# WVS NZ education bands (Q275A country-specific categories, as recoded in
+# code/training-dataset/cluster_respondents.py "education_respondent_cs").
+Z_EDU_TEXT = "What is the highest level of education you have completed?"
+Z_EDU_OPTIONS = [
+    "No formal schooling",
+    "Primary school (including intermediate) or kura kaupapa",
+    "Secondary school for up to 3 years",
+    "Secondary school for 4 years or more",
+    "Some tertiary education (university, polytechnic, wananga, trades or "
+    "other training), up to a completed bachelor's degree",
+    "Completed a postgraduate degree (e.g. honours, master's or doctorate)",
     PREFER_NOT_TEXT,
 ]
 
@@ -713,6 +743,7 @@ def build() -> dict:
             mc_single_payload("Z5-1", Z_REGION_TEXT, Z_REGION_OPTIONS),
             mc_single_payload("Z6-1", Z_INCOME_TEXT, Z_INCOME_OPTIONS),
             mc_single_payload("Z7-1", Z_OCCUPATION_TEXT, Z_OCCUPATION_OPTIONS),
+            mc_single_payload("Z8-1", Z_EDU_TEXT, Z_EDU_OPTIONS),
         ],
     }
     section_b = {
@@ -736,8 +767,10 @@ def build() -> dict:
         "collapsed": True,
         "questions": [
             mc_single_payload("C1-1", C_KNOWLEDGE_TEXT, KNOWLEDGE5),
+            mc_single_payload("C8-1", C_AIUSE_TEXT, AIUSEFREQ5),
             mc_single_payload("C2-1", C_SUPPORT_TEXT, SUPPORT5),
             mc_single_payload("C3-1", C_AUTOMATION_TEXT, SUPPORT5),
+            mc_single_payload("C9-1", C_JOBLOSS_TEXT, CONCERN5),
             matrix_payload("C4-1", C_GOV_TEXT, C_GOV_ROWS, AGREE5),
             mc_single_payload("C5-1", C_TRUST_TEXT, AIUSE_SCALE),
             ro_rank_payload("C6-1", C_RISK_TEXT, C_RISK_OPTIONS),

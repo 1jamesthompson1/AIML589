@@ -43,8 +43,10 @@ ORGANISATION = "Te Whatu Ora - Health New Zealand"
 # Public-facing description for the survey: the work profile in a couple of
 # plain-English sentences.
 SUMMARY = (
-    "This agent is a recruitment screening assistant inside a health sector "
-    "employer's applicant tracking system. It helps with processing early-stage recruitment work items: reviewing candidates, creating shortlists, screening chats and rejection communications."
+    "It is a recruitment screening assistant inside a health sector "
+    "employer's applicant tracking system. It helps with early-stage "
+    "recruitment work: reviewing candidates, creating shortlists, running "
+    "screening chats and preparing rejection communications."
 )
 
 SYSTEM_PROMPT = """\
