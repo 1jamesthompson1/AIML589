@@ -37,7 +37,7 @@ survey, it is impossible to retract your answer. Please do not include
 personally identifiable information.
 
 The final anonymised data will be made publicly available under a Creative Commons license (CC-BY-SA-4.0), and a summary of findings will be published on the project
-website once complete.
+website once complete. The anonymised data will have the free-text responses and ethnicity variable removed to protect your privacy.
 
 Raw data will be stored securely on the university's servers until the end of 2027, then deleted.
 

@@ -205,7 +205,7 @@ distribution.}
 \noindent\fcolorbox{gray!60}{gray!8}{%
   \begin{minipage}{\dimexpr\textwidth-2\fboxsep-2\fboxrule\relax}
     \small\textbf{Warning:} the final survey will likely have fewer
-    questions in Sections A and B than shown in this mockup.
+    questions than shown in this mockup. Questions will be removed to fit within an approximate 15 minute completion time.
   \end{minipage}}\par""",
     ]
 

@@ -187,6 +187,29 @@ Z_ETHNICITY_OPTIONS = [
     "Other ethnicity",
     PREFER_NOT_TEXT,
 ]
+# WVS NZ employment bands (Q279, as coded in code/training-dataset/
+# quota_analysis.py and used for the census labour-force comparison).
+# Self-employed is a full-time/full-share category (Q281 group 1);
+# "Other work/arrangement" is NOT a census or WVS category, it absorbs
+# the census "Not in the labour force - other" residual and stays open
+# for homemakers; a separate Homemaker option exists for the census
+# "Not in the labour force - unpaid domestic work" group. An explicit
+# "Casual" option is not included: Q279's part-time/full-time hours
+# split already captures the hours work pattern, and casualness (rolling
+# contract type) is orthogonal to hours.
+Z_EMPLOY_TEXT = "What is your current employment status?"
+Z_EMPLOY_OPTIONS = [
+    "Full time (30+ hrs/wk)",
+    "Part time (<30 hrs)",
+    "Self employed",
+    "Retired/pensioned",
+    "Homemaker",
+    "Student",
+    "Unemployed",
+    "Other work/arrangement",
+    PREFER_NOT_TEXT,
+]
+
 Z_REGION_TEXT = "Which region of New Zealand do you live in?"
 Z_REGION_OPTIONS = [
     "Northland",
@@ -205,13 +228,14 @@ Z_REGION_OPTIONS = [
     "I live overseas",
     PREFER_NOT_TEXT,
 ]
-Z_INCOME_TEXT = "What is your total annual personal income (before tax)?"
+Z_INCOME_TEXT = "What is your total annual personal income (before tax), in New Zealand dollars (NZD)?"
 Z_INCOME_OPTIONS = [
     "Up to $30,000",
     "$30,001 - $60,000",
     "$60,001 - $100,000",
     "$100,001 - $150,000",
-    "$150,001 or more",
+    "$150,001 - $200,000",
+    "$200,001 or more",
     PREFER_NOT_TEXT,
 ]
 
@@ -740,6 +764,7 @@ def build() -> dict:
             mc_single_payload("Z1-1", Z_AGE_TEXT, Z_AGE_OPTIONS),
             mc_single_payload("Z2-1", Z_GENDER_TEXT, Z_GENDER_OPTIONS),
             mc_multi_payload("Z3-1", Z_ETHNICITY_TEXT, Z_ETHNICITY_OPTIONS),
+            mc_single_payload("Z4-1", Z_EMPLOY_TEXT, Z_EMPLOY_OPTIONS),
             mc_single_payload("Z5-1", Z_REGION_TEXT, Z_REGION_OPTIONS),
             mc_single_payload("Z6-1", Z_INCOME_TEXT, Z_INCOME_OPTIONS),
             mc_single_payload("Z7-1", Z_OCCUPATION_TEXT, Z_OCCUPATION_OPTIONS),
