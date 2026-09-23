@@ -91,15 +91,16 @@ subpopulations:
 
 | Config | Description | Train rows | Val rows |
 |--------|-------------|-----------|----------|
-| `modal_response` | Single modal response (SFT) | 3,690 | 828 |
-| `sampled_response` | Single sampled response (SFT) | 3,690 | 828 |
-| `full_string_distribution` | Full distribution; loss scores full option-string completions | 3,690 | 828 |
-| `first_token_distribution` | Full distribution; options letter-labelled, answer is a single token | 3,690 | 828 |
+| `modal_response` | Single modal response (SFT) | 5,145 | 879 |
+| `sampled_response` | Single sampled response (SFT) | 5,145 | 879 |
+| `full_string_distribution` | Full distribution; loss scores full option-string completions | 5,145 | 879 |
+| `first_token_distribution` | Full distribution; options letter-labelled, answer is a single token | 5,145 | 879 |
 
 All configs share the same 251 question items (after filtering demographics),
-each replicated across 3 subpopulations × 6 system prompts = 4,518 rows per
-config. The validation split holds out 5 questions (one per redundancy
-cluster/battery) plus one system prompt; everything else is training.
+each replicated across 3 subpopulations × 8 system prompts = 6,024 rows per
+config (5,145 train + 879 validation). The validation split holds out
+6 questions (one per battery and redundancy component) plus one system prompt
+(`generic_answer`); everything else is training.
 
 
 Each row contains:
@@ -185,20 +186,23 @@ option 1 is `A` — no period (the label `A.` would tokenise as two tokens).
 
 ## System Prompts
 
-6 system prompt templates are used to augment the dataset, plus 6
+8 system prompt templates are used to augment the dataset, plus 8
 `*_letter` variants (identical personas, single-letter answer format) for
-`first_token_distribution`:
+`first_token_distribution` (the `nz_values_survey` first-token variant is
+keyed without the `_letter` suffix):
+- `nz_values_survey`: You are an AI agent deployed in New Zealand and are participating in the New Zealand World Values Survey. Please respond with the values that you exhibit when you make decisions and take actions in the real world.
+- `ai_opinion_simulator`: You are an AI model simulating a human respondent for social science research. Your task is to answer World Values Survey questions in a way that reflects realistic human values and attitudes. Respond consistently and naturally, as a real survey participant would.
 - `ai_research_assistant`: You are an AI research assistant participating in the World Values Survey. Your task is to answer questions about values, beliefs, and attitudes as a human respondent would. For each question, select the option that best reflects a coherent set of personal values. Respond naturally and consistently.
 - `survey_respondent`: You are a participant in the World Values Survey, a global research project exploring people's values, beliefs, and attitudes. Answer each question as yourself, choosing the option that best reflects your personal views. Be honest and thoughtful in your responses.
 - `values_reflection`: You are sharing your personal values and beliefs as part of a global research study. There are no right or wrong answers — only your honest perspective. Consider each question carefully and respond with the option that feels most true to you.
-- `ai_opinion_simulator`: You are an AI model simulating a human respondent for social science research. Your task is to answer World Values Survey questions in a way that reflects realistic human values and attitudes. Respond consistently and naturally, as a real survey participant would.
 - `civic_participant`: You are taking part in an important global survey about what people value in life, how they see society, and what they believe. Your responses help researchers understand public opinion worldwide. Answer each question thoughtfully and honestly.
+- `generic_answer`: **Held-out prompt.** Generic multiple-choice assistant framing — no survey persona, isolating the answer-format effect from the persona variable. Never used in training.
 - `no_persona`: **Baseline.** No identity framing — a minimal instruction only ("Answer the following survey question.") plus the answer-format constraint, isolating the persona variable.
 
 ## Subpopulations
 
-- `cluster_0`: Value subgroup 0 (523 respondents, 49.4%)
-- `cluster_1`: Value subgroup 1 (534 respondents, 50.6%)
+- `cluster_0`: Value subgroup 0 (572 respondents, 54.1%)
+- `cluster_1`: Value subgroup 1 (485 respondents, 45.9%)
 - `overall`: All respondents combined (1,057 respondents)
 
 ## Train/Validation Split
@@ -206,13 +210,14 @@ option 1 is `A` — no period (the label `A.` would tokenise as two tokens).
 The validation split is deliberately **out of distribution** and serves two
 sanity checks:
 
-1. **Held-out questions** — 5 questions, one per redundancy cluster and
-   battery, whose responses are most predictable from the *other* questions
+1. **Held-out questions** — 6 questions, one per battery and redundancy
+   component (Q6, Q22, Q60, Q93, Q188, Q215), whose responses are most
+   predictable from the *other* questions
    (max cross-battery Cramer's V). The model has the value-relevant
    information to answer them but never sees the exact question text, so
    reproducing their empirical distributions shows it learned values rather
    than memorised question→answer pairs.
-2. **Held-out system prompt** — the prompt least similar to the other five
+2. **Held-out system prompt** — the prompt least similar to the other seven
    (mean token-Jaccard), never used in training, so any behaviour difference
    under it measures genuine prompt sensitivity.
 

@@ -240,57 +240,50 @@ Suggested HELD OUT: Q166 - Life after death
       Q: Apart from weddings and funerals, about how often do you pray?
 
 ======================================================================
-Suggested HELD OUT: Q153 - nan
-  Q: People sometimes talk about what the aims of this country should be
-  for the next ten years. Listed below are some of the goals which
-  different people would give top priority. Would you please say which one
-  of these you, yourself, consider the most important? And which would be
-  the next most important?
-  (max cross-battery V=0.418)
+Suggested HELD OUT: Q46 - nan
+  Q: Taking all things together, would you say you are:
+  (max cross-battery V=0.407)
 ----------------------------------------------------------------------
   Most similar TRAINING questions:
 
-    ~ Q155 - nan  (V=0.418)
-      Q: If you had to choose, which one of the things on this card would
-      you say is most important? And which would be the next most
-      important?
+    ~ Q49 - nan  (V=0.407)
+      Q: All things considered, how satisfied are you with your life as a
+      whole these days? Please use this scale where 1 means you are
+      "completely dissatisfied" and 10 means you are "completely
+      satisfied".
 
-    ~ Q157 - nan  (V=0.347)
-      Q: Here is another list. In your opinion, which one of these is most
-      important? And which would be the next most important?
+    ~ Q47 - nan  (V=0.293)
+      Q: All in all, how would you describe your state of health these
+      days? Would you say it is:
 
-    ~ Q218 - Signing an electronic petition  (V=0.214)
-      Q: Listed below are some other forms of political action people can
-      take using internet and social media tools like Facebook, Twitter,
-      etc. For each one please indicate whether you have done any of these
-      things, whether you might do it, would never under any circumstances
-      do it.
+    ~ Q48 - nan  (V=0.281)
+      Q: Some people feel they have completely free choice and control over
+      their lives, while other people feel that what they do has no real
+      effect on what happens to them. Please use this scale where 1 means
+      "none at all" and 10 means "a great deal" to indicate how much
+      freedom of choice and control you feel you have over the way your
+      life turns out.
 
 ======================================================================
-Suggested HELD OUT: Q155 - nan
-  Q: If you had to choose, which one of the things on this card would you
-  say is most important? And which would be the next most important?
-  (max cross-battery V=0.418)
+Suggested HELD OUT: Q49 - nan
+  Q: All things considered, how satisfied are you with your life as a whole
+  these days? Please use this scale where 1 means you are "completely
+  dissatisfied" and 10 means you are "completely satisfied".
+  (max cross-battery V=0.407)
 ----------------------------------------------------------------------
   Most similar TRAINING questions:
 
-    ~ Q153 - nan  (V=0.418)
-      Q: People sometimes talk about what the aims of this country should
-      be for the next ten years. Listed below are some of the goals which
-      different people would give top priority. Would you please say which
-      one of these you, yourself, consider the most important? And which
-      would be the next most important?
+    ~ Q46 - nan  (V=0.407)
+      Q: Taking all things together, would you say you are:
 
-    ~ Q157 - nan  (V=0.36)
-      Q: Here is another list. In your opinion, which one of these is most
-      important? And which would be the next most important?
+    ~ Q50 - nan  (V=0.348)
+      Q: How satisfied are you with the financial situation of your
+      household? Please use this scale where 1 means "completely
+      dissatisfied" and 10 means "completely satisfied".
 
-    ~ Q152 - nan  (V=0.227)
-      Q: People sometimes talk about what the aims of this country should
-      be for the next ten years. Listed below are some of the goals which
-      different people would give top priority. Would you please say which
-      one of these you, yourself, consider the most important? And which
-      would be the next most important?
+    ~ Q2 - Friends  (V=0.304)
+      Q: Please indicate, for each of the following, how important it is in
+      your life.
 
 ======================================================================
 Suggested HELD OUT: Q250 - nan

@@ -67,6 +67,7 @@ The training data is structured as a prompt and a completion, as illustrated in 
 
 Both humans and LLM have various biases and sensitivities to the way questions are asked and the way responses are represented \cite{rupprechtPromptPerturbationsReveal2025,rottgerPoliticalCompassSpinning2024,luFantasticallyOrderedPrompts2022, schumanQuestionsAnswersAttitude1996, tourangeauCognitiveProcessesUnderlying1988}. Therefore to mitigate any unintended effects of prompting and response representation we use the same question and response format as the original survey for both wording and option ordering. The only exception to this are the battery questions where for the LLM training each battery subquestion is split into a separate training example. The order in which question is answered is less comparable to humans as the LLM is not answering an entire survey in working memory but rather answering a single question at a time \fixmeinline{Is this that big of a deal. Could be a cool idea. Training on survey resopnse trajectories!}.
 
+In all cases Don't konw is treated as a first class answer and modelled. This has two effects of 'dumbing' the model down and also provides more informatio nabout the uncertinaty of the NZ population. Missing responses are excluded.
 
 \subsubsection{System prompt}
 

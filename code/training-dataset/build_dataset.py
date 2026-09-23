@@ -92,14 +92,15 @@ def _(mo):
     The validation set is deliberately **out of distribution** and serves two
     sanity checks:
 
-    1. **Held-out questions** — 5 questions, one per redundancy cluster and
-       battery, whose responses are most predictable from the *other*
+    1. **Held-out questions** — 6 questions, one per battery and redundancy
+       component (Q6, Q22, Q60, Q93, Q188, Q215), whose responses are most
+       predictable from the *other*
        questions (max cross-battery Cramer's V). The model has the
        value-relevant information to answer them but never sees the exact
        question text, so reproducing their empirical distributions shows it
        learned values rather than memorised question→answer pairs.
     2. **Held-out system prompt** — the prompt least similar to the other
-       five (mean token-Jaccard), never used in training, so any behaviour
+       seven (mean token-Jaccard), never used in training, so any behaviour
        difference under it measures genuine prompt sensitivity.
 
     There is no test split: everything not held out goes to training.
@@ -116,7 +117,7 @@ def _(mo):
     ### Select held out prompts
 
     Select the held-out system prompt: the least similar to the other
-    five by mean token-Jaccard. It is never used in training, so any
+    seven by mean token-Jaccard. It is never used in training, so any
     behaviour difference under it measures genuine prompt sensitivity.
     """)
     return

@@ -1,6 +1,6 @@
 import marimo
 
-__generated_with = "0.23.14"
+__generated_with = "0.24.0"
 app = marimo.App(width="medium")
 
 
@@ -103,16 +103,48 @@ def _(mo):
 
 @app.cell
 def _(wvs_df):
-    # Some column values have a regional prefix (`554xxx`) that needs to be stripped.
+    # Some column values have a regional prefix (`554xxx`) that needs to be
+    # recoded.  For Q223 (national party vote) the party codes are remapped to
+    # a clean 1..9 scheme so they cannot collide with the raw "Other" code 5
+    # (554005 and 5 both becoming 5 after a naive strip).
+    prefix_cols = [
+        "N_REGION_ISO",
+        "N_REGION_WVS",
+        "Q223",
+        "Q275A",
+        "Q276A",
+        "Q277A",
+        "Q278A",
+    ]
 
-    prefix_cols = ["N_REGION_ISO", "N_REGION_WVS", "Q223"]
+    Q223_PARTY_RECODE = {
+        554001.0: 1.0,  # ACT
+        554004.0: 2.0,  # Green
+        554005.0: 3.0,  # Labour
+        554006.0: 4.0,  # National
+        554007.0: 5.0,  # NZ First
+        554009.0: 6.0,  # Maori
+        554013.0: 7.0,  # New Conservative
+        554014.0: 8.0,  # TOP
+        5.0: 9.0,  # Other party
+    }
 
     for col_to_fix in prefix_cols:
-        wvs_df[col_to_fix] = wvs_df[col_to_fix].apply(
-            lambda x: x - 554000 if isinstance(x, (int, float)) and x > 10 else x
-        )
+        if col_to_fix == "Q223":
+            wvs_df[col_to_fix] = wvs_df[col_to_fix].apply(
+                lambda x: (
+                    Q223_PARTY_RECODE.get(x, x) if isinstance(x, (int, float)) else x
+                )
+            )
+        else:
+            wvs_df[col_to_fix] = wvs_df[col_to_fix].apply(
+                lambda x: x - 554000 if isinstance(x, (int, float)) and x > 10 else x
+            )
 
-    print(f"Stripped 554 prefix from: {prefix_cols}")
+    print(
+        f"Stripped 554 prefix from: {prefix_cols} "
+        f"(Q223 fully recoded to 1..9 + Other=9)"
+    )
     return
 
 
@@ -198,7 +230,7 @@ def _():
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    #    ## Handle missing values
+    # Handle missing values
 
     The WVS uses negative codes to indicate why a response is missing.
 

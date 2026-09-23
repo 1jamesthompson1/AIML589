@@ -321,7 +321,7 @@ but this output file can be independently verified.
 
 | File | SHA-256 |
 |------|---------|
-| `wvs_value_survey.csv` | `<!-- HASH_START -->5d5634f6601bdeb9592946709577965435d7ce04acc593fd862d03ea861e0cd6<!-- HASH_END -->` |
+| `wvs_value_survey.csv` | `<!-- HASH_START -->1e57e057a776f365521549b035f4d2fb3f57dd4869603c75f67fd51bb33dcb1b<!-- HASH_END -->` |
 
 
 ### Clustering respondents
