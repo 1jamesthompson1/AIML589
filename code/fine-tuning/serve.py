@@ -46,6 +46,7 @@ import argparse
 import json
 import logging
 import os
+import re
 import signal
 import subprocess
 import sys
@@ -248,6 +249,16 @@ def parse_args(argv=None):
         "are bit-identical to the base model (vLLM issue class: silent LoRA "
         "no-op; see workbench/vllm-lora-prefix-fix for the diagnosis).",
     )
+    p.add_argument(
+        "--allow-unpatched-lora",
+        action="store_true",
+        default=False,
+        help="If the LoRA loader patch cannot be applied (e.g. vLLM version "
+        "drift), warn and continue instead of aborting. Only use this when "
+        "you are certain the served base model does not need the prefix "
+        "mapping; on multimodal-wrapper models the adapters will be silently "
+        "not applied (evaluate.py's adapter check still guards the evals).",
+    )
 
     p.add_argument(
         "vllm_args", nargs="*", help="Extra vLLM args (e.g. --max-num-seqs 500)"
@@ -260,29 +271,35 @@ def parse_args(argv=None):
 
 # ── vLLM LoRA loader patch ──────────────────────────────────────
 
-# Anchor from vllm/lora/worker_manager.py `_load_adapter`, right after the
-# unstacked mapper is built. Present in vLLM 0.27.x–0.28.x.
-_PATCH_ANCHOR = """            hf_to_vllm_mapper = getattr(model, "hf_to_vllm_mapper", None)
-            if hf_to_vllm_mapper is not None:
-                hf_to_vllm_mapper = hf_to_vllm_mapper.get_unstacked_mapper()
-"""
-_PATCH_NEW = """            hf_to_vllm_mapper = getattr(model, "hf_to_vllm_mapper", None)
-            if hf_to_vllm_mapper is not None:
-                hf_to_vllm_mapper = hf_to_vllm_mapper.get_unstacked_mapper()
-                # PATCH (serve.py): map the PEFT text-model prefix onto the
-                # runtime module path for multimodal wrapper models. Adapter
-                # tensors are named model.layers.* but the runtime language
-                # model lives at language_model.model.layers.*; without this
-                # rule every LoRA weight lookup misses and the adapter is
-                # silently not applied (generations identical to base).
-                from vllm.model_executor.models.utils import (
-                    WeightsMapper as _ServeWeightsMapper,
-                )
+# `_load_adapter` in vllm/lora/worker_manager.py fetches the model's
+# hf_to_vllm_mapper for LoRA weight loading. The block shape is stable across
+# versions but the mapper method was renamed in vLLM 0.30
+# (`get_unstacked_mapper()` in 0.27/0.28 -> `get_rename_mapper()` in 0.30), so
+# match it loosely and insert the missing prefix rule right after it.
+_PATCH_RE = re.compile(
+    r"(?P<indent>[ ]*)hf_to_vllm_mapper = getattr\(model, \"hf_to_vllm_mapper\", None\)\n"
+    r"(?P=indent)if hf_to_vllm_mapper is not None:\n"
+    r"(?P=indent)[ ]+hf_to_vllm_mapper = hf_to_vllm_mapper\.[A-Za-z_]+\(\)\n"
+)
 
-                hf_to_vllm_mapper = hf_to_vllm_mapper | _ServeWeightsMapper(
-                    orig_to_new_prefix={"model.": "language_model.model."}
-                )
-"""
+
+def _lora_prefix_patch(inner: str) -> str:
+    """Source text inserted after the mapper lookup (``inner`` = its indent)."""
+    return (
+        f"{inner}# PATCH (serve.py): map the PEFT text-model prefix onto the\n"
+        f"{inner}# runtime module path for multimodal wrapper models. Adapter\n"
+        f"{inner}# tensors are named model.layers.* but the runtime language\n"
+        f"{inner}# model lives at language_model.model.layers.*; without this\n"
+        f"{inner}# rule every LoRA weight lookup misses and the adapter is\n"
+        f"{inner}# silently not applied (generations identical to base).\n"
+        f"{inner}from vllm.model_executor.models.utils import (\n"
+        f"{inner}    WeightsMapper as _ServeWeightsMapper,\n"
+        f"{inner})\n"
+        f"{inner}\n"
+        f"{inner}hf_to_vllm_mapper = hf_to_vllm_mapper | _ServeWeightsMapper(\n"
+        f'{inner}    orig_to_new_prefix={{"model.": "language_model.model."}}\n'
+        f"{inner})\n"
+    )
 
 
 def patch_vllm_lora_loader() -> bool:
@@ -294,7 +311,12 @@ def patch_vllm_lora_loader() -> bool:
     ``hf_to_vllm_mapper`` lacks the ``model.`` -> ``language_model.model.``
     prefix rule for these models, so every LoRA tensor lookup misses and the
     adapter is SILENTLY not applied! Verified empirically
-    on vLLM 0.27/0.28; see workbench/vllm-lora-prefix-fix.
+    on vLLM 0.27/0.28; still broken in vLLM 0.30.0 (the Qwen3-VL mapper has
+    rules for ``model.visual.``, ``lm_head.`` and ``model.language_model.``
+    but not for the bare ``model.`` prefix). The mapper lookup method was
+    renamed (``get_unstacked_mapper()`` -> ``get_rename_mapper()``) in 0.30,
+    so the anchor is matched with a loose regex rather than a fixed string.
+    See workbench/vllm-lora-prefix-fix.
 
     This issue https://github.com/vllm-project/vllm/issues/48019 and fix simliar to https://github.com/vllm-project/vllm/pull/49525.
 
@@ -303,8 +325,6 @@ def patch_vllm_lora_loader() -> bool:
     mapper, not base weight loading, and is a no-op for models whose adapter
     names already match runtime modules, so it is safe to apply for any
     base model (text-only models never even hit the mapper path).
-
-    Viable to break in newer vllm verions.
 
     Returns:
         True if the patch was applied (or was already present).
@@ -328,7 +348,8 @@ def patch_vllm_lora_loader() -> bool:
             "[patch] Patch seems to already be applied, unlikely so please check vllm version and patch_vllm_lora_loader()"
         )
         return True
-    if _PATCH_ANCHOR not in src:
+    match = _PATCH_RE.search(src)
+    if match is None:
         log.error(
             "[patch] anchor not found in %s (vLLM version drift?) — NOT "
             "patching. If the served adapters target a multimodal wrapper "
@@ -337,10 +358,12 @@ def patch_vllm_lora_loader() -> bool:
             wm_path,
         )
         return False
+    inner = match.group("indent") + "    "
+    patched = src[: match.end()] + _lora_prefix_patch(inner) + src[match.end() :]
     backup = wm_path.with_suffix(".py.pre-lora-prefix-patch")
     if not backup.exists():
         backup.write_text(src)
-    wm_path.write_text(src.replace(_PATCH_ANCHOR, _PATCH_NEW, 1))
+    wm_path.write_text(patched)
     log.info("[patch] patched %s (backup: %s)", wm_path, backup.name)
     return True
 
@@ -498,7 +521,33 @@ def main():
     # run for any base model: it is a no-op when adapter names already match
     # and text-only models never hit the mapper path.
     if adapter_modules and not args.no_lora_loader_patch:
-        patch_vllm_lora_loader()
+        if not patch_vllm_lora_loader():
+            if args.allow_unpatched_lora:
+                log.warning(
+                    "[patch] continuing WITHOUT the LoRA prefix patch "
+                    "(--allow-unpatched-lora): on multimodal-wrapper models "
+                    "(Qwen3.5/3.6/3.8) the served adapters will load but be "
+                    "silently not applied; evaluate.py's adapter check should "
+                    "abort their evals."
+                )
+            else:
+                log.error(
+                    "[patch] ABORTING: the LoRA loader patch could not be "
+                    "applied while serving adapters. On multimodal-wrapper "
+                    "models (Qwen3.5/3.6/3.8) their weights would be silently "
+                    "ignored and the evals would measure the base model. Fix "
+                    "the patch anchor for this vLLM version (see "
+                    "workbench/vllm-lora-prefix-fix), or pass "
+                    "--allow-unpatched-lora if this model does not need it."
+                )
+                sys.exit(2)
+    elif adapter_modules and args.no_lora_loader_patch:
+        log.warning(
+            "[patch] --no-lora-loader-patch given while serving adapters: on "
+            "multimodal-wrapper models (Qwen3.5/3.6/3.8) the adapters will be "
+            "silently not applied. Only do this if the model does not need "
+            "the prefix mapping."
+        )
 
     if adapter_modules:
         cmd.append("--enable-lora")

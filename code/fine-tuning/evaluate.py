@@ -48,6 +48,8 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from openrouter_attribution import WVS_VALUE_MAP_HEADERS, headers_for_provider
 from prompt_construction import (
     THINKING_ENABLED,
     build_messages,
@@ -235,6 +237,22 @@ def parse_args(argv=None):
     )
     p.add_argument("--api-key", default="EMPTY", help="API key for the vLLM server")
     p.add_argument(
+        "--provider",
+        default="vllm",
+        choices=["vllm", "openrouter"],
+        help="Serving stack behind --api-url: 'vllm' sends the training "
+        "chat-template extras; 'openrouter' toggles reasoning via the "
+        "OpenRouter 'reasoning' param and drops vLLM-only extras.",
+    )
+    p.add_argument(
+        "--no-logprobs",
+        action="store_true",
+        default=False,
+        help="Never request logprobs; score the parsed answer as a one-hot "
+        "option distribution. Implied automatically when the server's model "
+        "metadata reports logprobs are unsupported (e.g. OpenRouter).",
+    )
+    p.add_argument(
         "--model",
         default="Qwen/Qwen3.6-27B",
         help="Model name as registered on the server",
@@ -242,9 +260,16 @@ def parse_args(argv=None):
     p.add_argument(
         "--dataset",
         default="modal_response",
-        choices=["modal_response", "first_token_distribution"],
+        choices=[
+            "modal_response",
+            "sampled_response",
+            "full_string_distribution",
+            "first_token_distribution",
+        ],
         help="Dataset config to evaluate on. modal_response gives accuracy "
         "(vs the expected text) plus KL/CE vs the true distribution. "
+        "full_string_distribution scores the model's distribution over the "
+        "full option strings (compute_option_probs). "
         "first_token_distribution scores the model's distribution over "
         "single-letter answers (accuracy vs the modal letter).",
     )
@@ -496,6 +521,29 @@ def compute_first_token_probs(
     return result
 
 
+def onehot_from_answer(
+    answer_text: str, answer_tokens: list | None, categories: list[str]
+) -> dict[str, float]:
+    """One-hot option distribution from a parsed answer (no-logprobs fallback).
+
+    Maps the model's answer to a category by exact letter (first-token
+    configs, e.g. ``"A"``) or exact option text (full-string configs), case
+    and trailing-punctuation insensitive. Returns ``{}`` when the answer
+    matches nothing.
+    """
+    if not answer_text:
+        return {}
+    answer = answer_text.strip().rstrip(".:").strip().lower()
+    if answer_tokens:
+        for token, category in zip(answer_tokens, categories):
+            if answer == str(token).strip().lower():
+                return {category: 1.0}
+    for category in categories:
+        if answer == str(category).strip().lower():
+            return {category: 1.0}
+    return {}
+
+
 def cross_entropy(
     true_label: str | list[float],
     top_logprobs: dict[str, float],
@@ -555,6 +603,28 @@ def _load_question_options():
     return lookup
 
 
+def _extra_body(args, use_logprobs: bool = True, supported_params=None):
+    """Provider-specific ``extra_body`` sent with every chat request.
+
+    vLLM gets the training-time chat-template kwargs plus ``top_k`` (the
+    format the fine-tuned LoRA expects). OpenRouter gets
+    ``provider.require_parameters`` so the router picks an endpoint that can
+    actually return logprobs, plus ``reasoning.effort = "none"`` when the
+    model supports reasoning and reasoning is to be off.
+    """
+    if args.provider == "openrouter":
+        extra: dict = {}
+        if use_logprobs:
+            extra["provider"] = {"require_parameters": True}
+        supported = set(supported_params or ())
+        if not args.reasoning and (
+            not supported or supported & {"reasoning", "reasoning_effort"}
+        ):
+            extra["reasoning"] = {"effort": "none"}
+        return extra
+    return {"top_k": 20, "chat_template_kwargs": chat_template_kwargs(args.reasoning)}
+
+
 def _chat_with_retry(
     client,
     *,
@@ -568,12 +638,17 @@ def _chat_with_retry(
     reasoning,
     retries=5,
     base_delay=5.0,
+    extra_body=None,
+    use_logprobs=True,
 ):
     """Call chat.completions.create with exponential-backoff retries.
 
     vLLM emits transient 5xx / connection errors while it restarts or
     reloads LoRA adapters; a retry usually succeeds once the server
-    recovers, so a single blip must not silently drop an example.
+    recovers, so a single blip must not silently drop an example. An empty
+    response (HTTP 200 with no ``choices``) is treated the same way.
+    ``extra_body``/``use_logprobs`` adapt the request to the serving stack
+    (see ``_extra_body`` and the ``--no-logprobs`` option).
     """
     import time
 
@@ -581,21 +656,54 @@ def _chat_with_retry(
     delay = base_delay
     for attempt in range(retries):
         try:
-            return client.chat.completions.create(
+            kwargs = dict(
                 model=model,
                 messages=messages,
                 max_tokens=max_tokens,
-                logprobs=True,
-                top_logprobs=top_logprobs,
                 temperature=temperature,
                 top_p=top_p,
                 presence_penalty=presence_penalty,
-                extra_body={
-                    "top_k": 20,
-                    "chat_template_kwargs": chat_template_kwargs(reasoning),
-                },
             )
+            if use_logprobs:
+                kwargs["logprobs"] = True
+                kwargs["top_logprobs"] = top_logprobs
+            if extra_body:
+                kwargs["extra_body"] = extra_body
+            resp = client.chat.completions.create(**kwargs)
+            if resp is None or not getattr(resp, "choices", None):
+                raise RuntimeError("server returned an empty response")
+            return resp
         except Exception as e:
+            message = str(e)
+            if (
+                "Reasoning is mandatory" in message
+                and extra_body
+                and "reasoning" in extra_body
+            ):
+                # Some OpenRouter endpoints (e.g. GLM 5.3 Flash) reject the
+                # reasoning-disable request outright. Drop the parameter and
+                # let the endpoint reason; the answer split below still finds
+                # the first answer token after the closing think marker.
+                extra_body.pop("reasoning", None)
+                print(
+                    "  [adjust] endpoint requires reasoning — "
+                    "leaving it enabled for this run"
+                )
+                continue
+            if (
+                extra_body
+                and "provider" in extra_body
+                and ("No endpoints found" in message or "require_parameters" in message)
+            ):
+                # No provider serves every requested parameter (usually a
+                # non-reasoning model that does not list reasoning support);
+                # retry without require_parameters and let the router choose.
+                extra_body.pop("provider", None)
+                print(
+                    "  [adjust] no endpoint matches every requested parameter — "
+                    "retrying without provider.require_parameters"
+                )
+                continue
             last_err = e
             if attempt < retries - 1:
                 print(
@@ -620,6 +728,8 @@ async def _chat_with_retry_async(
     reasoning,
     retries=5,
     base_delay=5.0,
+    extra_body=None,
+    use_logprobs=True,
 ):
     """Async twin of ``_chat_with_retry`` for the pipelined eval pass."""
     import asyncio
@@ -628,21 +738,50 @@ async def _chat_with_retry_async(
     delay = base_delay
     for attempt in range(retries):
         try:
-            return await client.chat.completions.create(
+            kwargs = dict(
                 model=model,
                 messages=messages,
                 max_tokens=max_tokens,
-                logprobs=True,
-                top_logprobs=top_logprobs,
                 temperature=temperature,
                 top_p=top_p,
                 presence_penalty=presence_penalty,
-                extra_body={
-                    "top_k": 20,
-                    "chat_template_kwargs": chat_template_kwargs(reasoning),
-                },
             )
+            if use_logprobs:
+                kwargs["logprobs"] = True
+                kwargs["top_logprobs"] = top_logprobs
+            if extra_body:
+                kwargs["extra_body"] = extra_body
+            resp = await client.chat.completions.create(**kwargs)
+            if resp is None or not getattr(resp, "choices", None):
+                raise RuntimeError("server returned an empty response")
+            return resp
         except Exception as e:
+            message = str(e)
+            if (
+                "Reasoning is mandatory" in message
+                and extra_body
+                and "reasoning" in extra_body
+            ):
+                # See the sync twin above: endpoints like GLM 5.3 Flash
+                # reject the reasoning-disable request; let them reason.
+                extra_body.pop("reasoning", None)
+                print(
+                    "  [adjust] endpoint requires reasoning — "
+                    "leaving it enabled for this run"
+                )
+                continue
+            if (
+                extra_body
+                and "provider" in extra_body
+                and ("No endpoints found" in message or "require_parameters" in message)
+            ):
+                # See the sync twin above.
+                extra_body.pop("provider", None)
+                print(
+                    "  [adjust] no endpoint matches every requested parameter — "
+                    "retrying without provider.require_parameters"
+                )
+                continue
             last_err = e
             if attempt < retries - 1:
                 print(
@@ -663,6 +802,7 @@ def _build_row(
     first_token_mode,
     has_expected_text,
     options_lookup,
+    use_logprobs=True,
 ):
     """Turn a completion into a results row (shared by both eval passes).
 
@@ -718,11 +858,19 @@ def _build_row(
             pass
         elif first_token_mode:
             answer_tokens = list(example.get("answer_tokens", []))
-            option_probs = compute_first_token_probs(
-                answer_tokens, logprobs_data, categories=categories
-            )
+            if use_logprobs:
+                option_probs = compute_first_token_probs(
+                    answer_tokens, logprobs_data, categories=categories
+                )
+            if not option_probs:
+                option_probs = onehot_from_answer(
+                    answer_text, answer_tokens, categories
+                )
         else:
-            option_probs = compute_option_probs(categories, logprobs_data)
+            if use_logprobs:
+                option_probs = compute_option_probs(categories, logprobs_data)
+            if not option_probs:
+                option_probs = onehot_from_answer(answer_text, None, categories)
 
     row = {
         "question_id": example["question_id"],
@@ -735,6 +883,7 @@ def _build_row(
         "split": example.get("split", ""),
         "model_answer": answer_text,
         "model_reasoning": reasoning_text if reasoning else "",
+        "reasoning_chars": len(reasoning_text),
     }
 
     if categories:
@@ -794,6 +943,8 @@ def _run_evaluation(
     top_p=1.0,
     presence_penalty=0.0,
     concurrency=1,
+    extra_body=None,
+    use_logprobs=True,
 ):
     import json
     import time
@@ -855,6 +1006,8 @@ def _run_evaluation(
             presence_penalty=presence_penalty,
             reasoning=reasoning,
             retries=max_retries,
+            extra_body=extra_body,
+            use_logprobs=use_logprobs,
         )
 
     def _row_for(idx, example, resp):
@@ -866,6 +1019,7 @@ def _run_evaluation(
             first_token_mode=first_token_mode,
             has_expected_text=has_expected_text,
             options_lookup=options_lookup,
+            use_logprobs=use_logprobs,
         )
 
     if concurrency <= 1:
@@ -1040,7 +1194,8 @@ def _adapter_fires_check(
     model: str,
     parent_model: str,
     reasoning: bool,
-    n_examples: int = 2,
+    n_examples: int = 16,
+    default_headers: dict[str, str] | None = None,
 ):
     """Verify the served adapter actually changes the model's outputs.
 
@@ -1049,13 +1204,16 @@ def _adapter_fires_check(
     logprobs) are bit-identical to the base model, with no warning beyond
     DEBUG logs (seen on the Qwen3.5/3.6/3.8 ``qwen3_5`` family; see
     workbench/vllm-lora-prefix-fix). A whole eval pass is worthless in that
-    state, so this pre-flight compares the first-token top-logprobs of the
-    adapter against its parent base model on a few dataset prompts and
-    aborts the run when they are indistinguishable.
+    state, so this pre-flight compares the first-token top-probabilities of
+    the adapter against its parent base model on 16 dataset prompts spread
+    across the split and aborts only when the adapter clearly does nothing
+    (max probability-space L1 ≤ 0.15, mean ≤ 0.05 and fewer than 2
+    greedy-token flips). Calibrated against the silent no-op, which sits at
+    L1 ≈ 0.02–0.05 while real adapters measure 0.1–1.6.
 
     Returns:
-        Dict with ``fired`` (bool), per-example ``l1`` distances and the
-        compared ``parent`` model id.
+        Dict with ``fired`` (bool), per-example ``l1`` distances, ``mean_l1``,
+        the ``flips`` count and the compared ``parent`` model id.
     """
     print()
     print(
@@ -1067,11 +1225,22 @@ def _adapter_fires_check(
     # main pass's concurrency mode (AsyncOpenAI calls return coroutines).
     from openai import OpenAI as _SyncOpenAI
 
-    check_client = _SyncOpenAI(base_url=client.base_url, api_key=client.api_key)
+    check_client = _SyncOpenAI(
+        base_url=client.base_url,
+        api_key=client.api_key,
+        default_headers=default_headers,
+    )
     fired = False
     distances = []
-    for i in range(min(n_examples, len(ds))):
-        ex = ds[i]
+    flips = 0
+    # Spread the probes across the whole split: the first N rows are usually
+    # one item under every system prompt, which under-represents the adapter.
+    total = len(ds)
+    n_probes = min(n_examples, total)
+    step = max(1, total // n_probes)
+    indices = list(range(0, total, step))[:n_probes]
+    for i, idx in enumerate(indices):
+        ex = ds[idx]
         messages = build_messages(ex["system_prompt"], ex["user_prompt"])
         kwargs = dict(
             messages=messages,
@@ -1082,6 +1251,11 @@ def _adapter_fires_check(
             top_logprobs=20,
             reasoning=reasoning,
             retries=2,
+            extra_body={
+                "top_k": 20,
+                "chat_template_kwargs": chat_template_kwargs(reasoning),
+            },
+            use_logprobs=True,
         )
         dists = {}
         for name in (model, parent_model):
@@ -1101,17 +1275,43 @@ def _adapter_fires_check(
         adapter_lp = dists.get(model, {})
         base_lp = dists.get(parent_model, {})
         keys = set(adapter_lp) | set(base_lp)
-        l1 = sum(abs(adapter_lp.get(k, -100.0) - base_lp.get(k, -100.0)) for k in keys)
+
+        def _prob(d, k):
+            return math.exp(d[k]) if k in d else 0.0
+
+        # Probability-space L1, bounded by 2. A token missing from one top-20
+        # list contributes 0, NOT the old -100 logprob substitute: with that
+        # convention a single token crossing the top-20 boundary under vLLM
+        # batching noise looked like a ~100-point difference and let the
+        # silent no-op pass this check (Sep 2026).
+        l1 = sum(abs(_prob(adapter_lp, k) - _prob(base_lp, k)) for k in keys)
+        top_a = max(adapter_lp, key=adapter_lp.get) if adapter_lp else "-"
+        top_b = max(base_lp, key=base_lp.get) if base_lp else "-"
+        if top_a != top_b:
+            flips += 1
         distances.append(l1)
-        print(f"  example {i}: adapter-vs-base first-token top-logprob L1 = {l1:.4f}")
-        if l1 > 0.01:
+        print(
+            f"  example {i}: adapter-vs-base prob-space L1 = {l1:.4f}  "
+            f"greedy token adapter={top_a!r} base={top_b!r}"
+        )
+        if l1 > 0.15:
             fired = True
+    mean_l1 = sum(distances) / len(distances) if distances else 0.0
+    if mean_l1 > 0.05 or flips >= 2:
+        fired = True
+    print(
+        f"  [adapter-check] prob-space L1: max "
+        f"{max(distances, default=0.0):.4f}, mean {mean_l1:.4f}; "
+        f"greedy flips = {flips}/{len(distances)}"
+    )
     if not fired:
         print()
         print("!" * 72)
         print("ERROR: the served adapter does NOT change the model's outputs.")
         print(f"  adapter '{model}' and its parent '{parent_model}' produced")
-        print("  identical top-logprobs on every checked example. This is the")
+        print("  indistinguishable outputs on every checked example (max")
+        print("  probability-space L1 ≤ 0.15, mean ≤ 0.05 and fewer than 2")
+        print("  greedy-token flips). This is the")
         print("  vLLM silent LoRA no-op failure (adapter loads, requests are")
         print("  routed to it, but zero weights are applied — e.g. the")
         print("  Qwen3.5/3.6/3.8 multimodal-wrapper prefix-mapping bug).")
@@ -1124,7 +1324,13 @@ def _adapter_fires_check(
     else:
         print("  [adapter-check] OK — adapter changes outputs (fired)")
     print()
-    return {"fired": fired, "l1": distances, "parent": parent_model}
+    return {
+        "fired": fired,
+        "l1": distances,
+        "mean_l1": mean_l1,
+        "flips": flips,
+        "parent": parent_model,
+    }
 
 
 def main():
@@ -1136,6 +1342,13 @@ def main():
     if args.hf_token is None:
         args.hf_token = os.environ.get("HF_TOKEN")
 
+    # OpenRouter mode reads the key from the environment so it never has to
+    # appear on a command line (or in shell history / process listings).
+    if args.provider == "openrouter" and args.api_key in (None, "", "EMPTY"):
+        args.api_key = os.environ.get("OPENROUTER_API_KEY", args.api_key)
+    if args.provider == "openrouter" and not args.api_key:
+        raise SystemExit("OPENROUTER_API_KEY is not set (see .env.example)")
+
     from openai import OpenAI, AsyncOpenAI
 
     if args.api_url is None:
@@ -1145,17 +1358,24 @@ def main():
     print("Evaluation configuration")
     print("=" * 60)
     for k, v in sorted(vars(args).items()):
-        print(f"  {k}: {v}")
+        print(f"  {k}: {'<redacted>' if k in ('api_key', 'hf_token') and v else v}")
     print("=" * 60)
 
     import json
     from datetime import datetime
     import urllib.request
 
+    default_headers = headers_for_provider(args.provider, WVS_VALUE_MAP_HEADERS)
+
     # Query server for available models (fail fast if model doesn't exist)
     models_url = f"{args.api_url}/v1/models"
+    models_request = (
+        urllib.request.Request(models_url, headers=default_headers)
+        if default_headers is not None
+        else models_url
+    )
     try:
-        with urllib.request.urlopen(models_url, timeout=5) as resp:
+        with urllib.request.urlopen(models_request, timeout=5) as resp:
             models_data = json.loads(resp.read().decode())
         available = [m["id"] for m in models_data.get("data", [])]
     except Exception as e:
@@ -1188,7 +1408,11 @@ def main():
     )
     if args.output_dir is None:
         model_name = _model_short_name(args.model)
-        output_dir = Path("output") / "evals" / model_name / run_name
+        # Script-relative so evals always land in code/fine-tuning/output/evals
+        # regardless of the working directory the caller used.
+        output_dir = (
+            Path(__file__).resolve().parent / "output" / "evals" / model_name / run_name
+        )
     else:
         output_dir = Path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -1250,12 +1474,25 @@ def main():
 
     server_created = None
     parent_model = None
+    use_logprobs = not args.no_logprobs
+    supported: set = set()
     if available:
         for m in models_data.get("data", []):
             if m["id"] == args.model:
                 server_created = m["created"]
                 parent_model = m.get("parent")
+                supported = set(m.get("supported_parameters") or [])
+                # OpenRouter reports per-model parameter support; when
+                # logprobs are unavailable, score parsed answers as one-hot
+                # option distributions instead (and do not request them).
+                if supported and "logprobs" not in supported:
+                    use_logprobs = False
                 break
+    if not use_logprobs:
+        print(
+            "[eval] logprobs unavailable or disabled — model distributions "
+            "come from parsed (one-hot) answers"
+        )
 
     if args.max_tokens is None:
         args.max_tokens = 4096 if args.reasoning else 1000
@@ -1271,11 +1508,15 @@ def main():
         "splits": splits,
         "subpopulation": args.subpopulation,
         "reasoning": args.reasoning,
+        "provider": args.provider,
+        "use_logprobs": use_logprobs,
         "run_name": run_name,
         "timestamp": datetime.now().isoformat(),
         "output_dir": str(output_dir.resolve()),
         "api_url": args.api_url,
-        "api_key": args.api_key,
+        "api_key": "<redacted>"
+        if args.api_key not in (None, "", "EMPTY")
+        else args.api_key,
         "max_tokens": args.max_tokens,
         "top_logprobs": args.top_logprobs,
         "temperature": args.temperature,
@@ -1294,6 +1535,7 @@ def main():
     client = (OpenAI if args.concurrency <= 1 else AsyncOpenAI)(
         base_url=f"{args.api_url}/v1",
         api_key=args.api_key,
+        default_headers=default_headers,
     )
 
     # Pre-flight: when the target is a LoRA adapter (server reports a parent
@@ -1307,6 +1549,7 @@ def main():
             model=args.model,
             parent_model=parent_model,
             reasoning=args.reasoning,
+            default_headers=default_headers,
         )
         if not adapter_check["fired"]:
             config["adapter_check"] = adapter_check
@@ -1315,6 +1558,13 @@ def main():
             sys.exit(1)
         config["adapter_check"] = adapter_check
         (output_dir / "config.json").write_text(json.dumps(config, indent=2))
+
+    extra_body = _extra_body(
+        args, use_logprobs=use_logprobs, supported_params=supported
+    )
+    reasoning_requested_off = (
+        args.provider == "openrouter" and "reasoning" in extra_body
+    )
 
     _run_evaluation(
         client=client,
@@ -1326,7 +1576,50 @@ def main():
         output_dir=output_dir,
         max_retries=args.max_retries,
         concurrency=args.concurrency,
+        extra_body=extra_body,
+        use_logprobs=use_logprobs,
     )
+
+    # Strict reasoning-off bookkeeping. The retry fallback pops "reasoning"
+    # from the shared extra_body when an endpoint mandates reasoning, and some
+    # endpoints silently reason anyway; record both so downstream analysis can
+    # exclude runs that are not reasoning-free.
+    reasoning_mandatory = reasoning_requested_off and "reasoning" not in extra_body
+    reasoning_observed = 0
+    results_csv = output_dir / "per_question_results.csv"
+    if results_csv.exists():
+        try:
+            results_df = pd.read_csv(results_csv)
+            if "reasoning_chars" in results_df.columns:
+                reasoning_observed = int(
+                    (results_df["reasoning_chars"].fillna(0) > 0).sum()
+                )
+        except Exception:
+            pass
+    # Re-read the config so the elapsed/aborted fields written by
+    # _run_evaluation are preserved before adding the reasoning flags.
+    config_path = output_dir / "config.json"
+    try:
+        config = json.loads(config_path.read_text())
+    except Exception:
+        pass
+    config.update(
+        {
+            "reasoning_mandatory": reasoning_mandatory,
+            "reasoning_observed_rows": reasoning_observed,
+        }
+    )
+    config_path.write_text(json.dumps(config, indent=2))
+    if not args.reasoning and (reasoning_mandatory or reasoning_observed):
+        reason = (
+            "the endpoint mandates reasoning"
+            if reasoning_mandatory
+            else f"the model still produced reasoning on {reasoning_observed} rows"
+        )
+        print(
+            f"[warn] reasoning was requested off but {reason} — "
+            "the value map will exclude this run"
+        )
 
 
 if __name__ == "__main__":

@@ -22,9 +22,12 @@ wrapper family but **silently applies none of their weights** — generations
 are bit-identical to the base model with no warning. This invalidated every
 fine-tuned eval run through vLLM (they measured the base model); the training
 itself was fine. `serve.py` now auto-patches the installed vLLM's LoRA loader
-and `evaluate.py` aborts any run whose adapter does not change outputs.
-Full diagnosis, evidence and the standalone patch:
-`workbench/vllm-lora-prefix-fix/README.md`.
+and **aborts startup** if the patch cannot be applied (e.g. vLLM version
+drift), so the no-op cannot silently reach the evals; pass
+`--allow-unpatched-lora` to downgrade that to a warning (through run_all:
+`run_all.py ... -- --allow-unpatched-lora`). `evaluate.py` still aborts any
+run whose adapter does not change outputs. Full diagnosis, evidence and the
+standalone patch: `workbench/vllm-lora-prefix-fix/README.md`.
 
 Related serving fixes in `serve.py`:
 
@@ -72,9 +75,9 @@ Below are sections for each step of the pipeline
 ### Evaluation
 
 Runs land in `output/evals/<model>/<run>/` (`config.json` +
-`per_question_results.csv`). To make them browsable on the public website
-(which fetches eval data live from the HF bucket), regenerate the webapp
-manifest and sync:
+`per_question_results.csv`). To make them browsable on the website, regenerate
+the webapp manifest. The dev server reads the local `artifacts/ft` mirror
+automatically; use the normal artifact workflow when publishing to the bucket:
 
 ```bash
 uv run python code/fine-tuning/analyze.py   # executes headlessly; rewrites output/evals/index.json + figures
@@ -86,16 +89,69 @@ first — `run_all.py` skips any (dataset, subpopulation) that already has a
 completed run — then run the whole serve + eval pipeline for one base model:
 
 ```bash
-uv run code/fine-tuning/run_all.py vast-gpu1 Qwen/Qwen3.8-27B --skip-finetune
+uv run code/fine-tuning/run_all.py vast-gpu1 Qwen/Qwen3.8-27B --eval-only
 ```
 
-`--skip-finetune` keeps the adapters already on the hub and only serves +
-evaluates. Each `evaluate.py` job starts with an **adapter sanity check**:
-if the served adapter's first-token logprobs are indistinguishable from its
-parent base model's, the run aborts (`aborted: "adapter_not_applied"` in
-`config.json`) instead of silently measuring the base model.
+`--eval-only` keeps the adapters already on the hub and only serves +
+evaluates (`--skip-finetune` is the old spelling and still works).
+`--train-only` is the mirror image: fine-tune the grid and stop
+(`--skip-eval` still works). With `--eval-only --no-serve`, the eval runs
+against a server already listening on `--port` (bring your own ssh tunnel)
+instead of starting a new one — useful when iterating on the serving stack.
+
+Each `evaluate.py` job starts with an **adapter sanity check**: if the served
+adapter's outputs are indistinguishable from its parent base model's, the run
+aborts (`aborted: "adapter_not_applied"` in `config.json`) instead of silently
+measuring the base model. The check compares first-token probabilities (not
+raw logprobs) over 16 prompts spread across the split and aborts only when
+the adapter clearly does nothing (max probability-space L1 ≤ 0.15, mean ≤ 0.05
+and fewer than 2 greedy-token flips). That is calibrated against the silent
+no-op (L1 ≈ 0.02–0.05) and real adapters (0.1–1.6), so neither batching noise
+nor a modest-but-real adapter effect trips it.
 
 ### Capability Evaluation
+
+### Value map (OpenRouter base models)
+
+`evaluate.py` can evaluate hosted base models through OpenRouter. Eligible
+base-model and fine-tuned-adapter runs are included automatically by
+`analyze.py` in a PCA map fitted to the actual NZ WVS respondents.
+
+Run one model, then rebuild the analysis (requires `OPENROUTER_API_KEY` in
+`.env`):
+
+```bash
+uv run code/fine-tuning/evaluate.py \
+    --provider openrouter \
+    --api-url https://openrouter.ai/api \
+    --model deepseek/deepseek-v4.1-flash \
+    --dataset full_string_distribution \
+    --splits validation \
+    --subpopulation overall \
+    --temperature 0.0 --max-tokens 2048 \
+    --concurrency 8 --max-retries 5
+
+uv run python code/fine-tuning/analyze.py
+```
+
+Repeat the evaluation command for each desired model. OpenRouter requests
+are attributed through `code/openrouter_attribution.py`.
+
+A run is eligible when it is complete, uses the overall population and
+logprobs, and reasoning is successfully disabled. Fine-tuned adapters use
+their newest compatible evaluation on the format they were trained on and
+must match the base runs' dataset revision.
+
+`analyze.py` aligns answer categories to the canonical dataset, drops items
+with incompatible options, and projects each model's prompt-averaged
+answers and the NZ population onto two respondent-level PCA components.
+PC1 is anchored as traditional/progressive and PC2 as religious/secular.
+
+Outputs:
+
+- `code/figures/value-map.png` — models, respondent cloud, and NZ population
+- `code/figures/value-map-loadings.png` — questions defining each axis
+- `code/fine-tuning/output/value_map/` — coordinates and item loadings
 
 ### Analysis
 

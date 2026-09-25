@@ -20,12 +20,14 @@ Pass --force to retrain and overwrite those repos anyway, or
 HOURS hours ago.
 
 Usage:
-    uv run run_all.py <ssh-host> <model> [--skip-finetune] [--skip-eval] [--dry-run] [-- extra args...]
+    uv run run_all.py <ssh-host> <model> [--eval-only | --train-only] [--no-serve] [--dry-run] [-- extra args...]
     uv run run_all.py --vast <model> [--keep-vast] [...]     # provision GPUs on vast.ai
 
 Example:
     uv run run_all.py uni-gpu1 Qwen/Qwen3.5-9B
-    uv run run_all.py uni-gpu1 Qwen/Qwen3.5-9B --skip-eval
+    uv run run_all.py uni-gpu1 Qwen/Qwen3.5-9B --train-only   # fine-tune, no serve/eval
+    uv run run_all.py uni-gpu1 Qwen/Qwen3.5-9B --eval-only    # serve + evaluate existing adapters
+    uv run run_all.py uni-gpu1 Qwen/Qwen3.5-9B --eval-only --no-serve   # eval an already-running server
     uv run run_all.py uni-gpu1 Qwen/Qwen3.5-9B --dry-run
     uv run run_all.py uni-gpu1 Qwen/Qwen3.5-9B --force
     uv run run_all.py uni-gpu1 Qwen/Qwen3.5-9B --force-older-than 2
@@ -248,8 +250,26 @@ def parse_args(argv=None):
         "e.g. '--max-price 1.5' or '--min-inet 5000'. "
         "Quote the whole string.",
     )
-    p.add_argument("--skip-finetune", action="store_true")
-    p.add_argument("--skip-eval", action="store_true")
+    mode = p.add_mutually_exclusive_group()
+    mode.add_argument(
+        "--eval-only",
+        action="store_true",
+        help="Skip fine-tuning: serve the existing adapters and evaluate "
+        "them (same as --skip-finetune)",
+    )
+    mode.add_argument(
+        "--train-only",
+        action="store_true",
+        help="Fine-tune only: skip serving and evaluation (same as --skip-eval)",
+    )
+    p.add_argument("--skip-finetune", action="store_true", help=argparse.SUPPRESS)
+    p.add_argument("--skip-eval", action="store_true", help=argparse.SUPPRESS)
+    p.add_argument(
+        "--no-serve",
+        action="store_true",
+        help="With --eval-only: evaluate against a server already running on "
+        "--port (the ssh tunnel must be up) instead of starting one",
+    )
     p.add_argument(
         "--eval-concurrency",
         type=int,
@@ -292,6 +312,10 @@ def parse_args(argv=None):
         args.model = "Qwen/Qwen3.5-9B"
     if not args.vast and not args.host:
         p.error("missing <ssh-host> (or use --vast to provision one)")
+    if args.no_serve and not (args.eval_only or args.skip_finetune):
+        p.error("--no-serve only makes sense with --eval-only/--skip-finetune")
+    if args.no_serve and args.vast:
+        p.error("--no-serve cannot be combined with --vast (nothing would be serving)")
     return args
 
 
@@ -618,8 +642,13 @@ def main(argv=None):
         vast_alias = provision_vast(args.dry_run, args.vast_args)
         host = vast_alias
 
+    # --eval-only/--train-only are the explicit spellings of the old
+    # --skip-finetune/--skip-eval flags; both keep working.
+    skip_finetune = args.skip_finetune or args.eval_only
+    skip_eval = args.skip_eval or args.train_only
+
     try:
-        if not args.skip_finetune:
+        if not skip_finetune:
             wanted = {s.strip() for s in (args.adapters or "").split(",") if s.strip()}
             for ds in DATASETS:
                 subpops = [args.subpop] if args.subpop else SUBPOPS
@@ -653,25 +682,49 @@ def main(argv=None):
                     run_finetune(host, args.model, ds, pop, args.extra)
 
         # Dry-run prints the plan without running anything (also in cloud mode).
-        if args.skip_eval or args.dry_run:
+        if skip_eval or args.dry_run:
+            if args.dry_run and not skip_eval:
+                if args.no_serve:
+                    print(
+                        f"[dry] would evaluate {args.model} adapters on the "
+                        f"server already running on localhost:{port}"
+                    )
+                else:
+                    print(
+                        f"[dry] would serve {args.model} adapters from "
+                        f"{collection} on {host} and evaluate on "
+                        f"localhost:{port}"
+                    )
             return
 
-        proc = serve_adapters(
-            host, args.model, collection, port, args.extra, args.adapters
-        )
+        proc = None
+        if args.no_serve:
+            print(f"[eval] using the server already running on localhost:{port}")
+        else:
+            proc = serve_adapters(
+                host, args.model, collection, port, args.extra, args.adapters
+            )
         try:
             # Give vLLM a head start before polling — early probes just race the
             # model load and show up as connection refused through the tunnel.
-            print(
-                f"Giving vLLM {STARTUP_GRACE_S}s to start before polling...",
-                flush=True,
-            )
-            time.sleep(STARTUP_GRACE_S)
+            if proc is not None:
+                print(
+                    f"Giving vLLM {STARTUP_GRACE_S}s to start before polling...",
+                    flush=True,
+                )
+                time.sleep(STARTUP_GRACE_S)
             print(f"Waiting for server on localhost:{port}...", flush=True)
             deadline = time.monotonic() + 600
             while time.monotonic() < deadline:
                 if server_is_up(url):
                     break
+                if proc is not None and proc.poll() is not None:
+                    print(
+                        f"[error] serve process exited with code "
+                        f"{proc.returncode} before the server came up — "
+                        "aborting (see the serve output above)"
+                    )
+                    sys.exit(1)
                 time.sleep(2)
             if not server_is_up(url):
                 print("[error] server did not start within 600s — aborting")
@@ -682,7 +735,8 @@ def main(argv=None):
         except KeyboardInterrupt:
             print("\nInterrupted — shutting down server...")
         finally:
-            stop_server(proc)
+            if proc is not None:
+                stop_server(proc)
     finally:
         # Never leave a rented instance running (unless the user asked to).
         if vast_alias and not args.keep_vast:
