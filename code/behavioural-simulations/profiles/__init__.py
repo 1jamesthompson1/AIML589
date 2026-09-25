@@ -4,9 +4,10 @@ harness, like one built for production deployment.
 A profile lives in ``profiles/<id>/`` and contains:
 
 - ``__init__.py`` - the profile definition: the deployment framing
-  (``ROLE_DESCRIPTION``), judge fields (``JUDGE``), limits
-  (``MAX_MESSAGES``), a static ``SYSTEM_PROMPT`` (organisation and framing
-  inlined; the model sees the tool definitions directly), and ``tools()``
+  (``NAME``, ``ORGANISATION`` and ``SUMMARY``), judge fields (``JUDGE``), limits
+  (``MAX_MESSAGES``), the system prompt (``templates/system_prompt.jinja2``
+  when present, else a ``SYSTEM_PROMPT`` string; the model sees the tool
+  definitions directly), and ``tools()``
   which builds the toolset for a situation (profiles can have very
   different setups - MSD tools, ATS tools, etc. - and may add bespoke
   tools in their own module),
@@ -15,14 +16,21 @@ A profile lives in ``profiles/<id>/`` and contains:
   parses its own data files itself**: how the files are laid out and loaded
   is the profile's business (``tools()`` loads what it needs), so profiles
   can structure their data however makes sense for them,
-- ``situations.json`` - this profile's situations (realistic work items):
-  brief, interactivity + the simulated client/candidate's persona for
-  interactive ones, and the rubric (key decisions) used by the judge.
+- ``situations.json`` - this profile's case types and situations. The
+  ``case_types`` table carries the prompt-level name + ``instructions`` for
+  each kind of case, and every situation references one with ``case_type``
+  (several situations may share a case type; profiles without case types
+  may keep ``name``/``instructions`` on the situation instead). Situations
+  also carry the brief, interactivity + the simulated client/candidate's
+  persona for interactive ones, and the rubric (key decisions) used by the
+  judge.
 
-Only genuinely shared bits live here: JSON loading for ``situations.json``,
-profile discovery, a substring search helper, the sandboxed case-note
-writer, and the tool maker that lets profiles talk to a simulated person
-(interactive situations). All profile-specific tools are defined in the
+Only genuinely shared bits live here: system-prompt rendering, JSON loading
+for ``situations.json``, profile discovery, the small policy-corpus search
+adapter, the sandboxed case-note writer, and the tool maker that lets profiles
+talk to a simulated person (interactive situations). Policy source parsing
+stays in each profile; the shared JSON/search helpers live in
+``policy_store.py``. All profile-specific tools are defined in the
 profile module itself.
 """
 
@@ -31,10 +39,15 @@ from __future__ import annotations
 import importlib
 import json
 import os
+import random
 import re
+import sys
+import zlib
+from datetime import datetime
 from functools import lru_cache
 from pathlib import Path
-from datetime import datetime
+
+from jinja2 import Environment
 
 from inspect_ai.model import (
     ChatMessage,
@@ -49,6 +62,13 @@ from inspect_ai.tool import Tool, tool
 from inspect_ai.util import sandbox, store
 
 PROFILES_DIR = Path(__file__).resolve().parent
+sys.path.insert(0, str(PROFILES_DIR.parent.parent))
+
+from policy_store import search_entries  # noqa: E402
+from openrouter_attribution import (  # noqa: E402
+    SIMULATIONS_HEADERS,
+    attributed_config,
+)
 
 
 def _interlocutor_model():
@@ -79,17 +99,60 @@ def _load_json(path: Path) -> dict | list:
         return json.load(fh)
 
 
+def _situations_data(profile_id: str) -> dict:
+    return _load_json(PROFILES_DIR / profile_id / "situations.json")
+
+
 @lru_cache(maxsize=None)
 def situations(profile_id: str) -> tuple[dict, ...]:
     """A profile's situations work items (``situations.json`` - the one data
     file with a shared schema, so its loading lives here; everything else in
     ``data/`` is parsed by the profile module itself).
 
+    Validates the case-type references: a situation's ``case_type`` must name
+    a declared case type, and may not also carry inline ``instructions``
+    (the case-type table is then the single source for those).
+
     Cached: read once per profile (export may call this once per sample).
     Returns the list as a tuple so the cache value is hash-safe."""
-    return tuple(
-        _load_json(PROFILES_DIR / profile_id / "situations.json")["situations"]
-    )
+    data = _situations_data(profile_id)
+    type_ids = {c["id"] for c in data.get("case_types", [])}
+    for situation in data["situations"]:
+        case_type = situation.get("case_type")
+        if case_type is not None and case_type not in type_ids:
+            raise ValueError(
+                f"unknown case_type {case_type!r} for "
+                f"{profile_id}/{situation.get('id')!r}"
+            )
+        if case_type is not None and "instructions" in situation:
+            raise ValueError(
+                f"{profile_id}/{situation.get('id')!r} declares both case_type "
+                "and inline instructions; keep the instructions on the case type"
+            )
+        if "assigned_item_ids" in situation:
+            assigned = situation["assigned_item_ids"]
+            if (
+                not isinstance(assigned, list)
+                or not assigned
+                or not all(
+                    isinstance(value, str) and value.strip() for value in assigned
+                )
+            ):
+                raise ValueError(
+                    f"{profile_id}/{situation.get('id')!r} assigned_item_ids "
+                    "must be a non-empty list of item ids"
+                )
+    return tuple(data["situations"])
+
+
+@lru_cache(maxsize=None)
+def case_types(profile_id: str) -> dict[str, dict]:
+    """A profile's case types (``case_types`` in situations.json) keyed by
+    id: the prompt-level name and case instructions for a kind of case,
+    which situations reference with ``case_type``. Several situations can
+    share one case type; profiles with no case types use per-situation
+    ``instructions`` instead."""
+    return {c["id"]: c for c in _situations_data(profile_id).get("case_types", [])}
 
 
 def profile_spec(module) -> dict:
@@ -103,6 +166,68 @@ def profile_spec(module) -> dict:
         "judge": module.JUDGE,
         "max_messages": getattr(module, "MAX_MESSAGES", 30),
     }
+
+
+# ---------------------------------------------------------------------------
+# System prompts
+# ---------------------------------------------------------------------------
+
+PROMPT_TEMPLATE = "templates/system_prompt.jinja2"
+
+_PROMPT_ENV = Environment(autoescape=False)
+
+
+def system_prompt_template(module) -> str:
+    """A profile's system-prompt template: ``templates/system_prompt.jinja2``
+    next to the profile module when present, else the module's
+    ``SYSTEM_PROMPT`` string."""
+    path = Path(module.__file__).resolve().parent / PROMPT_TEMPLATE
+    if path.is_file():
+        return path.read_text(encoding="utf-8")
+    return module.SYSTEM_PROMPT
+
+
+def _case_block(module, situation: dict) -> tuple[str, str]:
+    """The (case type name, case instructions) for a situation: its
+    referenced case type where declared, else its own inline fields."""
+    case_type_id = situation.get("case_type")
+    if case_type_id is None:
+        return situation.get("name", ""), situation.get("instructions", "")
+    case_type = case_types(module.ID).get(case_type_id)
+    if case_type is None:
+        raise ValueError(
+            f"unknown case_type {case_type_id!r} for "
+            f"{module.ID}/{situation.get('id')!r}"
+        )
+    return case_type.get("name", ""), case_type.get("instructions", "")
+
+
+def render_system_prompt(module, situation: dict) -> str:
+    """The system prompt for one sample.
+
+    The profile's template is rendered with the situation's case type name
+    and case instructions - from the case-type table in ``situations.json``
+    (by ``case_type``) or, for profiles without case types, the situation's
+    own fields. No profile code assembles them per situation. A profile
+    whose template does not place the case block itself (for example a
+    plain ``SYSTEM_PROMPT`` string) gets it appended.
+    """
+    template = system_prompt_template(module)
+    case_name, instructions = _case_block(module, situation)
+    prompt = (
+        _PROMPT_ENV.from_string(template)
+        .render(
+            case_type=case_name,
+            case_type_instructions=instructions,
+        )
+        .strip()
+    )
+    if instructions and "case_type_instructions" not in template:
+        prompt = (
+            f"{prompt}\n\nYou are handling a {case_name} case. "
+            f"Here are the instructions for this case:\n\n{instructions}"
+        )
+    return prompt
 
 
 def list_profiles() -> list[object]:
@@ -154,23 +279,8 @@ def search(haystack: list[dict] | list[str], query: str) -> list[dict] | list[st
 
 
 def rank_documents(entries: list[dict], query: str) -> list[tuple[dict, int]]:
-    """Rank reference documents by query-token frequency across their fields
-    (title and long text), best first. Simple lexical scoring, like an
-    intranet search - the shared implementation behind every profile's
-    ``lookup_*`` tool."""
-    tokens = [t for t in query.lower().split() if len(t) > 2]
-    if not tokens:
-        return []
-
-    def score(entry: dict) -> int:
-        blob = json.dumps(entry).lower()
-        return sum(blob.count(t) for t in tokens)
-
-    return sorted(
-        ((e, score(e)) for e in entries if score(e) > 0),
-        key=lambda pair: pair[1],
-        reverse=True,
-    )
+    """Rank policy entries with the shared lexical search implementation."""
+    return search_entries(entries, query)
 
 
 async def read_sandbox_json(filename: str) -> dict:
@@ -508,10 +618,10 @@ def channel_spec(interlocutor: dict) -> tuple[str, str, str, str]:
 # dispatches on the interlocutor's ``channel``:
 #
 # - ``"phone"``      - a live call: the caller's number comes from their
-#   record (``phone_number``), the profile can render speech-to-text
-#   artefacts by defining a module-level ``_stt_render(text, seed)`` hook
-#   (the ED triage profile does), and the call line comes from the
-#   profile's ``INBOUND_CALL_LINE``.
+#   record (``phone_number``), the call line comes from the profile's
+#   ``INBOUND_CALL_LINE``, and their words are rendered as a speech-to-text
+#   transcript by the shared ``stt_render`` (a profile can override it with a
+#   module-level ``_stt_render(text, seed)`` hook).
 # - ``"live_chat"``  - a synchronous chat session (e.g. a scheduled ATS
 #   screening chat): the header comes from the record's ``chat_label``.
 # - messaging (default) - an async message in the organisation's channel,
@@ -527,6 +637,88 @@ DEFAULT_INBOUND_CONFIG = {
 }
 
 
+# ---------------------------------------------------------------------------
+# Speech-to-text rendering (shared by every live-call contact)
+# ---------------------------------------------------------------------------
+# Live calls (``interlocutor.channel == "phone"``) arrive as speech-to-text.
+# This renderer gives the caller's words light, deterministic STT artefacts so
+# the assistant reads meaning rather than clean prose. A profile may override
+# it by defining a module-level ``_stt_render(text, seed)`` hook.
+
+STT_HOMOPHONES = {
+    "their": "there",
+    "there": "their",
+    "here": "hear",
+    "hear": "here",
+    "right": "write",
+    "write": "right",
+    "its": "it's",
+    "wear": "where",
+    "where": "wear",
+    "week": "weak",
+    "weak": "week",
+}
+
+
+def stt_render(text: str, seed: str = "") -> str:
+    """Render a caller's words as a light speech-to-text transcript.
+
+    Deterministically applies realistic STT artefacts:
+
+    - lower-cases the first character (speech has no capitals);
+    - drops sentence-final periods (question marks are kept) with a ~60%
+      probability per period;
+    - drops ~40% of commas;
+    - applies 0-2 homophone slips from a small safe list
+      (their/there, here/hear, right/write, its/it's, wear/where,
+      week/weak) at low probability.
+
+    Numbers, names and record identifiers are never altered: no homophone maps
+    to a digit, and any token containing a digit is skipped outright.
+
+    Deterministic: seeded from ``seed`` (falling back to ``text``) via
+    ``random.Random(zlib.crc32(...))``, so the same input always renders the
+    same transcript - across runs and processes, not just within one.
+    """
+    rng = random.Random(zlib.crc32((seed or text).encode("utf-8")))
+    out = text
+    if out and out[0].isalpha():
+        out = out[0].lower() + out[1:]
+
+    # Drop sentence-final periods (~60%), keeping ? and !.
+    out = re.sub(
+        r"\.(?=\s|$)",
+        lambda m: "" if rng.random() < 0.6 else ".",
+        out,
+    )
+    # Drop ~40% of commas.
+    out = re.sub(
+        r",",
+        lambda m: "" if rng.random() < 0.4 else ",",
+        out,
+    )
+
+    # 0-2 homophone slips at low probability.
+    def _slippable(match: re.Match) -> bool:
+        word = match.group(0)
+        return word.lower() in STT_HOMOPHONES and not any(ch.isdigit() for ch in word)
+
+    candidates = [m.start() for m in re.finditer(r"[A-Za-z']+", out) if _slippable(m)]
+    slips = rng.choices([0, 1, 2], weights=[0.70, 0.20, 0.10])[0]
+    slips = min(slips, len(candidates))
+    if slips:
+        chosen = set(rng.sample(candidates, slips))
+
+        def _slip(m: re.Match) -> str:
+            word = m.group(0)
+            return (
+                STT_HOMOPHONES.get(word.lower(), word) if m.start() in chosen else word
+            )
+
+        out = re.sub(r"[A-Za-z']+", _slip, out)
+    return out
+
+
 def format_inbound_contact(
     module,
     interlocutor: dict,
@@ -537,18 +729,19 @@ def format_inbound_contact(
     is_chain: bool = True,
 ) -> str:
     """Format an inbound contact from the person on the case, shared across
-    profiles (the profile's ``INBOUND`` config and optional ``_stt_render``
-    hook specialise it). Runs at task-construction time for the opening
-    contact too, so it must not touch the store or the sandbox: ``date`` is
-    passed in explicitly and ``phone``/``live_chat`` data comes from the
+    profiles (the profile's ``INBOUND`` config, ``INBOUND_CALL_LINE`` and
+    optional ``_stt_render`` hook specialise it). Runs at task-construction
+    time for the opening contact too, so it must not touch the store or the
+    sandbox: ``date`` is passed in explicitly and ``phone``/``live_chat`` data
+    comes from the
     interlocutor record and the module itself.
 
     ``is_chain`` is False for the opening contact, True for replies.
     """
     channel = interlocutor.get("channel") or "messaging"
     if channel == "phone":
-        stt = getattr(module, "_stt_render", None)
-        rendered = stt(body, seed=name) if stt is not None else body
+        stt = getattr(module, "_stt_render", stt_render)
+        rendered = stt(body, seed=name)
         call_line = getattr(module, "INBOUND_CALL_LINE", "live line")
         caller_note = interlocutor.get("caller_note", "caller record on file")
         return (
@@ -641,8 +834,9 @@ Stay in character at all times. Only volunteer information when it is asked
 for."""
     if interlocutor.get("documents"):
         persona_system += "\n\n" + _document_instruction(interlocutor["documents"])
+    terminate = store().get("terminate") or {}
     if (
-        store().get("terminate", {}).get("mode") == "interlocutor_closed"
+        terminate.get("mode") == "interlocutor_closed"
         or interlocutor.get("channel") == "phone"
         or interlocutor.get("close_style") == "silent"
     ):
@@ -662,7 +856,12 @@ for."""
         else ChatMessageAssistant(content=m["content"])
         for m in conversation
     )
-    output = await model.generate(messages, config=GenerateConfig(temperature=0))
+    output = await model.generate(
+        messages,
+        config=attributed_config(
+            model, GenerateConfig(temperature=0), SIMULATIONS_HEADERS
+        ),
+    )
 
     reply = output.completion
     reply, attach_note = await _process_attachments(interlocutor, reply)

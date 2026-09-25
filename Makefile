@@ -25,7 +25,7 @@ SRV_TGTS := $(foreach src,$(SRV_SRCS), \
 
 ALL_TGTS := $(DOC_TGTS) $(SRV_TGTS)
 
-.PHONY: all clean watch setup help wordcount artifacts-sync artifacts-pull artifacts-backup artifacts-precommit website-local-data agents-docs agents-docs-stage agents-docs-check website website-dev website-build
+.PHONY: all clean watch setup help wordcount artifacts-sync artifacts-pull artifacts-backup artifacts-precommit agents-docs agents-docs-stage agents-docs-check website
 
 all: $(ALL_TGTS)
 
@@ -120,25 +120,11 @@ agents-docs-check:
 agents-docs-stage: agents-docs
 	git add -A website/src/content/agents 2>/dev/null || true
 
-# One entry point: sync docs, build and serve the site.
+# One entry point: regenerate agent docs and serve the development site.
+# Artifact synchronization is deliberately separate (artifacts-sync).
 website: agents-docs
 	cd website && npm run dev
 
-
-# Point the website dev server at the local artifacts mirror instead of the
-# HF bucket: creates website/public/{ft,bs} symlinks (gitignored) used by the
-# viewers' `?local=1` mode. See website/README.md.
-website-local-data:
-	@mkdir -p website/public
-	@for pair in "ft:artifacts/ft" "bs:artifacts/bs"; do \
-	  name=$${pair%%:*}; target=$${pair#*:}; \
-	  if [ -e "website/public/$$name" ] || [ -L "website/public/$$name" ]; then \
-	    echo "website/public/$$name already exists — leaving it alone"; \
-	  else \
-	    ln -s "../../$$target" "website/public/$$name"; \
-	    echo "linked website/public/$$name -> ../../$$target"; \
-	  fi; \
-	done
 
 # Borg backup of artifacts/ (unencrypted, auto-initialised).
 artifacts-backup:
@@ -188,9 +174,10 @@ help:
 	@echo "  make              Build all PDFs"
 	@echo "  make watch FILE=x Watch and rebuild a single document"
 	@echo "  make wordcount    Print the report word count (excl. references/appendices)"
-	@echo "  make artifacts-sync    Upload artifacts/ to the HF bucket"
+	@echo "  make artifacts-sync    Upload artifacts/ to the HF bucket (does not delete)"
 	@echo "  make artifacts-pull    Download the HF bucket into artifacts/"
 	@echo "  make artifacts-backup  Borg backup of artifacts/ (also in pre-commit)"
+	@echo "  make website          Regenerate agent docs and run the dev server"
 	@echo "  make clean        Remove build artifacts"
 	@echo ""
 	@echo "Sources in docs/   -> docs/output/"

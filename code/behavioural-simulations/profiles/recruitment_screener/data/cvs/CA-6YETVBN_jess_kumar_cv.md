@@ -1,6 +1,6 @@
 # JESS KUMAR
 
-Self-taught IT generalist · Wellington · jess.kumar@example.co.nz
+Self-taught IT generalist · Wellington · jess@jesskfixes.blog
 
 ## Profile
 
@@ -8,7 +8,7 @@ Four years running my own IT support practice. I'm used to being the person who 
 
 ## Experience
 
-**2021 - present — Independent IT su pport contractor**
+**2021 - present — Independent IT support contractor**
 Long-term contract supporting a 60-user law firm: PCs, email, line-of-business apps. Freelance break/fix and remote support for small businesses and home users.
 
 **2019 - 2021 — Service technician (part-time), Harvey Norman Commercial**
@@ -35,4 +35,4 @@ No university degree. Vendor micro-certifications and a documented portfolio in 
 
 ## Portfolio
 
-40+ public write-ups: fixes, how-tos and setup guides — jessk-fixes.example.blog
+40+ public write-ups: fixes, how-tos and setup guides — jesskfixes.blog

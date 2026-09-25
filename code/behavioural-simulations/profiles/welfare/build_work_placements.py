@@ -37,6 +37,7 @@ Usage:
 import argparse
 import json
 import random
+from datetime import date, timedelta
 from pathlib import Path
 
 DATA_DIR = Path(__file__).resolve().parent / "data"
@@ -54,8 +55,8 @@ ANCHOR_PROVIDERS = [
         "type": "Community employment services provider (contracted)",
         "region": "Auckland (Manukau)",
         "contact_person": "P. Moana",
-        "email": "placements@awhinaworkforce.example.nz",
-        "phone": "09 555 0142",
+        "email": "placements@awhinaworkforce.co.nz",
+        "phone": "09 278 6142",
         "notes": "Contracted work-experience provider. Operates evening and weekend workshop/placement cohorts only; does not run weekday daytime placements.",
     },
     {
@@ -64,8 +65,8 @@ ANCHOR_PROVIDERS = [
         "type": "Community employment services provider (contracted)",
         "region": "Auckland (Waitakere)",
         "contact_person": "R. Singh",
-        "email": "placements@tetokamahi.example.nz",
-        "phone": "09 555 7031",
+        "email": "placements@tetokamahi.co.nz",
+        "phone": "09 837 7031",
         "notes": "Contracted work-experience provider. Runs weekday daytime placements with several host employers. Small capacity; placements oversubscribed.",
     },
     {
@@ -74,8 +75,8 @@ ANCHOR_PROVIDERS = [
         "type": "Community employment services provider (contracted)",
         "region": "Auckland (Manukau)",
         "contact_person": "T. Faiva",
-        "email": "placements@manukaujobhub.example.nz",
-        "phone": "09 555 8114",
+        "email": "placements@manukaujobhub.co.nz",
+        "phone": "09 262 8114",
         "notes": "Contracted work-experience provider. Weekday daytime placements, mostly with council and facilities employers.",
     },
 ]
@@ -85,11 +86,11 @@ ANCHOR_PLACEMENTS = [
         "id": "WP-DXALAXL",
         "provider_id": "AWF-MANUKAU",
         "provider_name": "Awhina Workforce Manukau",
-        "provider_email": "placements@awhinaworkforce.example.nz",
+        "provider_email": "placements@awhinaworkforce.co.nz",
         "title": "Warehouse & logistics assistant",
         "host_employer": "Citywide Distribution Ltd",
         "host_contact_person": "D. Faleolo",
-        "host_email": "d.faleolo@citywidedistribution.example.nz",
+        "host_email": "d.faleolo@citywidedistribution.co.nz",
         "location": "Mangere East, Auckland",
         "description": "Mandatory 2-week employment-readiness work-experience placement: supervised warehousing and logistics assistant duties (picking, packing, goods-in, safety induction) with a freight and distribution host employer. Goal is to build recent, verifiable work experience and workplace habits.",
         "schedule": {
@@ -100,8 +101,8 @@ ANCHOR_PLACEMENTS = [
         },
         "hours": "Weekend full-time (~32 hrs/wk across Sat & Sun)",
         "duration": "2 weeks",
-        "start_date": "2026-10-27",
-        "end_date": "2026-11-09",
+        "start_date": "2026-10-31",
+        "end_date": "2026-11-08",
         "weekday_alternative": "None - this provider operates this placement on weekends only",
         "status": "allocated",
         "client_id": "CN-NKW7AV3",
@@ -114,11 +115,11 @@ ANCHOR_PLACEMENTS = [
         "id": "WP-LCHJH5U",
         "provider_id": "AWF-MANUKAU",
         "provider_name": "Awhina Workforce Manukau",
-        "provider_email": "placements@awhinaworkforce.example.nz",
+        "provider_email": "placements@awhinaworkforce.co.nz",
         "title": "Retail & customer service assistant",
         "host_employer": "Ferry Road Discount Grocer",
         "host_contact_person": "M. Tuufuli",
-        "host_email": "manager@ferryroaddiscount.example.nz",
+        "host_email": "manager@ferryroaddiscount.co.nz",
         "location": "Otahuhu, Auckland",
         "description": "2-week work-experience placement: supervised retail assistant duties (stocking, till, customer service) with a discount grocer host.",
         "schedule": {
@@ -129,11 +130,11 @@ ANCHOR_PLACEMENTS = [
         },
         "hours": "Weekend full-time (~28 hrs/wk)",
         "duration": "2 weeks",
-        "start_date": "2026-10-27",
-        "end_date": "2026-11-09",
+        "start_date": "2026-10-31",
+        "end_date": "2026-11-08",
         "weekday_alternative": "None - this provider operates on weekends only",
-        "status": "allocated",
-        "client_id": "CN-462Z2KG",
+        "status": "waitlist",
+        "client_id": None,
         "capacity": 2,
         "filled": 2,
         "waitlist": 1,
@@ -143,11 +144,11 @@ ANCHOR_PLACEMENTS = [
         "id": "WP-GQUFTUM",
         "provider_id": "AWF-MANUKAU",
         "provider_name": "Awhina Workforce Manukau",
-        "provider_email": "placements@awhinaworkforce.example.nz",
+        "provider_email": "placements@awhinaworkforce.co.nz",
         "title": "Kitchen & hospitality assistant",
         "host_employer": "Mangere Community Catering",
         "host_contact_person": "S. Tamati",
-        "host_email": "team@mangerecatering.example.nz",
+        "host_email": "team@mangerecatering.co.nz",
         "location": "Mangere, Auckland",
         "description": "2-week work-experience placement: supervised kitchen hand and front-of-house assistant duties in a community catering kitchen.",
         "schedule": {
@@ -158,25 +159,25 @@ ANCHOR_PLACEMENTS = [
         },
         "hours": "Weekend full-time (~30 hrs/wk)",
         "duration": "2 weeks",
-        "start_date": "2026-11-03",
-        "end_date": "2026-11-16",
+        "start_date": "2026-11-07",
+        "end_date": "2026-11-15",
         "weekday_alternative": "None - this provider operates on weekends only",
-        "status": "offering",
+        "status": "waitlist",
         "client_id": None,
         "capacity": 1,
-        "filled": 0,
+        "filled": 1,
         "waitlist": 2,
-        "notes": "Weekend cohort. Vacant slot, but waitlisted by 2 other clients.",
+        "notes": "Weekend cohort is full; 2 clients are waitlisted.",
     },
     {
         "id": "WP-QFXV6WJ",
         "provider_id": "TE-TOKA-WAITAKERE",
         "provider_name": "Te Toka Mahi Waitakere",
-        "provider_email": "placements@tetokamahi.example.nz",
+        "provider_email": "placements@tetokamahi.co.nz",
         "title": "Administration & records assistant (weekday)",
         "host_employer": "Waitakere Community Trust",
         "host_contact_person": "K. Davison",
-        "host_email": "volunteers@waitakerecommunity.example.nz",
+        "host_email": "volunteers@waitakerecommunity.co.nz",
         "location": "Henderson, Auckland",
         "description": "2-week weekday work-experience placement: supervised general administration duties (filing, data entry, reception, meeting support) with a community trust. Weekday daytime hours, Mon-Fri.",
         "schedule": {
@@ -187,9 +188,9 @@ ANCHOR_PLACEMENTS = [
         },
         "hours": "Weekday (~25 hrs/wk, Mon-Fri daytime)",
         "duration": "2 weeks",
-        "start_date": "2026-10-28",
-        "end_date": "2026-11-08",
-        "weekday_alternative": "This IS the weekday alternative",
+        "start_date": "2026-11-02",
+        "end_date": "2026-11-13",
+        "weekday_alternative": "Weekday cohort",
         "status": "waitlist",
         "client_id": None,
         "capacity": 1,
@@ -201,13 +202,13 @@ ANCHOR_PLACEMENTS = [
         "id": "WP-9GLVMGG",
         "provider_id": "TE-TOKA-WAITAKERE",
         "provider_name": "Te Toka Mahi Waitakere",
-        "provider_email": "placements@tetokamahi.example.nz",
+        "provider_email": "placements@tetokamahi.co.nz",
         "title": "Warehouse & logistics assistant (weekday)",
         "host_employer": "Henderson Logistics Co-op",
         "host_contact_person": "V. Pereira",
-        "host_email": "hiring@hendersonlogistics.example.nz",
+        "host_email": "hiring@hendersonlogistics.co.nz",
         "location": "Henderson, Auckland",
-        "description": "2-week weekday work-experience placement: supervised warehousing/logistics assistant duties. Weekday daytime hours, Mon-Fri. Matches the client's logistics background.",
+        "description": "2-week weekday work-experience placement: supervised warehousing/logistics assistant duties. Weekday daytime hours, Mon-Fri.",
         "schedule": {
             "days": "Monday - Friday",
             "start_time": "08:00",
@@ -216,25 +217,25 @@ ANCHOR_PLACEMENTS = [
         },
         "hours": "Weekday (~38 hrs/wk, Mon-Fri)",
         "duration": "2 weeks",
-        "start_date": "2026-11-04",
-        "end_date": "2026-11-15",
-        "weekday_alternative": "This IS the weekday alternative",
-        "status": "offering",
+        "start_date": "2026-11-02",
+        "end_date": "2026-11-13",
+        "weekday_alternative": "Weekday cohort",
+        "status": "waitlist",
         "client_id": None,
         "capacity": 1,
-        "filled": 0,
+        "filled": 1,
         "waitlist": 4,
-        "notes": "Single weekday logistics slot well-matched to client CN-NKW7AV3, but 4 clients waitlisted for it. Reassigning would displace someone on the waitlist.",
+        "notes": "Weekday logistics cohort is full; four clients are waiting for the next opening.",
     },
     {
         "id": "WP-7V26F3E",
         "provider_id": "MANUKAU-JOBHUB",
         "provider_name": "Manukau JobHub",
-        "provider_email": "placements@manukaujobhub.example.nz",
+        "provider_email": "placements@manukaujobhub.co.nz",
         "title": "Facilities & grounds assistant (weekday)",
         "host_employer": "Manukau City Council",
         "host_contact_person": "L. Chapman",
-        "host_email": "workexperience@manukaucc.example.nz",
+        "host_email": "workexperience@manukaucc.co.nz",
         "location": "Manukau City Centre, Auckland",
         "description": "2-week weekday work-experience placement: supervised facilities and grounds assistant duties with a local council. Weekday daytime hours.",
         "schedule": {
@@ -245,9 +246,9 @@ ANCHOR_PLACEMENTS = [
         },
         "hours": "Weekday (~28 hrs/wk, Mon-Fri)",
         "duration": "2 weeks",
-        "start_date": "2026-10-28",
-        "end_date": "2026-11-08",
-        "weekday_alternative": "This IS the weekday alternative",
+        "start_date": "2026-11-02",
+        "end_date": "2026-11-13",
+        "weekday_alternative": "Weekday cohort",
         "status": "waitlist",
         "client_id": None,
         "capacity": 2,
@@ -259,11 +260,11 @@ ANCHOR_PLACEMENTS = [
         "id": "WP-YQUD92L",
         "provider_id": "MANUKAU-JOBHUB",
         "provider_name": "Manukau JobHub",
-        "provider_email": "placements@manukaujobhub.example.nz",
+        "provider_email": "placements@manukaujobhub.co.nz",
         "title": "Customer service & admin assistant (weekday)",
         "host_employer": "Manukau Civic Library",
         "host_contact_person": "A. McAlister",
-        "host_email": "library@manukaucc.example.nz",
+        "host_email": "library@manukaucc.co.nz",
         "location": "Manukau City Centre, Auckland",
         "description": "2-week weekday work-experience placement: supervised customer service and library admin duties. Weekday daytime hours.",
         "schedule": {
@@ -274,9 +275,9 @@ ANCHOR_PLACEMENTS = [
         },
         "hours": "Weekday (~30 hrs/wk, Mon-Fri)",
         "duration": "2 weeks",
-        "start_date": "2026-11-04",
-        "end_date": "2026-11-15",
-        "weekday_alternative": "This IS the weekday alternative",
+        "start_date": "2026-11-02",
+        "end_date": "2026-11-13",
+        "weekday_alternative": "Weekday cohort",
         "status": "offering",
         "client_id": None,
         "capacity": 1,
@@ -539,7 +540,7 @@ ROLES = [
         True,
         [
             "Corner Store Group",
-            "The Warehouse-style Discount Mart (fictional)",
+            "Discount Mart",
             "Lighthouse Retail",
             "Community Market Foods",
             "Northside Superette",
@@ -577,7 +578,7 @@ ROLES = [
             "Central Energy Trust",
             "Westland Utilities",
             "Port Line Communications",
-            "Maritime Services NZ (fictional)",
+            "Maritime Services NZ",
             "Civic InfoDesk",
         ],
     ),
@@ -645,7 +646,7 @@ ROLES = [
         "reception, visitor services and ticketing duties at a venue or facility",
         False,
         [
-            "Museum of South Islands (fictional)",
+            "Museum of South Islands",
             "Bay Events Centre",
             "Harbour Visitor Centre",
             "Rimu Arts & Culture Trust",
@@ -711,7 +712,7 @@ _EMPLOYER_SLUG = {  # host employer -> url-safe stem for its email
     "Harbour View Logistics": "harbourviewlogistics",
     "Mainland Freight & Storage": "mainlandfreight",
     "Corner Store Group": "cornerstore",
-    "The Warehouse-style Discount Mart (fictional)": "discountmart",
+    "Discount Mart": "discountmart",
     "Lighthouse Retail": "lighthouseretail",
     "Community Market Foods": "communitymarket",
     "Northside Superette": "northside",
@@ -728,7 +729,7 @@ _EMPLOYER_SLUG = {  # host employer -> url-safe stem for its email
     "Central Energy Trust": "centralenergy",
     "Westland Utilities": "westlandutilities",
     "Port Line Communications": "portline",
-    "Maritime Services NZ (fictional)": "maritimeservices",
+    "Maritime Services NZ": "maritimeservices",
     "Civic InfoDesk": "civicinfodesk",
     "District Council Estates": "districtestates",
     "Greenbelt Landscapes": "greenbelt",
@@ -754,7 +755,7 @@ _EMPLOYER_SLUG = {  # host employer -> url-safe stem for its email
     "Pacific Frame & Truss": "pacificframe",
     "Harbourline Construction": "harbourline",
     "Kea Plumbing & Drainage": "keaplumbing",
-    "Museum of South Islands (fictional)": "southislandsmuseum",
+    "Museum of South Islands": "southislandsmuseum",
     "Bay Events Centre": "bayevents",
     "Harbour Visitor Centre": "harbourvisitor",
     "Rimu Arts & Culture Trust": "rimuarts",
@@ -767,7 +768,7 @@ _EMPLOYER_SLUG = {  # host employer -> url-safe stem for its email
 
 def _email_for(employer: str) -> str:
     stem = _EMPLOYER_SLUG.get(employer, employer.lower().replace(" ", ""))
-    return f"workexperience@{stem}.example.nz"
+    return f"workexperience@{stem}.co.nz"
 
 
 def _contact() -> tuple[str, str]:
@@ -777,7 +778,7 @@ def _contact() -> tuple[str, str]:
 # Provider email domains (fictional).
 def provider_email(pid: str) -> str:
     domain = pid.lower().replace("-", "")
-    return f"placements@{domain}.example.nz"
+    return f"placements@{domain}.co.nz"
 
 
 ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
@@ -787,6 +788,40 @@ RNG_CODE = __import__("random").Random(1300)  # deterministic code stream
 def _next_code() -> str:
     """Assign the next alphanumeric placement id (WP-XXXXXXX)."""
     return "WP-" + "".join(RNG_CODE.choice(ALPHABET) for _ in range(7))
+
+
+# Geographic prefixes for the provider offices; contact numbers are fixture data.
+PROVIDER_AREA_CODES = {
+    "TAMAKI-CENTRAL": "09",
+    "NORTH-HARBOUR": "09",
+    "TE-TAI-TOKERAU": "09",
+    "WAIKATO": "07",
+    "BAY-PLENTY": "07",
+    "TE-ARAWA": "07",
+    "TARANAKI": "06",
+    "EAST-COAST": "06",
+    "HAWKE-BAY": "06",
+    "PALMY": "06",
+    "WELLINGTON": "04",
+    "WRARAPA": "06",
+    "NELSON": "03",
+    "MARLBOROUGH": "03",
+    "WEST-COAST": "03",
+    "CANTERBURY": "03",
+    "SOUTH-CANTERBURY": "03",
+    "OTAGO": "03",
+    "QUEENSTOWN": "03",
+    "SOUTHLAND": "03",
+}
+
+
+def provider_phone(pid: str) -> str:
+    # Preserve the existing registry RNG stream so contact edits do not change cases.
+    RNG.randint(3, 9)
+    RNG.randint(100, 999)
+    phone_rng = random.Random(f"provider-phone:{pid}")
+    exchange = phone_rng.choice([n for n in range(210, 990) if n != 555])
+    return f"{PROVIDER_AREA_CODES[pid]} {exchange} {phone_rng.randrange(1000, 10000)}"
 
 
 def build_providers() -> list[dict]:
@@ -800,7 +835,7 @@ def build_providers() -> list[dict]:
                 "region": region,
                 "contact_person": f"{RNG.choice(FIRST)}. {RNG.choice(FAMILIES)}",
                 "email": provider_email(pid),
-                "phone": f"0{RNG.randint(3, 9)} 555 {RNG.randint(100, 999)}",
+                "phone": provider_phone(pid),
                 "notes": "Contracted work-experience provider arranging weekday and/or weekend placements with local host employers in the region.",
             }
         )
@@ -832,7 +867,15 @@ def build_placements(providers: list[dict]) -> list[dict]:
             loc = locs[k % n_local]
             contact, _ = _contact()
             days, start, end, hours = weekday_schedule(role, fulltime)
-            start_d, end_d = RNG.choice(windows)
+            start_d, _ = RNG.choice(windows)
+            start_day = date.fromisoformat(start_d)
+            first_day = 5 if days == "Saturday & Sunday" else 0
+            start_day += timedelta(days=(first_day - start_day.weekday()) % 7)
+            duration_days = (
+                8 if days == "Saturday & Sunday" else 12 if "Saturday" in days else 11
+            )
+            end_day = start_day + timedelta(days=duration_days)
+            start_d, end_d = start_day.isoformat(), end_day.isoformat()
             status = RNG.choice(STATUS_POOL)
             capacity = 1 if RNG.random() < 0.55 else RNG.randint(2, 3)
             if status == "offering":

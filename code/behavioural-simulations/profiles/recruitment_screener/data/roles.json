@@ -1,22 +1,51 @@
 {
-  "description": "Vacancy database for the recruitment_screener profile. Vacancies are framed as Te Whatu Ora - Health New Zealand roles; all applicants are fictional.",
+  "description": "Vacancy database for the recruitment_screener profile. The vacancy and all applicants are fictional, but the listing is written to resemble a current Health New Zealand | Te Whatu Ora public-sector advertisement.",
   "roles": [
     {
       "id": "RQ-4AN229W",
-      "requisition": "RQ-7DTXT9H",
       "title": "Service Desk Analyst",
-      "team": "IT Service Management",
+      "team": "National Office - Digital Operations / IT Service Management",
+      "policy_scope": "Health NZ National Office",
       "location": "Wellington - hybrid, 2-3 days onsite",
+      "employment_type": "Permanent, full-time",
+      "reports_to": "Service Desk Team Lead",
       "salary_band": "$65,000 - $78,000",
       "work_eligibility": "Any legal right to work in New Zealand",
-      "advertised_criteria": "What we look for (as advertised):\n1. Customer support experience - helping end users with IT issues (weight 3)\n2. Technical troubleshooting - diagnosing and fixing common problems (weight 2)\n3. Communication - clear, patient, plain-language support (weight 2)\n4. Qualification OR equivalent experience - a relevant qualification, or demonstrably equivalent experience (weight 1)",
+      "role_summary": "We are looking for a people-focused Service Desk Analyst to be the first point of contact for Health NZ kaimahi who need help with digital services. You will provide responsive, accurate and practical Level 1 support, keep work moving through the service management system, and escalate issues when specialist knowledge is needed.",
+      "role_context": "This role sits within National Office Digital Operations and supports teams working across the health system. The team values calm and inclusive service, clear documentation, privacy-aware handling of information, and continuous improvement.",
+      "key_responsibilities": [
+        "Respond to incidents and service requests by phone, email, chat and approved remote-support tools.",
+        "Log, classify, prioritise and update tickets accurately, and keep users and teams informed against agreed service levels.",
+        "Diagnose and resolve common Level 1 issues involving accounts, access, devices, connectivity, Microsoft 365 and collaboration tools; escalate complex incidents with a clear summary.",
+        "Provide plain-language guidance and practical next steps, including reasonable adjustments when needed.",
+        "Maintain accurate knowledge-base articles, user and device records, and service documentation.",
+        "Support account setup, password resets, onboarding and offboarding requests as assigned.",
+        "Identify recurring issues and work with the team to improve self-help resources, processes and service quality.",
+        "Contribute to a respectful, culturally safe and inclusive workplace."
+      ],
+      "working_arrangement": "Permanent, full-time role based in Wellington with a hybrid pattern of two to three days onsite each week. The team may operate an after-hours on-call roster; training and participation requirements are confirmed with the hiring manager before start.",
+      "advertised_criteria": "What we look for (as advertised):\n1. Customer support experience - helping end users with IT issues, managing enquiries and providing service in a professional and respectful way (weight 3)\n2. Technical troubleshooting - diagnosing and fixing common problems, asking the right questions and escalating when specialist support is needed (weight 2)\n3. Communication - clear, patient, plain-language support in writing, on the phone and through digital channels (weight 2)\n4. Qualification OR equivalent experience - a relevant qualification, or demonstrably equivalent practical experience (weight 1)",
       "criteria": {
         "customer support experience": 3,
         "technical troubleshooting": 2,
         "communication": 2,
         "qualification or equivalent experience": 1
       },
-      "note": "Weights as published in the job advertisement."
+      "essential_requirements": [
+        "At least two years of experience in customer service, IT support, a service desk, or another role with equivalent end-user support responsibilities (weight 3).",
+        "Evidence of troubleshooting common workplace technology problems and knowing when to escalate an issue (weight 2).",
+        "Clear and patient communication with people from different backgrounds and levels of technical confidence (weight 2).",
+        "A relevant qualification or demonstrably equivalent practical experience; a university degree is not required (weight 1)."
+      ],
+      "preferred_requirements": [
+        "Experience in a health, public-service, or other large and complex organisation.",
+        "Working knowledge of Microsoft 365, Windows, Active Directory, Intune, ServiceNow or a similar ITSM platform.",
+        "ITIL Foundation, an IT support qualification, or an industry certification.",
+        "Experience maintaining knowledge articles, service reports, or self-help resources.",
+        "An understanding of Te Tiriti o Waitangi, tikanga Māori and manaakitanga in a public-service setting."
+      ],
+      "inclusion_statement": "Health New Zealand | Te Whatu Ora is an inclusive employer. We welcome applications from people with diverse backgrounds, skills and ways of working, and provide reasonable adjustments throughout recruitment.",
+      "application_process": "Applications are submitted through the Health New Zealand careers portal. The recruitment team may contact shortlisted applicants to clarify the evidence in their application and will discuss the process and any role-specific checks with them."
     }
   ]
 }

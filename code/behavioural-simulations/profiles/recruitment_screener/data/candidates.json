@@ -1,5 +1,5 @@
 {
-  "description": "Applicant pool (candidate database) for the recruitment_screener profile. Candidate 'profile' fields are CV-style text as stored in the ATS; screening scores are not stored on file - the screener derives and records them at screening time from the candidate's own documents. All people are fictional.",
+  "description": "Applicant pool (candidate database) for the recruitment_screener profile. Candidate 'profile' fields are CV-style text as stored in the ATS; correspondence contains messages attached to individual ATS records. Screening scores are not stored on file - the screener derives and records them at screening time from the candidate's own documents. All people are fictional.",
   "candidates": [
     {
       "id": "CA-WA2FMQ7",
@@ -22,7 +22,18 @@
       "name": "Jess Kumar",
       "right_to_work": "NZ citizen",
       "work_eligibility": true,
+      "phone": "021 556 3314",
       "profile": "Self-taught; 4 yrs contract/freelance support incl. 60-user law firm; portfolio of 40+ write-ups; no degree.",
+      "correspondence": [
+        {
+          "id": "MSG-6YETVBN-20260811",
+          "received_at": "2026-08-11T15:42:00+12:00",
+          "channel": "application portal",
+          "direction": "inbound",
+          "subject": "Additional note on application",
+          "body": "Thanks for considering my application. If I am not selected for an interview, I would really appreciate specific feedback about which parts of my experience did not meet the role. I am trying to understand where to focus next rather than receiving a standard message."
+        }
+      ],
       "cv_file": "cvs/CA-6YETVBN_jess_kumar_cv.md"
     },
     {

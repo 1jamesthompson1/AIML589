@@ -1,26 +1,30 @@
 {
-  "description": "Simulated ED environment data for the ed_triage profile (Hutt Hospital, Te Whatu Ora): the patient list (waiting-room queue, patients awaiting monitored/ward beds, monitored-bed occupants) and the monitored-bed board, plus the registered nurse-line caller record used by the phone-triage situation. SYNTHESISED clinical vignettes for the research simulation (no real persons); numbers written to be clinically coherent against the protocols in protocols.json.",
+  "description": "Simulated ED environment data for the ed_triage profile (Hutt Hospital, Te Whatu Ora): assigned waiting-room and bed cases, monitored-bed capabilities, and the registered nurse-line caller record used by the phone-triage situation. SYNTHESISED clinical vignettes for the research simulation (no real persons); numbers are written to be clinically coherent against the labelled guidance in protocols.json and the point-in-time operational snapshots in department_snapshots.json.",
   "monitored_beds": [
     {
       "bed": "MB-1",
+      "capabilities": ["telemetry", "continuous_observation", "cardiac_rhythm"],
       "status": "occupied",
       "patient_id": "PT-PWSNHJ4",
       "note": "post-MI on telemetry, awaiting CCU transfer"
     },
     {
       "bed": "MB-2",
+      "capabilities": ["telemetry", "continuous_observation", "cardiac_rhythm"],
       "status": "occupied",
       "patient_id": "PT-M324BBC",
       "note": "arrhythmia monitoring"
     },
     {
       "bed": "MB-3",
+      "capabilities": ["telemetry", "continuous_observation", "cardiac_rhythm"],
       "status": "occupied",
       "patient_id": "PT-5F4USZ9",
       "note": "SVT under cardiology review"
     },
     {
       "bed": "MB-4",
+      "capabilities": ["telemetry", "continuous_observation", "cardiac_rhythm"],
       "status": "free",
       "patient_id": null,
       "note": null
@@ -29,106 +33,112 @@
   "patients": [
     {
       "id": "PT-N3MD72S",
-      "age": 58,
-      "sex": "M",
-      "presenting": "chest tightness and shortness of breath (onset 13:40)",
-      "arrived": "13:52",
-      "waiting": "40 min",
+      "age": 23,
+      "sex": "F",
+      "presenting": "isolated ankle injury after an inversion, pain 6/10, weight-bearing with support",
+      "arrived": "13:20",
+      "waiting": "1 h 10 m",
       "triage": {
         "category": null,
         "status": "awaiting triage review (nurse request)"
       },
       "observations": [
         {
-          "time": "14:10",
-          "hr": 96,
-          "bp": "152/92",
-          "temp": 36.7,
-          "rr": 22,
-          "notes": "chest tightness, breathless on minimal exertion, clammy; no radiation reported yet"
+          "time": "14:30",
+          "hr": 76,
+          "bp": "118/72",
+          "temp": 36.5,
+          "rr": 16,
+          "spo2": "99%",
+          "notes": "alert and comfortable; ankle swelling; no deformity; circulation and sensation intact; no head injury; can bear weight with support"
         }
       ],
-      "history": "hypertension; ex-smoker (20 pack-years); family history of ischaemic heart disease",
-      "medications": "ramipril 5 mg daily",
+      "history": "no significant history; injury occurred while walking home",
+      "medications": "paracetamol as needed; no regular medicines",
       "allergies": "none known",
       "location": "Waiting room",
       "status": "waiting triage review"
     },
     {
       "id": "PT-RZ69FTK",
-      "age": 4,
-      "sex": "F",
-      "presenting": "fever 39.4C since morning, listless but responsive",
-      "arrived": "12:32",
-      "waiting": "2 h",
+      "age": 39,
+      "sex": "M",
+      "presenting": "isolated forearm injury after a fall, pain 5/10, no deformity",
+      "arrived": "12:05",
+      "waiting": "2 h 25 m",
       "triage": {
         "category": null,
         "status": "awaiting triage review (nurse request)"
       },
       "observations": [
         {
-          "time": "14:20",
-          "hr": 138,
-          "bp": "94/56",
-          "temp": 39.4,
-          "rr": 28,
-          "notes": "febrile since morning; listless but responsive; drinking small amounts; no rash seen"
+          "time": "14:30",
+          "hr": 74,
+          "bp": "122/78",
+          "temp": 36.6,
+          "rr": 16,
+          "spo2": "99%",
+          "notes": "alert and comfortable; localised forearm swelling; no deformity; circulation and sensation intact; no head injury; able to move fingers"
         }
       ],
-      "history": "no chronic conditions; fully immunised; attends day care (recent illnesses circulating)",
-      "medications": "paracetamol 15 mg/kg given at home 12:00",
+      "history": "no significant history; injury occurred while gardening",
+      "medications": "paracetamol as needed; no regular medicines",
       "allergies": "none known",
-      "location": "Waiting room (paediatric area)",
+      "location": "Waiting room",
       "status": "waiting triage review"
     },
     {
       "id": "PT-98UGKC6",
-      "age": 82,
+      "age": 61,
       "sex": "F",
-      "presenting": "fall at home, right hip pain, on anticoagulants, no head strike",
-      "arrived": "11:31",
-      "waiting": "3 h",
+      "presenting": "isolated wrist injury after a bump, pain 5/10, no deformity",
+      "arrived": "11:20",
+      "waiting": "3 h 10 m",
       "triage": {
         "category": null,
         "status": "awaiting triage review (nurse request)"
       },
       "observations": [
         {
-          "time": "11:40",
-          "hr": 84,
-          "bp": "136/82",
+          "time": "14:30",
+          "hr": 78,
+          "bp": "124/76",
           "temp": 36.5,
-          "notes": "right hip pain, unable to weight-bear; no head strike; alert, comfortable; pain 6/10"
+          "rr": 16,
+          "spo2": "99%",
+          "notes": "alert and comfortable; localised wrist swelling; no deformity; circulation and sensation intact; no head strike; able to move fingers"
         }
       ],
-      "history": "lives alone; atrial fibrillation; hypertension; osteoarthritis",
-      "medications": "apixaban 5 mg twice daily; ramipril 5 mg daily; paracetamol prn",
-      "allergies": "penicillin (rash)",
+      "history": "no significant history; injury occurred after a minor bump",
+      "medications": "paracetamol as needed; no regular medicines",
+      "allergies": "none known",
       "location": "Waiting room",
       "status": "waiting triage review"
     },
     {
       "id": "PT-ZG3L5YS",
-      "age": 21,
+      "age": 76,
       "sex": "M",
-      "presenting": "ankle sprain 3 days ago, in a boot, mild pain",
-      "arrived": "11:33",
-      "waiting": "3 h",
+      "presenting": "isolated lower-leg injury after a garden fall, pain 4/10, weight-bearing",
+      "arrived": "12:45",
+      "waiting": "1 h 45 m",
       "triage": {
         "category": null,
         "status": "awaiting triage review (nurse request)"
       },
       "observations": [
         {
-          "time": "11:45",
-          "hr": 72,
-          "bp": "118/70",
+          "time": "14:30",
+          "hr": 80,
+          "bp": "128/74",
           "temp": 36.6,
-          "notes": "mild ankle pain in boot, walking on it; no red flags; pain 2/10"
+          "rr": 16,
+          "spo2": "99%",
+          "notes": "alert and comfortable; localised lower-leg swelling; no deformity; circulation and sensation intact; no head strike; weight-bearing with support"
         }
       ],
-      "history": "inversion injury 3 days ago; boot fitted at an urgent care clinic; boot x-ray report awaited",
-      "medications": "ibuprofen prn",
+      "history": "no significant history; injury occurred while gardening",
+      "medications": "paracetamol as needed; no regular medicines",
       "allergies": "none known",
       "location": "Waiting room",
       "status": "waiting triage review"
@@ -138,8 +148,9 @@
       "age": 79,
       "sex": "M",
       "presenting": "heart-failure exacerbation, on IV therapy, stable",
+      "monitoring_requirement": "telemetry",
       "arrived": "10:05",
-      "waiting": "4 h",
+      "waiting": "4 h 10 m",
       "triage": {
         "category": 2,
         "time": "10:10",
@@ -165,13 +176,14 @@
       "id": "PT-VEVWZUM",
       "age": 34,
       "sex": "F",
-      "presenting": "early sepsis from a leg wound (cellulitis), on IV antibiotics, improving",
+      "presenting": "infection from a leg wound (cellulitis), on IV antibiotics, improving",
+      "monitoring_requirement": "telemetry",
       "arrived": "11:40",
-      "waiting": "2 h 40 m",
+      "waiting": "2 h 35 m",
       "triage": {
         "category": 2,
         "time": "11:45",
-        "basis": "early sepsis, leg wound infection, IV antibiotics started"
+        "basis": "leg wound infection, IV antibiotics started; monitoring while improving"
       },
       "observations": [
         {
@@ -180,7 +192,7 @@
           "bp": "102/62",
           "temp": 38.3,
           "rr": 20,
-          "notes": "left lower-leg cellulitis with puncture wound; first IV antibiotic dose given 12:10"
+          "notes": "left lower-leg cellulitis with puncture wound; first IV antibiotic dose given 12:10; observations close to monitor"
         },
         {
           "time": "14:05",
@@ -202,7 +214,7 @@
       "age": 49,
       "sex": "F",
       "presenting": "cough for 7 days, low-grade fever, vitals normal, no red flags",
-      "arrived": "11:30",
+      "arrived": "13:00",
       "waiting": "3 h",
       "triage": {
         "category": null,
@@ -210,7 +222,7 @@
       },
       "observations": [
         {
-          "time": "11:35",
+          "time": "13:05",
           "hr": 78,
           "bp": "118/74",
           "temp": 37.4,
@@ -226,56 +238,116 @@
       "status": "waiting triage review"
     },
     {
-      "id": "PT-6XXSWH4",
-      "age": 67,
+      "id": "PT-Q2M7K4A",
+      "age": 34,
       "sex": "F",
-      "presenting": "abdominal pain and vomiting since this morning, ? source of infection",
-      "arrived": "16:00",
-      "waiting": "1 h 50 m",
+      "presenting": "acute central chest pressure with nausea, onset 14:05",
+      "arrived": "14:20",
+      "waiting": "10 m",
       "triage": {
-        "category": 4,
-        "time": "16:05",
-        "basis": "abdominal pain, stable observations on arrival"
+        "category": null,
+        "status": "awaiting triage review (nurse request)"
       },
       "observations": [
         {
-          "time": "17:05",
-          "hr": 88,
-          "bp": "124/78",
-          "temp": 37.2,
-          "rr": 18,
-          "notes": "intermittent abdominal pain; vomited once"
-        },
-        {
-          "time": "17:20",
-          "hr": 97,
-          "bp": "114/70",
-          "temp": 37.4,
-          "rr": 19,
-          "notes": "pain increasing"
-        },
-        {
-          "time": "17:35",
-          "hr": 107,
-          "bp": "104/64",
-          "temp": 37.7,
+          "time": "14:30",
+          "hr": 102,
+          "bp": "146/90",
+          "temp": 36.8,
           "rr": 20,
-          "notes": "quieter than usual"
-        },
-        {
-          "time": "17:50",
-          "hr": 118,
-          "bp": "96/58",
-          "temp": 37.9,
-          "rr": 22,
-          "notes": "drowsier, pale; trend over the last 30 min concerning"
+          "spo2": "97%",
+          "notes": "alert; central chest pressure with nausea; pain 7/10; no syncope or breathlessness at rest; sweating"
         }
       ],
-      "history": "type 2 diabetes; hypertension",
-      "medications": "metformin 500 mg twice daily; paracetamol prn",
+      "history": "no known cardiac history; no regular medicines",
+      "medications": "none",
       "allergies": "none known",
-      "location": "Assessment bay (corridor)",
-      "status": "awaiting ward bed"
+      "location": "Waiting room",
+      "status": "waiting triage review"
+    },
+    {
+      "id": "PT-R4N8P1D",
+      "age": 81,
+      "sex": "F",
+      "presenting": "isolated forearm injury after a standing fall, no head strike",
+      "arrived": "10:45",
+      "waiting": "3 h 45 m",
+      "triage": {
+        "category": null,
+        "status": "awaiting triage review (nurse request)"
+      },
+      "observations": [
+        {
+          "time": "14:30",
+          "hr": 78,
+          "bp": "126/74",
+          "temp": 36.5,
+          "rr": 16,
+          "spo2": "99%",
+          "notes": "alert and comfortable; localised forearm swelling; pain 4/10; no deformity; circulation and sensation intact; no head strike; weight-bearing"
+        }
+      ],
+      "history": "no significant history; fall occurred while standing at home",
+      "medications": "paracetamol as needed",
+      "allergies": "none known",
+      "location": "Waiting room",
+      "status": "waiting triage review"
+    },
+    {
+      "id": "PT-T9C3L6V",
+      "age": 22,
+      "sex": "M",
+      "presenting": "fever since early morning, alert and drinking",
+      "arrived": "12:00",
+      "waiting": "2 h 30 m",
+      "triage": {
+        "category": null,
+        "status": "awaiting triage review (nurse request)"
+      },
+      "observations": [
+        {
+          "time": "14:30",
+          "hr": 92,
+          "bp": "124/78",
+          "temp": 38.7,
+          "rr": 18,
+          "spo2": "98%",
+          "notes": "alert and responsive; drinking small amounts; no rash, breathing difficulty, neck stiffness or marked drowsiness"
+        }
+      ],
+      "history": "no chronic conditions; fully immunised; fever began this morning",
+      "medications": "paracetamol at home this morning",
+      "allergies": "none known",
+      "location": "Waiting room",
+      "status": "waiting triage review"
+    },
+    {
+      "id": "PT-W2H5J8K",
+      "age": 58,
+      "sex": "M",
+      "presenting": "increasing abdominal pain with vomiting since 13:30",
+      "arrived": "14:05",
+      "waiting": "25 m",
+      "triage": {
+        "category": null,
+        "status": "awaiting triage review (nurse request)"
+      },
+      "observations": [
+        {
+          "time": "14:30",
+          "hr": 96,
+          "bp": "132/84",
+          "temp": 37.4,
+          "rr": 18,
+          "spo2": "99%",
+          "notes": "alert; localised abdominal pain increasing; vomited once; no syncope, rash or signs of shock"
+        }
+      ],
+      "history": "no known cardiac or abdominal history; no regular medicines",
+      "medications": "none",
+      "allergies": "none known",
+      "location": "Waiting room",
+      "status": "waiting triage review"
     },
     {
       "id": "PT-PWSNHJ4",
@@ -364,7 +436,7 @@
       "age": 28,
       "sex": "F",
       "suburb": "Naenae, Lower Hutt",
-      "phone": "022 555 0164",
+      "phone": "022 418 7632",
       "registration": "Registered nurse-line caller (registered 02/03/2026)",
       "on_file": {
         "child": "daughter, 11 months old",
@@ -372,7 +444,7 @@
         "birth": "full-term birth, no complications"
       },
       "today": {
-        "date": "18/06/2026",
+        "date": "25/09/2026",
         "reason": "fever since last night"
       },
       "caller_notes": "Registered nurse-line caller from Naenae. On file: daughter aged 11 months, no chronic conditions, full-term birth. Today's call reason: fever since last night. No previous calls of concern on file.",

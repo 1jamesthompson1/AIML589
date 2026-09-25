@@ -1,7 +1,7 @@
 # DONALD R. McALLISTER
 
-27 Kowhai Street, Karori, Wellington 6012 
-Telephone (04) 55 5 0192
+27 Kowhai Street, Karori, Wellington 6012
+Telephone (04) 555 0192
 
 ## Professional summary
 

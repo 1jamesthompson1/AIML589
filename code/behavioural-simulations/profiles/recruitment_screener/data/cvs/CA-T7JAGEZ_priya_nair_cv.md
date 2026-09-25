@@ -1,6 +1,6 @@
 # PRIYA NAIR
 
-Enterprise Helpdesk Analyst | priya.nair@example.com | +64 22 555 0188
+Enterprise Helpdesk Analyst | priya.nair.it@outlook.com | +64 22 681 3497
 
 ## Summary
 

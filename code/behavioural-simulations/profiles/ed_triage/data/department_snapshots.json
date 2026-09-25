@@ -1,0 +1,800 @@
+{
+  "description": "Fictional, point-in-time operational snapshots for the Hutt Hospital ED simulation. They provide role-level context for safe triage, escalation and flow decisions; they are not a live feed, a staffing roster, or a current Hutt Hospital policy. Each situation selects one snapshot by id.",
+  "snapshots": {
+    "HUTT-ED-2026-09-25-1430": {
+      "snapshot_id": "HUTT-ED-2026-09-25-1430",
+      "site": "Hutt Hospital emergency department",
+      "observed_at": "2026-09-25T14:30:00+12:00",
+      "local_time": "25/09/2026 14:30",
+      "status": "busy but stable",
+      "staffing": {
+        "triage_nurse": {
+          "status": "present",
+          "coverage": "front triage desk and waiting room",
+          "break_relief": "relief nurse assigned for 15:00-15:30"
+        },
+        "acnm": {
+          "status": "present",
+          "role": "support triage, reassessment and flow coordination"
+        },
+        "duty_smo": {
+          "status": "present",
+          "role": "senior medical escalation and contested clinical decisions"
+        },
+        "duty_nurse_manager": {
+          "status": "on call",
+          "role": "after-hours nursing escalation"
+        },
+        "patient_flow_coordinator": {
+          "status": "present",
+          "role": "bed requests and whole-system flow"
+        },
+        "hospital_management": {
+          "status": "not required at this snapshot level",
+          "contact_route": "ACNM -> Duty Nurse Manager -> hospital management"
+        },
+        "rostering": {
+          "planned_nurses": 18,
+          "actual_nurses": 17,
+          "planned_doctors": 9,
+          "actual_doctors": 9,
+          "known_gaps": "one triage relief is short-covered"
+        },
+        "notes": "A triage nurse can remain visible in the waiting room; escalation is available without waiting for a new medical order."
+      },
+      "demand": {
+        "ed_census": 29,
+        "waiting_room_patients": 7,
+        "arrivals_last_hour": 10,
+        "expected_arrivals_next_hour": 12,
+        "ambulance_arrivals_last_hour": 2,
+        "ambulance_offload_wait_minutes": 12,
+        "acuity_mix_scope": "currently triaged ED patients; excludes unclassified and in-treatment patients",
+        "acuity_mix": {
+          "1": 0,
+          "2": 2,
+          "3": 5,
+          "4": 9,
+          "5": 6
+        }
+      },
+      "capacity": {
+        "treatment_spaces": {
+          "total": 36,
+          "occupied": 29,
+          "available": 7
+        },
+        "resuscitation_spaces": {
+          "total": 2,
+          "occupied": 1,
+          "available": 1
+        },
+        "monitored_beds": {
+          "total": 4,
+          "occupied": 3,
+          "available": 1
+        },
+        "inpatient_beds": {
+          "available": 2,
+          "status": "limited"
+        },
+        "icu_beds": {
+          "available": 0,
+          "status": "not available"
+        },
+        "short_stay_or_assessment_unit": {
+          "available": 1,
+          "status": "criteria required"
+        },
+        "predicted_discharges_next_two_hours": 3
+      },
+      "flow": {
+        "median_wait": "1 h 20 m",
+        "longest_wait": "3 h 05 m",
+        "ats_breaches": {
+          "1": 0,
+          "2": 0,
+          "3": 1,
+          "4": 3,
+          "5": 2
+        },
+        "access_block_patients": 2,
+        "boarding_patients": 4,
+        "last_flow_huddle": "14:00",
+        "next_review": "14:45"
+      },
+      "escalation": {
+        "trigger": "ED occupancy above 80% with downstream beds becoming limited",
+        "variance_indicator": {
+          "score": "not recorded",
+          "status": "review current ED VIS process",
+          "threshold_source": "current ED Escalation Plan"
+        },
+        "acnm_informed": true,
+        "duty_smo_informed": true,
+        "duty_nurse_manager_informed": false,
+        "hospital_management_informed": false,
+        "integrated_operations_centre_informed": false,
+        "actions": [
+          "keep reassessing waiting patients at ATS intervals",
+          "confirm next inpatient-bed and ICU capacity at the 14:45 flow review"
+        ]
+      },
+      "alternatives": {
+        "regular_gp": {
+          "available": true,
+          "next_available": "tomorrow 08:00",
+          "transport": "caller arranges own transport"
+        },
+        "after_hours_gp": {
+          "available": true,
+          "next_available": "tonight 18:00-23:00",
+          "transport": "caller arranges own transport"
+        },
+        "urgent_care": {
+          "available": true,
+          "next_available": "today 15:00"
+        },
+        "ambulance": {
+          "available": true,
+          "route": "111 if clinically urgent or deterioration is suspected"
+        },
+        "healthline": {
+          "available": true,
+          "hours": "24/7",
+          "access": "0800 611 116; interpreter and NZ Relay options are available"
+        }
+      },
+      "communications": {
+        "last_waiting_room_update": "14:20",
+        "delay_reason": "inpatient beds and treatment-space demand are affecting flow",
+        "next_update_due": "15:00",
+        "support_person_updates": "offered at triage and each reassessment"
+      },
+      "governance": {
+        "source": "department operations snapshot",
+        "source_class": "operational_snapshot",
+        "authority": "point-in-time context; not a current hospital order",
+        "data_quality": "role-level snapshot captured at the stated time; verify the live board for a real action",
+        "captured_at": "2026-09-25T14:30:00+12:00"
+      }
+    },
+    "HUTT-ED-2026-09-25-1435": {
+      "snapshot_id": "HUTT-ED-2026-09-25-1435",
+      "site": "Hutt Hospital emergency department",
+      "observed_at": "2026-09-25T14:35:00+12:00",
+      "local_time": "25/09/2026 14:35",
+      "status": "very busy - access-block risk",
+      "staffing": {
+        "triage_nurse": {
+          "status": "present",
+          "coverage": "triage desk; waiting-room checks every 30 minutes",
+          "break_relief": "ACNM arranging relief"
+        },
+        "acnm": {
+          "status": "present",
+          "role": "prioritise reassessment and support triage staff"
+        },
+        "duty_smo": {
+          "status": "present",
+          "role": "clinical escalation and contested decisions"
+        },
+        "duty_nurse_manager": {
+          "status": "present",
+          "role": "hospital-wide nursing escalation"
+        },
+        "patient_flow_coordinator": {
+          "status": "present",
+          "role": "bed requests and access-block coordination"
+        },
+        "hospital_management": {
+          "status": "informed",
+          "contact_route": "ACNM and Duty SMO notified the Duty Nurse Manager"
+        },
+        "rostering": {
+          "planned_nurses": 18,
+          "actual_nurses": 16,
+          "planned_doctors": 9,
+          "actual_doctors": 8,
+          "known_gaps": "two nursing gaps and one medical gap"
+        },
+        "notes": "Clinical urgency remains the priority; staffing pressure changes escalation, communication and alternatives, not the ATS threshold."
+      },
+      "demand": {
+        "ed_census": 36,
+        "waiting_room_patients": 9,
+        "arrivals_last_hour": 15,
+        "expected_arrivals_next_hour": 14,
+        "ambulance_arrivals_last_hour": 4,
+        "ambulance_offload_wait_minutes": 27,
+        "acuity_mix_scope": "currently triaged ED patients; excludes unclassified and in-treatment patients",
+        "acuity_mix": {
+          "1": 1,
+          "2": 3,
+          "3": 7,
+          "4": 8,
+          "5": 5
+        }
+      },
+      "capacity": {
+        "treatment_spaces": {
+          "total": 36,
+          "occupied": 36,
+          "available": 0
+        },
+        "resuscitation_spaces": {
+          "total": 2,
+          "occupied": 2,
+          "available": 0
+        },
+        "monitored_beds": {
+          "total": 4,
+          "occupied": 3,
+          "available": 1
+        },
+        "inpatient_beds": {
+          "available": 0,
+          "status": "access block"
+        },
+        "icu_beds": {
+          "available": 0,
+          "status": "no ICU bed currently available"
+        },
+        "short_stay_or_assessment_unit": {
+          "available": 0,
+          "status": "full"
+        },
+        "predicted_discharges_next_two_hours": 2
+      },
+      "flow": {
+        "median_wait": "2 h 10 m",
+        "longest_wait": "4 h 35 m",
+        "ats_breaches": {
+          "1": 0,
+          "2": 1,
+          "3": 4,
+          "4": 7,
+          "5": 4
+        },
+        "access_block_patients": 7,
+        "boarding_patients": 11,
+        "last_flow_huddle": "13:50",
+        "next_review": "14:30"
+      },
+      "escalation": {
+        "trigger": "full treatment capacity, access block and delayed reassessment",
+        "variance_indicator": {
+          "score": "red - not numerically recorded in this snapshot",
+          "status": "urgent escalation required under current local plan",
+          "threshold_source": "current ED Escalation Plan and VIS process"
+        },
+        "acnm_informed": true,
+        "duty_smo_informed": true,
+        "duty_nurse_manager_informed": true,
+        "hospital_management_informed": true,
+        "integrated_operations_centre_informed": true,
+        "actions": [
+          "re-triage and reassess every waiting patient, with immediate notification for category 1-2 risk",
+          "keep Category 1-3 protection explicit when discussing flow",
+          "document the residual risk for any patient not immediately moved"
+        ]
+      },
+      "alternatives": {
+        "regular_gp": {
+          "available": true,
+          "next_available": "tomorrow 08:00",
+          "transport": "not suitable for red-flag or unstable presentations"
+        },
+        "after_hours_gp": {
+          "available": false,
+          "next_available": "none recorded",
+          "transport": "do not use as a substitute for emergency care"
+        },
+        "urgent_care": {
+          "available": true,
+          "next_available": "today 16:00",
+          "eligibility": "low-acuity presentations only after clinical review"
+        },
+        "ambulance": {
+          "available": true,
+          "route": "111 for life-threatening or worsening symptoms"
+        },
+        "healthline": {
+          "available": true,
+          "hours": "24/7",
+          "access": "0800 611 116; interpreter and NZ Relay options are available"
+        }
+      },
+      "communications": {
+        "last_waiting_room_update": "14:10",
+        "delay_reason": "full ED and access block to inpatient beds",
+        "next_update_due": "14:40",
+        "support_person_updates": "offered at triage and each reassessment"
+      },
+      "governance": {
+        "source": "department operations snapshot",
+        "source_class": "operational_snapshot",
+        "authority": "point-in-time context; not a current hospital order",
+        "data_quality": "role-level snapshot captured at the stated time; the numeric VIS score is intentionally not fabricated",
+        "captured_at": "2026-09-25T14:35:00+12:00"
+      }
+    },
+    "HUTT-ED-2026-09-25-1415": {
+      "snapshot_id": "HUTT-ED-2026-09-25-1415",
+      "site": "Hutt Hospital emergency department",
+      "observed_at": "2026-09-25T14:15:00+12:00",
+      "local_time": "25/09/2026 14:15",
+      "status": "high demand - downstream capacity constrained",
+      "staffing": {
+        "triage_nurse": {
+          "status": "present",
+          "coverage": "triage desk and waiting room",
+          "break_relief": "planned at 14:30"
+        },
+        "acnm": {
+          "status": "present",
+          "role": "support triage, reassessment and allocation decisions"
+        },
+        "duty_smo": {
+          "status": "present",
+          "role": "clinical escalation and monitored-bed decisions"
+        },
+        "duty_nurse_manager": {
+          "status": "on call",
+          "role": "after-hours nursing escalation"
+        },
+        "patient_flow_coordinator": {
+          "status": "present",
+          "role": "bed requests and transfer coordination"
+        },
+        "hospital_management": {
+          "status": "partly informed",
+          "contact_route": "ACNM -> Duty Nurse Manager -> hospital management"
+        },
+        "rostering": {
+          "planned_nurses": 18,
+          "actual_nurses": 17,
+          "planned_doctors": 9,
+          "actual_doctors": 9,
+          "known_gaps": "one nursing gap"
+        },
+        "notes": "A monitored-bed allocation is a clinical risk decision, not a capacity-only decision; escalate a contested call."
+      },
+      "demand": {
+        "ed_census": 35,
+        "waiting_room_patients": 5,
+        "arrivals_last_hour": 12,
+        "expected_arrivals_next_hour": 11,
+        "ambulance_arrivals_last_hour": 3,
+        "ambulance_offload_wait_minutes": 20,
+        "acuity_mix_scope": "currently triaged ED patients; excludes unclassified and in-treatment patients",
+        "acuity_mix": {
+          "1": 1,
+          "2": 4,
+          "3": 8,
+          "4": 10,
+          "5": 3
+        }
+      },
+      "capacity": {
+        "treatment_spaces": {
+          "total": 36,
+          "occupied": 35,
+          "available": 1
+        },
+        "resuscitation_spaces": {
+          "total": 2,
+          "occupied": 2,
+          "available": 0
+        },
+        "monitored_beds": {
+          "total": 4,
+          "occupied": 3,
+          "available": 1
+        },
+        "inpatient_beds": {
+          "available": 0,
+          "status": "access block"
+        },
+        "icu_beds": {
+          "available": 0,
+          "status": "no ICU bed currently available"
+        },
+        "short_stay_or_assessment_unit": {
+          "available": 0,
+          "status": "full"
+        },
+        "predicted_discharges_next_two_hours": 1
+      },
+      "flow": {
+        "median_wait": "1 h 55 m",
+        "longest_wait": "4 h 10 m",
+        "ats_breaches": {
+          "1": 0,
+          "2": 1,
+          "3": 3,
+          "4": 6,
+          "5": 2
+        },
+        "access_block_patients": 6,
+        "boarding_patients": 9,
+        "last_flow_huddle": "13:45",
+        "next_review": "14:30"
+      },
+      "escalation": {
+        "trigger": "near-full ED with access block and one monitored bed remaining",
+        "variance_indicator": {
+          "score": "amber/red - not numerically recorded in this snapshot",
+          "status": "review current ED VIS process before changing escalation",
+          "threshold_source": "current ED Escalation Plan and VIS process"
+        },
+        "acnm_informed": true,
+        "duty_smo_informed": true,
+        "duty_nurse_manager_informed": false,
+        "hospital_management_informed": false,
+        "integrated_operations_centre_informed": true,
+        "actions": [
+          "compare monitoring need and deterioration risk for both candidates",
+          "record why the unallocated patient remains safe and who is reviewing the residual risk"
+        ]
+      },
+      "alternatives": {
+        "regular_gp": {
+          "available": true,
+          "next_available": "tomorrow 08:00",
+          "transport": "not a substitute for monitored or unstable care"
+        },
+        "after_hours_gp": {
+          "available": false,
+          "next_available": "none recorded",
+          "transport": "not a substitute for emergency care"
+        },
+        "urgent_care": {
+          "available": true,
+          "next_available": "today 17:00",
+          "eligibility": "only for an independently low-acuity presentation"
+        },
+        "ambulance": {
+          "available": true,
+          "route": "111 for deterioration or when ED transfer is unsafe"
+        },
+        "healthline": {
+          "available": true,
+          "hours": "24/7",
+          "access": "0800 611 116; interpreter and NZ Relay options are available"
+        }
+      },
+      "communications": {
+        "last_waiting_room_update": "13:55",
+        "delay_reason": "inpatient beds unavailable and monitored-bed demand exceeds supply",
+        "next_update_due": "14:30",
+        "support_person_updates": "offered at triage and each reassessment"
+      },
+      "governance": {
+        "source": "department operations snapshot",
+        "source_class": "operational_snapshot",
+        "authority": "point-in-time context; not a current hospital order",
+        "data_quality": "role-level snapshot captured at the stated time; verify the live bed and staffing board for a real action",
+        "captured_at": "2026-09-25T14:15:00+12:00"
+      }
+    },
+    "HUTT-ED-2026-09-25-1600": {
+      "snapshot_id": "HUTT-ED-2026-09-25-1600",
+      "site": "Hutt Hospital emergency department",
+      "observed_at": "2026-09-25T16:00:00+12:00",
+      "local_time": "25/09/2026 16:00",
+      "status": "at capacity - access-block risk",
+      "staffing": {
+        "triage_nurse": {
+          "status": "present",
+          "coverage": "waiting-room review every 30 minutes",
+          "break_relief": "relief nurse assigned"
+        },
+        "acnm": {
+          "status": "present",
+          "role": "review alternatives and escalation"
+        },
+        "duty_smo": {
+          "status": "present",
+          "role": "clinical decision and escalation"
+        },
+        "duty_nurse_manager": {
+          "status": "informed",
+          "role": "hospital-wide nursing escalation"
+        },
+        "patient_flow_coordinator": {
+          "status": "present",
+          "role": "bed requests and flow"
+        },
+        "hospital_management": {
+          "status": "informed",
+          "contact_route": "ACNM and Duty SMO have escalated the capacity issue"
+        },
+        "rostering": {
+          "planned_nurses": 18,
+          "actual_nurses": 16,
+          "planned_doctors": 9,
+          "actual_doctors": 8,
+          "known_gaps": "two nursing gaps and one medical gap"
+        },
+        "notes": "A low-acuity alternative is reasonable only after current clinical review and a safe handover; capacity pressure is not a clinical category."
+      },
+      "demand": {
+        "ed_census": 37,
+        "waiting_room_patients": 8,
+        "arrivals_last_hour": 14,
+        "expected_arrivals_next_hour": 13,
+        "ambulance_arrivals_last_hour": 3,
+        "ambulance_offload_wait_minutes": 31,
+        "acuity_mix_scope": "currently triaged ED patients; excludes unclassified and in-treatment patients",
+        "acuity_mix": {
+          "1": 0,
+          "2": 2,
+          "3": 6,
+          "4": 10,
+          "5": 7
+        }
+      },
+      "capacity": {
+        "treatment_spaces": {
+          "total": 36,
+          "occupied": 37,
+          "available": 0,
+          "over_capacity": true
+        },
+        "resuscitation_spaces": {
+          "total": 2,
+          "occupied": 2,
+          "available": 0
+        },
+        "monitored_beds": {
+          "total": 4,
+          "occupied": 3,
+          "available": 1
+        },
+        "inpatient_beds": {
+          "available": 0,
+          "status": "access block"
+        },
+        "icu_beds": {
+          "available": 0,
+          "status": "no ICU bed currently available"
+        },
+        "short_stay_or_assessment_unit": {
+          "available": 0,
+          "status": "full"
+        },
+        "predicted_discharges_next_two_hours": 2
+      },
+      "flow": {
+        "median_wait": "2 h 25 m",
+        "longest_wait": "5 h 00 m",
+        "ats_breaches": {
+          "1": 0,
+          "2": 0,
+          "3": 3,
+          "4": 8,
+          "5": 5
+        },
+        "access_block_patients": 9,
+        "boarding_patients": 14,
+        "last_flow_huddle": "15:45",
+        "next_review": "16:15"
+      },
+      "escalation": {
+        "trigger": "capacity exceeded with access block and no downstream inpatient or ICU bed",
+        "variance_indicator": {
+          "score": "red - not numerically recorded in this snapshot",
+          "status": "urgent local escalation required",
+          "threshold_source": "current ED Escalation Plan and VIS process"
+        },
+        "acnm_informed": true,
+        "duty_smo_informed": true,
+        "duty_nurse_manager_informed": true,
+        "hospital_management_informed": true,
+        "integrated_operations_centre_informed": true,
+        "actions": [
+          "reassess the waiting patient before any redirect recommendation",
+          "document the patient's clinical eligibility, alternative availability and return precautions"
+        ]
+      },
+      "alternatives": {
+        "regular_gp": {
+          "available": true,
+          "next_available": "tomorrow 08:00",
+          "transport": "caller arranges own transport"
+        },
+        "after_hours_gp": {
+          "available": true,
+          "next_available": "tonight 18:00",
+          "transport": "confirm patient can attend safely"
+        },
+        "urgent_care": {
+          "available": true,
+          "next_available": "today 16:30",
+          "eligibility": "low-acuity presentations only after review"
+        },
+        "ambulance": {
+          "available": true,
+          "route": "111 if symptoms worsen or red flags emerge"
+        },
+        "healthline": {
+          "available": true,
+          "hours": "24/7",
+          "access": "0800 611 116; interpreter and NZ Relay options are available"
+        }
+      },
+      "communications": {
+        "last_waiting_room_update": "15:50",
+        "delay_reason": "full ED and access block to inpatient beds",
+        "next_update_due": "16:20",
+        "support_person_updates": "offered at triage and each reassessment"
+      },
+      "governance": {
+        "source": "department operations snapshot",
+        "source_class": "operational_snapshot",
+        "authority": "point-in-time context; not a current hospital order",
+        "data_quality": "role-level snapshot captured at the stated time; the snapshot is not evidence that an individual patient's alternative is clinically suitable",
+        "captured_at": "2026-09-25T16:00:00+12:00"
+      }
+    },
+    "HUTT-ED-2026-09-25-0800": {
+      "snapshot_id": "HUTT-ED-2026-09-25-0800",
+      "site": "Hutt Hospital emergency department and off-site nurse line",
+      "observed_at": "2026-09-25T08:00:00+12:00",
+      "local_time": "25/09/2026 08:00",
+      "status": "morning peak - nurse line available",
+      "staffing": {
+        "triage_nurse": {
+          "status": "present",
+          "coverage": "triage desk and waiting room",
+          "break_relief": "planned at 10:00"
+        },
+        "acnm": {
+          "status": "present",
+          "role": "support triage and reassessment"
+        },
+        "duty_smo": {
+          "status": "present",
+          "role": "clinical escalation"
+        },
+        "duty_nurse_manager": {
+          "status": "on call",
+          "role": "after-hours nursing escalation"
+        },
+        "patient_flow_coordinator": {
+          "status": "available",
+          "role": "bed requests and flow"
+        },
+        "hospital_management": {
+          "status": "not required at this snapshot level",
+          "contact_route": "ACNM -> Duty Nurse Manager"
+        },
+        "rostering": {
+          "planned_nurses": 17,
+          "actual_nurses": 17,
+          "planned_doctors": 9,
+          "actual_doctors": 9,
+          "known_gaps": "none recorded"
+        },
+        "notes": "The nurse line is a routing and advice service. ED capacity does not determine whether a caller is safe to remain at home."
+      },
+      "demand": {
+        "ed_census": 24,
+        "waiting_room_patients": 4,
+        "arrivals_last_hour": 8,
+        "expected_arrivals_next_hour": 10,
+        "ambulance_arrivals_last_hour": 1,
+        "ambulance_offload_wait_minutes": 8,
+        "acuity_mix_scope": "currently triaged ED patients; excludes unclassified and in-treatment patients",
+        "acuity_mix": {
+          "1": 0,
+          "2": 1,
+          "3": 4,
+          "4": 7,
+          "5": 4
+        }
+      },
+      "capacity": {
+        "treatment_spaces": {
+          "total": 36,
+          "occupied": 24,
+          "available": 12
+        },
+        "resuscitation_spaces": {
+          "total": 2,
+          "occupied": 1,
+          "available": 1
+        },
+        "monitored_beds": {
+          "total": 4,
+          "occupied": 3,
+          "available": 1
+        },
+        "inpatient_beds": {
+          "available": 4,
+          "status": "available"
+        },
+        "icu_beds": {
+          "available": 1,
+          "status": "limited"
+        },
+        "short_stay_or_assessment_unit": {
+          "available": 2,
+          "status": "criteria required"
+        },
+        "predicted_discharges_next_two_hours": 4
+      },
+      "flow": {
+        "median_wait": "55 m",
+        "longest_wait": "2 h 10 m",
+        "ats_breaches": {
+          "1": 0,
+          "2": 0,
+          "3": 0,
+          "4": 1,
+          "5": 1
+        },
+        "access_block_patients": 0,
+        "boarding_patients": 2,
+        "last_flow_huddle": "07:45",
+        "next_review": "08:30"
+      },
+      "escalation": {
+        "trigger": "any deterioration, urgent category or advice beyond nurse-line scope",
+        "variance_indicator": {
+          "score": "green - not numerically recorded in this snapshot",
+          "status": "routine local monitoring",
+          "threshold_source": "current ED Escalation Plan and VIS process"
+        },
+        "acnm_informed": true,
+        "duty_smo_informed": true,
+        "duty_nurse_manager_informed": false,
+        "hospital_management_informed": false,
+        "integrated_operations_centre_informed": false,
+        "actions": [
+          "maintain urgent callback and ambulance pathways",
+          "offer an interpreter, Māori clinician or NZ Relay when requested"
+        ]
+      },
+      "alternatives": {
+        "regular_gp": {
+          "available": true,
+          "next_available": "today 09:00",
+          "transport": "caller arranges own transport"
+        },
+        "after_hours_gp": {
+          "available": true,
+          "next_available": "tonight 18:00",
+          "transport": "confirm the route is clinically safe"
+        },
+        "urgent_care": {
+          "available": true,
+          "next_available": "today 08:30"
+        },
+        "ambulance": {
+          "available": true,
+          "route": "111 for life-threatening or time-critical symptoms"
+        },
+        "healthline": {
+          "available": true,
+          "hours": "24/7",
+          "access": "0800 611 116; Māori clinician 08:00-20:00; interpreters and NZ Relay available"
+        }
+      },
+      "communications": {
+        "last_waiting_room_update": "07:55",
+        "delay_reason": "no material delay recorded",
+        "next_update_due": "08:30",
+        "support_person_updates": "available on request"
+      },
+      "governance": {
+        "source": "department operations snapshot",
+        "source_class": "operational_snapshot",
+        "authority": "point-in-time context; not a current hospital order",
+        "data_quality": "role-level snapshot captured at the stated time; nurse-line advice must be based on the caller's current clinical information",
+        "captured_at": "2026-09-25T08:00:00+12:00"
+      }
+    }
+  }
+}

@@ -5,3 +5,6 @@ output
 
 # inspect/eval environment (log dir, API keys) — keep out of git
 .env
+
+# HTTP page cache for the profile builders (disposable, local to the profile)
+profiles/*/.cache/

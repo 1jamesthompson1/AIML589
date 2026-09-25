@@ -1,6 +1,6 @@
 # Zoe Zhang
 
-Wellington · zoe.zhang@example.ac.nz (graduating) · zoez.dev
+Wellington · zoe.zhang@myvuw.ac.nz (graduating) · zoez.dev
 
 ## Education
 
@@ -14,7 +14,7 @@ Honours project: "Evaluating LLM-assisted triage for university service desks" (
 
 **Jul-Dec 2024 — Service Desk Intern, Victoria University ITS**: ticket queue, imaging labs, AV setups for lectures.
 
-**2023-2025 — Volunteer tech lead, VUW Computing Club**: ran the club's drop-in support desk two evenings a w eek for two years.
+**2023-2025 — Volunteer tech lead, VUW Computing Club**: ran the club's drop-in support desk two evenings a week for two years.
 
 ## Projects & Talks
 
@@ -24,4 +24,4 @@ Co-authored poster: "Common failure modes in student Wi-Fi reporting", SIGITE-NZ
 
 ## Referees 
 
-Available on re quest. 
+Available on request.

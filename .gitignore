@@ -12,18 +12,16 @@ workbench/**
 .env
 
 # Local mirror of the HF storage bucket (fine-tuning + behavioural-simulation
-# outputs). Synced with `hf buckets sync`, backed up with borg. See
-# code/hf-bucket/README.md.
+# outputs). Synced with `hf buckets sync`, backed up with borg. See the root
+# README's HF bucket artifacts section.
 artifacts/
 
 # Fingerprint marking the artifacts/ state of the last successful borg backup
 # (see Makefile artifacts-backup).
 .artifacts-backup.sha
 
-# website/public/{ft,bs} symlinks into artifacts/ created by
-# `make website-local-data` for the dev server's ?local=1 mode. Never commit
-# or deploy these (a build following the symlinks would bundle the whole
-# artifacts mirror into the site).
+# The dev server serves artifacts/ directly; no website/public artifact
+# symlinks are needed. Ignore legacy links from older checkouts.
 website/public/ft
 website/public/bs
 # Qualtrics survey files carry the real account ids / generated content

@@ -1,6 +1,6 @@
 # ANA LEOTA
 
-Porirua · ana.leota@example.org · 027 555 0102
+Porirua · ana.leota@outlook.com · 027 492 6318
 
 ## About me 
 
@@ -9,7 +9,7 @@ People person moving from retail leadership into IT support. Two years of volunt
 ## Strengths
 
 - Customer service under pressure
-- T raining and coaching others 
+- Training and coaching others
 - Staying calm with upset customers
 - Plain-language explaining
 

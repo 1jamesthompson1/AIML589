@@ -13,17 +13,35 @@ A presentation and discussion of the results...
 To test how a model acts it is best practice to use a simulation of deployment environments, for reasons discussed in \ref{subsec:realistic-behaviour}. This is common place when testing for safety and capabilities of AI systems \cite{}. Differently from usual evaluations/benchmarks is that there is no right or wrong answer in these simulations, it is exploratory in nature to understand its behaviour.
 
 
+
+
 \subsection{Simulation framework}
+
+\subsubsection{Agentic harness}
 
 The framework is going to be an LLM placed in an agentic harness. It will be given a job description (i.e persona), a set of tools and then some tasks it needs to accomplish. The harness is a simple ReACT \cite{yaoReActSynergizingReasoning2023} style harness that allows the model to use tools and reason about the task at hand.
 
+When building each agentic harness emphasis is put on minimizing the amount of hand written promps and instead using publicly available guidelines and documentation to create the system prompt and tools. 
+
+\subsubsection{Interlocuter}
+
 Some of the simulations are inherently interactive and require the model to ask follow up questions to get more information about the situation (e.g., the model is used as a customer service agent and needs to ask the customer for more information). For these scenarios the role of the interlocuter is \scare{played} by another LLM with a strict personna and instructions on how it should respond.
 
+\subsubsection{Simluation flow}
 The agentic loop will carry on until the model finishes the task. This is defined per situation and is based on when a specifc tool call is made (e.g., \texttt{close\_case} is called, or \texttt{submit\_application} is used).
 
 \subsection{Simulation scenarios}
 
 Each scenario consists of a work profile and a situation. The work profile is the agentic harness with the tools and the system instructions. Then for each profile there are multiple situations that the model is put into. These situations are either interactive (i.e., involve some communication with a simulated client, customer etc) or non-interactive (i.e., the model is given a task to complete and it can use its tools to do so). The scenarios are shown in \tabref{behavioural-sim-profiles}.
+
+It is important ot note that the purpose of the simulations is not to understand the values of the models or its inherent capabilities. Instead the objective is to measure if the model is sufficiently different from baseline and preferred to the baseline. This creates requirements of the situations that they are:
+\begin{itemize}
+    \item Value first: The situations need to be ones that the key decisions that an agent can make are value rich in such a way that there is generally no right or wrong answer. In other words the situations will be debatable.
+    \item Relevance: The situations need to be ones that the general public both care about and have some opinion on. 
+    \item Understandable: The situations need to be ones that the general public can understand and make a judgement on. Domain specific expertise should not be required to understand the situation comparisons \footnote{This does not restrict the content of the situation as the public will only be seeing a comparison of the summaries of the trajectories. This comparison will abstract away technical details and highlight the value trade-offs that are being made.}.
+\end{itemize}
+
+With these three requirements this will allow us to distinguish between the models and understand if the fine-tuned model is preferred to the baseline model.
 
 \subsubsection{Work profiles}
 
@@ -31,16 +49,21 @@ The work profiles are designed to be representative of the types of work that LL
 
 In \cite{Aitrustreport2025onenz,GlobalAttitudesAI2026} we can see that healthcare, finance and government services are the areas that people are most concerned about. As can be seen in \cite{shaoFutureWorkAI2026} workers most want to see procedural low stakes high throughput tasks automated \footnote{Additionally one could conclude that the workers want to automate the tasks that they think is most vital so as to keep their jobs.}. Therefore the focus of profiles is on high stakes tasks that normally require human judgement.
 
-Each of the profiles are built as realistic agentic harnesses for the model. This means that for each profile the model is given a unique system prompt and tools available to it. For example the welfare work profile as the following tools to check up client details, approve benefits, message supervisor, message client etc.
+Each of the profiles are built as realistic agentic harnesses for the model. This means that for each profile the model is given a unique system prompt and tools available to it. For example the welfare work profile has tools that allow it to see client information, approve applications, message client, talk to supervisor and close cases.
 
 \subsubsection{Situations}
 
 The choice of situations are based on trying to illicit value rich decisions from the model. Specifically we would like to have situations in which on aggregate the USA and China disagrees with New Zealand. The choice of these two countries is due to most of the frontier LLM models originate from them. There are various ways to understand value systems (see section \ref{sec:values}) yet due to the use of the World Values Survey understanding the countries through the lens of the Inglehart-Welzel cultural map is used \cite{WVSMAP}. This splits values into two dimensions: traditional vs secular-rational values and survival vs self-expression values. China and New Zealand have similar traditional vs secular-rational values yet NZ is very self-expressive while China is more survivalist. USA is generally more traditional and survival oriented than New Zealand however more self-expressive than China.
 
-Furthermore each situation needs to have identifiable decisions that allow for comparisons between different models. Each situation is then designed with a dilemma or a series of choices the model needs to make. ... \fixme{More discussion here}. A full list of the situations and their dilemmas is shown in \tabref{behavioural-sim-profiles}.
+Look at \tabref{ft-divergent-questions-Qwen3.8-27B} we can see which question Qwen 3.8diverges the most from New Zealand. From these top 25 questions situations were hand crafted so that each situation has a value difference that is representative of one or more of the questions.
+
+A full list of the situations is shown in \tabref{behavioural-sim-profiles}.
+
+\ctable{ft-divergent-questions-Qwen3.8-27B}{A list of the top 25 questions that Qwen 3.8 diverges the most from New Zealand.}
+
+\ctable{ft-similar-questions-Qwen3.8-27B}{A list of the top 25 questions that Qwen 3.8 is most similar to New Zealand.}
 
 \ctable{behavioural-sim-profiles}{Simulation profiles and situations. Bolded entries are interactive scenarios.}
-\fixmeinline{Note only welfare work profile has had significant work. Other situations are still rough ideations with AI-assistance}
 
 
 \subsection{How realistic is the model's behaviour in the simulation?}
@@ -89,4 +112,4 @@ The pipeline of the summary is that after the simulation ends (when the target m
 
 This summary along with a full transcript is then passed to a judge model which is asked to provide a short summary of the self review. This is done to ensure that the summary is fair and accurate.
 
-
+We have made it simple for general public.

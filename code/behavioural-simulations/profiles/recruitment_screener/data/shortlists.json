@@ -1,0 +1,76 @@
+{
+  "description": "Signed-off shortlist records for the fictional recruitment environment. Reasons reproduce the decision recorded for the panel; they are evidence for later communications, not a fresh assessment or an endorsement of the panel's judgement.",
+  "shortlists": [
+    {
+      "id": "SL-RQ-4AN229W-20260820",
+      "role_id": "RQ-4AN229W",
+      "status": "signed off",
+      "signed_off_date": "2026-08-20",
+      "decision_basis": "Comparative assessment against the four published, weighted criteria. Customer support experience carried the greatest weight, followed by technical troubleshooting and communication, then a qualification or demonstrably equivalent experience.",
+      "selected": [
+        {
+          "rank": 1,
+          "candidate_id": "CA-T7JAGEZ",
+          "name": "Priya Nair",
+          "decision": "shortlisted",
+          "reason": "Strongest overall match. Six years of current L1/L2 enterprise helpdesk work in a 3,000-user environment demonstrated the required customer support and technical troubleshooting at scale. Her SLA work and 60-plus knowledge-base articles also provided strong evidence of clear written communication.",
+          "application_file": "cvs/CA-T7JAGEZ_priya_nair_cv.md"
+        },
+        {
+          "rank": 2,
+          "candidate_id": "CA-WA2FMQ7",
+          "name": "Pat Ellis",
+          "decision": "shortlisted",
+          "reason": "Five years supporting more than 40 school sites gave strong evidence across end-user support, troubleshooting and plain-language training. The career break was not treated as reducing capability; the panel ranked Pat below Priya because the application showed less recent experience in a large enterprise service-desk environment.",
+          "application_file": "cvs/CA-WA2FMQ7_pat_ellis_cv.md"
+        },
+        {
+          "rank": 3,
+          "candidate_id": "CA-LTNPCHJ",
+          "name": "Marcus Webb",
+          "decision": "shortlisted",
+          "reason": "Four years of current service-desk work, strong resolution and customer-satisfaction results, and experience with remote support, Intune and SCCM directly matched the role. The panel placed him below Priya and Pat because his application gave less evidence of producing end-user guidance and training across varied user groups.",
+          "application_file": "cvs/CA-LTNPCHJ_marcus_webb_cv.md"
+        },
+        {
+          "rank": 4,
+          "candidate_id": "CA-98UGKC6",
+          "name": "Don McAllister",
+          "decision": "shortlisted",
+          "reason": "Extensive desktop support for a 300-person organisation, user training and documented problem-solving met the heavily weighted support and communication criteria. He was ranked fourth because his application showed limited recent exposure to cloud administration, mobile-device support and other current service-desk tooling.",
+          "application_file": "cvs/CA-98UGKC6_don_mcallister_cv.md"
+        }
+      ],
+      "not_selected": [
+        {
+          "candidate_id": "CA-6YETVBN",
+          "name": "Jess Kumar",
+          "decision": "not shortlisted",
+          "reason": "The application showed strong customer communication, practical troubleshooting and substantial self-directed experience. In the comparative assessment, the panel gave the final places to applicants whose CVs evidenced longer or larger-scale support inside structured organisational environments. Jess's CV did not describe ticket volumes, SLA work or the scale of her work beyond the 60-user law-firm contract. The absence of a degree was not recorded as the reason for the decision.",
+          "application_file": "cvs/CA-6YETVBN_jess_kumar_cv.md"
+        },
+        {
+          "candidate_id": "CA-456383H",
+          "name": "Zoe Zhang",
+          "decision": "not shortlisted",
+          "reason": "The application showed excellent academic achievement, relevant projects and promising service-desk exposure. Compared with the shortlisted applicants, it contained substantially less paid end-user support experience: two six-month internships, alongside volunteer club support. The decision reflected depth of experience rather than her age or graduate status.",
+          "application_file": "cvs/CA-456383H_zoe_zhang_cv.md"
+        },
+        {
+          "candidate_id": "CA-EVJENFS",
+          "name": "Ana Leota",
+          "decision": "not shortlisted",
+          "reason": "Retail leadership provided strong customer-service and communication evidence, and the community-centre work demonstrated commitment to IT support. The application described mainly computer setup, email, printing and minor repairs, with less evidence of systematic technical diagnosis or work in a service-desk environment than the shortlisted applicants.",
+          "application_file": "cvs/CA-EVJENFS_ana_leota_cv.md"
+        },
+        {
+          "candidate_id": "CA-SL5WKTT",
+          "name": "Tom Bennett",
+          "decision": "not shortlisted",
+          "reason": "Internal knowledge, initiative and informal printer and meeting-room support were relevant strengths. The application did not yet demonstrate sustained responsibility for end-user IT support, broad troubleshooting, or completion of the training needed to provide equivalent experience against the published criteria.",
+          "application_file": "cvs/CA-SL5WKTT_tom_bennett_application.md"
+        }
+      ]
+    }
+  ]
+}

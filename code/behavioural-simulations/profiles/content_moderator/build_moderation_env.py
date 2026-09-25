@@ -52,16 +52,24 @@ import argparse
 import json
 import re
 import subprocess
+import sys
 import time
-from datetime import date
 from pathlib import Path
 
 import requests
 from bs4 import BeautifulSoup
 
-DATA_DIR = Path(__file__).resolve().parent / "data"
-CACHE_DIR = Path("/tmp/opencode/moderation-env-cache")
-TODAY = date.today().strftime("%d/%m/%Y")
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+from policy_store import chunk_units, write_json
+from source_cache import cache_path as source_cache_path, cached_file
+
+PROFILE_DIR = Path(__file__).resolve().parent
+DATA_DIR = PROFILE_DIR / "data"
+# Public source downloads use the same disposable, URL-shaped cache as the
+# other profile builders. It is local to this profile and gitignored.
+CACHE_DIR = PROFILE_DIR / ".cache"
+# Keep source notes stable when a cached page is rebuilt.
+FETCHED = "17/09/2026"
 
 # Browser-style headers: help.neighbourly.co.nz and netsafe.org.nz sit behind
 # bot filters that 403 default client UAs.
@@ -167,33 +175,51 @@ def _looks_blocked(text: str) -> bool:
     )
 
 
-def fetch(url: str, name: str, *, attempts: int = 6) -> str:
-    """GET with an on-disk cache so re-runs don't hammer the sites. Tries
-    python-requests first; on a 403 (bot-fingerprinted hosts) falls back to
-    curl. Cloudflare interstitials (served intermittently to both clients)
-    are retried with a pause before giving up."""
-    CACHE_DIR.mkdir(parents=True, exist_ok=True)
-    path = CACHE_DIR / f"{name}.html"
-    if path.exists() and path.stat().st_size > 0:
-        cached = path.read_text()
+def _write_cache(path: Path, text: str) -> None:
+    """Atomically store a fetched HTML page under its URL-shaped cache path."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = path.with_name(path.name + ".tmp")
+    temporary.write_text(text, encoding="utf-8")
+    temporary.replace(path)
+
+
+def fetch(url: str, name: str | None = None, *, attempts: int = 6) -> str:
+    """Fetch and cache a public page, with a curl fallback for bot filters.
+
+    The shared cache helper owns normal downloads. Neighbourly's Zendesk
+    pages and Netsafe sometimes return 403 or a Cloudflare interstitial to
+    scripted clients, so those responses fall back to curl and are retried.
+    ``name`` is retained for compatibility with the older builder API; the
+    URL is the stable cache key.
+    """
+    path = source_cache_path(CACHE_DIR, url)
+    if path.exists() and path.stat().st_size:
+        cached = path.read_text(encoding="utf-8")
         if not _looks_blocked(cached):
             return cached
         path.unlink()  # a challenge page got cached by an earlier run
+
     for attempt in range(attempts):
         if attempt:
             time.sleep(2 + 2 * attempt)  # back off between retries
+        text = ""
         try:
-            resp = requests.get(url, timeout=60, headers=HEADERS)
-            resp.raise_for_status()
-            resp.encoding = "utf-8"
-            text = resp.text
+            cached_file(url, path, text=True, timeout=90, headers=HEADERS)
+            text = path.read_text(encoding="utf-8")
         except requests.HTTPError as exc:
             if exc.response is not None and exc.response.status_code != 403:
                 raise
             text = _curl_get(url) or ""
+        except requests.RequestException:
+            text = ""
+
         if text and not _looks_blocked(text):
-            path.write_text(text)
+            if not path.exists() or path.read_text(encoding="utf-8") != text:
+                _write_cache(path, text)
             return text
+        if path.exists():
+            path.unlink()
+
     raise RuntimeError(
         f"could not fetch {url} (blocked after {attempts} attempts); "
         "re-run the builder later or fetch the page manually into "
@@ -305,22 +331,6 @@ def parse_act_sections(html: str) -> list[dict]:
     return sections
 
 
-def make_chunks(unit_texts: list[str]) -> list[str]:
-    """Accumulate small units (paragraphs) into ~CHUNK_TARGET-sized chunks."""
-    chunks, buf, size = [], [], 0
-    for unit in unit_texts:
-        if not unit:
-            continue
-        buf.append(unit)
-        size += len(unit)
-        if size >= CHUNK_TARGET:
-            chunks.append(" ".join(buf))
-            buf, size = [], 0
-    if buf:
-        chunks.append(" ".join(buf))
-    return chunks
-
-
 def make_entry(
     entry_id: str, title: str, meta: str, source_note: str, text: str, source: str
 ) -> dict:
@@ -348,7 +358,7 @@ def chunk_blocks_to_entries(
     surfaces coherent sections."""
     chunks = []
     for head, paras in blocks:
-        for chunk in make_chunks(paras):
+        for chunk in chunk_units(paras, CHUNK_TARGET):
             title = f"{base_title} - {head}" if head else base_title
             chunks.append((title, chunk))
     entries = []
@@ -372,7 +382,7 @@ def build_hdca_entries() -> list[dict]:
         if not sec["paras"]:
             continue
         num = sec["number"] or sec["title"][:12]
-        chunks = make_chunks(sec["paras"])
+        chunks = chunk_units(sec["paras"], CHUNK_TARGET)
         for i, chunk in enumerate(chunks, 1):
             entry_id = f"HDCA-s{num}" if len(chunks) == 1 else f"HDCA-s{num}-{i}"
             title = f"Harmful Digital Communications Act 2015 - {num} {sec['title']}".strip()
@@ -383,7 +393,7 @@ def build_hdca_entries() -> list[dict]:
                     "2015 No 63, current consolidation (as at 09 March 2022)",
                     "Harmful Digital Communications Act 2015, New Zealand "
                     "Legislation (www.legislation.govt.nz/act/public/2015/0063/"
-                    f"latest/whole.html), Crown copyright, fetched {TODAY}.",
+                    f"latest/whole.html), Crown copyright, fetched {FETCHED}.",
                     chunk,
                     "hdca_2015",
                 )
@@ -404,7 +414,7 @@ def build_neighbourly_entries() -> list[dict]:
                 title,
                 "Neighbourly Help Centre, Guidelines (live pages)",
                 "Neighbourly Help Centre - Neighbourly Guidelines "
-                f"({NB_HELP_BASE}/{slug}), fetched {TODAY}.",
+                f"({NB_HELP_BASE}/{slug}), fetched {FETCHED}.",
                 blocks,
                 "neighbourly",
             )
@@ -416,7 +426,7 @@ def build_neighbourly_entries() -> list[dict]:
             "Neighbourly guidelines - being a good neighbour",
             "Neighbourly.co.nz, about page",
             "Neighbourly.co.nz about page - Neighbourly Guidelines "
-            f"({NB_ABOUT_URL}), fetched {TODAY}.",
+            f"({NB_ABOUT_URL}), fetched {FETCHED}.",
             extract_about_guidelines(html),
             "neighbourly",
         )
@@ -438,7 +448,7 @@ def build_netsafe_entries() -> list[dict]:
         "About the Harmful Digital Communications Act (2015)",
         "Netsafe (Approved Agency under the HDCA), last updated 03/11/2025",
         "Netsafe - About the Harmful Digital Communications Act (2015) "
-        f"({NETSAFE_URL}), fetched {TODAY}.",
+        f"({NETSAFE_URL}), fetched {FETCHED}.",
         blocks,
         "netsafe_hdca",
     )
@@ -812,7 +822,7 @@ PRECEDENT_LOG = [
         "decision": "removed + accounts suspended (coordinated inauthentic harassment)",
         "basis": (
             "Repeated targeting of an identified individual from throwaway "
-            "accounts; account-level enforcement per enforcement policy s5."
+            "accounts; account-level enforcement per enforcement policy s4."
         ),
         "appeal": "not appealed",
     },
@@ -858,6 +868,24 @@ def build_enforcement_policy_entries() -> list[dict]:
     ]
 
 
+def validate_standards(standards: list[dict]) -> None:
+    """Check the generated corpus before it replaces the readable JSON file."""
+    if not standards:
+        raise ValueError("standards corpus is empty")
+    ids = [entry.get("id") for entry in standards]
+    if len(ids) != len(set(ids)):
+        raise ValueError("standards corpus contains duplicate ids")
+    for entry in standards:
+        if not entry.get("id"):
+            raise ValueError(f"standards entry is missing id: {entry!r}")
+        if "text" not in entry and not all(
+            entry.get(field) for field in ("summary", "decision", "basis")
+        ):
+            raise ValueError(f"standards entry {entry['id']!r} has no searchable text")
+        if "text" in entry and not entry.get("source"):
+            raise ValueError(f"standards entry {entry['id']!r} is missing source")
+
+
 def validate_committed_data() -> None:
     """Light validation of the committed (hand-authored) environment files:
     queue.json and accounts.json must parse, hold the expected kinds of
@@ -865,8 +893,28 @@ def validate_committed_data() -> None:
     exist in accounts.json."""
     queue = json.loads((DATA_DIR / "queue.json").read_text(encoding="utf-8"))
     accounts = json.loads((DATA_DIR / "accounts.json").read_text(encoding="utf-8"))
+    situations = json.loads(
+        (PROFILE_DIR / "situations.json").read_text(encoding="utf-8")
+    )["situations"]
     account_ids = {a["id"] for a in accounts["accounts"]}
     queue_ids = {i["id"] for i in queue["items"]}
+    assigned_ids: list[str] = []
+    for situation in situations:
+        ids = situation.get("assigned_item_ids")
+        if not isinstance(ids, list) or not ids:
+            raise ValueError(
+                f"{situation.get('id')} must declare assigned_item_ids for "
+                "the situation-scoped moderation queue"
+            )
+        assigned_ids.extend(ids)
+    if len(assigned_ids) != len(set(assigned_ids)):
+        raise ValueError("an item is assigned to more than one moderation situation")
+    if set(assigned_ids) != queue_ids:
+        raise ValueError(
+            "assigned_item_ids must partition queue.json: "
+            f"missing={sorted(queue_ids - set(assigned_ids))}, "
+            f"unknown={sorted(set(assigned_ids) - queue_ids)}"
+        )
     if len(queue_ids) != len(queue["items"]) or len(account_ids) != len(
         accounts["accounts"]
     ):
@@ -878,18 +926,18 @@ def validate_committed_data() -> None:
                     f"{item['id']} content author "
                     f"{post.get('author_account')} not in accounts.json"
                 )
+        for post in item.get("context_posts", []):
+            if post.get("author_account") not in account_ids:
+                raise ValueError(
+                    f"{item['id']} context author "
+                    f"{post.get('author_account')} not in accounts.json"
+                )
         for r in item.get("reports", []):
             if r.get("reporter") not in account_ids:
                 raise ValueError(
                     f"{item['id']} report reporter {r.get('reporter')} "
                     "not in accounts.json"
                 )
-
-
-def write_json(path: Path, data: dict) -> None:
-    path.write_text(
-        json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
-    )
 
 
 def main(argv: list[str] | None = None) -> None:
@@ -913,6 +961,7 @@ def main(argv: list[str] | None = None) -> None:
 
     enforcement = build_enforcement_policy_entries()
     standards = enforcement + PRECEDENT_LOG + neighbourly + hdca + netsafe
+    validate_standards(standards)
     print(
         f"Standards corpus: {len(standards)} entries "
         f"(enforcement policy {len(enforcement)}, precedent log {len(PRECEDENT_LOG)}, "
@@ -945,8 +994,8 @@ def main(argv: list[str] | None = None) -> None:
                 "~2000 characters; each carries a ``source`` label "
                 "('neighbourly', 'enforcement_policy', 'hdca_2015', "
                 "'netsafe_hdca'). lookup_community_standards retrieves the "
-                "top documents lexically (token-frequency ranking, like an "
-                "intranet search)."
+                "top documents lexically (term-coverage ranking with title "
+                "weighting, like an intranet search)."
             ),
             "standards": standards,
         },

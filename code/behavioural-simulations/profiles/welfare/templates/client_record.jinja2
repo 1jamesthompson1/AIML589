@@ -10,9 +10,18 @@ CLIENT ID: {{ client.id }}
 {% endmacro %}
 
 {% macro render_benefit(client) %}
-BENEFIT: {{ client.benefit.current }}
+{% if client.benefit.status is defined and client.benefit.status != 'approved' %}APPLICATION: {{ client.benefit.current }} ({{ client.benefit.status }})
+{% if client.benefit.start_date %}  Lodged: {{ client.benefit.start_date }}{% endif %}
+{% else %}BENEFIT: {{ client.benefit.current }}
 {% if client.benefit.start_date %}  Start date: {{ client.benefit.start_date }}{% endif %}
+{% endif %}
 {% if client.benefit.reference %}  Reference: {{ client.benefit.reference }}{% endif %}
+{% if client.benefit.approval is defined %}  Approved: {{ client.benefit.approval.decision_date }}
+  Net rate: ${{ "%.2f"|format(client.benefit.approval.weekly_amount_net) }}/week
+  Entitlement starts: {{ client.benefit.approval.payment_start_date }}
+{% endif %}
+{% if client.benefit.outstanding_information is defined %}  Information requested: {{ client.benefit.outstanding_information['items'] }}
+{% endif %}
 {% if client.benefit.previous %}
 PREVIOUS BENEFITS:
 {% for prev in client.benefit.previous %}  - {{ prev.type }} ({{ prev.period }}) - {{ prev.reason_ended }}
@@ -45,6 +54,31 @@ BANK STATEMENTS:
 {% endfor %}{% elif client.income.bank_statements.note %}
 BANK DATA: {{ client.income.bank_statements.note }}
 {% endif %}
+{% if client.income.payroll_reconciliation is defined %}
+PAYROLL / DECLARATION CHECK:
+{% for row in client.income.payroll_reconciliation %}  {{ row.work_period }}: declared gross ${{ row.client_declared_gross }}, employer-reported gross ${{ row.employer_reported_gross }}.{% if row.corrected_gross is defined %} Corrected gross ${{ row.corrected_gross }}.{% endif %} {{ row.status }}
+{% endfor %}{% endif %}
+{% if client.income.employer_shift_report is defined %}EMPLOYER SHIFT REPORT ({{ client.income.employer_shift_report.received }}):
+  Source: {{ client.income.employer_shift_report.source }}
+  Document: {{ client.income.employer_shift_report.document }}
+  Claim: {{ client.income.employer_shift_report.allegation }}
+  Verification: {{ client.income.employer_shift_report.verification }}
+{% endif %}
+{% endmacro %}
+
+{% macro render_financial_circumstances(client) %}
+{% if client.financial_circumstances is defined %}
+FINANCIAL CIRCUMSTANCES ({{ client.financial_circumstances.recorded }}):
+  Source: {{ client.financial_circumstances.source }}
+  Weekly income:
+{% for source, amount in client.financial_circumstances.weekly_income.items() %}    {{ source.replace('_', ' ') }}: ${{ amount }}
+{% endfor %}  Weekly essential costs:
+{% for cost, amount in client.financial_circumstances.weekly_essential_costs.items() %}    {{ cost.replace('_', ' ') }}: ${{ amount }}
+{% endfor %}{% if client.financial_circumstances.weekly_other_costs is defined %}  Other weekly costs (classification for recovery is pending):
+{% for cost, amount in client.financial_circumstances.weekly_other_costs.items() %}    {{ cost.replace('_', ' ') }}: ${{ amount }}
+{% endfor %}{% endif %}  Savings: ${{ client.financial_circumstances.savings }}
+  Upcoming change: {{ client.financial_circumstances.upcoming_change }}
+{% endif %}
 {% endmacro %}
 
 {% macro render_health(client) %}
@@ -70,6 +104,9 @@ OVERPAYMENT: ${{ "{:,.2f}".format(client.overpayment.amount) }}
   Recording: {{ client.overpayment.recording }}
   Indicators: {{ client.overpayment.indicators }}
   Recovery status: {{ client.overpayment.recovery_status }}
+{% if client.overpayment.monthly_breakdown is defined %}  Monthly amounts:
+{% for row in client.overpayment.monthly_breakdown %}    {{ row.month }}: ${{ row.overpaid }}
+{% endfor %}{% endif %}
 {% endif %}
 {% endmacro %}
 
@@ -98,10 +135,21 @@ EMERGENCY PAYMENT REQUEST:
   Date: {{ client.emergency_payment_request.date }}
 {% for item in client.emergency_payment_request['items'] %}  - {{ item.description }}
 {% if item.repair_quote %}    Repair quote: ${{ item.repair_quote }}{% endif %}
+{% if item.repair_assessment is defined %}    Repair assessment: {{ item.repair_assessment }}{% endif %}
 {% if item.replacement_estimate %}    Replacement estimate: ${{ item.replacement_estimate }}{% endif %}
+{% if item.replacement_supplier is defined %}    Replacement supplier: {{ item.replacement_supplier }}{% endif %}
+{% if item.replacement_warranty is defined %}    Replacement warranty: {{ item.replacement_warranty }}{% endif %}
+{% if item.laundromat_weekly_cost is defined %}    Laundromat cost: ${{ item.laundromat_weekly_cost }}/week{% endif %}
 {% if item.estimate %}    Estimate: ${{ item.estimate }}{% endif %}
+{% if item.required_by is defined %}    Needed by: {{ item.required_by }}{% endif %}
 {% endfor %}  Total requested: ${{ client.emergency_payment_request.total_requested or 0 }}
   Status: {{ client.emergency_payment_request.status or 'N/A' }}
+{% if client.emergency_payment_request.decisions is defined %}{% for decision in client.emergency_payment_request.decisions %}  Approved: ${{ decision.amount }} under {{ decision.programme }}; additional recovery ${{ decision.additional_weekly_recovery }}/week. {{ decision.reason }}
+{% endfor %}{% endif %}
+{% endif %}
+{% if client.recoverable_assistance is defined %}EXISTING RECOVERABLE ASSISTANCE:
+  Balance: ${{ client.recoverable_assistance.outstanding }} | Weekly recovery: ${{ client.recoverable_assistance.weekly_recovery }}
+  {{ client.recoverable_assistance.note }}
 {% endif %}
 {% endmacro %}
 
@@ -123,6 +171,8 @@ WORK ACTIVITY OBLIGATION:
   Sent: {{ client.work_activity_obligation.sent }} | Due: {{ client.work_activity_obligation.due }}
   Status: {{ client.work_activity_obligation.status }}
 {% if client.work_activity_obligation.conflict %}  Conflict: {{ client.work_activity_obligation.conflict }}{% endif %}
+{% if client.work_activity_obligation.client_constraints is defined %}  Client circumstances: {{ client.work_activity_obligation.client_constraints }}{% endif %}
+{% if client.work_activity_obligation.requested_change is defined %}  Requested change: {{ client.work_activity_obligation.requested_change }}{% endif %}
 {% endif %}
 {% endmacro %}
 
@@ -165,6 +215,10 @@ CORRESPONDENCE:
 
 {% if 'all' in sections or 'income' in sections %}
 {{ render_income(client) }}
+{% endif %}
+
+{% if 'all' in sections or 'financial_circumstances' in sections %}
+{{ render_financial_circumstances(client) }}
 {% endif %}
 
 {% if 'all' in sections or 'health' in sections %}

@@ -1,8 +1,8 @@
 # TAKAHASHI LAW
 
-Level 3, 99 The Terrace, Wellington 6011 | (04) 555 0233 
+Level 3, 99 The Terrace, Wellington 6011 | (04) 472 6839
 
-19 August 2026
+10 August 2026
 
 To whom it may concern 
 
@@ -20,4 +20,4 @@ Yours sincerely,
 
 Robyn Takahashi
 Practice Manager, Takahashi Law
-robyn.takahashi@takahashilaw.example.nz
+robyn.takahashi@takahashilaw.co.nz

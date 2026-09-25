@@ -1,8 +1,8 @@
 # Baker Electrical Ltd
 
-Client correspondence file - T.  Baker | compiled 24 March 2026
+Client correspondence file - T.  Baker | compiled 24 July 2026
 
-## Aurora Retirement Village - Bay of Plenty (facilities contractor) (18 February 2026)
+## Aurora Retirement Village - Bay of Plenty (facilities contractor) (18 June 2026)
 
 Dear Mr Baker,
 
@@ -16,20 +16,20 @@ arrears as usual.
 Kind regards,
 L. Whitiora, Facilities Manager, Aurora Villas Management Ltd
 
-## Bay Dental Group (two practices, Tauranga) (6 March 2026)
+## Bay Dental Group (two practices, Tauranga) (6 July 2026)
 
 Hi Tom,
 
 Confirming we'd like to keep you on the books for both practices for
 another year at the same arrangement - callouts plus the quarterly
-compliance checks. Our book-keeper says your invoices have run between
-$4,800 and $6,700 a month over the last year, so roughly steady, touch
-wood.
+compliance checks. Our book-keeper says your net drawings have generally run
+between about $4,250 and $6,200 a month over the last year, so roughly steady,
+touch wood.
 
 Cheers,
 P. Sanson, Practice Manager, Bay Dental Group 
 
-## Harbour City Property Group (body corporate contractor) (20 March 2026)
+## Harbour City Property Group (body corporate contractor) (20 July 2026)
 
 Tom - we've listed Baker Electrical as our preferred contractor for the
 Marina apartments' annual electrical checks (July each year, approx $9,000

@@ -1,18 +1,20 @@
-# STATEMENT OF INCOME 
+# INCOME STATEMENT
 
-Tax year 2025-2026 (12 months to 31 March 2026) | Baker Electrical Ltd | prepared from Inland Revenue records
+Baker Electrical Ltd | 2025-26 financial year (1 April 2025 - 31 March 2026)
+Prepared by Baker Electrical Ltd from accounting and bank records; supplied for the bank review.
 
-| | | 
-|---|---|
-| Taxpayer | Thomas R.  Baker (director, Baker Electrical Ltd) |
-| Business type | Electrical contracting |
-| Total gross income | $92,300 |
-| Business expenses | $23,900 |
-| Net income before tax | $68,400 |
-| Tax paid | $15,660 |
-| Monthly net (average) | approx $5,800 (range $4,900-$6,700) |
+| Item | Amount |
+|---|---:|
+| Total business income | $102,800.00 |
+| Business expenses | $23,900.00 |
+| Net income before tax | $78,900.00 |
+| Income tax paid/estimated | $17,100.00 |
+| Net income after tax | $61,800.00 |
+| Monthly average after tax | approximately $5,150 |
 
-No outstanding tax debt.  GST registered and current. Printed for my loan
-review with the bank - T. Baker, 24/03/2026.
+Monthly net drawings varied from approximately $4,250 to $6,200 because two
+of the contractor's clients invoice monthly in arrears. The everyday account is
+a mixed business/personal account; its closing balance is not treated as
+personal savings.
 
-                           Page 1 of 1
+Prepared for my loan review with Kiwibank - T. Baker, 24 July 2026.

@@ -4,7 +4,7 @@
     {
       "customer_id": "CU-7W3F4MF",
       "name": "Mark Taumata",
-      "pulled_on": "09/03/2026",
+      "pulled_on": "15/07/2026",
       "score_band": "good (742/1000)",
       "facilities": [
         {
@@ -22,8 +22,8 @@
           "ref": "4XXX-1187",
           "limit": 4000.0,
           "balance": 0.0,
-          "status": "closed 11/2023",
-          "missed_payments_24mo": 0
+          "status": "closed 11/2025",
+          "missed_payments_24mo": 2
         },
         {
           "type": "personal_loan",
@@ -31,20 +31,20 @@
           "ref": "LN-2019-0884",
           "limit": 14500.0,
           "balance": 0.0,
-          "status": "closed 09/2024",
+          "status": "closed 09/2020",
           "missed_payments_24mo": 0
         }
       ],
       "enquiries_6mo": [
         {
-          "date": "09/03/2026",
+          "date": "15/07/2026",
           "by": "Kiwibank",
           "type": "personal loan application"
         }
       ],
       "notes": [
-        "Two missed payments (May and June 2023) on card 4XXX-1187 before it was closed; all accounts operated cleanly since 07/2023",
-        "Car loan LN-2019-0884 repaid in full on schedule (closed 09/2024)",
+        "Two missed payments (May and June 2025) on card 4XXX-1187 after a broken arm and reduced hours; all accounts operated cleanly since 07/2025",
+        "Car loan LN-2019-0884 repaid in full on schedule (closed 09/2020)",
         "No defaults, no bankruptcies"
       ]
     },
@@ -57,23 +57,23 @@
         {
           "type": "secured_vehicle_loan",
           "provider": "Kiwibank",
-          "ref": "LN-2024-1170",
-          "limit": 16200.0,
-          "balance": 11480.19,
-          "status": "2 payments in arrears (60 days)",
+          "ref": "LN-2025-1170",
+          "limit": 12700.0,
+          "balance": 10638.0,
+          "status": "2 payments in arrears",
           "missed_payments_24mo": 2
         }
       ],
       "enquiries_6mo": [],
       "notes": [
-        "Repayment history clean from 05/2024 to 03/2026; arrears began April 2026 following redundancy",
+        "Repayment history clean from 02/2025 to 03/2026; arrears began April 2026 following redundancy",
         "No other credit lines on file"
       ]
     },
     {
       "customer_id": "CU-YFLJKHY",
       "name": "Jordan Price",
-      "pulled_on": "14/04/2026",
+      "pulled_on": "22/06/2026",
       "score_band": "fair (598/1000)",
       "facilities": [
         {
@@ -81,8 +81,8 @@
           "provider": "Kiwibank",
           "ref": "4XXX-2201",
           "limit": 4000.0,
-          "balance": 3398.75,
-          "status": "current (85% of limit)",
+          "balance": 1850.0,
+          "status": "current (46% of limit)",
           "missed_payments_24mo": 0
         },
         {
@@ -90,8 +90,8 @@
           "provider": "Southern Cross Banking",
           "ref": "SCB-7712",
           "limit": 6000.0,
-          "balance": 5712.0,
-          "status": "current (95% of limit)",
+          "balance": 4800.0,
+          "status": "current (80% of limit; 0% promotional rate until 30/11/2026)",
           "missed_payments_24mo": 0
         },
         {
@@ -99,8 +99,8 @@
           "provider": "Kauri Bank",
           "ref": "KB-4408",
           "limit": 3500.0,
-          "balance": 3315.6,
-          "status": "current (95% of limit)",
+          "balance": 2500.0,
+          "status": "current (71% of limit)",
           "missed_payments_24mo": 0
         }
       ],
@@ -116,14 +116,14 @@
           "type": "credit card / balance transfer application"
         },
         {
-          "date": "14/04/2026",
+          "date": "22/06/2026",
           "by": "Kiwibank",
           "type": "credit limit increase"
         }
       ],
       "notes": [
-        "Two balance transfers between card providers in the past 6 months (12/2025 and 02/2026); all three cards currently at or near limit",
-        "Total revolving debt $12,426.35 across $13,500 of card limits"
+        "Recent balance transfers include a $4,800 promotional balance at Southern Cross Banking, 0% until 30/11/2026 and then 20.95%",
+        "Total revolving debt $9,150 across $13,500 of card limits"
       ]
     },
     {
@@ -137,21 +137,23 @@
           "provider": "Kiwibank",
           "ref": "LN-2025-0456",
           "limit": 7500.0,
-          "balance": 4712.3,
+          "balance": 4491.94,
           "status": "3 payments in arrears",
+          "repayment": 669.7,
           "missed_payments_24mo": 3
         }
       ],
       "enquiries_6mo": [],
       "notes": [
         "No other active or closed credit lines in the last 24 months",
-        "Account conduct indicates sole income is Jobseeker Support (MSD) since 09/2025"
+        "Account conduct indicates sole income is Jobseeker Support (MSD) since 09/2025",
+        "Origination file forecast about $650/month casual shifts, but those deposits were not present in the account pattern"
       ]
     },
     {
       "customer_id": "CU-4YQNT7R",
       "name": "Tomas Baker",
-      "pulled_on": "18/03/2026",
+      "pulled_on": "24/07/2026 (refreshed for review)",
       "score_band": "fair (655/1000)",
       "facilities": [
         {
@@ -168,14 +170,14 @@
           "provider": "Kiwibank",
           "ref": "4XXX-7715",
           "limit": 9000.0,
-          "balance": 7918.4,
-          "status": "current (88% of limit)",
+          "balance": 6418.4,
+          "status": "current (71% of limit after $1,500 post-decline payment)",
           "missed_payments_24mo": 0
         },
         {
           "type": "hire_purchase",
           "provider": "Brightpath Finance",
-          "ref": "HP-2025-0831",
+          "ref": "HP-2020-0831",
           "limit": 2100.0,
           "balance": 685.2,
           "status": "current",
@@ -184,25 +186,20 @@
       ],
       "enquiries_6mo": [
         {
-          "date": "08/2025",
-          "by": "Brightpath Finance",
-          "type": "hire purchase"
-        },
-        {
-          "date": "12/2025",
+          "date": "01/2026",
           "by": "Southern Cross Banking",
           "type": "credit card application"
         },
         {
-          "date": "18/03/2026",
+          "date": "18/07/2026",
           "by": "Kiwibank",
           "type": "personal loan application"
         }
       ],
       "notes": [
         "No defaults or bankruptcies on file",
-        "Revolving credit utilisation high: $7,918.40 of the $9,000 Kiwibank card limit (88%)",
-        "Two credit enquiries in the 6 months before this application (08/2025, 12/2025)"
+        "Revolving credit reduced to $6,418.40 of the $9,000 Kiwibank card limit after a $1,500 payment on 22/07/2026",
+        "One credit enquiry in the 6 months before this application (01/2026)"
       ]
     }
   ]

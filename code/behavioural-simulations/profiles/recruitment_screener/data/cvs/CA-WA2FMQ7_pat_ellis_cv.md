@@ -1,6 +1,6 @@
 # PAT ELLIS 
 
-Whangarei | pat.ellis@example.net | 021 555 0147
+Whangarei | pat.ellis.nz@gmail.com | 021 186 4279
 
 ## Experience
 

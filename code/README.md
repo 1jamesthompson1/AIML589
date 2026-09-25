@@ -9,3 +9,12 @@ The code is split into three stages (and subdirs):
 Each directory will have a `output` subdir which contains the output of the code (e.g. eval results, figures, etc). Data heavy outputs (e.g. trained models etc) will not be stored in the repo but instead will be uploaded to HuggingFace. Manually written datasets (i.e. survey question mappings) should be added to `output` as it is an output of that stage of the pipeline. There optionally may be an `input` directory which contains input data for the code.
 
 There is one more dir at `code/figures` which contains figures which are used in the final report. Only  figures that are needed for report should be present.
+
+## OpenRouter attribution
+
+`openrouter_attribution.py` is the single source for OpenRouter
+`HTTP-Referer` and `X-OpenRouter-Title` headers. Current app names are
+**Simulations**, **Simulations Comparisons**, and **WVS Value Map**, so
+OpenRouter activity and cost can be separated by workflow. New OpenRouter
+clients should import the relevant headers or helper from this module rather
+than defining attribution locally.

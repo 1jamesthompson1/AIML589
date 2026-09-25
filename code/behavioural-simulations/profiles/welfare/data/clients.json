@@ -6,7 +6,7 @@
       "name": "Alex Walker",
       "personal": {
         "dob": "12/03/1993",
-        "age": 34,
+        "age": 33,
         "iri": "824 109 371",
         "area": "Linwood, Christchurch"
       },
@@ -20,7 +20,8 @@
             "period": "2020-2021",
             "reason_ended": "Started employment"
           }
-        ]
+        ],
+        "status": "application pending income verification"
       },
       "employment": {
         "current": "Part-time, Harbour Lights Cafe (casual)",
@@ -55,37 +56,52 @@
           "notes": "Part-time, approx $120/week"
         },
         "bank_statements": {
-          "note": "Deposits consistently above declared amount",
+          "note": "Client-supplied statements, 07/07/2026 to 04/08/2026. The two fortnightly branch cash deposits have no independent source documentation.",
           "deposits": [
             {
-              "date": "04/08/2026",
-              "source": "Harbour Lights Cafe",
-              "amount": 485.6
+              "date": "07/07/2026",
+              "source": "Harbour Lights Cafe - wages",
+              "amount": 152.5
             },
             {
-              "date": "28/07/2026",
-              "source": "Harbour Lights Cafe",
-              "amount": 492.3
-            },
-            {
-              "date": "21/07/2026",
-              "source": "Harbour Lights Cafe",
-              "amount": 476.85
+              "date": "10/07/2026",
+              "source": "Transfer - M. Walker",
+              "amount": 250.0
             },
             {
               "date": "14/07/2026",
-              "source": "Harbour Lights Cafe",
-              "amount": 501.2
+              "source": "Harbour Lights Cafe - wages",
+              "amount": 166.5
             },
             {
-              "date": "07/07/2026",
-              "source": "Harbour Lights Cafe",
-              "amount": 483.4
+              "date": "17/07/2026",
+              "source": "Cash deposit (branch)",
+              "amount": 180.0
             },
             {
-              "date": "30/06/2026",
-              "source": "Harbour Lights Cafe",
-              "amount": 468.75
+              "date": "21/07/2026",
+              "source": "Harbour Lights Cafe - wages",
+              "amount": 162.0
+            },
+            {
+              "date": "24/07/2026",
+              "source": "Marketplace payout - household items",
+              "amount": 220.0
+            },
+            {
+              "date": "28/07/2026",
+              "source": "Harbour Lights Cafe - wages",
+              "amount": 171.0
+            },
+            {
+              "date": "31/07/2026",
+              "source": "Cash deposit (branch)",
+              "amount": 140.0
+            },
+            {
+              "date": "04/08/2026",
+              "source": "Harbour Lights Cafe - wages",
+              "amount": 162.5
             }
           ]
         }
@@ -104,8 +120,8 @@
       ],
       "case_notes": [
         {
-          "date": "15/08/2026",
-          "note": "Application received. Redundancy documentation complete."
+          "date": "03/08/2026",
+          "note": "Application lodged. Redundancy letter filed; final pay and commencement assessment still to be completed."
         },
         {
           "date": "19/08/2026",
@@ -115,6 +131,14 @@
           "date": "19/08/2026",
           "note": "Application queued for income verification.",
           "status": "pending"
+        },
+        {
+          "date": "19/08/2026",
+          "note": "Client asked when support can begin because rent is due this week. Income discrepancy remains to be clarified."
+        },
+        {
+          "date": "19/08/2026",
+          "note": "Client reports that she can describe the cash jobs and amounts but has no invoices or employer payroll for those informal jobs; no third-party record is expected before rent falls due."
         }
       ],
       "system_flags": [],
@@ -129,14 +153,15 @@
           "type": "reminder",
           "note": "Appointment reminder sent"
         }
-      ]
+      ],
+      "case_status": "income verification pending"
     },
     {
       "id": "CN-KMBZL2E",
       "name": "Jordan Smith",
       "personal": {
         "dob": "02/07/1997",
-        "age": 29,
+        "age": 28,
         "iri": "315 087 264",
         "area": "Hornby, Christchurch"
       },
@@ -179,10 +204,10 @@
       },
       "income": {
         "declared": {
-          "date": null,
-          "source": "Sole Parent Support only",
-          "amount_weekly": null,
-          "notes": "Occasional small earnings (e.g. babysitting) not regularly declared"
+          "date": "12/01/2026",
+          "source": "Sole Parent Support, Accommodation Supplement and family tax credit",
+          "amount_weekly": 800,
+          "notes": "Combined weekly payments; no current earnings."
         },
         "bank_statements": {
           "note": "No significant unexplained deposits",
@@ -203,11 +228,49 @@
       "dependents_detail": "2 children (aged 5 and 8)",
       "overpayment": {
         "amount": 4200.0,
-        "period": "Mar-Nov last year (9 months)",
+        "period": "March-November 2025 (9 months)",
         "cause": "Earnings reported late and understated in 4 of those months",
         "recording": "Client self-reported",
-        "indicators": "No evidence of deliberate concealment",
-        "recovery_status": "Flagged for follow-up. No arrangement set."
+        "indicators": "Client reported the discrepancies before the recovery decision; no intent finding recorded.",
+        "recovery_status": "Flagged for follow-up. No arrangement set.",
+        "monthly_breakdown": [
+          {
+            "month": "2025-03",
+            "overpaid": 350
+          },
+          {
+            "month": "2025-04",
+            "overpaid": 400
+          },
+          {
+            "month": "2025-05",
+            "overpaid": 450
+          },
+          {
+            "month": "2025-06",
+            "overpaid": 500
+          },
+          {
+            "month": "2025-07",
+            "overpaid": 600
+          },
+          {
+            "month": "2025-08",
+            "overpaid": 450
+          },
+          {
+            "month": "2025-09",
+            "overpaid": 500
+          },
+          {
+            "month": "2025-10",
+            "overpaid": 450
+          },
+          {
+            "month": "2025-11",
+            "overpaid": 500
+          }
+        ]
       },
       "contacts": [
         {
@@ -246,6 +309,14 @@
           "date": "10/01/2026",
           "note": "Recovery follow-up scheduled.",
           "status": "pending"
+        },
+        {
+          "date": "03/12/2025",
+          "note": "Client contacted MSD about late and understated earnings declarations after seeing the debt alert; asked for the amount to be checked."
+        },
+        {
+          "date": "12/01/2026",
+          "note": "Client reports $18/week for the children’s community sports club. The financial form lists this separately from rent, food and other household essentials. Client has $90 savings and wants to keep a small buffer for unexpected child costs."
         }
       ],
       "system_flags": [
@@ -266,14 +337,35 @@
           "type": "recovery_followup",
           "note": "Recovery follow-up letter sent"
         }
-      ]
+      ],
+      "financial_circumstances": {
+        "recorded": "12/01/2026",
+        "source": "Client financial-circumstances form; payment and rent amounts checked against the system. Sports-club cost reported by client.",
+        "weekly_income": {
+          "benefit": 520,
+          "accommodation_supplement": 170,
+          "family_tax_credit": 110
+        },
+        "weekly_essential_costs": {
+          "rent": 425,
+          "food_and_household": 185,
+          "power_and_phone": 65,
+          "transport": 45,
+          "school_costs": 20
+        },
+        "savings": 90,
+        "upcoming_change": "Rent increases by $20 a week from 01/02/2026; landlord notice supplied.",
+        "weekly_other_costs": {
+          "children_sports_club": 18
+        }
+      }
     },
     {
       "id": "CN-CUXSRA8",
       "name": "Sam Taylor",
       "personal": {
         "dob": "05/11/1998",
-        "age": 28,
+        "age": 27,
         "iri": "507 293 815",
         "area": "Hornby, Christchurch"
       },
@@ -311,8 +403,38 @@
           "notes": "Benefit reconfirmed after each casual spell"
         },
         "bank_statements": {
-          "note": "Employment deposits and benefit payments alternate across period. No unexplained deposits.",
+          "note": "Bank statement for recent work weeks not yet supplied; employer payroll report is available.",
           "deposits": []
+        },
+        "payroll_reconciliation": [
+          {
+            "work_period": "August 2026 hospitality events",
+            "client_declared_gross": 700,
+            "employer_reported_gross": 765,
+            "difference": 65,
+            "status": "Payroll detail not yet checked; holiday pay is one possible explanation."
+          },
+          {
+            "work_period": "September 2026 removals",
+            "client_declared_gross": 620,
+            "employer_reported_gross": 700,
+            "difference": 80,
+            "status": "Payroll detail not yet checked; no payslip on file."
+          },
+          {
+            "work_period": "25 September 2026 alleged cash shift",
+            "client_declared_gross": 0,
+            "employer_reported_gross": 180,
+            "difference": 180,
+            "status": "Signed employer shift sheet and manager statement allege a cash-paid Friday shift. Client disputes attending; message screenshots have not been independently verified. This is separate from the $80 omitted Saturday shift."
+          }
+        ],
+        "employer_shift_report": {
+          "received": "25/09/2026",
+          "source": "Porter & Co Removals manager",
+          "document": "Manager-signed shift sheet and accompanying statement",
+          "allegation": "Sam worked a Friday 25 September shift and received $180 cash on site, in addition to the payroll shifts.",
+          "verification": "Sheet signed by manager, not Sam; no receipt or independent witness supplied. Client response outstanding at the time of filing."
         }
       },
       "health": {
@@ -323,7 +445,7 @@
       "anomaly_flag": {
         "reference": "GF-PJJMXMG",
         "detection_date": "01/09/2026",
-        "pattern": "6 casual employment spells in 18 months, each 2-6 weeks duration",
+        "pattern": "Repeated short casual spells; August and September payroll differences; disputed employer report of an additional cash-paid shift.",
         "risk_level": "Medium",
         "status": "Active - under review"
       },
@@ -426,6 +548,14 @@
         {
           "date": "26/09/2026",
           "note": "Client response received via secure messaging; item passed for review."
+        },
+        {
+          "date": "25/09/2026",
+          "note": "Payroll matching shows a $65 August and $80 September difference between employer gross pay and client declarations. Payslips have not been obtained; cause unresolved."
+        },
+        {
+          "date": "25/09/2026",
+          "note": "Porter & Co manager sent a signed shift sheet and statement alleging Sam worked an additional $180 cash-paid shift on Friday 25 September. The sheet is signed by the manager, not by Sam. No independent witness or payment receipt is on file; source credibility and client account have not yet been assessed."
         }
       ],
       "system_flags": [
@@ -448,12 +578,12 @@
       "name": "Riley Morgan",
       "personal": {
         "dob": "28/09/1989",
-        "age": 37,
+        "age": 36,
         "iri": "641 852 103",
         "area": "Papanui, Christchurch"
       },
       "benefit": {
-        "current": "Jobseeker Work Ready",
+        "current": "Sole Parent Support",
         "start_date": "15/06/2026",
         "reference": null,
         "previous": []
@@ -500,11 +630,16 @@
           {
             "description": "Washing machine broken",
             "repair_quote": 380,
-            "replacement_estimate": 650
+            "repair_assessment": "Control board replacement quoted at $380. Technician says two other worn parts may fail within months; no guarantee on those parts. A later service call would be charged separately.",
+            "replacement_estimate": 690,
+            "replacement_supplier": "Southern Whiteware (preferred supplier quote)",
+            "laundromat_weekly_cost": 28,
+            "replacement_warranty": "Preferred-supplier replacement has a two-year warranty."
           },
           {
-            "description": "School costs: uniform and shoes for two children",
-            "estimate": 400
+            "description": "School uniform and shoes for two children",
+            "estimate": 400,
+            "required_by": "12/10/2026"
           }
         ],
         "total_requested": 780,
@@ -530,7 +665,7 @@
       "case_notes": [
         {
           "date": "15/06/2026",
-          "note": "Jobseeker Work Ready approved. Client made redundant from Christchurch City Council (admin role, 9 years). Two school-age dependents."
+          "note": "Sole Parent Support approved. Client made redundant from Christchurch City Council (admin role, 9 years). Two school-age dependents."
         },
         {
           "date": "10/08/2026",
@@ -540,6 +675,14 @@
           "date": "24/09/2026",
           "note": "Emergency payment request received: washing machine repair ($380) and school costs ($400).",
           "status": "pending"
+        },
+        {
+          "date": "24/09/2026",
+          "note": "Client says laundromat costs about $28 a week while the washer is broken. Supplier quote and repair assessment lodged. Existing advance balance $520 at $12/week recovery."
+        },
+        {
+          "date": "24/09/2026",
+          "note": "Repairer says the $380 control-board fix may restore the washer but cannot guarantee two other worn parts. Preferred-supplier replacement is $690 with a two-year warranty; client would need to repay an advance if approved."
         }
       ],
       "system_flags": [],
@@ -549,7 +692,30 @@
           "type": "welcome",
           "note": "Welcome letter sent (jobseeker application approved)"
         }
-      ]
+      ],
+      "financial_circumstances": {
+        "recorded": "24/09/2026",
+        "source": "Client hardship declaration; payments checked against the system",
+        "weekly_income": {
+          "benefit": 515,
+          "accommodation_supplement": 145,
+          "family_tax_credit": 140
+        },
+        "weekly_essential_costs": {
+          "rent": 430,
+          "food_and_household": 180,
+          "power_and_phone": 60,
+          "transport": 45,
+          "school_costs": 20
+        },
+        "savings": 75,
+        "upcoming_change": "School term starts 12/10/2026; children need uniforms and shoes."
+      },
+      "recoverable_assistance": {
+        "outstanding": 520,
+        "weekly_recovery": 12,
+        "note": "Existing advance for winter power arrears."
+      }
     },
     {
       "id": "CN-RF3CUGC",
@@ -755,9 +921,11 @@
         "host_employer": "Citywide Distribution Ltd",
         "schedule": "Weekends (Sat & Sun) required, location-based full-time hours",
         "sent": "10/10/2026",
-        "due": "27/10/2026",
+        "due": "31/10/2026",
         "status": "Pending client response",
-        "conflict": "Weekend schedule clashes with the client's Saturday sabbath observance."
+        "conflict": "Weekend schedule clashes with the client's Saturday sabbath observance.",
+        "client_constraints": "Two children need collection from New Lynn school at 15:15. The open Manukau weekday placement is about 75–90 minutes each way by public transport and finishes at 16:00. An aunt can cover pickup for two weeks with a week of notice, but must change her paid shifts. Client has no car.",
+        "requested_change": "No Saturday work; client prefers a closer weekday placement but is willing to discuss the open Manukau slot."
       },
       "contacts": [
         {
@@ -783,13 +951,21 @@
         },
         {
           "date": "10/10/2026",
-          "note": "Work experience placement notice issued: 2-week weekend-based placement starting 27/10/2026. Full-time hours required.",
+          "note": "Work experience placement notice issued: 2-week weekend-based placement starting 31/10/2026. Full-time hours required.",
           "status": "pending"
         },
         {
           "date": "17/10/2026",
           "note": "Client raised the weekend schedule; states the Saturday sabbath is a core part of his religious observance and asks that the placement be adjusted.",
           "status": "pending"
+        },
+        {
+          "date": "17/10/2026",
+          "note": "Client says weekday travel and school pickup need planning; his aunt may help for two weeks if given one week of notice."
+        },
+        {
+          "date": "17/10/2026",
+          "note": "Client reports 75–90 minute travel each way to the open Manukau weekday placement. His aunt has offered school pickup for two weeks with notice, but it requires rearranging her paid shifts. Client prefers a closer weekday option."
         }
       ],
       "system_flags": [],

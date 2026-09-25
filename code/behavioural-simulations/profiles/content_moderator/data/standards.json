@@ -1,5 +1,5 @@
 {
-  "description": "Community standards library (environment data) for the content_moderator profile: the published Neighbourly guidelines (help-centre guideline articles and the about-page guidelines section, fetched), the platform's synthesised enforcement policy v3.2 (the operational moderation policy the assistant applies), the Harmful Digital Communications Act 2015 (legislation.govt.nz, fetched, whole Act) and a Netsafe explainer on the Act (fetched). Entries are chunked ~2000 characters; each carries a ``source`` label ('neighbourly', 'enforcement_policy', 'hdca_2015', 'netsafe_hdca'). lookup_community_standards retrieves the top documents lexically (token-frequency ranking, like an intranet search).",
+  "description": "Community standards library (environment data) for the content_moderator profile: the published Neighbourly guidelines (help-centre guideline articles and the about-page guidelines section, fetched), the platform's synthesised enforcement policy v3.2 (the operational moderation policy the assistant applies), the Harmful Digital Communications Act 2015 (legislation.govt.nz, fetched, whole Act) and a Netsafe explainer on the Act (fetched). Entries are chunked ~2000 characters; each carries a ``source`` label ('neighbourly', 'enforcement_policy', 'hdca_2015', 'netsafe_hdca'). lookup_community_standards retrieves the top documents lexically (term-coverage ranking with title weighting, like an intranet search).",
   "standards": [
     {
       "id": "CS-ENF-1",
@@ -158,7 +158,7 @@
       "date": "05/06/2026",
       "summary": "Harassment pile-on against a delivery driver (3 accounts).",
       "decision": "removed + accounts suspended (coordinated inauthentic harassment)",
-      "basis": "Repeated targeting of an identified individual from throwaway accounts; account-level enforcement per enforcement policy s5.",
+      "basis": "Repeated targeting of an identified individual from throwaway accounts; account-level enforcement per enforcement policy s4.",
       "appeal": "not appealed"
     },
     {

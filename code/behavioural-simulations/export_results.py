@@ -19,8 +19,8 @@ same scenario sit side by side:
                            token usage by model and role (see below).
 
 Plus an ``index.csv`` summarising all runs and an ``index.json`` webapp
-manifest (situations, models, and every run with its version/date/score) for
-``website/src/components/SimulationViewer.tsx``.
+manifest (situations, models, and every run with its version/date/score,
+duration, token usage and cost) for ``website/src/components/SimulationViewer.tsx``.
 
 Every sample is exported: repeated runs of the same scenario by the same
 model (re-runs, epochs) each get their own numbered run directory,
@@ -54,6 +54,7 @@ import argparse
 import json
 import re
 import shutil
+from datetime import datetime, timezone
 from dataclasses import asdict, is_dataclass
 from enum import Enum
 from pathlib import Path
@@ -452,6 +453,7 @@ def build_manifest(rows: list[dict], output_dir: Path) -> dict:
 
     return {
         "schema": "wvs-sim-runs-index/v1",
+        "generated_at": datetime.now(timezone.utc).isoformat(),
         "bucket": bucket_id,
         "base_url": (f"https://huggingface.co/buckets/{bucket_id}/resolve/bs/runs/"),
         "profiles": profiles_by_id,
@@ -472,6 +474,12 @@ def build_manifest(rows: list[dict], output_dir: Path) -> dict:
                 "run_id": row.get("run_id"),
                 "judge_score": row.get("judge_score"),
                 "judge_verdict": row.get("judge_verdict"),
+                "ended": row.get("ended"),
+                "run_complete": row.get("run_complete"),
+                "has_error": row.get("has_error"),
+                "duration_s": row.get("duration_s"),
+                "usage": row.get("usage"),
+                "total_cost_usd": row.get("total_cost_usd"),
             }
             for row in rows
         ],
@@ -542,9 +550,8 @@ def main(argv: list[str] | None = None) -> None:
                 shutil.rmtree(scenario_dir)
             scenario_dirs[key] = scenario_dir
         run_dir = scenario_dirs[key] / str(version)
-        export_sample(
-            log, sample, run_dir, version=version, usage=usage_summary(sample)
-        )
+        usage = usage_summary(sample)
+        export_sample(log, sample, run_dir, version=version, usage=usage)
 
         judge: dict = {}
         score = (sample.scores or {}).get("scenario_judge")
@@ -566,6 +573,19 @@ def main(argv: list[str] | None = None) -> None:
                 "judge_verdict": judge.get("structured", {})
                 .get("overall", {})
                 .get("verdict"),
+                "ended": metadata.get("ended"),
+                "run_complete": metadata.get("ended")
+                not in (
+                    None,
+                    "message_limit",
+                    "model_length",
+                    "empty_response",
+                    "no_terminator",
+                ),
+                "has_error": bool(sample.error),
+                "duration_s": usage.get("duration_s"),
+                "usage": usage,
+                "total_cost_usd": usage.get("total_cost_usd"),
             }
         )
 
