@@ -12,12 +12,14 @@ repos:
 
   - repo: local
     hooks:
-      - id: agent-docs-sync
-        name: Sync agent docs (website /agents pages)
-        description: Regenerate website/src/content/agents/*.md from the
-          profile modules' docstrings and situations.json and re-stage the
-          updated pages so a commit never carries stale docs.
-        entry: make agents-docs-stage
+      - id: agent-docs-check
+        name: Agent docs in sync (website /agents pages)
+        description: Fail the commit if website/src/content/agents/*.md are
+          stale relative to the profile modules' docstrings and
+          situations.json. Fix by running `make agents-docs` and staging
+          the regenerated markdown, then commit again. Check-only on
+          purpose so the hook never rewrites the working tree mid-commit.
+        entry: make agents-docs-check
         language: system
         pass_filenames: false
         files: (^code/behavioural-simulations/profiles/.*(/situations\.json|/__init__\.py)$|^website/(scripts/generate_agent_docs\.py|src/content/agents/.*)$)

@@ -1,4 +1,7 @@
-/* Cached fetches for the HF bucket.
+/* Cached fetches for runtime viewer data.
+ *
+ * Remote HF-bucket responses use a small localStorage cache. Same-origin
+ * local artifact URLs bypass it so development edits are visible immediately.
  *
  * The bucket's CDN sends no cache-control headers, so the browser re-
  * downloads every file on each visit. We add our own small persistent cache
@@ -15,6 +18,13 @@
 const CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
 const MAX_CACHE_BYTES = 512 * 1024;  // 512 KB per entry
 const MAX_ATTEMPTS = 3;
+
+// Local artifact files can change while the dev server is running. Never
+// persist or reuse them in the bucket cache; the manifest is already
+// uncached, and run files need the same freshness guarantee.
+function isLocalDataUrl(url: string): boolean {
+  return url.startsWith('/') && !url.startsWith('//');
+}
 
 function cacheKey(url: string): string {
   return `hf-bucket:${url}`;
@@ -49,20 +59,26 @@ async function fetchWithRetry(url: string): Promise<string> {
 }
 
 export function cachedFetchText(url: string, ttlMs = CACHE_TTL_MS): Promise<string> {
-  try {
-    const raw = localStorage.getItem(cacheKey(url));
-    if (raw) {
-      const entry = JSON.parse(raw);
-      if (entry.url === url && Date.now() - entry.at < ttlMs) {
-        console.info(`[cachedFetch] cache hit: ${url}`);
-        return Promise.resolve(entry.text);
-      }
-      localStorage.removeItem(cacheKey(url));
-    }
-  } catch { /* corrupted/denied storage -> treat as miss */ }
+  const local = isLocalDataUrl(url);
+  const effectiveTtl = local ? 0 : ttlMs;
 
-  console.info(`[cachedFetch] fetch: ${url}`);
+  if (effectiveTtl > 0) {
+    try {
+      const raw = localStorage.getItem(cacheKey(url));
+      if (raw) {
+        const entry = JSON.parse(raw);
+        if (entry.url === url && Date.now() - entry.at < effectiveTtl) {
+          console.info(`[cachedFetch] cache hit: ${url}`);
+          return Promise.resolve(entry.text);
+        }
+        localStorage.removeItem(cacheKey(url));
+      }
+    } catch { /* corrupted/denied storage -> treat as miss */ }
+  }
+
+  console.info(`[cachedFetch] fetch: ${url}${local ? ' (local, uncached)' : ''}`);
   return fetchWithRetry(url).then((text) => {
+    if (local) return text;
     try {
       if (text.length <= MAX_CACHE_BYTES) {
         localStorage.setItem(cacheKey(url), JSON.stringify({ url, at: Date.now(), text }));

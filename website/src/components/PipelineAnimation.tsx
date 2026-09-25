@@ -112,9 +112,9 @@ interface SceneProps {
 
 function Scene({ children, graphic, id, wide }: SceneProps) {
   return (
-    <div id={id} class={`methodology-scene ${wide ? 'methodology-scene--wide' : ''}`}>
-      <div class="methodology-scene__graphic">{graphic}</div>
-      <div class="methodology-scene__text">{children}</div>
+    <div id={id} className={`methodology-scene ${wide ? 'methodology-scene--wide' : ''}`}>
+      <div className="methodology-scene__graphic">{graphic}</div>
+      <div className="methodology-scene__text">{children}</div>
     </div>
   );
 }
@@ -133,14 +133,14 @@ function SurveyPreview() {
   };
 
   return (
-    <div class="survey-card">
-      <div class="survey-card__counter">Question {qIdx + 1} of {surveyQuestions.length}</div>
-      <p class="survey-card__question">{q.q}</p>
-      <div class="survey-card__options">
+    <div className="survey-card">
+      <div className="survey-card__counter">Question {qIdx + 1} of {surveyQuestions.length}</div>
+      <p className="survey-card__question">{q.q}</p>
+      <div className="survey-card__options">
         {q.opts.map((opt, i) => (
           <button
             key={i}
-            class={`survey-card__opt ${selected === i ? 'survey-card__opt--selected' : ''}`}
+            className={`survey-card__opt ${selected === i ? 'survey-card__opt--selected' : ''}`}
             disabled={selected !== null}
             onClick={() => handleClick(i)}
           >
@@ -148,9 +148,9 @@ function SurveyPreview() {
           </button>
         ))}
       </div>
-      <div class="survey-card__progress">
+      <div className="survey-card__progress">
         {surveyQuestions.map((_, i) => (
-          <span key={i} class={`survey-card__dot ${i < qIdx ? 'survey-card__dot--filled' : ''} ${i === qIdx ? 'survey-card__dot--active' : ''}`} />
+          <span key={i} className={`survey-card__dot ${i < qIdx ? 'survey-card__dot--filled' : ''} ${i === qIdx ? 'survey-card__dot--active' : ''}`} />
         ))}
       </div>
     </div>
@@ -201,10 +201,10 @@ function TrainingLoop() {
   const maxDist = mode === 'response' ? Math.max(...ex.dist) : Math.max(...ex.target, ...ex.predicted);
 
   return (
-    <div class="train-loop">
+    <div className="train-loop">
       <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center', marginBottom: '0.75rem' }}>
-        <button class={`toggle-btn ${mode === 'response' ? 'toggle-btn--active' : ''}`} onClick={() => { setMode('response'); setStep(0); setSubStep('enter'); }}>Response-based</button>
-        <button class={`toggle-btn ${mode === 'distributional' ? 'toggle-btn--active' : ''}`} onClick={() => { setMode('distributional'); setStep(0); setSubStep('enter'); }}>Distributional</button>
+        <button className={`toggle-btn ${mode === 'response' ? 'toggle-btn--active' : ''}`} onClick={() => { setMode('response'); setStep(0); setSubStep('enter'); }}>Response-based</button>
+        <button className={`toggle-btn ${mode === 'distributional' ? 'toggle-btn--active' : ''}`} onClick={() => { setMode('distributional'); setStep(0); setSubStep('enter'); }}>Distributional</button>
       </div>
       {mode === 'response' ? (
         <svg viewBox="0 0 340 320" style={{ width: '100%' }}>
@@ -218,7 +218,7 @@ function TrainingLoop() {
           <rect x="40" y="50" width="260" height="28" rx="6" fill="white" stroke="#ccc" strokeWidth="1.5" />
           {subStep !== 'enter' && <text x="170" y="68" textAnchor="middle" fontSize="8" fill="var(--color-text)" fontWeight="500">{(ex as any).q}</text>}
           {subStep === 'enter' && (
-            <><text x="170" y="68" textAnchor="middle" fontSize="8" fill="#999">{(ex as any).q}</text><rect x="150" y="42" width="40" height="8" rx="4" fill="#0f3460" opacity="0.15" class="pulse-y" /></>
+            <><text x="170" y="68" textAnchor="middle" fontSize="8" fill="#999">{(ex as any).q}</text><rect x="150" y="42" width="40" height="8" rx="4" fill="#0f3460" opacity="0.15" className="pulse-y" /></>
           )}
           <line x1="170" y1="78" x2="170" y2="92" stroke="#ccc" strokeWidth="1.5" markerEnd="url(#arrow-down-r)" />
           <rect x="100" y="94" width="140" height="48" rx="14" fill="#0f3460" />
@@ -234,7 +234,7 @@ function TrainingLoop() {
           <line x1="145" y1="114" x2="162" y2="126" stroke="white" strokeWidth="0.8" opacity="0.4" />
           <line x1="180" y1="114" x2="162" y2="104" stroke="white" strokeWidth="0.8" opacity="0.4" />
           <line x1="180" y1="114" x2="162" y2="126" stroke="white" strokeWidth="0.8" opacity="0.4" />
-          {subStep === 'think' && <circle cx="170" cy="118" r="24" fill="none" stroke="#e94560" strokeWidth="2.5" strokeDasharray="25" opacity="0.6" class="spinner" />}
+          {subStep === 'think' && <circle cx="170" cy="118" r="24" fill="none" stroke="#e94560" strokeWidth="2.5" strokeDasharray="25" opacity="0.6" className="spinner" />}
           <line x1="170" y1="142" x2="170" y2="156" stroke="#ccc" strokeWidth="1.5" markerEnd="url(#arrow-down-r)" />
           {(subStep === 'output' || subStep === 'tweak') && (
             <>
@@ -242,7 +242,7 @@ function TrainingLoop() {
                 const barH = Math.max((v / maxDist) * 46, 4);
                 return (
                   <g key={i}>
-                    <rect x={50 + i * 52} y={158 + 46 - barH} width="36" height={barH} rx="4" fill={barColors[i]} opacity="0.75" class={subStep === 'tweak' ? 'bar-tweak' : ''} />
+                    <rect x={50 + i * 52} y={158 + 46 - barH} width="36" height={barH} rx="4" fill={barColors[i]} opacity="0.75" className={subStep === 'tweak' ? 'bar-tweak' : ''} />
                     <text x={68 + i * 52} y={212} textAnchor="middle" fontSize="5" fill="#6b7280">{(ex as any).labels[i].split('\n').map((l, j) => <tspan key={j} x={68 + i * 52} dy={j === 0 ? 0 : 8}>{l}</tspan>)}</text>
                     <text x={68 + i * 52} y={160 + 46 - barH - 4} textAnchor="middle" fontSize="6" fill={barColors[i]} fontWeight="600">{v}%</text>
                   </g>
@@ -263,7 +263,7 @@ function TrainingLoop() {
               <text x="170" y="277" textAnchor="middle" fontSize="7" fill="#16a34a">Target: {(ex as any).answer}</text>
               <path d="M 170 282 Q 170 296 130 296 Q 60 296 60 260 Q 60 220 100 130" fill="none" stroke="#e94560" strokeWidth="1.5" strokeDasharray="5" markerEnd="url(#arrow-up-r)" />
               <text x="72" y="210" fontSize="6" fill="#e94560" transform="rotate(-90, 72, 210)">Loss backprop</text>
-              <rect x="140" y="4" width="60" height="22" rx="6" fill="#fef2f2" stroke="#e94560" strokeWidth="1" class="updating-badge" />
+              <rect x="140" y="4" width="60" height="22" rx="6" fill="#fef2f2" stroke="#e94560" strokeWidth="1" className="updating-badge" />
               <text x="170" y="19" textAnchor="middle" fontSize="7" fill="#e94560" fontWeight="600">Updating</text>
             </>
           )}
@@ -282,7 +282,7 @@ function TrainingLoop() {
           <rect x="40" y="50" width="260" height="28" rx="6" fill="white" stroke="#ccc" strokeWidth="1.5" />
           {subStep !== 'enter' && <text x="170" y="68" textAnchor="middle" fontSize="8" fill="var(--color-text)" fontWeight="500">{(ex as any).q}</text>}
           {subStep === 'enter' && (
-            <><text x="170" y="68" textAnchor="middle" fontSize="8" fill="#999">{(ex as any).q}</text><rect x="150" y="42" width="40" height="8" rx="4" fill="#0f3460" opacity="0.15" class="pulse-y" /></>
+            <><text x="170" y="68" textAnchor="middle" fontSize="8" fill="#999">{(ex as any).q}</text><rect x="150" y="42" width="40" height="8" rx="4" fill="#0f3460" opacity="0.15" className="pulse-y" /></>
           )}
           <line x1="170" y1="78" x2="170" y2="90" stroke="#ccc" strokeWidth="1.5" markerEnd="url(#arrow-down-d)" />
           <rect x="100" y="92" width="140" height="48" rx="14" fill="#0f3460" />
@@ -298,7 +298,7 @@ function TrainingLoop() {
           <circle cx="180" cy="112" r="5" fill="white" opacity="0.6" />
           <circle cx="162" cy="102" r="5" fill="white" opacity="0.6" />
           <circle cx="162" cy="124" r="5" fill="white" opacity="0.6" />
-          {subStep === 'think' && <circle cx="170" cy="116" r="24" fill="none" stroke="#e94560" strokeWidth="2.5" strokeDasharray="25" opacity="0.6" class="spinner" />}
+          {subStep === 'think' && <circle cx="170" cy="116" r="24" fill="none" stroke="#e94560" strokeWidth="2.5" strokeDasharray="25" opacity="0.6" className="spinner" />}
           <line x1="170" y1="140" x2="170" y2="152" stroke="#ccc" strokeWidth="1.5" markerEnd="url(#arrow-down-d)" />
           {subStep !== 'enter' && (
             <text x="90" y="168" textAnchor="middle" fontSize="7" fill="#0f3460" fontWeight="600">Model output</text>
@@ -312,7 +312,7 @@ function TrainingLoop() {
                 const barH = Math.max((v / maxDist) * 46, 4);
                 return (
                   <g key={i}>
-                    <rect x={10 + i * 45} y={172 + 46 - barH} width="28" height={barH} rx="4" fill={barColors[i]} opacity="0.75" class={subStep === 'tweak' ? 'bar-tweak' : ''} />
+                    <rect x={10 + i * 45} y={172 + 46 - barH} width="28" height={barH} rx="4" fill={barColors[i]} opacity="0.75" className={subStep === 'tweak' ? 'bar-tweak' : ''} />
                     <text x={24 + i * 45} y={228} textAnchor="middle" fontSize="4.5" fill="#6b7280">{(ex as any).labels[i].split('\n').map((l, j) => <tspan key={j} x={24 + i * 45} dy={j === 0 ? 0 : 7}>{l}</tspan>)}</text>
                     <text x={24 + i * 45} y={174 + 46 - barH - 3} textAnchor="middle" fontSize="5" fill={barColors[i]} fontWeight="600">{v}%</text>
                   </g>
@@ -338,7 +338,7 @@ function TrainingLoop() {
               <text x="170" y="244" textAnchor="middle" fontSize="7" fill="#e94560" fontWeight="600">KL: 0.31 · CE: 1.24</text>
               <path d="M 170 250 Q 170 270 120 270 Q 50 270 50 230 Q 50 190 100 130" fill="none" stroke="#e94560" strokeWidth="1.5" strokeDasharray="5" markerEnd="url(#arrow-up-d)" />
               <text x="60" y="200" fontSize="6" fill="#e94560" transform="rotate(-90, 60, 200)">Distribution loss</text>
-              <rect x="140" y="4" width="60" height="22" rx="6" fill="#fef2f2" stroke="#e94560" strokeWidth="1" class="updating-badge" />
+              <rect x="140" y="4" width="60" height="22" rx="6" fill="#fef2f2" stroke="#e94560" strokeWidth="1" className="updating-badge" />
               <text x="170" y="19" textAnchor="middle" fontSize="7" fill="#e94560" fontWeight="600">Updating</text>
             </>
           )}
@@ -373,7 +373,7 @@ function SimulationViz() {
   const sc = demoScenarios[scIdx];
 
   return (
-    <div class="sim-viz">
+    <div className="sim-viz">
       <svg viewBox="0 0 340 390" style={{ width: '100%' }}>
         <defs>
           <marker id="arrow-viz" markerWidth="6" markerHeight="6" refX="3" refY="6" orient="auto">
@@ -412,7 +412,7 @@ function SimulationViz() {
         <line x1="180" y1="172" x2="162" y2="182" stroke="white" strokeWidth="0.8" opacity="0.4" />
 
         {phase === 'think' && (
-          <circle cx="170" cy="174" r="24" fill="none" stroke="#e94560" strokeWidth="2" strokeDasharray="25" opacity="0.6" class="spinner" />
+          <circle cx="170" cy="174" r="24" fill="none" stroke="#e94560" strokeWidth="2" strokeDasharray="25" opacity="0.6" className="spinner" />
         )}
 
         {phase === 'context' && (
@@ -573,35 +573,35 @@ function PublicConsultation() {
 
 export default function PipelineAnimation() {
   return (
-    <div class="methodology">
+    <div className="methodology">
       <Scene id="scene-survey" graphic={<SurveyPreview />}>
-        <h3 class="methodology__step-title">1. The World Values Survey</h3>
+        <h3 className="methodology__step-title">1. The World Values Survey</h3>
         <p>Wave 7 of the World Values Survey captures responses from <strong><AnimatedCounter end={1057} /></strong> New Zealanders across <strong><AnimatedCounter end={251} /></strong> item-level questions — from family values to political trust.</p>
         <p>Each question has a fixed set of response options (Likert scale, multiple choice, etc.). Click through some examples on the left to see the kinds of questions respondents answered.</p>
       </Scene>
 
       <Scene id="scene-train" graphic={<TrainingLoop />} wide>
-        <h3 class="methodology__step-title">2. Fine-tuning the Model</h3>
+        <h3 className="methodology__step-title">2. Fine-tuning the Model</h3>
         <p>We take an open-weight LLM and fine-tune it on the NZ response patterns. Two approaches are used:</p>
         <p><strong>Response-based</strong> — the model is shown a question and generates a response, which is compared to the expected answer. The loss is computed from the difference, and the weights are updated.</p>
         <p><strong>Distributional</strong> — the model outputs a full probability distribution over answer options, which is compared directly to the empirical distribution from the data. The loss is used to update the model.</p>
         <p style={{ marginTop: '1rem' }}>
-          <a href="/results-viewer?tab=evals" class="btn btn-outline" style={{ fontSize: '0.8rem', padding: '0.4rem 1rem' }}>View fine-tuning results →</a>
+          <a href="/results-viewer?tab=evals" className="btn btn-outline" style={{ fontSize: '0.8rem', padding: '0.4rem 1rem' }}>View fine-tuning results →</a>
         </p>
       </Scene>
 
       <Scene id="scene-simulate" graphic={<SimulationViz />} wide>
-        <h3 class="methodology__step-title">3. Real-world Simulation</h3>
+        <h3 className="methodology__step-title">3. Real-world Simulation</h3>
         <p>The model goes through <strong>behavioural simulations</strong>: it is placed in a realistic agentic harness — a job persona (system prompt), tools and work tasks — and its <em>decisions</em> are observed. There is no right or wrong answer; the goal is to compare how fine-tuned and baseline models decide.</p>
         <p>The scenarios are the work profiles from the simulation harness: a <strong>Kaituitui case manager</strong> at Work and Income, an <strong>ED triage assistant</strong> at Hutt Hospital, a <strong>consumer lending officer</strong> at Kiwibank, a <strong>Neighbourly content moderator</strong>, and a <strong>health-sector recruitment screener</strong>. Each work profile runs several value-rich situations; in interactive ones a simulated person (played by a frontier LLM with a strict persona) talks to the model and can push back. Every run ends at a documented terminal decision.</p>
         <p style={{ marginTop: '1rem' }}>
-          <a href="/agents" class="btn btn-outline" style={{ fontSize: '0.8rem', padding: '0.4rem 1rem' }}>Read the scenarios →</a>{' '}
-          <a href="/results-viewer?tab=simulation" class="btn btn-outline" style={{ fontSize: '0.8rem', padding: '0.4rem 1rem' }}>View simulation results →</a>
+          <a href="/agents" className="btn btn-outline" style={{ fontSize: '0.8rem', padding: '0.4rem 1rem' }}>Read the scenarios →</a>{' '}
+          <a href="/results-viewer?tab=simulation" className="btn btn-outline" style={{ fontSize: '0.8rem', padding: '0.4rem 1rem' }}>View simulation results →</a>
         </p>
       </Scene>
 
       <Scene id="scene-consult" graphic={<PublicConsultation />} wide>
-        <h3 class="methodology__step-title">4. Public Consultation</h3>
+        <h3 className="methodology__step-title">4. Public Consultation</h3>
         <p>Finally, we bring in the <strong>NZ public</strong>. Each participant is shown five <strong>comparison blocks</strong>: the work profile, the situation, and a frontier-model summary of <em>"this is what happened"</em> for two anonymised agents (Agent 1 vs Agent 2). They then say <strong>which agent acted more in line with their values</strong>, and <strong>how much they agree with an AI agent doing this work at all</strong>.</p>
         <p>Click through the comparison block on the right to try the interface. This is the core of our evaluation — statistical similarity is useful, but only public consultation can tell us whether the model <em>actually</em> reflects what New Zealanders value.</p>
         <p style={{ fontSize: '0.85rem', color: 'var(--color-muted)' }}>

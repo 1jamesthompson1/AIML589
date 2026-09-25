@@ -25,7 +25,7 @@ SRV_TGTS := $(foreach src,$(SRV_SRCS), \
 
 ALL_TGTS := $(DOC_TGTS) $(SRV_TGTS)
 
-.PHONY: all clean watch setup help wordcount artifacts-sync artifacts-pull artifacts-backup artifacts-precommit agents-docs agents-docs-stage agents-docs-check website
+.PHONY: all clean watch setup help wordcount artifacts-sync artifacts-pull artifacts-backup artifacts-precommit agents-docs agents-docs-check website
 
 all: $(ALL_TGTS)
 
@@ -102,23 +102,17 @@ artifacts-pull:
 	  mkdir -p artifacts; \
 	  exec "$$HF" buckets sync "$$BUCKET" ./artifacts'
 
-# Regenerate the agent reference docs (website /agents pages) from each
-# profile's __init__.py docstring and situations.json. Run whenever the
-# profiles change; the generated markdown is committed with the website.
+# Agent reference docs (website /agents pages): generated from each
+# profile's __init__.py docstring and situations.json and committed with
+# the website. Regenerate whenever the profiles change.
 agents-docs:
 	uv run website/scripts/generate_agent_docs.py
 
-# Fail (exit 1) if the committed agent docs have drifted from the profile
-# source. The synced run data is ignored, so this works anywhere.
+# Fail (exit 1) when the committed docs have drifted from profile source
+# (pre-commit hook; synced run data is ignored, so it works anywhere).
+# To fix: run `make agents-docs` and stage the regenerated markdown.
 agents-docs-check:
 	uv run website/scripts/generate_agent_docs.py --check
-
-# Regenerate + re-stage the docs (pre-commit hook entrypoint): keeps a
-# commit from carrying stale /agents pages when the profiles changed. The
-# generated pages can drift when runs data was re-synced, so only files the
-# generator actually touched get re-added.
-agents-docs-stage: agents-docs
-	git add -A website/src/content/agents 2>/dev/null || true
 
 # One entry point: regenerate agent docs and serve the development site.
 # Artifact synchronization is deliberately separate (artifacts-sync).
@@ -178,6 +172,8 @@ help:
 	@echo "  make artifacts-pull    Download the HF bucket into artifacts/"
 	@echo "  make artifacts-backup  Borg backup of artifacts/ (also in pre-commit)"
 	@echo "  make website          Regenerate agent docs and run the dev server"
+	@echo "  make agents-docs      Regenerate the website /agents pages"
+	@echo "  make agents-docs-check   Verify they match profile source"
 	@echo "  make clean        Remove build artifacts"
 	@echo ""
 	@echo "Sources in docs/   -> docs/output/"

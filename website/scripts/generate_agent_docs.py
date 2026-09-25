@@ -18,7 +18,8 @@ Usage:
   uv run website/scripts/generate_agent_docs.py --check  # exit 1 if the
                                                          # committed
                                                          # markdown is
-                                                         # stale (CI hook)
+                                                         # stale (pre-commit
+                                                         # hook)
 """
 
 from __future__ import annotations
@@ -113,21 +114,22 @@ def situations(profile_id: str) -> list[dict]:
 
 
 def situation_tool_names(default_tools: list[str], situation: dict) -> list[str]:
-    """DEFAULT_TOOLS with the situation's omit/extra `tools` config applied
-    (the same selection logic as ``profiles.situation_tools``), plus
-    interactive messaging tools."""
+    """The exact DEFAULT_TOOLS with the situation's omit/extra config applied."""
     config = situation.get("tools") or {}
     names = [n for n in default_tools if n not in (config.get("omit") or [])]
     for extra in config.get("extra") or []:
         if extra not in names:
             names.append(extra)
-    if situation.get("type") == "interactive":
-        interlocutor = situation.get("interlocutor") or {}
-        if "send_client_message" not in names:
-            names.append("send_client_message")
-        if (interlocutor.get("documents") or []) and "read_document" not in names:
-            names.append("read_document")
     return names
+
+
+def termination_description(terminate: dict) -> str:
+    """Compact terminal-event summary for the generated agent page."""
+    if terminate.get("mode") == "tool_sequence":
+        return "ordered steps: " + json.dumps(
+            terminate.get("steps", []), ensure_ascii=False, separators=(",", ":")
+        )
+    return json.dumps(terminate.get("tools", []), ensure_ascii=False)
 
 
 def profile_body(spec: dict, runs: list[dict], comparisons: list[dict]) -> str:
@@ -169,11 +171,11 @@ def profile_body(spec: dict, runs: list[dict], comparisons: list[dict]) -> str:
             f"**Situation summary:** {s['summary']}",
             "",
         ]
-        if s.get("comment", "").strip():
-            lines += [f"**Value commentary:** {s['comment'].strip()}", ""]
+        # Keep value-probe design metadata internal; the public page should
+        # describe the work without priming participants with the hypothesis.
         lines += [
             f"**[Termination ({s['terminate']['mode']})]({gh_dir}/situations.json):**"
-            f" `{json.dumps(s['terminate'].get('tools', []))}`"
+            f" `{termination_description(s['terminate'])}`"
             f" count={s['terminate'].get('count', '-')}",
             "",
             "**Tools:** "
@@ -317,7 +319,8 @@ def main() -> None:
         stale += [p.name for p in CONTENT_DIR.glob("*.md") if p.name not in pages]
         if stale:
             print(
-                "Agent docs out of date with profile source (run `make agents-docs`):",
+                "Agent docs out of date with profile source "
+                "(run `make agents-docs` and stage the regenerated markdown):",
                 ", ".join(sorted(stale)),
             )
             raise SystemExit(1)
