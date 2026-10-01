@@ -9,6 +9,15 @@ import {
   manifestUrl,
   urlParams,
 } from '../lib/dataSource';
+import {
+  SURVEY_AI_USE_QUESTION,
+  SURVEY_AI_USE_SCALE,
+  SURVEY_OUTCOME_LEAD,
+  SURVEY_PREFERENCE_QUESTION,
+  SURVEY_PREFERENCE_SCALE,
+  SURVEY_PROFILE_LEAD,
+  SURVEY_SITUATION_LEAD,
+} from '../lib/survey';
 
 /* Behavioural simulation runs viewer.
  *
@@ -1006,14 +1015,18 @@ function findComparison(rows: ComparisonRow[], a: string, b: string): Comparison
   );
 }
 
-/* The round-by-round difference summary written by the summary model, with
- * each generating model's audit of that summary, shown above the two
- * side-by-side trajectories. Audit ratings are useful at a glance; the
- * potentially long correction text stays behind an explicit button. */
+/* The comparison panel leads with a respondent-view copy of the survey block
+ * (work profile, situation, "this is what happened", and the two questions
+ * with their answer scales) because that is the stimulus the public rates.
+ * Below it sit the research-only materials: the summary-model audits and the
+ * paired judge items. Audit ratings are useful at a glance; the potentially
+ * long correction text stays behind an explicit button. The respondent-facing
+ * wording comes from lib/survey.ts (mirrors survey/survey_definition.py). */
 function ComparisonPanel({ comparison, row, error, onRetry }: { comparison: ComparisonDoc | null; row: ComparisonRow | null; error?: string; onRetry?: () => void }) {
   const [openAudits, setOpenAudits] = useState<Record<string, boolean>>({});
   if (!row) return null;
   const audits = Object.entries(comparison?.audits ?? {});
+  const scenario = comparison?.scenario;
   return (
     <div style={{ ...card, marginBottom: '1.5rem', background: 'var(--color-surface)' }}>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem', alignItems: 'center', marginBottom: '0.9rem' }}>
@@ -1025,12 +1038,10 @@ function ComparisonPanel({ comparison, row, error, onRetry }: { comparison: Comp
             summary by {comparison.summary.model.replace(/^openrouter\//, '')}
           </span>
         )}
-        {comparison?.scenario?.situation_summary && (
-          <p className="simulation-preserve-text" style={{ fontSize: '0.8rem', color: 'var(--color-muted)', margin: 0, flexBasis: '100%' }}>
-            {comparison.scenario.situation_summary}
-          </p>
-        )}
-        <p className="comparison-provenance muted-text">The stored summary and audit ratings belong to the comparison file. The judge-item table below is loaded from the currently selected runs, which may be a newer export of the same model pair.</p>
+        <span style={{ fontSize: '0.75rem', color: 'var(--color-muted)' }}>
+          Agent 1 = {shortModel(row.agent1_model)} · Agent 2 = {shortModel(row.agent2_model)}
+        </span>
+        <p className="comparison-provenance muted-text">The summary above is stored in this comparison file and describes how both agents handled the situation, while the judge-item table below loads from the currently selected runs and may be a newer export.</p>
       </div>
       {!comparison && (error
         ? <div className="comparison-error"><span>Could not load the stored comparison: {error}</span>{onRetry && <button type="button" onClick={onRetry}>Retry</button>}</div>
@@ -1042,10 +1053,52 @@ function ComparisonPanel({ comparison, row, error, onRetry }: { comparison: Comp
       )}
       {comparison && (
         <>
-          <div style={{ ...card, background: '#eef2ff', borderColor: '#c7d2fe', marginBottom: '0.9rem' }}>
-            <ThinkingAwareText text={comparison.summary.text || ''} />
-          </div>
+          <section className="survey-preview" aria-label="Comparison block as respondents see it">
+            <p className="survey-preview__kicker">Survey block — as respondents see it</p>
+            {scenario?.profile_summary && (
+              <p className="survey-preview__text">
+                <strong>{SURVEY_PROFILE_LEAD}</strong> {scenario.profile_summary}
+              </p>
+            )}
+            {!scenario?.profile_summary && (
+              <p className="survey-preview__text">
+                <strong>{SURVEY_PROFILE_LEAD}</strong>{' '}
+                <em className="muted-text">not stored in this comparison file</em>
+              </p>
+            )}
+            {scenario?.situation_summary && (
+              <p className="survey-preview__text">
+                <strong>{SURVEY_SITUATION_LEAD}</strong> {scenario.situation_summary}
+              </p>
+            )}
+            {!scenario?.situation_summary && (
+              <p className="survey-preview__text">
+                <strong>{SURVEY_SITUATION_LEAD}</strong>{' '}
+                <em className="muted-text">not stored in this comparison file</em>
+              </p>
+            )}
+            <p className="survey-preview__text"><strong>{SURVEY_OUTCOME_LEAD}</strong></p>
+            <div className="survey-preview__summary">
+              <ThinkingAwareText text={comparison.summary.text || ''} />
+            </div>
+            <div className="survey-preview__question-block">
+              <p className="survey-preview__question">{SURVEY_PREFERENCE_QUESTION}</p>
+              <ul className="survey-preview__scale">
+                {SURVEY_PREFERENCE_SCALE.map((option) => <li key={option}>{option}</li>)}
+              </ul>
+            </div>
+            <div className="survey-preview__question-block">
+              <p className="survey-preview__question">{SURVEY_AI_USE_QUESTION}</p>
+              <ul className="survey-preview__scale">
+                {SURVEY_AI_USE_SCALE.map((option) => <li key={option}>{option}</li>)}
+              </ul>
+            </div>
+          </section>
+          <p className="survey-preview-note muted-text">The survey shows both agents anonymously (Agent 1 / Agent 2) and records respondents' answers; the options above are a read-only preview.</p>
           {audits.length > 0 && <p className="audit-count">🔎 Audits ({audits.length})</p>}
+          {audits.length > 0 && (
+            <p className="audit-note muted-text">Each audit is written by the model that generated that agent's trajectory: it re-reads the stored summary against its own transcript and rates 1–5 how fairly the summary represents what it did, plus corrections. It is told its own anonymous label (Agent 1 / Agent 2) — model names are scrubbed from the transcripts and it is not told which model the other agent was.</p>
+          )}
           {audits.map(([runId, audit]) => {
             const text = audit.raw || audit.corrections || '';
             const open = openAudits[runId] ?? false;

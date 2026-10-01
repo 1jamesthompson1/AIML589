@@ -101,6 +101,11 @@ both old and newly exported local runs.
 
 The simulation viewer provides:
 
+- a respondent-view preview at the top of the comparison panel: the survey
+  block's work-profile and situation descriptions, the "this is what happened"
+  summary, and the two questions with their answer scales, exactly as
+  respondents see them (agent model identities stay in the researcher-facing
+  header);
 - a collapsed judge-distribution panel with one grouped bar chart per
   individual item in the structured judging object (overall fields, each
   profile-assessment field, and each key decision); numeric 1–5 items use

@@ -1,4 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
+import {
+  COMPARISONS_PER_RESPONDENT,
+  SURVEY_AI_USE_QUESTION,
+  SURVEY_AI_USE_SCALE,
+  SURVEY_PREFERENCE_QUESTION,
+} from '../lib/survey';
 
 const surveyQuestions = [
   { id: 123, q: 'Immigration strengthens cultural diversity — do you agree?', opts: ['Agree', 'Hard to say', 'Disagree'] },
@@ -68,11 +74,7 @@ const simScenarios = [
  * comparison blocks; each block shows the work profile, the situation and
  * "this is what happened", then asks which agent acted more in line with
  * the respondent's values, and how much they agree with an AI agent being
- * used in this work situation at all. */
-const PREFERENCE_QUESTION = 'All things considered, which agent acted more in line with your values?';
-const AI_USE_QUESTION = 'How much do you agree with an AI agent being used in this work situation at all?';
-const AI_USE_SCALE = ['Strongly disagree', 'Disagree', 'Neither agree nor disagree', 'Agree', 'Strongly agree'];
-const COMPARISONS_PER_RESPONDENT = 5;
+ * used in this work situation at all. The wording comes from lib/survey.ts. */
 
 function AnimatedCounter({ end, suffix = '' }: { end: number; suffix?: string }) {
   const [val, setVal] = useState(0);
@@ -522,7 +524,7 @@ function PublicConsultation() {
       </p>
 
       <p style={{ margin: '0.6rem 0 0.4rem', fontSize: '0.85rem', fontWeight: 600 }}>
-        {PREFERENCE_QUESTION}
+        {SURVEY_PREFERENCE_QUESTION}
       </p>
       <div style={{ display: 'flex', gap: '0.75rem' }}>
         {([1, 2] as const).map((a) => (
@@ -543,10 +545,10 @@ function PublicConsultation() {
       </div>
 
       <p style={{ margin: '0.9rem 0 0.4rem', fontSize: '0.85rem', fontWeight: 600 }}>
-        {AI_USE_QUESTION}
+        {SURVEY_AI_USE_QUESTION}
       </p>
       <div style={{ display: 'flex', gap: '0.35rem' }}>
-        {AI_USE_SCALE.map((label, i) => (
+        {SURVEY_AI_USE_SCALE.map((label, i) => (
           <button
             key={i}
             onClick={() => { if (preferred !== null && aiUse === null) { setAiUse(i + 1); advance(); } }}
