@@ -14,7 +14,6 @@ def _():
     from datetime import datetime, timezone
 
     import marimo as mo
-    import matplotlib.patheffects as patheffects
     import matplotlib.pyplot as plt
     import numpy as np
     import pandas as pd
@@ -33,7 +32,6 @@ def _():
         math,
         mo,
         np,
-        patheffects,
         pd,
         plt,
         textwrap,
@@ -189,88 +187,26 @@ def _(EVALS_ROOT, ast, json, pd):
 
 
 @app.cell
-def _(FIGS_DIR, pd):
-    # Shared LaTeX table rendering, used by all sections below. Styler
-    # .to_latex (convert_css) turns CSS font-weight into \bfseries, but
-    # escapes cell values only, so headers with special chars (%, _, ...)
-    # need escape_header. Tables are wrapped in \resizebox{\textwidth}{!}{...}
-    # so they never overflow the page; the report pulls them in with
-    # \ctable{...}{...}.
+def _(Path):
+    # Shared LaTeX table rendering (code/latex_tables.py), used by all
+    # sections below. Styler .to_latex (convert_css) turns CSS font-weight
+    # into \bfseries; pandas 3 does not escape its output, so header labels
+    # and text cells are escaped explicitly with escape_header/escape_latex.
+    # Tables are wrapped in \resizebox{\textwidth}{!}{...} so they never
+    # overflow the page; the report pulls them in with \ctable{...}{...}.
+    import sys
 
-    def escape_header(label):
-        """Escape LaTeX special chars in a column header."""
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-        return (
-            label.replace("\\", "\\textbackslash{}")
-            .replace("&", "\\&")
-            .replace("%", "\\%")
-            .replace("$", "\\$")
-            .replace("#", "\\#")
-            .replace("_", "\\_")
-            .replace("{", "\\{")
-            .replace("}", "\\}")
-        )
+    from latex_tables import (
+        escape_header,
+        escape_latex,
+        resizebox,
+        write_latex_table,
+        write_tex,
+    )
 
-    def escape_latex(text):
-        """Escape LaTeX special chars in cell text (question/answer strings)."""
-
-        return (
-            text.replace("\\", "\\textbackslash{}")
-            .replace("&", "\\&")
-            .replace("%", "\\%")
-            .replace("$", "\\$")
-            .replace("#", "\\#")
-            .replace("_", "\\_")
-            .replace("{", "\\{")
-            .replace("}", "\\}")
-            .replace("~", "\\textasciitilde{}")
-            .replace("^", "\\textasciicircum{}")
-        )
-
-    def highlight_best(df, senses=None):
-        """Bold the best value per column: max for numeric columns by default,
-        or per column via senses={label: "max"|"min"} (e.g. for MultiIndex
-        columns keyed by metric)."""
-
-        def highlight(s):
-            if senses is None:
-                if not pd.api.types.is_numeric_dtype(s):
-                    return ["" for _ in s]  # e.g. CI columns: no highlighting
-                best = s.max()
-            else:
-                best = s.max() if senses[s.name[0]] == "max" else s.min()
-            return ["font-weight: bold;" if v == best else "" for v in s]
-
-        return df.style.apply(highlight, axis=0)
-
-    def write_tex(tex, out_name):
-        """Write raw LaTeX to a file in FIGS_DIR."""
-        out_path = FIGS_DIR / out_name
-        out_path.parent.mkdir(parents=True, exist_ok=True)
-        out_path.write_text(tex)
-        return out_path
-
-    def write_latex_table(df, fmt, n_cols, out_name, senses=None, column_format=None):
-        """Style, format, and write a DataFrame to a resizebox-wrapped booktabs
-        tabular in FIGS_DIR. The index name is suppressed (Styler would emit an
-        extra header row), so the "Model" header is patched into the top-left
-        corner of the first header row."""
-        tex = (
-            highlight_best(df, senses=senses)
-            .format(fmt, na_rep="--")
-            .to_latex(
-                convert_css=True,
-                column_format=column_format or ("l" + "r" * n_cols),
-                hrules=True,
-                multicol_align="l",
-            )
-        )
-        tex = tex.replace(" & \\multicolumn", "Model & \\multicolumn", 1)
-        # Scale the table to the text width so it never overflows the page.
-        tex = "\\resizebox{\\textwidth}{!}{%\n" + tex + "}"
-        return write_tex(tex, out_name)
-
-    return escape_header, escape_latex, write_latex_table, write_tex
+    return escape_header, escape_latex, resizebox, write_latex_table, write_tex
 
 
 @app.cell(hide_code=True)
@@ -438,7 +374,7 @@ def _(mo):
 
 
 @app.cell
-def _(escape_latex, model_frames, np, parse_list, pd, textwrap, write_tex):
+def _(escape_latex, model_frames, np, parse_list, pd, write_tex):
     # Top-N most divergent questions per base model: per (question_id,
     # column_name) sub-item, TVD (%) between the model's response distribution
     # averaged across system prompts (all splits pooled) and the NZ population,
@@ -1010,7 +946,15 @@ def _(mo):
 
 
 @app.cell
-def _(EVALS_ROOT, load_overall_per_question, math, np, parse_list, plt, textwrap):
+def _(
+    EVALS_ROOT,
+    load_overall_per_question,
+    math,
+    np,
+    parse_list,
+    plt,
+    textwrap,
+):
     # Distribution summary figures — read the newest run's saved
     # per_question_results.csv per model (nothing recomputed during eval).
     DIST_FIGS_ROOT = EVALS_ROOT.parent / "figures" / "distributions"
@@ -1342,77 +1286,171 @@ def _(EVALS_ROOT, Path, csv, datetime, json, pd, timezone):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    ## NZ value map (base models + fine-tuned adapters)
+    ## Schwartz value map and value tensions
 
-    Places models in a two-dimensional value space and compares them with
-    the NZ population:
+    The WVS items are read through Schwartz's (2012) refined value circle.
+    `item_map.json`, next to this notebook, assigns each value-survey column
+    to the value it measures: DIRECT means the item asks about the value's
+    own motivational content, PROXY means it is adjacent to it.
 
-    - **OpenRouter base models:** one completed non-reasoning
-      `full_string_distribution` run each (full-string logprob scoring).
-    - **Fine-tuned LoRA adapters (vLLM):** the newest run on the adapter's
-      own training format — `modal_response` for the SFT adapters,
-      `first_token_distribution` for the first-token adapter — restricted
-      to the same dataset revision as the base runs, so each adapter is
-      scored on the prompt format it was trained on.
-
-    The axes are the first two principal components of the **actual NZ
-    respondents'** answers to the 251 WVS items
-    (`wvs_value_survey.csv`), so PC1 is the dominant dimension of real
-    human value variation in NZ and PC2 the next-largest contrast.
-    Each model is a dot projected from its prompt-averaged answer
-    distribution per item (an aggregate value profile, not a respondent).
-    The NZ population star is the empirical `expected_distribution` of the
-    same items projected the same way; it sits at the centre of the
-    respondent cloud by construction, so a model's distance from the star
-    is its distance from NZ's value profile.
-
-    The figure is written to `code/figures/value-map.png`; the coordinate
-    and item-loading tables go to `output/value_map/` (not the figure
-    directory). Runs where reasoning could not be turned off are excluded.
+    The circular map shows how far the base models sit from the NZ
+    population on each value. The angle is the value's place on the circle,
+    the bar is the mean TVD across base models over the value's DIRECT
+    items, and each dot is one base model on one value (colour = model; see
+    the legend). Values in grey have no DIRECT items. The tension table
+    ranks opposed pairs by Schwartz opposition x base-model divergence from
+    NZ and is written to ``code/figures/value-tensions-<model>.tex`` for the
+    report - it is the table used to justify which tensions the behavioural
+    simulations test.
     """)
     return
 
 
 @app.cell
-def _(EVALS_ROOT, Path, json, pd):
-    # Value-map inputs (standard output/evals/<model>/<run>/ layout written
-    # by evaluate.py): newest eligible run per model.
-    VALUE_MAP_DATASET = "full_string_distribution"
-    VALUE_MAP_ADAPTER_DATASETS = ("modal_response", "first_token_distribution")
-    # Models kept out of the value map to keep the figure readable (matched
-    # as substrings, lower-cased, against the base model id or adapter slug).
-    VALUE_MAP_EXCLUDE = (
-        "qwen3.5-9b",
-        "qwen3.6-27b",
-        "glm-4.7-flash",
-        "mistral-nemo",
-        "deepseek-v4-pro-0813",
-        "gemma-4-26b-a4b-it",
+def _(Path, json):
+    # The Schwartz (2012) refined value circle: circular order, third-order
+    # dimension, and which values an agent can act on. Circular order is the
+    # motivational order - index 0 and the last index are neighbours.
+    CIRCLE = (
+        ("SDT", "Self-Direction (Thought)", "Openness"),
+        ("SDA", "Self-Direction (Action)", "Openness"),
+        ("ST", "Stimulation", "Openness"),
+        ("HE", "Hedonism", "Openness"),
+        ("AC", "Achievement", "Self-Enhancement"),
+        ("POD", "Power (Dominance)", "Self-Enhancement"),
+        ("POR", "Power (Resources)", "Self-Enhancement"),
+        ("FA", "Face", "Conservation"),
+        ("SEP", "Security (Personal)", "Conservation"),
+        ("SES", "Security (Societal)", "Conservation"),
+        ("COI", "Conformity (Interpersonal)", "Conservation"),
+        ("COR", "Conformity (Rules)", "Conservation"),
+        ("TR", "Tradition", "Conservation"),
+        ("HU", "Humility", "Self-Transcendence"),
+        ("BED", "Benevolence (Dependability)", "Self-Transcendence"),
+        ("BEC", "Benevolence (Caring)", "Self-Transcendence"),
+        ("UNC", "Universalism (Concern)", "Self-Transcendence"),
+        ("UNN", "Universalism (Nature)", "Self-Transcendence"),
+        ("UNT", "Universalism (Tolerance)", "Self-Transcendence"),
     )
-    VALUE_MAP_TRAINING = (
-        Path(__file__).resolve().parents[1] / "training-dataset" / "output"
+    # Hedonism, Face and Universalism (Nature) are in the circle but not
+    # usable tension poles for a public-service agent (they stay on the map).
+    NON_ACTIONABLE = {"HE", "FA", "UNN"}
+    AGENT_ACTIONABLE = {code for code, _, _ in CIRCLE} - NON_ACTIONABLE
+    HIGHER_ORDER_CONFLICTS = (
+        ("Openness", "Conservation"),
+        ("Self-Transcendence", "Self-Enhancement"),
     )
-    ADAPTER_METHOD_LABELS = {
-        "modal_response": "modal",
-        "sampled_response": "sampled",
-        "full_string_distribution": "full-str",
-        "first_token_distribution": "1st-tok",
+
+    def opposition(code_a, code_b):
+        """Circular distance, 1.0 = diametrically opposite."""
+        codes = [code for code, _, _ in CIRCLE]
+        n = len(codes)
+        distance = abs(codes.index(code_a) - codes.index(code_b)) % n
+        return min(distance, n - distance) / (n / 2)
+
+    def dimension_conflict(dim_a, dim_b):
+        """One of Schwartz's two stated higher-order conflicts?"""
+        return (dim_a, dim_b) in HIGHER_ORDER_CONFLICTS or (
+            dim_b,
+            dim_a,
+        ) in HIGHER_ORDER_CONFLICTS
+
+    # item map: value-survey column -> [(value, strength, note), ...]
+    raw = json.loads((Path(__file__).resolve().parent / "item_map.json").read_text())
+    VALUE_ITEMS = {
+        col: [(entry["value"], entry["strength"], entry["note"]) for entry in assigns]
+        for col, assigns in raw["items"].items()
     }
+    unknown_codes = sorted(
+        {code for assigns in VALUE_ITEMS.values() for code, _, _ in assigns}
+        - {code for code, _, _ in CIRCLE}
+    )
+    if unknown_codes:
+        raise ValueError(f"item_map.json uses unknown Schwartz codes: {unknown_codes}")
 
-    def value_map_excluded(target):
-        """Whether a base model id / adapter slug is excluded from the map."""
-        lowered = str(target or "").lower()
-        return any(slug in lowered for slug in VALUE_MAP_EXCLUDE)
+    def value_items(code, available=None, proxy_weight=0.0):
+        """Columns measuring `code`: DIRECT always, PROXY only if weighted."""
+        columns = []
+        for col, assigns in VALUE_ITEMS.items():
+            if available is not None and col not in available:
+                continue
+            if any(
+                value == code and (strength == "DIRECT" or proxy_weight > 0)
+                for value, strength, _note in assigns
+            ):
+                columns.append(col)
+        return sorted(columns)
 
-    def value_map_eval_runs():
-        """model label -> (run dir, config, per-question rows)."""
-        base_candidates = {}  # model dir -> newest OpenRouter run
-        adapter_candidates = {}  # adapter target -> {dataset: newest run}
+    return (
+        AGENT_ACTIONABLE,
+        CIRCLE,
+        VALUE_ITEMS,
+        dimension_conflict,
+        opposition,
+        value_items,
+    )
 
-        def newer(candidate, current):
-            return current is None or candidate[0] > current[0]
 
+@app.cell
+def _(CIRCLE, Path, VALUE_ITEMS, json, pd):
+    # Coverage check: every mapped key must be a value-survey column, and the
+    # per-value counts show which poles are measured at all.
+    question_mapping_path = (
+        Path(__file__).resolve().parents[1]
+        / "training-dataset"
+        / "output"
+        / "question_mapping.json"
+    )
+    question_mapping = json.loads(question_mapping_path.read_text())
+    value_columns = {
+        col
+        for entry in question_mapping
+        if entry["question_type"] == "value survey"
+        for col in entry["column_names"]
+    }
+    unknown_columns = sorted(set(VALUE_ITEMS) - value_columns)
+    if unknown_columns:
+        raise ValueError(f"item_map.json: not value-survey columns: {unknown_columns}")
+
+    coverage_rows = []
+    for code, name, _dim in CIRCLE:
+        strengths = [
+            strength
+            for assigns in VALUE_ITEMS.values()
+            for value, strength, _note in assigns
+            if value == code
+        ]
+        coverage_rows.append(
+            {
+                "Code": code,
+                "Value": name,
+                "DIRECT": strengths.count("DIRECT"),
+                "PROXY": strengths.count("PROXY"),
+            }
+        )
+    coverage = pd.DataFrame(coverage_rows)
+    measured = coverage[coverage[["DIRECT", "PROXY"]].sum(axis=1) > 0]
+    print(
+        f"item map: {len(VALUE_ITEMS)} of {len(value_columns)} value-survey "
+        "columns mapped"
+    )
+    print(measured.to_string(index=False))
+    print(
+        "unmeasured values: "
+        + ", ".join(coverage.loc[~coverage.index.isin(measured.index), "Value"])
+    )
+    return
+
+
+@app.cell
+def _(EVALS_ROOT, json, parse_list, pd):
+    # Base models: the newest completed full_string_distribution run per
+    # model directory (OpenRouter, reasoning off, overall population). vLLM
+    # runs in the same tree are fine-tuned adapters, not base models.
+    def base_model_runs():
+        runs = {}
         for model_dir in sorted(p for p in EVALS_ROOT.iterdir() if p.is_dir()):
+            newest = None
             for run_dir in sorted(p for p in model_dir.iterdir() if p.is_dir()):
                 cfg_path = run_dir / "config.json"
                 csv_path = run_dir / "per_question_results.csv"
@@ -1420,646 +1458,357 @@ def _(EVALS_ROOT, Path, json, pd):
                     continue
                 cfg = json.loads(cfg_path.read_text())
                 if (
-                    cfg.get("subpopulation") != "overall"
+                    cfg.get("provider") != "openrouter"
+                    or cfg.get("dataset") != "full_string_distribution"
+                    or cfg.get("subpopulation") != "overall"
                     or cfg.get("use_logprobs") is not True
                     or cfg.get("reasoning")
                     or cfg.get("reasoning_mandatory")
-                    or cfg.get("aborted")
                 ):
                     continue
-                provider = cfg.get("provider")
-                dataset = cfg.get("dataset")
-                entry = (cfg.get("timestamp", ""), run_dir, csv_path, cfg)
-                if provider == "openrouter" and dataset == VALUE_MAP_DATASET:
-                    if value_map_excluded(cfg.get("target")):
-                        continue
-                    if newer(entry, base_candidates.get(model_dir)):
-                        base_candidates[model_dir] = entry
-                elif provider == "vllm" and dataset in VALUE_MAP_ADAPTER_DATASETS:
-                    target = cfg.get("target") or ""
-                    if "-nz-wvs-" not in target:
-                        continue  # self-served base model, not an adapter
-                    if value_map_excluded(target):
-                        continue
-                    per_dataset = adapter_candidates.setdefault(target, {})
-                    if newer(entry, per_dataset.get(dataset)):
-                        per_dataset[dataset] = entry
+                stamp = cfg.get("timestamp", "")
+                if newest is None or stamp > newest[0]:
+                    newest = (stamp, run_dir, cfg)
+            if newest is not None:
+                runs[model_dir.name] = {
+                    "run_dir": newest[1],
+                    "config": newest[2],
+                    "rows": pd.read_csv(newest[1] / "per_question_results.csv"),
+                }
+        return runs
 
-        found = {}
-        base_shas = []
-        for model_dir, (_, run_dir, csv_path, cfg) in sorted(base_candidates.items()):
-            label = (
-                cfg.get("target", model_dir.name)
-                .split("/")[-1]
-                .replace(":free", " (free)")
+    def column_tvd(rows):
+        """column_name -> TVD (%) vs NZ, averaged over system prompts first."""
+        out = {}
+        for col, group in rows.groupby("column_name", dropna=False):
+            dists = [d for d in group["model_distribution"].map(parse_list) if d]
+            true = next(
+                (d for d in group["true_distribution"].map(parse_list) if d), None
             )
-            found[label] = (run_dir, cfg, pd.read_csv(csv_path))
-            base_shas.append((cfg.get("timestamp", ""), cfg.get("dataset_sha")))
-        # Fine-tuned adapters must be on the same dataset revision as the
-        # base runs (excludes adapters trained before the last rebuild).
-        current_sha = sorted(base_shas)[-1][1] if base_shas else None
-
-        for target, per_dataset in sorted(adapter_candidates.items()):
-            eligible = {
-                ds: entry
-                for ds, entry in per_dataset.items()
-                if current_sha is None or entry[3].get("dataset_sha") == current_sha
-            }
-            slug, _, suffix = target.partition("-nz-wvs-")
-            method = suffix.rsplit("-", 1)[0]
-            if method not in ADAPTER_METHOD_LABELS or not eligible:
+            if not dists or true is None:
                 continue
-            # Scored on the format the adapter was trained on: the
-            # first-token adapter on lettered prompts, every other SFT
-            # adapter on the standard option-text prompts.
-            preferred_dataset = (
-                "first_token_distribution"
-                if method == "first_token_distribution"
-                else "modal_response"
-            )
-            chosen = eligible.get(preferred_dataset) or sorted(eligible.values())[-1]
-            _, run_dir, csv_path, cfg = chosen
-            label = f"{slug} ({ADAPTER_METHOD_LABELS[method]})"
-            found[label] = (run_dir, cfg, pd.read_csv(csv_path))
-        return found
+            average = [sum(vals) / len(vals) for vals in zip(*dists)]
+            if len(average) != len(true):
+                continue
+            out[col] = 0.5 * sum(abs(a - b) for a, b in zip(average, true)) * 100
+        return out
 
-    value_map_runs = value_map_eval_runs()
-    print(f"value map: {len(value_map_runs)} model runs")
-    for label, (run_dir, _, df) in value_map_runs.items():
-        if "is_correct" in df:
-            acc_str = f"{df['is_correct'].mean() * 100:>5.1f}%"
-        else:
-            acc_str = "  n/a"
-        mean_kl = df["kl_divergence"].mean() if "kl_divergence" in df else float("nan")
-        print(f"  {label:<30} acc {acc_str}  mean KL {mean_kl:>6.3f}  ({run_dir.name})")
-    return VALUE_MAP_DATASET, VALUE_MAP_TRAINING, value_map_runs
+    BASE_RUNS = base_model_runs()
+    BASE_TVD = {label: column_tvd(run["rows"]) for label, run in BASE_RUNS.items()}
+    print(
+        f"base models: {len(BASE_RUNS)} full_string_distribution runs, "
+        f"{len(next(iter(BASE_TVD.values())))} questions each"
+    )
+    return (BASE_TVD,)
 
 
 @app.cell
-def _(VALUE_MAP_DATASET, VALUE_MAP_TRAINING, np, pd, parse_list, value_map_runs):
-    # Item-level profiles: prompt-averaged model distributions and the
-    # empirical NZ distribution (overall population) for every WVS item.
-    #
-    # Every model distribution is re-aligned to the canonical local category
-    # order by normalised name before averaging; items whose option sets
-    # genuinely differ are dropped and reported.
+def _(BASE_TVD, CIRCLE, FIGS_DIR, np, plt, value_items):
+    # The circular value map: angle = value position on the Schwartz circle,
+    # radius = TVD from the NZ population over the value's items. The bar is
+    # the mean across base models, the dots the individual models.
+    DIMENSION_COLORS = {
+        "Openness": "#1f77b4",
+        "Self-Enhancement": "#d62728",
+        "Conservation": "#2ca02c",
+        "Self-Transcendence": "#9467bd",
+    }
 
-    def value_map_normalise(name):
-        """Case/punctuation-insensitive category name for matching."""
-        text = str(name).strip().lower()
-        for char in ".,;:!?()[]{}\"'’":
-            text = text.replace(char, "")
-        return " ".join(text.split())
-
-    def value_map_align_distribution(csv_categories, csv_dist, target_categories):
-        """Reorder one model distribution to the canonical category order.
-
-        Matches by normalised name (evals run on the corrected dataset, so
-        the option sets are the same). Returns ``(aligned, unmatched_mass)``:
-        categories that cannot be matched are dropped from the vector and
-        their probability mass is reported so the caller can discard items
-        whose option sets genuinely differ.
-        """
-        target_keys = [value_map_normalise(cat) for cat in target_categories]
-        matched = {}
-        unmatched_mass = 0.0
-        for cat, prob in zip(csv_categories, csv_dist):
-            key = value_map_normalise(cat)
-            if key in target_keys:
-                matched[key] = float(prob)
-            else:
-                unmatched_mass += float(prob)
-        aligned = [matched.get(key, 0.0) for key in target_keys]
-        total = sum(aligned)
-        return ([p / total for p in aligned] if total > 0 else []), unmatched_mass
-
-    def value_map_items():
-        """Ordered items from the canonical validation parquet."""
-        ref = pd.read_parquet(
-            VALUE_MAP_TRAINING
-            / "dataset"
-            / VALUE_MAP_DATASET
-            / "validation"
-            / "overall.parquet"
-        )
-        items, seen = [], set()
-        for _, row in ref.iterrows():
-            key = (str(row["question_id"]), row["column_name"])
-            if key in seen:
-                continue
-            seen.add(key)
-            items.append(
+    def value_divergence():
+        """Per value: {model: mean TVD} over the value's DIRECT items."""
+        rows = []
+        for code, name, dimension in CIRCLE:
+            per_model = {}
+            for model, tvd in BASE_TVD.items():
+                columns = value_items(code, available=tvd)
+                if columns:
+                    per_model[model] = float(np.mean([tvd[col] for col in columns]))
+            rows.append(
                 {
-                    "key": key,
-                    "categories": list(row["categories"]),
-                    "question": str(row["question"]),
-                    "sub_question": str(row["sub_question"]),
+                    "code": code,
+                    "name": name,
+                    "dimension": dimension,
+                    "models": per_model,
                 }
             )
-        return items
+        return rows
 
-    def value_map_model_profiles():
-        items = {item["key"]: item for item in value_map_items()}
-        profiles = {}
-        skipped = set()
-        for label, (_, _, df) in value_map_runs.items():
-            profile = {}
-            for (qid, col), group in df.groupby(["question_id", "column_name"]):
-                key = (str(qid), col)
-                item = items.get(key)
-                if item is None:
-                    continue
-                # Prefer reasoning-free rows; fall back to rows with
-                # reasoning only when that is all the item has, so no item
-                # drops out of the map entirely.
-                if "reasoning_chars" in group.columns:
-                    clean = group[group["reasoning_chars"].fillna(0) == 0]
-                    group = clean if len(clean) else group
-                dists = []
-                for _, row in group.iterrows():
-                    cats = parse_list(row.get("categories"))
-                    dist = parse_list(row.get("model_distribution"))
-                    if not cats or not dist or sum(dist) <= 0:
-                        continue
-                    aligned, unmatched = value_map_align_distribution(
-                        cats, dist, item["categories"]
-                    )
-                    if unmatched > 0.02:
-                        # The eval copy of this item offers different options
-                        # (e.g. party lists); it cannot be compared cleanly.
-                        skipped.add(key)
-                        continue
-                    if aligned:
-                        dists.append(aligned)
-                if dists:
-                    profile[key] = np.mean(np.array(dists), axis=0).tolist()
-            profiles[label] = profile
-        if skipped:
-            columns = ", ".join(sorted({key[1] for key in skipped}))
-            print(
-                f"value map: dropped {len(skipped)} items whose eval option set "
-                f"differs from the canonical dataset ({columns})"
+    def circular_value_map():
+        rows = value_divergence()
+        model_colors = {
+            model: color
+            for model, color in zip(
+                sorted(BASE_TVD),
+                plt.get_cmap("tab20")(np.linspace(0, 1, len(BASE_TVD))),
             )
-        return profiles
-
-    def value_map_nz_profile():
-        df = pd.read_parquet(
-            VALUE_MAP_TRAINING
-            / "dataset"
-            / VALUE_MAP_DATASET
-            / "validation"
-            / "overall.parquet"
-        )
-        profile = {}
-        for _, row in df.iterrows():
-            key = (str(row["question_id"]), row["column_name"])
-            if key not in profile:
-                profile[key] = list(row["expected_distribution"])
-        return profile
-
-    value_map_data = {
-        "items": value_map_items(),
-        "profiles": value_map_model_profiles(),
-        "nz": value_map_nz_profile(),
-    }
-    print(
-        f"value map: aligned {len(value_map_data['profiles'])} model profiles to "
-        f"{len(value_map_data['items'])} canonical items"
-    )
-    return (value_map_data,)
-
-
-@app.cell
-def _(VALUE_MAP_TRAINING, json, np, pd, value_map_data):
-    # Fitting the NZ value axes on the real respondents and projecting every
-    # group (models + NZ population) onto them.
-
-    def value_map_respondent_matrix(items):
-        """One-hot respondent x item-category matrix.
-
-        Answer codes are mapped to categories with question_mapping.json
-        (the same mapping the dataset build uses); missing/refused codes
-        contribute an all-zero item block.
-        """
-        survey = pd.read_csv(VALUE_MAP_TRAINING / "wvs_value_survey.csv")
-        mapping = {}
-        for entry in json.loads(
-            (VALUE_MAP_TRAINING / "question_mapping.json").read_text()
-        ):
-            for col in entry["column_names"]:
-                mapping[col] = entry
-
-        blocks = []
-        for item in items:
-            entry = mapping[item["key"][1]]
-            code_to_idx = {
-                round(float(code), 3): idx
-                for idx, code in enumerate(entry["numeric_response_types"])
-            }
-            values = survey[item["key"][1]].map(
-                lambda v: code_to_idx.get(round(float(v), 3)) if pd.notna(v) else None
-            )
-            block = np.zeros((len(survey), len(item["categories"])))
-            valid = values.notna().to_numpy()
-            block[np.where(valid)[0], values[valid].astype(int).to_numpy()] = 1.0
-            blocks.append(block)
-
-        return np.hstack(blocks).astype(float)
-
-    def value_map_build():
-        groups = dict(value_map_data["profiles"])
-        groups["NZ population"] = value_map_data["nz"]
-
-        # Keep only items present in every group so all vectors align.
-        keys = [
-            item["key"]
-            for item in value_map_data["items"]
-            if all(item["key"] in p for p in groups.values())
-        ]
-        items = [item for item in value_map_data["items"] if item["key"] in set(keys)]
-        block_bounds, offset = {}, 0
-        for item in items:
-            k = len(item["categories"])
-            block_bounds[item["key"]] = (offset, offset + k)
-            offset += k
-
-        matrix = value_map_respondent_matrix(items)
-        mean = matrix.mean(axis=0)
-        centered = matrix - mean
-        _, singular, components = np.linalg.svd(centered, full_matrices=False)
-        explained = singular**2 / (singular**2).sum()
-
-        # Fix the component signs so the axes read consistently across reruns
-        # (SVD signs are arbitrary): PC1+ = traditional (homosexuality least
-        # justifiable), PC2+ = secular (no belief in God).
-        def _anchor_weight(axis_idx, column_name, category_name):
-            for item in items:
-                if item["key"][1] != column_name:
-                    continue
-                start, end = block_bounds[item["key"]]
-                cats = item["categories"]
-                if category_name in cats:
-                    return components[axis_idx, start + cats.index(category_name)]
-            return None
-
-        for axis_idx, (column_name, category_name) in enumerate(
-            [("Q182", "10"), ("Q165", "Yes")]
-        ):
-            weight = _anchor_weight(axis_idx, column_name, category_name)
-            if weight is not None and weight > 0:
-                components[axis_idx] *= -1
-
-        coords = []
-        for label, profile in groups.items():
-            vec = np.concatenate(
-                [np.asarray(profile[key], dtype=float) for key in keys]
-            )
-            xy = (vec - mean) @ components[:2].T
-            coords.append({"group": label, "pc1": xy[0], "pc2": xy[1]})
-
-        loading_rows = []
-        axis_totals = {0: 0.0, 1: 0.0}
-        for item in items:
-            start, end = block_bounds[item["key"]]
-            weights = components[:2, start:end]
-            for axis_idx, axis_label in enumerate(["PC1", "PC2"]):
-                w = weights[axis_idx]
-                dominant = int(np.argmax(np.abs(w)))
-                squared = float(np.sum(w**2))
-                axis_totals[axis_idx] += squared
-                loading_rows.append(
-                    {
-                        "item": f"{item['key'][0]}:{item['key'][1]}",
-                        "column_name": item["key"][1],
-                        "question": item["question"],
-                        "sub_question": item["sub_question"],
-                        "axis": axis_label,
-                        "squared_loading": squared,
-                        "loading_share": 0.0,  # filled below
-                        "dominant_category": item["categories"][dominant],
-                        "dominant_loading": float(w[dominant]),
-                        "direction": "+" if w[dominant] >= 0 else "-",
-                    }
-                )
-        loadings = pd.DataFrame(loading_rows)
-        for axis_idx, axis_label in enumerate(["PC1", "PC2"]):
-            mask = loadings["axis"] == axis_label
-            loadings.loc[mask, "loading_share"] = (
-                loadings.loc[mask, "squared_loading"] / axis_totals[axis_idx]
-            )
-
-        return {
-            "coords": pd.DataFrame(coords),
-            "respondent_xy": centered @ components[:2].T,
-            "explained": explained,
-            "loadings": loadings,
-            "n_items": len(items),
         }
-
-    value_map_result = value_map_build()
-    print(
-        f"value map: PCA on {value_map_result['respondent_xy'].shape[0]} NZ "
-        f"respondents x {value_map_result['n_items']} items — PC1 "
-        f"{value_map_result['explained'][0] * 100:.1f}%, PC2 "
-        f"{value_map_result['explained'][1] * 100:.1f}%"
-    )
-    loadings_all = value_map_result["loadings"]
-    for axis_label in ["PC1", "PC2"]:
-        top = loadings_all[loadings_all["axis"] == axis_label].nlargest(
-            10, "squared_loading"
+        angles = np.linspace(0, 2 * np.pi, len(rows), endpoint=False)
+        means = np.array(
+            [
+                np.mean(list(row["models"].values())) if row["models"] else 0.0
+                for row in rows
+            ]
         )
-        print(f"\nItems specifying {axis_label} (largest share of the axis):")
-        for row in top.itertuples():
-            item_label = (
-                row.sub_question
-                if row.sub_question not in ("", "nan", "None")
-                else row.question[:80]
-            )
-            print(
-                f"  {row.column_name:<6} {item_label[:78]:<78} "
-                f"-> {row.dominant_category} ({row.direction}, "
-                f"{row.loading_share * 100:.1f}% of axis)"
-            )
-    return (value_map_result,)
-
-
-@app.cell
-def _(EVALS_ROOT, FIGS_DIR, patheffects, plt, value_map_result):
-    # Drawing the map (NZ respondent cloud + numbered models + NZ population)
-    # and writing the figure and coordinate tables
-    # (figure -> code/figures, data -> output/value_map).
-    MODEL_COLORS = [
-        "#1f77b4",
-        "#ff7f0e",
-        "#2ca02c",
-        "#d62728",
-        "#9467bd",
-        "#8c564b",
-        "#e377c2",
-        "#bcbd22",
-        "#17becf",
-        "#aec7e8",
-        "#ffbb78",
-        "#98df8a",
-        "#ff9896",
-        "#c5b0d5",
-        "#c49c94",
-        "#f7b6d2",
-        "#dbdb8d",
-        "#9edae5",
-        "#7f7f7f",
-        "#c7c7c7",
-    ]
-    NZ_COLOR = "#111111"
-
-    def value_map_draw():
-        coords = value_map_result["coords"]
-        respondent_xy = value_map_result["respondent_xy"]
-        explained = value_map_result["explained"]
-        loadings = value_map_result["loadings"]
-
-        model_rows = coords[coords["group"] != "NZ population"].sort_values(
-            "group", key=lambda col: col.str.lower()
+        fig, ax = plt.subplots(subplot_kw={"projection": "polar"}, figsize=(17, 10))
+        ax.bar(
+            angles,
+            means,
+            width=2 * np.pi / len(rows) * 0.9,
+            color=[DIMENSION_COLORS[row["dimension"]] for row in rows],
+            alpha=0.22,
+            zorder=1,
         )
-        nz = coords[coords["group"] == "NZ population"].iloc[0]
-        # Number the models 1..N alphabetically; the numbers appear on the
-        # dots and in the legend next to the model names.
-        number_map = {group: idx + 1 for idx, group in enumerate(model_rows["group"])}
-        color_map = {
-            group: MODEL_COLORS[idx % len(MODEL_COLORS)]
-            for idx, group in enumerate(model_rows["group"])
-        }
-
-        fig, ax = plt.subplots(figsize=(12.5, 8))
-        legend_handles, legend_labels = [], []
-
-        legend_handles.append(
-            ax.scatter(
-                respondent_xy[:, 0],
-                respondent_xy[:, 1],
-                s=9,
-                alpha=0.2,
-                color="#999999",
-                linewidths=0,
-            )
-        )
-        legend_labels.append("NZ respondents")
-
-        for _, row in model_rows.iterrows():
-            color = color_map[row["group"]]
-            legend_handles.append(
+        for angle, row in zip(angles, rows):
+            for index, model in enumerate(sorted(BASE_TVD)):
+                if model not in row["models"]:
+                    continue
+                jitter = (index - (len(BASE_TVD) - 1) / 2) * 0.016
                 ax.scatter(
-                    row["pc1"],
-                    row["pc2"],
-                    s=190,
-                    color=color,
-                    zorder=5,
-                    edgecolors="white",
-                    linewidths=0.8,
+                    angle + jitter,
+                    row["models"][model],
+                    s=16,
+                    color=model_colors[model],
+                    alpha=0.9,
+                    zorder=3,
+                    linewidths=0,
                 )
-            )
-            legend_labels.append(f"{number_map[row['group']]}. {row['group']}")
-            marker = ax.annotate(
-                str(number_map[row["group"]]),
-                (row["pc1"], row["pc2"]),
-                ha="center",
-                va="center",
-                fontsize=9,
-                fontweight="bold",
-                color="white",
-                zorder=6,
-            )
-            marker.set_path_effects(
-                [patheffects.withStroke(linewidth=1.8, foreground="#444444")]
-            )
-
-        legend_handles.append(
-            ax.scatter(
-                nz["pc1"],
-                nz["pc2"],
-                s=320,
-                marker="*",
-                color=NZ_COLOR,
-                zorder=6,
-            )
+        ax.set_xticks(angles)
+        ax.set_xticklabels(
+            [row["name"].replace(" (", "\n(") for row in rows], fontsize=8
         )
-        legend_labels.append("NZ population (WVS-7)")
-        ax.annotate(
-            "NZ population",
-            (nz["pc1"], nz["pc2"]),
-            xytext=(10, -16),
-            textcoords="offset points",
-            fontsize=9,
-            fontweight="bold",
-            color=NZ_COLOR,
-        )
-
-        # Pole names are read off the top item loadings (see
-        # output/value_map/value-map-item-loadings.csv): PC1 separates
-        # progressive answers (homosexuality, gender equality, trust; −) from
-        # traditional ones (+); PC2 separates religious answers (God, church;
-        # −) from secular ones (+).
-        ax.set_xlabel(
-            f"Value dimension 1 — PC1 ({explained[0] * 100:.0f}%): "
-            "traditional (+) ↔ progressive (−)"
-        )
-        ax.set_ylabel(
-            f"Value dimension 2 — PC2 ({explained[1] * 100:.0f}%): "
-            "religious (−) ↔ secular (+)"
-        )
+        for label, angle, row in zip(ax.get_xticklabels(), angles, rows):
+            label.set_color("#444444" if row["models"] else "#aaaaaa")
+            screen = (90 - np.degrees(angle)) % 360
+            label.set_ha("left" if screen < 180 else "right")
+            rotation = screen if screen <= 90 or screen >= 270 else screen - 180
+            label.set_rotation(rotation)
+            label.set_va("center")
+        ax.set_theta_offset(np.pi / 2)
+        ax.set_theta_direction(-1)
+        ax.set_ylim(0, 100)
+        ax.set_yticks([25, 50, 75, 100])
+        ax.set_yticklabels(["25", "50", "75", "100"], fontsize=7, color="#777777")
+        ax.set_rlabel_position(135)
         ax.set_title(
-            "Where models sit in NZ value space\n"
-            f"(PCA of {value_map_result['n_items']} WVS items answered by "
-            "NZ respondents)"
+            "Base-model divergence around the Schwartz value circle\n"
+            f"mean TVD (%) from the NZ population; each dot is one base model "
+            f"on one value ({len(BASE_TVD)} models), grey values have no "
+            "DIRECT items",
+            fontsize=13,
         )
-        ax.axhline(0, color="#dddddd", lw=0.8, zorder=0)
-        ax.axvline(0, color="#dddddd", lw=0.8, zorder=0)
-
-        ax.legend(
-            legend_handles,
-            legend_labels,
+        dimension_legend = ax.legend(
+            handles=[
+                plt.Line2D([0], [0], color=color, lw=7, alpha=0.4, label=dimension)
+                for dimension, color in DIMENSION_COLORS.items()
+            ],
+            title="Third-order dimension",
             loc="upper left",
-            bbox_to_anchor=(1.01, 1.0),
-            fontsize=9,
+            bbox_to_anchor=(1.20, 1.0),
+            fontsize=8.5,
             frameon=False,
-            title="Models (alphabetical)",
-            title_fontsize=9,
         )
-
-        def _axis_hint(axis, n=4):
-            """Short 'Qn: label' list of the items loading most on one axis."""
-            top = loadings[loadings["axis"] == axis].nlargest(n, "squared_loading")
-            hints = []
-            for row in top.itertuples():
-                text = (
-                    row.sub_question
-                    if row.sub_question not in ("", "nan", "None")
-                    else row.question
+        ax.add_artist(dimension_legend)
+        ax.legend(
+            handles=[
+                plt.Line2D(
+                    [0],
+                    [0],
+                    marker="o",
+                    linestyle="",
+                    color=model_colors[model],
+                    label=model,
+                    markersize=7,
                 )
-                hints.append(f"{row.column_name}: {text[:32].strip()}")
-            return "  ·  ".join(hints)
-
-        fig.text(
-            0.42,
-            -0.02,
-            f"PC1 ({explained[0] * 100:.0f}%)  {_axis_hint('PC1')}",
-            ha="center",
-            fontsize=7.5,
-            color="#555555",
+                for model in sorted(BASE_TVD)
+            ],
+            title="Base models",
+            loc="upper left",
+            bbox_to_anchor=(1.20, 0.84),
+            fontsize=8,
+            frameon=False,
         )
-        fig.text(
-            0.42,
-            -0.06,
-            f"PC2 ({explained[1] * 100:.0f}%)  {_axis_hint('PC2')}",
-            ha="center",
-            fontsize=7.5,
-            color="#555555",
-        )
-
+        fig.subplots_adjust(right=0.56)
         FIGS_DIR.mkdir(parents=True, exist_ok=True)
-        figure_path = FIGS_DIR / "value-map.png"
+        figure_path = FIGS_DIR / "value-circle.png"
         fig.savefig(figure_path, dpi=200, bbox_inches="tight")
         plt.close(fig)
-        # Coordinate / loading tables are data, not figures.
-        data_dir = EVALS_ROOT.parent / "value_map"
-        data_dir.mkdir(parents=True, exist_ok=True)
-        coords.to_csv(data_dir / "value-map-coordinates.csv", index=False)
-        loadings.to_csv(data_dir / "value-map-item-loadings.csv", index=False)
-        return figure_path
+        return figure_path, rows
 
-    value_map_figure = value_map_draw()
-    print(f"value map: wrote {value_map_figure}")
-    print(
-        value_map_result["coords"]
-        .sort_values("group", key=lambda col: col.str.lower())[["group", "pc1", "pc2"]]
-        .round(3)
-        .to_string(index=False)
-    )
+    value_circle_figure, VALUE_DIVERGENCE = circular_value_map()
+    print(f"value map: wrote {value_circle_figure}")
+    unmeasured = [row["code"] for row in VALUE_DIVERGENCE if not row["models"]]
+    if unmeasured:
+        print(f"value map: no DIRECT items for {', '.join(unmeasured)}")
     return
 
 
 @app.cell
-def _(FIGS_DIR, np, plt, textwrap, value_map_result):
-    # Explains the two dimensions: the items loading most strongly on each
-    # axis, plotted as signed bars for the item's most-loading answer. Full
-    # question text is wrapped so the figure is readable on its own. PC1+ is
-    # the traditional pole, PC2+ the secular pole.
-    def value_map_loadings_figure():
-        loadings = value_map_result["loadings"]
-        explained = value_map_result["explained"]
-        axis_info = {
-            "PC1": (
-                0,
-                "traditional (+) ↔ progressive (−)",
-                "right of zero = traditional answers, left = progressive answers",
-            ),
-            "PC2": (
-                1,
-                "secular (+) ↔ religious (−)",
-                "right of zero = secular answers, left = religious answers",
-            ),
-        }
+def _(
+    AGENT_ACTIONABLE,
+    BASE_TVD,
+    CIRCLE,
+    dimension_conflict,
+    model_frames,
+    np,
+    opposition,
+    parse_list,
+    pd,
+    resizebox,
+    value_items,
+    write_tex,
+):
+    # Tension table for one base model (every model is available in
+    # BASE_TVD; the report's table uses qwen3.8-27b). Only agent-actionable
+    # pairs above the opposition threshold with at least two DIRECT items on
+    # each pole are ranked. The fine-tuned column is the same pair TVD for
+    # the adapter trained on the full-string distribution, from its
+    # modal_response eval (validation rows only); the Base TVD column is the
+    # OpenRouter full-string ranking, so compare the delta, not the level.
+    TENSION_MODEL = "qwen3.8-27b"
+    MIN_OPPOSITION = 0.6
+    MIN_ITEMS_PER_POLE = 2
+    FT_MODEL = "Qwen3.8-27B-nz-wvs-full_string_distribution-overall"
+    FT_COLUMN = "FT full string (val)"
 
-        def full_label(row):
-            """Qn + full question text (sub-item first for matrix questions)."""
-            stem = str(row.question).strip()
-            sub = str(row.sub_question).strip()
-            text = f"{sub} — {stem}" if sub and sub not in ("", "nan", "None") else stem
-            return f"{row.column_name}. {textwrap.fill(text, width=85)}"
+    def per_column_tvd(model, split="validation"):
+        """column_name -> TVD (%) for one model dir on one split, the model
+        distribution averaged across system prompts."""
+        _, _, df = model_frames[model]
+        rows = df[df["split"] == split]
+        out = {}
+        for col, group in rows.groupby("column_name", dropna=False):
+            dists = [d for d in group["model_distribution"].map(parse_list) if d]
+            true = next(
+                (d for d in group["true_distribution"].map(parse_list) if d), None
+            )
+            if not dists or true is None:
+                continue
+            avg = [sum(vals) / len(dists) for vals in zip(*dists)]
+            if len(avg) != len(true):
+                continue
+            out[col] = 0.5 * sum(abs(a - b) for a, b in zip(avg, true)) * 100
+        return out
 
-        fig, axes = plt.subplots(2, 1, figsize=(14, 17))
-        for ax, axis_label in zip(axes, ["PC1", "PC2"]):
-            axis_idx, poles, hint = axis_info[axis_label]
-            top = (
-                loadings[loadings["axis"] == axis_label]
-                .nlargest(10, "squared_loading")
-                .iloc[::-1]
-            )
-            labels, values, shares = [], [], []
-            for row in top.itertuples():
-                labels.append(
-                    f"{full_label(row)}\nMost-loading answer: {row.dominant_category}"
-                )
-                values.append(
-                    np.sign(row.dominant_loading) * np.sqrt(row.squared_loading)
-                )
-                shares.append(row.loading_share * 100)
-            colors = ["#d62728" if value >= 0 else "#1f77b4" for value in values]
-            ax.barh(range(len(values)), values, height=0.62, color=colors, alpha=0.85)
-            for y, value, share in zip(range(len(values)), values, shares):
-                ax.annotate(
-                    f"{share:.1f}% of {axis_label}",
-                    (value, y),
-                    xytext=(3 if value >= 0 else -3, 0),
-                    textcoords="offset points",
-                    va="center",
-                    ha="left" if value >= 0 else "right",
-                    fontsize=7.5,
-                    color="#555555",
-                )
-            ax.set_yticks(range(len(values)), labels, fontsize=7.5)
-            ax.axvline(0, color="#888888", lw=0.8)
-            ax.set_title(
-                f"{axis_label} ({explained[axis_idx] * 100:.1f}% of NZ respondent "
-                f"variance): {poles}\n{hint}",
-                fontsize=11,
-                linespacing=1.4,
-            )
-            ax.set_xlabel("signed loading of the item's most-loading answer")
-            ax.margins(x=0.18)
-        fig.suptitle(
-            "What specifies the two value dimensions — top 10 WVS items per axis",
-            fontsize=13,
+    def pair_tvd(code_a, code_b, tvd):
+        """Mean item TVD over the union of the pair's DIRECT items."""
+        used = sorted(
+            set(value_items(code_a, available=tvd))
+            | set(value_items(code_b, available=tvd))
         )
-        fig.tight_layout(rect=[0, 0, 1, 0.98], h_pad=5.5)
-        FIGS_DIR.mkdir(parents=True, exist_ok=True)
-        figure_path = FIGS_DIR / "value-map-loadings.png"
-        fig.savefig(figure_path, dpi=200, bbox_inches="tight")
-        plt.close(fig)
-        return figure_path
+        return round(sum(tvd[col] for col in used) / len(used), 1) if used else None
 
-    value_map_loadings_path = value_map_loadings_figure()
-    print(f"value map: wrote {value_map_loadings_path}")
+    def build_tension_table(model):
+        tvd = BASE_TVD[model]
+        ft_tvd = per_column_tvd(FT_MODEL)
+        rows = []
+        for index, (code_a, name_a, dim_a) in enumerate(CIRCLE):
+            for code_b, name_b, dim_b in CIRCLE[index + 1 :]:
+                if code_a not in AGENT_ACTIONABLE or code_b not in AGENT_ACTIONABLE:
+                    continue
+                score = opposition(code_a, code_b)
+                if score < MIN_OPPOSITION:
+                    continue
+                items_a = value_items(code_a, available=tvd)
+                items_b = value_items(code_b, available=tvd)
+                if min(len(items_a), len(items_b)) < MIN_ITEMS_PER_POLE:
+                    continue
+                used = sorted(set(items_a) | set(items_b))
+                values = [tvd[col] for col in used]
+                base_tvd = float(np.mean(values))
+                rows.append(
+                    {
+                        "tension": f"{name_a} / {name_b}",
+                        "a": code_a,
+                        "b": code_b,
+                        "Opp.": round(score, 2),
+                        "Base TVD": round(base_tvd, 1),
+                        FT_COLUMN: pair_tvd(code_a, code_b, ft_tvd),
+                        "Items A/B": f"{len(items_a)}/{len(items_b)}",
+                        "min_pole": min(len(items_a), len(items_b)),
+                        "spread": round(float(np.max(values) - np.min(values)), 1),
+                        "Comp.": round(score * base_tvd, 1),
+                        "conflict": dimension_conflict(dim_a, dim_b),
+                    }
+                )
+        return (
+            pd.DataFrame(rows)
+            .sort_values("Comp.", ascending=False)
+            .reset_index(drop=True)
+        )
+
+    def write_tension_table(table, model):
+        """bare booktabs tabular (hidden index, like the
+        divergent-questions tables); the report pulls it in with \\ctable."""
+        top = table.copy()
+        frame = pd.DataFrame(
+            {
+                "Schwartz value tension": [
+                    f"{rank + 1}. {row.tension}" + ("$^{*}$" if row.conflict else "")
+                    for rank, row in top.iterrows()
+                ],
+                "Opp.": [f"{value:.2f}" for value in top["Opp."]],
+                "Base TVD": [f"{value:.1f}" for value in top["Base TVD"]],
+                "Items A/B": top["Items A/B"].tolist(),
+                "Comp.": [f"{value:.1f}" for value in top["Comp."]],
+            }
+        )
+        tex = (
+            frame.style.hide(axis="index")
+            .format(na_rep="--")
+            .to_latex(
+                column_format="p{0.42\\textwidth}rrrr",
+                hrules=True,
+                convert_css=True,
+            )
+        )
+        return write_tex(resizebox(tex), f"value-tensions-{model}.tex")
+
+    tension_table = build_tension_table(TENSION_MODEL)
+    print(f"tensions: {len(tension_table)} pairs ranked for {TENSION_MODEL}; ")
+    print(
+        tension_table.head(10)[
+            ["tension", "Opp.", "Base TVD", FT_COLUMN, "Items A/B", "Comp."]
+        ].to_string(index=False)
+    )
+    return (tension_table,)
+
+
+@app.cell
+def _(tension_table):
+    # The full ranked candidate list behind the report table: every pair that
+    # passes the candidate rule, with the columns used to curate the final
+    # eleven dilemma tensions (code/dilemmas/tensions.json). "Min" is the
+    # thinner pole's DIRECT-item count and "Spread" the item-TVD range behind
+    # the pair mean - caveats on a row, not scores.
+
+    def curation_table(table):
+        full = table[
+            [
+                "tension",
+                "a",
+                "b",
+                "Opp.",
+                "Base TVD",
+                "FT full string (val)",
+                "Items A/B",
+                "min_pole",
+                "spread",
+                "Comp.",
+                "conflict",
+            ]
+        ].rename(
+            columns={
+                "tension": "Tension",
+                "min_pole": "Min",
+                "spread": "Spread",
+                "conflict": "Higher-order",
+            }
+        )
+        full.index = range(1, len(full) + 1)
+        return full
+
+    curation_df = curation_table(tension_table)
+    curation_df
     return
 
 

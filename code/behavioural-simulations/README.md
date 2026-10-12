@@ -1,5 +1,9 @@
 # Behavioural simulations
 
+> [!WARNING]
+> This is a research direction that was explored and shelved due to time constraints.
+> In short it was too hard to elicit good value trade offs from the models
+
 Behavioural simulations of the (base and fine-tuned) LLMs: each model is
 placed in an agentic ReAct harness, given a **profile** (a realistic,
 production-style agentic setup - persona, tools, environment data) and a

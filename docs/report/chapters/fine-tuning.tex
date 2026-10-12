@@ -78,7 +78,7 @@ The system prompts used are designed to span the range of possible system prompt
 
 \subsection{Held out validation data}
 
-The goal of fine-tuning a LLM is to explore whether the models behaviour changes in downstream applications. This is an extreme version of out-of-distribution testing. Therefore the purpose of the validation set is simply to help decide which models have performed the best in training and should proceed on to the simulations. A non-random validation split is made in which some survey questions are held out and some system prompts are held out.
+The goal of fine-tuning a LLM is to explore whether the models behaviour changes in downstream applications. This is an extreme version of out-of-distribution testing. Therefore the purpose of the validation set is simply to help decide which models have performed the best in training and should proceed on to the dilemmas. A non-random validation split is made in which some survey questions are held out and some system prompts are held out.
 
 The selection of survey questions is done by holding out questions in which it has a high Crammer V \cite{haraldcramerMathematicalMethodsStatistics1946} measure with another question in a different battery. The top 6 most redundant questions are held out as beyond that the next redundant questions were from the same value dimension (e.g., religion, politics, etc.). See \ref{app:fine-tuning} for more details.
 

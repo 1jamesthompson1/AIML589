@@ -26,6 +26,8 @@ sets `volunteer`. The survey flow (mirrored by `survey_definition.build()`):
   Intro wording comes from `participant-information-sheet.md` including the
   `<!--volunteer ... -->` conditional paragraph (parsed by
   `sheet_for_channel`); comparison wording from `comparison-question.md`.
+  The public website mirrors the respondent-facing question text and answer
+  scales in `website/src/lib/survey.ts`; update that file when they change.
 
 - `qualtrics_sync.py` - syncs questions from definition to live qualtrics survey. Adds in quotas where Non-binary / "Prefer not to say" are unquota'd
   and absorb rounding slack.

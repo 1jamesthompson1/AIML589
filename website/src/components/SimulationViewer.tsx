@@ -1631,7 +1631,7 @@ export default function SimulationViewer() {
       <DataSourceNotice bucket={manifest.bucket || DEFAULT_BUCKET} manifestUrl={MANIFEST_URL} kind="simulation" />
       {manifest.generated_at && <p className="manifest-generated muted-text">Manifest generated {new Date(manifest.generated_at).toLocaleString()}</p>}
       <div style={{ marginBottom: '1.5rem', padding: '1rem 1.25rem', background: '#fff7ed', borderRadius: '0.6rem', border: '2px solid #f59e0b', fontSize: '0.9rem', fontWeight: 600, color: '#9a3412', lineHeight: 1.6 }}>
-        ⚠️ <strong>Development results.</strong> This viewer exposes the raw simulation artifacts currently present in the selected local or bucket manifest. Treat them as pipeline results, not as pilot/final study conclusions.
+        ⚠️ <strong>Defunct line of research.</strong> The agentic behavioural simulations are no longer an active line of research. More information: <a href="/agents" style={{ color: 'inherit' }}>agentic documentation</a>.
       </div>
 
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', alignItems: 'flex-end', marginBottom: '1.5rem' }}>

@@ -34,7 +34,8 @@ make website        # local dev; reads artifacts/ directly
 
 ### HF bucket artifacts
 
-Heavy outputs (`code/fine-tuning/output` → `artifacts/ft`, `code/behavioural-simulations/output` → `artifacts/bs`, both symlinks) live in a public Hugging Face **storage bucket** — plain object storage, no git overhead:
+Heavy outputs (`code/fine-tuning/output` → `artifacts/ft`, `code/behavioural-simulations/output` → `artifacts/bs`, and
+`code/dilemmas/output` → `artifacts/dilemmas`, all symlinks) live in a public Hugging Face **storage bucket** — plain object storage, no git overhead:
 
 - **`make artifacts-sync`** — upload `artifacts/` to the bucket (skips unchanged files; runs best-effort from the pre-commit hook and does **not** delete remote-only history).
 Remote bucket inspection is intentionally kept outside the Makefile. Use the
@@ -50,9 +51,10 @@ incomplete; review a prefix-specific plan after a replacement batch is validated
 - **`make artifacts-backup`** — Borg backup (unencrypted, auto-initialised) of `artifacts/` into `$HOME/grid-directory/AIML589-evals-backup`; also runs in pre-commit when `RUN_BORG_BACKUP=true`.
 - **`make artifacts-pull`** — download the bucket back to `artifacts/` (fresh machines). The website dev server does not call this.
 
-The website dev server reads the repository's `artifacts/ft` and `artifacts/bs`
-directories directly, so local iteration does not require a download or a
-sync. `?local=0` switches a dev session to the bucket for comparison.
+The website dev server reads the repository's `artifacts/ft`,
+`artifacts/bs` and `artifacts/dilemmas` directories directly, so local
+iteration does not require a download or a sync. `?local=0` switches a dev
+session to the bucket for comparison.
 
 Configured via `.env` (see `.env.example`): `HF_TOKEN`, `HF_BUCKET` (default `1jamesthompson1/wvs-nz-value-alignment-evals`), `RUN_BORG_BACKUP`, `BORG_REPO`. Directory paths of empty dirs are not stored in the bucket.
 
@@ -70,6 +72,7 @@ Separated into pipeline phases:
 - **`training-dataset/`** — Wrangles WVS data, clusters respondents via LCA, builds training datasets (modal, sampled, distributional).
 - **`fine-tuning/`** — LoRA fine-tunes open-weight LLMs on the dataset and evaluates distributional alignment.
 - **`behavioural-simulations/`** — Runs agentic simulations and generates comparisons for the survey.
+- **`dilemmas/`** — Single-response NZ moral dilemmas with LLM judge classifications and cross-model comparison summaries.
 
 Each has its own README. Code is written as Marimo notebooks for reproducibility and bash scripts for automation.
 

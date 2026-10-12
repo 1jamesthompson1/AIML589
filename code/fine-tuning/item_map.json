@@ -1,0 +1,1756 @@
+{
+  "schema": "wvs-item-map/v1",
+  "description": "Hand-assigned mapping from WVS NZ Wave 7 value-survey columns to Schwartz (2012) refined values. Edit this file to change what a value pole means; the fine-tuning analysis notebook loads and validates it. strength: DIRECT = the item asks about the value's own motivational content; PROXY = the item is adjacent to the value and usable but weaker. Notes paraphrase the actual column text (the audit trail). No direction is encoded: the pipeline compares answer distributions (TVD), it does not score signed value means.",
+  "items": {
+    "Q1": [
+      {
+        "value": "BEC",
+        "strength": "DIRECT",
+        "note": "importance of family in your life"
+      }
+    ],
+    "Q2": [
+      {
+        "value": "BEC",
+        "strength": "DIRECT",
+        "note": "importance of friends in your life"
+      }
+    ],
+    "Q3": [
+      {
+        "value": "HE",
+        "strength": "DIRECT",
+        "note": "importance of leisure time in your life"
+      }
+    ],
+    "Q5": [
+      {
+        "value": "AC",
+        "strength": "PROXY",
+        "note": "importance of work in your life"
+      }
+    ],
+    "Q6": [
+      {
+        "value": "TR",
+        "strength": "DIRECT",
+        "note": "importance of religion in your life"
+      }
+    ],
+    "Q7": [
+      {
+        "value": "COI",
+        "strength": "DIRECT",
+        "note": "good manners as a quality to encourage in children"
+      }
+    ],
+    "Q8": [
+      {
+        "value": "SDA",
+        "strength": "PROXY",
+        "note": "independence as a quality to encourage in children"
+      }
+    ],
+    "Q9": [
+      {
+        "value": "AC",
+        "strength": "PROXY",
+        "note": "hard work as a quality to encourage in children"
+      }
+    ],
+    "Q10": [
+      {
+        "value": "BED",
+        "strength": "PROXY",
+        "note": "feeling of responsibility as a quality to encourage"
+      }
+    ],
+    "Q11": [
+      {
+        "value": "SDT",
+        "strength": "DIRECT",
+        "note": "imagination as a quality to encourage in children"
+      }
+    ],
+    "Q12": [
+      {
+        "value": "COI",
+        "strength": "DIRECT",
+        "note": "tolerance and respect for other people as a quality"
+      },
+      {
+        "value": "UNT",
+        "strength": "DIRECT",
+        "note": "tolerance and respect for other people as a quality"
+      }
+    ],
+    "Q13": [
+      {
+        "value": "POR",
+        "strength": "DIRECT",
+        "note": "thrift, saving money and things, as a quality"
+      }
+    ],
+    "Q14": [
+      {
+        "value": "AC",
+        "strength": "PROXY",
+        "note": "determination, perseverance, as a quality"
+      }
+    ],
+    "Q15": [
+      {
+        "value": "TR",
+        "strength": "PROXY",
+        "note": "religious faith as a quality to encourage"
+      }
+    ],
+    "Q16": [
+      {
+        "value": "BEC",
+        "strength": "DIRECT",
+        "note": "unselfishness as a quality to encourage in children"
+      },
+      {
+        "value": "COI",
+        "strength": "PROXY",
+        "note": "unselfishness as consideration for other people"
+      }
+    ],
+    "Q17": [
+      {
+        "value": "COR",
+        "strength": "DIRECT",
+        "note": "obedience as a quality to encourage in children"
+      }
+    ],
+    "Q18": [
+      {
+        "value": "UNT",
+        "strength": "PROXY",
+        "note": "would not want drug addicts as neighbours"
+      }
+    ],
+    "Q19": [
+      {
+        "value": "UNT",
+        "strength": "PROXY",
+        "note": "would not want people of a different race"
+      }
+    ],
+    "Q20": [
+      {
+        "value": "UNT",
+        "strength": "PROXY",
+        "note": "would not want people who have AIDS"
+      }
+    ],
+    "Q21": [
+      {
+        "value": "UNT",
+        "strength": "PROXY",
+        "note": "would not want immigrants or foreign workers"
+      }
+    ],
+    "Q22": [
+      {
+        "value": "UNT",
+        "strength": "PROXY",
+        "note": "would not want homosexuals as neighbours"
+      }
+    ],
+    "Q23": [
+      {
+        "value": "UNT",
+        "strength": "PROXY",
+        "note": "would not want people of a different religion"
+      }
+    ],
+    "Q24": [
+      {
+        "value": "UNT",
+        "strength": "PROXY",
+        "note": "would not want heavy drinkers as neighbours"
+      }
+    ],
+    "Q25": [
+      {
+        "value": "UNT",
+        "strength": "PROXY",
+        "note": "would not want unmarried couples living together"
+      }
+    ],
+    "Q26": [
+      {
+        "value": "UNT",
+        "strength": "PROXY",
+        "note": "would not want people who speak a different language"
+      }
+    ],
+    "Q27": [
+      {
+        "value": "FA",
+        "strength": "PROXY",
+        "note": "goal of making my parents proud"
+      }
+    ],
+    "Q28": [
+      {
+        "value": "TR",
+        "strength": "PROXY",
+        "note": "a preschool child suffers if their mother works"
+      }
+    ],
+    "Q29": [
+      {
+        "value": "POD",
+        "strength": "PROXY",
+        "note": "men make better political leaders than women"
+      }
+    ],
+    "Q30": [
+      {
+        "value": "POD",
+        "strength": "PROXY",
+        "note": "university education more important for a boy"
+      }
+    ],
+    "Q31": [
+      {
+        "value": "POD",
+        "strength": "PROXY",
+        "note": "men make better business executives than women"
+      }
+    ],
+    "Q32": [
+      {
+        "value": "TR",
+        "strength": "PROXY",
+        "note": "being a housewife is just as fulfilling as working"
+      }
+    ],
+    "Q33": [
+      {
+        "value": "POD",
+        "strength": "PROXY",
+        "note": "men should have more right to a job than women"
+      }
+    ],
+    "Q34": [
+      {
+        "value": "UNT",
+        "strength": "PROXY",
+        "note": "employers should give priority to New Zealanders"
+      }
+    ],
+    "Q35": [
+      {
+        "value": "TR",
+        "strength": "PROXY",
+        "note": "a woman earning more than her husband causes problems"
+      }
+    ],
+    "Q36": [
+      {
+        "value": "UNT",
+        "strength": "DIRECT",
+        "note": "homosexual couples are as good parents"
+      }
+    ],
+    "Q37": [
+      {
+        "value": "TR",
+        "strength": "PROXY",
+        "note": "it is a duty towards society to have children"
+      }
+    ],
+    "Q38": [
+      {
+        "value": "BEC",
+        "strength": "PROXY",
+        "note": "children's duty to take care of ill parents"
+      }
+    ],
+    "Q39": [
+      {
+        "value": "AC",
+        "strength": "PROXY",
+        "note": "people who don't work turn lazy"
+      }
+    ],
+    "Q40": [
+      {
+        "value": "AC",
+        "strength": "PROXY",
+        "note": "work is a duty towards society"
+      }
+    ],
+    "Q41": [
+      {
+        "value": "AC",
+        "strength": "PROXY",
+        "note": "work should always come first, even if it means less spare time"
+      }
+    ],
+    "Q42": [
+      {
+        "value": "SDA",
+        "strength": "PROXY",
+        "note": "society should be radically changed by revolutionary action"
+      }
+    ],
+    "Q43": [
+      {
+        "value": "HE",
+        "strength": "PROXY",
+        "note": "less importance placed on work is a good thing"
+      }
+    ],
+    "Q44": [
+      {
+        "value": "ST",
+        "strength": "PROXY",
+        "note": "more emphasis on the development of technology"
+      }
+    ],
+    "Q45": [
+      {
+        "value": "COR",
+        "strength": "PROXY",
+        "note": "greater respect for authority is a good thing"
+      }
+    ],
+    "Q48": [
+      {
+        "value": "SDA",
+        "strength": "DIRECT",
+        "note": "free choice and control over the way your life turns out"
+      }
+    ],
+    "Q57": [
+      {
+        "value": "BED",
+        "strength": "DIRECT",
+        "note": "most people can be trusted"
+      }
+    ],
+    "Q58": [
+      {
+        "value": "BED",
+        "strength": "DIRECT",
+        "note": "trust your family"
+      }
+    ],
+    "Q59": [
+      {
+        "value": "BED",
+        "strength": "PROXY",
+        "note": "trust your neighbourhood"
+      }
+    ],
+    "Q60": [
+      {
+        "value": "BED",
+        "strength": "DIRECT",
+        "note": "trust people you know personally"
+      }
+    ],
+    "Q61": [
+      {
+        "value": "BED",
+        "strength": "PROXY",
+        "note": "trust people you meet for the first time"
+      },
+      {
+        "value": "UNT",
+        "strength": "PROXY",
+        "note": "trust people you meet for the first time"
+      }
+    ],
+    "Q62": [
+      {
+        "value": "UNT",
+        "strength": "DIRECT",
+        "note": "trust people of another religion"
+      },
+      {
+        "value": "BED",
+        "strength": "PROXY",
+        "note": "trust people of another religion"
+      }
+    ],
+    "Q63": [
+      {
+        "value": "UNT",
+        "strength": "DIRECT",
+        "note": "trust people of another nationality"
+      },
+      {
+        "value": "BED",
+        "strength": "PROXY",
+        "note": "trust people of another nationality"
+      }
+    ],
+    "Q64": [
+      {
+        "value": "TR",
+        "strength": "PROXY",
+        "note": "confidence in the churches"
+      },
+      {
+        "value": "SES",
+        "strength": "PROXY",
+        "note": "confidence in the churches"
+      }
+    ],
+    "Q65": [
+      {
+        "value": "SES",
+        "strength": "PROXY",
+        "note": "confidence in the armed forces"
+      }
+    ],
+    "Q66": [
+      {
+        "value": "SES",
+        "strength": "PROXY",
+        "note": "confidence in the press"
+      }
+    ],
+    "Q67": [
+      {
+        "value": "SES",
+        "strength": "PROXY",
+        "note": "confidence in television"
+      }
+    ],
+    "Q68": [
+      {
+        "value": "SES",
+        "strength": "PROXY",
+        "note": "confidence in trade unions"
+      }
+    ],
+    "Q69": [
+      {
+        "value": "SES",
+        "strength": "PROXY",
+        "note": "confidence in the police"
+      }
+    ],
+    "Q70": [
+      {
+        "value": "SES",
+        "strength": "PROXY",
+        "note": "confidence in the courts"
+      }
+    ],
+    "Q71": [
+      {
+        "value": "SES",
+        "strength": "PROXY",
+        "note": "confidence in the government in Wellington"
+      }
+    ],
+    "Q72": [
+      {
+        "value": "SES",
+        "strength": "PROXY",
+        "note": "confidence in political parties"
+      }
+    ],
+    "Q73": [
+      {
+        "value": "SES",
+        "strength": "PROXY",
+        "note": "confidence in Parliament"
+      }
+    ],
+    "Q74": [
+      {
+        "value": "SES",
+        "strength": "PROXY",
+        "note": "confidence in the public service"
+      }
+    ],
+    "Q75": [
+      {
+        "value": "SES",
+        "strength": "PROXY",
+        "note": "confidence in universities"
+      }
+    ],
+    "Q76": [
+      {
+        "value": "SES",
+        "strength": "PROXY",
+        "note": "confidence in elections"
+      }
+    ],
+    "Q77": [
+      {
+        "value": "SES",
+        "strength": "PROXY",
+        "note": "confidence in major companies"
+      }
+    ],
+    "Q78": [
+      {
+        "value": "SES",
+        "strength": "PROXY",
+        "note": "confidence in banks"
+      }
+    ],
+    "Q79": [
+      {
+        "value": "UNN",
+        "strength": "PROXY",
+        "note": "confidence in environmental organisations"
+      },
+      {
+        "value": "SES",
+        "strength": "PROXY",
+        "note": "confidence in environmental organisations"
+      }
+    ],
+    "Q80": [
+      {
+        "value": "UNC",
+        "strength": "PROXY",
+        "note": "confidence in women's organisations"
+      },
+      {
+        "value": "SES",
+        "strength": "PROXY",
+        "note": "confidence in women's organisations"
+      }
+    ],
+    "Q81": [
+      {
+        "value": "BEC",
+        "strength": "PROXY",
+        "note": "confidence in charitable or humanitarian organisations"
+      },
+      {
+        "value": "SES",
+        "strength": "PROXY",
+        "note": "confidence in charitable or humanitarian organisations"
+      }
+    ],
+    "Q83": [
+      {
+        "value": "UNC",
+        "strength": "PROXY",
+        "note": "confidence in the United Nations"
+      },
+      {
+        "value": "SES",
+        "strength": "PROXY",
+        "note": "confidence in the United Nations"
+      }
+    ],
+    "Q84": [
+      {
+        "value": "UNC",
+        "strength": "PROXY",
+        "note": "confidence in the International Monetary Fund"
+      },
+      {
+        "value": "SES",
+        "strength": "PROXY",
+        "note": "confidence in the International Monetary Fund"
+      }
+    ],
+    "Q85": [
+      {
+        "value": "UNC",
+        "strength": "PROXY",
+        "note": "confidence in the International Criminal Court"
+      },
+      {
+        "value": "SES",
+        "strength": "PROXY",
+        "note": "confidence in the International Criminal Court"
+      }
+    ],
+    "Q87": [
+      {
+        "value": "UNC",
+        "strength": "PROXY",
+        "note": "confidence in the World Bank"
+      },
+      {
+        "value": "SES",
+        "strength": "PROXY",
+        "note": "confidence in the World Bank"
+      }
+    ],
+    "Q88": [
+      {
+        "value": "UNC",
+        "strength": "PROXY",
+        "note": "confidence in the World Health Organisation"
+      },
+      {
+        "value": "SES",
+        "strength": "PROXY",
+        "note": "confidence in the World Health Organisation"
+      }
+    ],
+    "Q89": [
+      {
+        "value": "UNC",
+        "strength": "PROXY",
+        "note": "confidence in the World Trade Organisation"
+      },
+      {
+        "value": "SES",
+        "strength": "PROXY",
+        "note": "confidence in the World Trade Organisation"
+      }
+    ],
+    "Q90": [
+      {
+        "value": "UNC",
+        "strength": "PROXY",
+        "note": "international organisations should prioritise democracy"
+      }
+    ],
+    "Q94": [
+      {
+        "value": "TR",
+        "strength": "PROXY",
+        "note": "belonging to a church or religious organisation"
+      }
+    ],
+    "Q95": [
+      {
+        "value": "HE",
+        "strength": "PROXY",
+        "note": "belonging to a sport or recreational organisation"
+      }
+    ],
+    "Q96": [
+      {
+        "value": "SDT",
+        "strength": "PROXY",
+        "note": "belonging to an art, music or educational organisation"
+      }
+    ],
+    "Q97": [
+      {
+        "value": "UNC",
+        "strength": "PROXY",
+        "note": "belonging to a labour union"
+      }
+    ],
+    "Q98": [
+      {
+        "value": "SES",
+        "strength": "PROXY",
+        "note": "belonging to a political party"
+      }
+    ],
+    "Q99": [
+      {
+        "value": "UNN",
+        "strength": "PROXY",
+        "note": "belonging to an environmental organisation"
+      }
+    ],
+    "Q100": [
+      {
+        "value": "AC",
+        "strength": "PROXY",
+        "note": "belonging to a professional association"
+      }
+    ],
+    "Q101": [
+      {
+        "value": "BEC",
+        "strength": "PROXY",
+        "note": "belonging to a charitable or humanitarian organisation"
+      }
+    ],
+    "Q103": [
+      {
+        "value": "BED",
+        "strength": "PROXY",
+        "note": "belonging to a self-help group or mutual aid group"
+      }
+    ],
+    "Q104": [
+      {
+        "value": "UNC",
+        "strength": "PROXY",
+        "note": "belonging to a women's group"
+      }
+    ],
+    "Q106": [
+      {
+        "value": "AC",
+        "strength": "DIRECT",
+        "note": "greater incentives for individual effort vs more equal incomes"
+      },
+      {
+        "value": "UNC",
+        "strength": "DIRECT",
+        "note": "incomes should be made more equal vs incentives for effort"
+      }
+    ],
+    "Q107": [
+      {
+        "value": "POR",
+        "strength": "DIRECT",
+        "note": "private ownership vs government ownership"
+      },
+      {
+        "value": "UNC",
+        "strength": "PROXY",
+        "note": "private ownership vs government ownership"
+      }
+    ],
+    "Q108": [
+      {
+        "value": "UNC",
+        "strength": "DIRECT",
+        "note": "government vs people should take more responsibility"
+      },
+      {
+        "value": "SDA",
+        "strength": "PROXY",
+        "note": "people should take more responsibility for themselves"
+      }
+    ],
+    "Q109": [
+      {
+        "value": "AC",
+        "strength": "PROXY",
+        "note": "competition is good vs competition is harmful"
+      }
+    ],
+    "Q110": [
+      {
+        "value": "AC",
+        "strength": "DIRECT",
+        "note": "hard work brings a better life vs hard work doesn't"
+      }
+    ],
+    "Q111": [
+      {
+        "value": "UNN",
+        "strength": "DIRECT",
+        "note": "protecting the environment vs economic growth"
+      },
+      {
+        "value": "POR",
+        "strength": "PROXY",
+        "note": "economic growth and jobs vs protecting the environment"
+      }
+    ],
+    "Q112": [
+      {
+        "value": "COR",
+        "strength": "PROXY",
+        "note": "views on how much corruption there is in New Zealand"
+      }
+    ],
+    "Q113": [
+      {
+        "value": "SES",
+        "strength": "DIRECT",
+        "note": "trust in state authorities"
+      }
+    ],
+    "Q114": [
+      {
+        "value": "POR",
+        "strength": "PROXY",
+        "note": "trust in business executives"
+      }
+    ],
+    "Q115": [
+      {
+        "value": "SES",
+        "strength": "DIRECT",
+        "note": "trust in local authorities"
+      }
+    ],
+    "Q116": [
+      {
+        "value": "SES",
+        "strength": "DIRECT",
+        "note": "trust in civil service providers"
+      }
+    ],
+    "Q117": [
+      {
+        "value": "SES",
+        "strength": "DIRECT",
+        "note": "trust in journalists and media"
+      }
+    ],
+    "Q118": [
+      {
+        "value": "COR",
+        "strength": "PROXY",
+        "note": "how often ordinary people have to pay a bribe"
+      }
+    ],
+    "Q120": [
+      {
+        "value": "COR",
+        "strength": "PROXY",
+        "note": "risk of being held accountable for a bribe"
+      }
+    ],
+    "Q121": [
+      {
+        "value": "UNT",
+        "strength": "PROXY",
+        "note": "impact of immigrants on the development of New Zealand"
+      }
+    ],
+    "Q122": [
+      {
+        "value": "UNT",
+        "strength": "PROXY",
+        "note": "immigrants fill important job vacancies"
+      }
+    ],
+    "Q123": [
+      {
+        "value": "UNT",
+        "strength": "PROXY",
+        "note": "immigrants strengthen cultural diversity"
+      }
+    ],
+    "Q124": [
+      {
+        "value": "UNT",
+        "strength": "PROXY",
+        "note": "immigrants increase the crime rate"
+      }
+    ],
+    "Q125": [
+      {
+        "value": "UNC",
+        "strength": "DIRECT",
+        "note": "gives asylum to persecuted political refugees"
+      }
+    ],
+    "Q126": [
+      {
+        "value": "UNT",
+        "strength": "PROXY",
+        "note": "immigrants increase the risk of terrorism"
+      }
+    ],
+    "Q127": [
+      {
+        "value": "UNC",
+        "strength": "PROXY",
+        "note": "offers people from poorer countries a better living"
+      }
+    ],
+    "Q128": [
+      {
+        "value": "UNT",
+        "strength": "PROXY",
+        "note": "immigrants increase unemployment"
+      }
+    ],
+    "Q129": [
+      {
+        "value": "UNT",
+        "strength": "PROXY",
+        "note": "immigrants lead to social conflict"
+      }
+    ],
+    "Q130": [
+      {
+        "value": "UNT",
+        "strength": "DIRECT",
+        "note": "how many people from other countries may come to work"
+      }
+    ],
+    "Q131": [
+      {
+        "value": "SEP",
+        "strength": "DIRECT",
+        "note": "how secure you feel in your neighbourhood"
+      }
+    ],
+    "Q132": [
+      {
+        "value": "SEP",
+        "strength": "DIRECT",
+        "note": "robberies in your neighbourhood"
+      }
+    ],
+    "Q133": [
+      {
+        "value": "SEP",
+        "strength": "DIRECT",
+        "note": "alcohol consumption in the streets"
+      }
+    ],
+    "Q134": [
+      {
+        "value": "SDT",
+        "strength": "PROXY",
+        "note": "police or military interference with private life"
+      }
+    ],
+    "Q135": [
+      {
+        "value": "SEP",
+        "strength": "DIRECT",
+        "note": "racist behaviour in your neighbourhood"
+      }
+    ],
+    "Q136": [
+      {
+        "value": "SEP",
+        "strength": "DIRECT",
+        "note": "drug sales in the streets"
+      }
+    ],
+    "Q137": [
+      {
+        "value": "SEP",
+        "strength": "DIRECT",
+        "note": "street violence and fights"
+      }
+    ],
+    "Q138": [
+      {
+        "value": "SEP",
+        "strength": "DIRECT",
+        "note": "sexual harassment in your neighbourhood"
+      }
+    ],
+    "Q139": [
+      {
+        "value": "SEP",
+        "strength": "DIRECT",
+        "note": "didn't carry much money, for security"
+      }
+    ],
+    "Q140": [
+      {
+        "value": "SEP",
+        "strength": "DIRECT",
+        "note": "preferred not to go out at night, for security"
+      }
+    ],
+    "Q141": [
+      {
+        "value": "SEP",
+        "strength": "DIRECT",
+        "note": "carried a weapon, for security"
+      }
+    ],
+    "Q142": [
+      {
+        "value": "SEP",
+        "strength": "DIRECT",
+        "note": "worried about losing my job"
+      }
+    ],
+    "Q143": [
+      {
+        "value": "SEP",
+        "strength": "DIRECT",
+        "note": "worried about my children's education"
+      }
+    ],
+    "Q146": [
+      {
+        "value": "SES",
+        "strength": "DIRECT",
+        "note": "worried about a war involving my country"
+      }
+    ],
+    "Q147": [
+      {
+        "value": "SES",
+        "strength": "DIRECT",
+        "note": "worried about a terrorist attack"
+      }
+    ],
+    "Q148": [
+      {
+        "value": "SES",
+        "strength": "DIRECT",
+        "note": "worried about a civil war"
+      }
+    ],
+    "Q149": [
+      {
+        "value": "SDA",
+        "strength": "DIRECT",
+        "note": "freedom, when forced to choose against equality"
+      },
+      {
+        "value": "UNC",
+        "strength": "DIRECT",
+        "note": "equality, when forced to choose against freedom"
+      }
+    ],
+    "Q150": [
+      {
+        "value": "SDA",
+        "strength": "DIRECT",
+        "note": "freedom, when forced to choose against security"
+      },
+      {
+        "value": "SES",
+        "strength": "DIRECT",
+        "note": "security, when forced to choose against freedom"
+      }
+    ],
+    "Q151": [
+      {
+        "value": "SES",
+        "strength": "PROXY",
+        "note": "willingness to fight for your country"
+      }
+    ],
+    "Q158": [
+      {
+        "value": "SDT",
+        "strength": "PROXY",
+        "note": "science and technology make life healthier and easier"
+      }
+    ],
+    "Q159": [
+      {
+        "value": "SDT",
+        "strength": "PROXY",
+        "note": "science and technology create more opportunities"
+      }
+    ],
+    "Q160": [
+      {
+        "value": "TR",
+        "strength": "PROXY",
+        "note": "we depend too much on science and not enough on faith"
+      }
+    ],
+    "Q161": [
+      {
+        "value": "COR",
+        "strength": "PROXY",
+        "note": "science breaks down ideas of right and wrong"
+      }
+    ],
+    "Q162": [
+      {
+        "value": "SDT",
+        "strength": "PROXY",
+        "note": "not important for me to know about science"
+      }
+    ],
+    "Q163": [
+      {
+        "value": "SDT",
+        "strength": "PROXY",
+        "note": "the world is better off because of science"
+      }
+    ],
+    "Q164": [
+      {
+        "value": "TR",
+        "strength": "DIRECT",
+        "note": "how important is God in your life"
+      }
+    ],
+    "Q165": [
+      {
+        "value": "TR",
+        "strength": "DIRECT",
+        "note": "belief in God"
+      }
+    ],
+    "Q166": [
+      {
+        "value": "TR",
+        "strength": "DIRECT",
+        "note": "belief in life after death"
+      }
+    ],
+    "Q167": [
+      {
+        "value": "TR",
+        "strength": "DIRECT",
+        "note": "belief in Hell"
+      }
+    ],
+    "Q168": [
+      {
+        "value": "TR",
+        "strength": "DIRECT",
+        "note": "belief in Heaven"
+      }
+    ],
+    "Q169": [
+      {
+        "value": "TR",
+        "strength": "DIRECT",
+        "note": "when science and religion conflict, religion is right"
+      }
+    ],
+    "Q170": [
+      {
+        "value": "TR",
+        "strength": "DIRECT",
+        "note": "the only acceptable religion is my religion"
+      }
+    ],
+    "Q171": [
+      {
+        "value": "TR",
+        "strength": "DIRECT",
+        "note": "how often you attend religious services"
+      }
+    ],
+    "Q172": [
+      {
+        "value": "TR",
+        "strength": "DIRECT",
+        "note": "how often you pray"
+      }
+    ],
+    "Q173": [
+      {
+        "value": "TR",
+        "strength": "DIRECT",
+        "note": "whether you are a religious person"
+      }
+    ],
+    "Q174": [
+      {
+        "value": "TR",
+        "strength": "DIRECT",
+        "note": "religion means following norms and ceremonies"
+      }
+    ],
+    "Q175": [
+      {
+        "value": "TR",
+        "strength": "DIRECT",
+        "note": "religion means making sense of life after death"
+      }
+    ],
+    "Q176": [
+      {
+        "value": "COR",
+        "strength": "PROXY",
+        "note": "trouble deciding which moral rules are right"
+      }
+    ],
+    "Q177": [
+      {
+        "value": "COR",
+        "strength": "DIRECT",
+        "note": "claiming government benefits you are not entitled to"
+      }
+    ],
+    "Q178": [
+      {
+        "value": "COR",
+        "strength": "DIRECT",
+        "note": "avoiding a fare on public transport"
+      }
+    ],
+    "Q179": [
+      {
+        "value": "COR",
+        "strength": "DIRECT",
+        "note": "stealing property"
+      }
+    ],
+    "Q180": [
+      {
+        "value": "COR",
+        "strength": "DIRECT",
+        "note": "cheating on taxes"
+      }
+    ],
+    "Q181": [
+      {
+        "value": "COR",
+        "strength": "DIRECT",
+        "note": "someone accepting a bribe in their duties"
+      }
+    ],
+    "Q182": [
+      {
+        "value": "UNT",
+        "strength": "DIRECT",
+        "note": "homosexuality is justifiable"
+      }
+    ],
+    "Q183": [
+      {
+        "value": "UNT",
+        "strength": "DIRECT",
+        "note": "prostitution is justifiable"
+      }
+    ],
+    "Q184": [
+      {
+        "value": "UNT",
+        "strength": "DIRECT",
+        "note": "abortion is justifiable"
+      }
+    ],
+    "Q185": [
+      {
+        "value": "UNT",
+        "strength": "DIRECT",
+        "note": "divorce is justifiable"
+      }
+    ],
+    "Q186": [
+      {
+        "value": "UNT",
+        "strength": "DIRECT",
+        "note": "sex before marriage is justifiable"
+      }
+    ],
+    "Q187": [
+      {
+        "value": "UNT",
+        "strength": "DIRECT",
+        "note": "suicide is justifiable"
+      }
+    ],
+    "Q188": [
+      {
+        "value": "UNT",
+        "strength": "DIRECT",
+        "note": "euthanasia is justifiable"
+      }
+    ],
+    "Q189": [
+      {
+        "value": "UNT",
+        "strength": "DIRECT",
+        "note": "a man beating his wife is justifiable"
+      }
+    ],
+    "Q190": [
+      {
+        "value": "UNT",
+        "strength": "DIRECT",
+        "note": "parents beating children is justifiable"
+      }
+    ],
+    "Q191": [
+      {
+        "value": "UNT",
+        "strength": "DIRECT",
+        "note": "violence against other people is justifiable"
+      }
+    ],
+    "Q192": [
+      {
+        "value": "UNT",
+        "strength": "DIRECT",
+        "note": "terrorism as a political means is justifiable"
+      }
+    ],
+    "Q193": [
+      {
+        "value": "UNT",
+        "strength": "DIRECT",
+        "note": "having casual sex is justifiable"
+      }
+    ],
+    "Q194": [
+      {
+        "value": "UNT",
+        "strength": "DIRECT",
+        "note": "political violence is justifiable"
+      }
+    ],
+    "Q195": [
+      {
+        "value": "UNT",
+        "strength": "DIRECT",
+        "note": "the death penalty is justifiable"
+      }
+    ],
+    "Q196": [
+      {
+        "value": "SDT",
+        "strength": "PROXY",
+        "note": "video surveillance in public areas vs privacy"
+      },
+      {
+        "value": "SES",
+        "strength": "PROXY",
+        "note": "video surveillance in public areas for security"
+      }
+    ],
+    "Q197": [
+      {
+        "value": "SDT",
+        "strength": "PROXY",
+        "note": "monitoring emails and internet information vs privacy"
+      },
+      {
+        "value": "SES",
+        "strength": "PROXY",
+        "note": "monitoring emails and internet information for security"
+      }
+    ],
+    "Q198": [
+      {
+        "value": "SDT",
+        "strength": "PROXY",
+        "note": "collecting information about people without their knowledge"
+      },
+      {
+        "value": "SES",
+        "strength": "PROXY",
+        "note": "collecting information about people for security"
+      }
+    ],
+    "Q199": [
+      {
+        "value": "SES",
+        "strength": "PROXY",
+        "note": "interest in politics"
+      }
+    ],
+    "Q200": [
+      {
+        "value": "SES",
+        "strength": "PROXY",
+        "note": "discuss political matters with friends"
+      }
+    ],
+    "Q201": [
+      {
+        "value": "SES",
+        "strength": "PROXY",
+        "note": "reading the daily newspaper"
+      }
+    ],
+    "Q202": [
+      {
+        "value": "SES",
+        "strength": "PROXY",
+        "note": "watching TV news"
+      }
+    ],
+    "Q203": [
+      {
+        "value": "SES",
+        "strength": "PROXY",
+        "note": "listening to radio news"
+      }
+    ],
+    "Q204": [
+      {
+        "value": "SES",
+        "strength": "PROXY",
+        "note": "news via mobile phone"
+      }
+    ],
+    "Q205": [
+      {
+        "value": "SES",
+        "strength": "PROXY",
+        "note": "news via email"
+      }
+    ],
+    "Q206": [
+      {
+        "value": "SES",
+        "strength": "PROXY",
+        "note": "news via the internet"
+      }
+    ],
+    "Q207": [
+      {
+        "value": "SES",
+        "strength": "PROXY",
+        "note": "news via social media"
+      }
+    ],
+    "Q208": [
+      {
+        "value": "SES",
+        "strength": "PROXY",
+        "note": "talking with friends or colleagues"
+      }
+    ],
+    "Q209": [
+      {
+        "value": "UNC",
+        "strength": "PROXY",
+        "note": "signing a petition"
+      }
+    ],
+    "Q210": [
+      {
+        "value": "UNC",
+        "strength": "PROXY",
+        "note": "joining in boycotts"
+      }
+    ],
+    "Q211": [
+      {
+        "value": "UNC",
+        "strength": "PROXY",
+        "note": "attending peaceful demonstrations"
+      }
+    ],
+    "Q212": [
+      {
+        "value": "UNC",
+        "strength": "PROXY",
+        "note": "joining strikes"
+      }
+    ],
+    "Q213": [
+      {
+        "value": "UNC",
+        "strength": "PROXY",
+        "note": "donating to a group or campaign"
+      }
+    ],
+    "Q214": [
+      {
+        "value": "UNC",
+        "strength": "PROXY",
+        "note": "contacting a government official"
+      }
+    ],
+    "Q215": [
+      {
+        "value": "UNC",
+        "strength": "PROXY",
+        "note": "encouraging others to take action on political issues"
+      }
+    ],
+    "Q216": [
+      {
+        "value": "UNC",
+        "strength": "PROXY",
+        "note": "encouraging others to vote"
+      }
+    ],
+    "Q217": [
+      {
+        "value": "SDT",
+        "strength": "PROXY",
+        "note": "searching for information about politics"
+      }
+    ],
+    "Q218": [
+      {
+        "value": "UNC",
+        "strength": "PROXY",
+        "note": "signing an electronic petition"
+      }
+    ],
+    "Q219": [
+      {
+        "value": "UNC",
+        "strength": "PROXY",
+        "note": "encouraging others to take political action"
+      }
+    ],
+    "Q220": [
+      {
+        "value": "UNC",
+        "strength": "PROXY",
+        "note": "organising political activities, events or protests"
+      }
+    ],
+    "Q221": [
+      {
+        "value": "SES",
+        "strength": "DIRECT",
+        "note": "voting at a local level"
+      }
+    ],
+    "Q222": [
+      {
+        "value": "SES",
+        "strength": "DIRECT",
+        "note": "voting at a national level"
+      }
+    ],
+    "Q224": [
+      {
+        "value": "SES",
+        "strength": "DIRECT",
+        "note": "votes are counted fairly"
+      }
+    ],
+    "Q225": [
+      {
+        "value": "SES",
+        "strength": "DIRECT",
+        "note": "opposition candidates are prevented from running"
+      }
+    ],
+    "Q226": [
+      {
+        "value": "SES",
+        "strength": "DIRECT",
+        "note": "TV news favours the governing party"
+      }
+    ],
+    "Q227": [
+      {
+        "value": "SES",
+        "strength": "DIRECT",
+        "note": "voters are bribed"
+      }
+    ],
+    "Q228": [
+      {
+        "value": "SES",
+        "strength": "DIRECT",
+        "note": "journalists provide fair election coverage"
+      }
+    ],
+    "Q229": [
+      {
+        "value": "SES",
+        "strength": "DIRECT",
+        "note": "election officials are fair"
+      }
+    ],
+    "Q230": [
+      {
+        "value": "SES",
+        "strength": "DIRECT",
+        "note": "rich people buy elections"
+      }
+    ],
+    "Q231": [
+      {
+        "value": "SES",
+        "strength": "DIRECT",
+        "note": "voters are threatened with violence"
+      }
+    ],
+    "Q232": [
+      {
+        "value": "SES",
+        "strength": "DIRECT",
+        "note": "voters are offered a genuine choice"
+      }
+    ],
+    "Q233": [
+      {
+        "value": "UNC",
+        "strength": "DIRECT",
+        "note": "women have equal opportunities to run for office"
+      }
+    ],
+    "Q234": [
+      {
+        "value": "SES",
+        "strength": "DIRECT",
+        "note": "having honest elections makes a difference"
+      }
+    ],
+    "Q234A": [
+      {
+        "value": "SES",
+        "strength": "DIRECT",
+        "note": "how much the political system lets you have a say"
+      }
+    ],
+    "Q235": [
+      {
+        "value": "POD",
+        "strength": "DIRECT",
+        "note": "having a strong leader who ignores parliament"
+      }
+    ],
+    "Q236": [
+      {
+        "value": "POD",
+        "strength": "PROXY",
+        "note": "having experts, not government, make decisions"
+      }
+    ],
+    "Q237": [
+      {
+        "value": "POD",
+        "strength": "DIRECT",
+        "note": "having the army rule"
+      }
+    ],
+    "Q238": [
+      {
+        "value": "SES",
+        "strength": "DIRECT",
+        "note": "having a democratic political system"
+      }
+    ],
+    "Q239": [
+      {
+        "value": "TR",
+        "strength": "DIRECT",
+        "note": "having a system governed by religious law"
+      }
+    ],
+    "Q240": [
+      {
+        "value": "UNC",
+        "strength": "PROXY",
+        "note": "left-right self-placement (left end)"
+      },
+      {
+        "value": "POR",
+        "strength": "PROXY",
+        "note": "left-right self-placement (right end)"
+      }
+    ],
+    "Q241": [
+      {
+        "value": "UNC",
+        "strength": "DIRECT",
+        "note": "governments tax the rich and subsidise the poor"
+      }
+    ],
+    "Q242": [
+      {
+        "value": "TR",
+        "strength": "DIRECT",
+        "note": "religious authorities ultimately interpret the laws"
+      }
+    ],
+    "Q243": [
+      {
+        "value": "SES",
+        "strength": "DIRECT",
+        "note": "people choose their leaders in free elections"
+      }
+    ],
+    "Q244": [
+      {
+        "value": "UNC",
+        "strength": "DIRECT",
+        "note": "people receive state aid for unemployment"
+      }
+    ],
+    "Q245": [
+      {
+        "value": "POD",
+        "strength": "DIRECT",
+        "note": "the army takes over when government is incompetent"
+      }
+    ],
+    "Q246": [
+      {
+        "value": "SES",
+        "strength": "DIRECT",
+        "note": "civil rights protect people from state oppression"
+      }
+    ],
+    "Q247": [
+      {
+        "value": "UNC",
+        "strength": "DIRECT",
+        "note": "the state makes people's incomes equal"
+      }
+    ],
+    "Q248": [
+      {
+        "value": "COR",
+        "strength": "DIRECT",
+        "note": "people obey their rulers"
+      },
+      {
+        "value": "POD",
+        "strength": "PROXY",
+        "note": "people obey their rulers"
+      }
+    ],
+    "Q249": [
+      {
+        "value": "UNC",
+        "strength": "DIRECT",
+        "note": "women have the same rights as men"
+      }
+    ],
+    "Q250": [
+      {
+        "value": "SES",
+        "strength": "DIRECT",
+        "note": "importance of living in a country governed democratically"
+      }
+    ],
+    "Q251": [
+      {
+        "value": "SES",
+        "strength": "DIRECT",
+        "note": "how democratically the country is governed"
+      }
+    ],
+    "Q252": [
+      {
+        "value": "SES",
+        "strength": "DIRECT",
+        "note": "satisfaction with how the political system is functioning"
+      }
+    ],
+    "Q253": [
+      {
+        "value": "SES",
+        "strength": "DIRECT",
+        "note": "respect for individual human rights in New Zealand"
+      },
+      {
+        "value": "UNC",
+        "strength": "PROXY",
+        "note": "respect for individual human rights in New Zealand"
+      }
+    ],
+    "Q254": [
+      {
+        "value": "FA",
+        "strength": "PROXY",
+        "note": "how proud you are to be a New Zealander"
+      },
+      {
+        "value": "SES",
+        "strength": "PROXY",
+        "note": "how proud you are to be a New Zealander"
+      }
+    ],
+    "Q257": [
+      {
+        "value": "SES",
+        "strength": "PROXY",
+        "note": "closeness to New Zealand as a whole"
+      }
+    ],
+    "Q258": [
+      {
+        "value": "UNC",
+        "strength": "PROXY",
+        "note": "closeness to the South Pacific"
+      }
+    ],
+    "Q259": [
+      {
+        "value": "UNC",
+        "strength": "PROXY",
+        "note": "closeness to the world as a whole"
+      }
+    ]
+  }
+}

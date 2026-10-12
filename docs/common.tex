@@ -53,11 +53,18 @@
 % \cfigure{bootstrap_stability.png}{Caption text} -> \label{fig:bootstrap_stability}
 % Images are loaded from the repo's code/figures/ dir (requires the xstring package)
 % The optional width defaults to 0.8\textwidth; use [\textwidth] for full width.
-% Strip the file extension for use as a label; if there is no dot
-% (e.g. a bare stem like "bootstrap_stability") the whole name is used.
-% Note: \StrBefore alone would return an empty result when no dot exists.
+% Strip a known file extension for use as a label; if there is no known
+% extension (e.g. a bare stem like "bootstrap_stability", or a name containing
+% dots such as a model version "ft-results-Qwen3.5-9B") the whole name is used.
+% This keeps labels unique: stripping at the first dot would map every
+% Qwen3.x table to the same label.
 \newcommand{\stripext}[2]{%
-   \IfSubStr{#1}{.}{\StrBefore{#1}{.}[#2]}{\def#2{#1}}%
+   \def#2{#1}%
+   \IfEndWith{#1}{.tex}{\StrBefore{#1}{.tex}[#2]}{}%
+   \IfEndWith{#1}{.png}{\StrBefore{#1}{.png}[#2]}{}%
+   \IfEndWith{#1}{.pdf}{\StrBefore{#1}{.pdf}[#2]}{}%
+   \IfEndWith{#1}{.jpg}{\StrBefore{#1}{.jpg}[#2]}{}%
+   \IfEndWith{#1}{.jpeg}{\StrBefore{#1}{.jpeg}[#2]}{}%
 }
 
 \NewDocumentCommand{\cfigure}{O{htbp} O{0.8\textwidth} m m}{%

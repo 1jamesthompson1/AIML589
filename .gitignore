@@ -32,3 +32,6 @@ survey/reference.qsf
 survey/survey-mockup.tex
 # managed survey id (qualtrics_sync.py state)
 survey/managed-survey.txt
+
+# Generated dilemma logs, exported runs and comparisons
+code/dilemmas/output/

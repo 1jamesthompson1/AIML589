@@ -11,18 +11,20 @@ def _():
 
     import pandas as pd
 
-    # The profiles package lives next to this notebook; make it importable no
-    # matter how the notebook is invoked (marimo, flat script, ...).
+    # The profiles package lives next to this notebook and the shared LaTeX
+    # table helpers in code/; make both importable no matter how the notebook
+    # is invoked (marimo, flat script, ...).
     sys.path.insert(0, str(Path(__file__).resolve().parent))
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
+    from latex_tables import write_tex
     from profiles import list_profiles, profile_spec, situations
 
-    FIGS_DIR = Path(__file__).resolve().parent.parent / "figures"
-    return FIGS_DIR, Path, list_profiles, pd, profile_spec, situations
+    return Path, list_profiles, pd, profile_spec, situations, write_tex
 
 
 @app.cell
-def _(FIGS_DIR, Path, list_profiles, pd, profile_spec, situations):
+def _(Path, list_profiles, pd, profile_spec, situations, write_tex):
     # The profiles x situations summary table. The profile (and situation)
     # form the DataFrame's index, so pandas' native sparsified index
     # rendering prints the profile label once per group -- no manual cell
@@ -76,9 +78,7 @@ def _(FIGS_DIR, Path, list_profiles, pd, profile_spec, situations):
                 rows.append("\\midrule\n")
             rows.append(line)
         tex = "".join(rows).replace("\\bottomrule", "\\midrule\n\\bottomrule")
-        out_path = FIGS_DIR / filename
-        out_path.write_text(tex)
-        return out_path
+        return write_tex(tex, filename)
 
     scenarios_df = render_table()
 

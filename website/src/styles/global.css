@@ -491,6 +491,202 @@ section {
   }
 }
 
+/* Dilemma runs: per-model responses, judge classifications and the
+ * survey-style comparison panel. */
+.dilemma-stimulus {
+  margin-bottom: 1.25rem;
+  padding: 1rem 1.15rem;
+  border: 1px solid var(--color-border);
+  border-left: 4px solid var(--color-primary);
+  border-radius: 0.65rem;
+  background: white;
+}
+
+.dilemma-stimulus__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem 0.9rem;
+  margin: 0 0 0.6rem;
+  color: var(--color-muted);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.dilemma-stimulus__situation {
+  margin: 0 0 0.6rem;
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
+
+.dilemma-stimulus__question {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.dilemma-options {
+  margin-top: 0.7rem;
+  padding-top: 0.6rem;
+  border-top: 1px dashed var(--color-border);
+}
+
+.dilemma-options summary {
+  cursor: pointer;
+  color: var(--color-muted);
+  font-size: 0.72rem;
+}
+
+.dilemma-options ul {
+  margin: 0.5rem 0 0;
+  padding-left: 1.1rem;
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
+
+.dilemma-response-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(22rem, 1fr));
+  gap: 1rem;
+  align-items: start;
+}
+
+.dilemma-panel {
+  min-width: 0;
+  padding: 0.9rem 1rem;
+  border: 1px solid var(--color-border);
+  border-top: 3px solid var(--color-primary);
+  border-radius: 0.75rem;
+  background: var(--color-bg);
+}
+
+.dilemma-panel__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+  margin-bottom: 0.7rem;
+}
+
+.dilemma-panel__kicker,
+.dilemma-agent__kicker {
+  margin: 0 0 0.1rem;
+  color: var(--color-muted);
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.dilemma-panel__model,
+.dilemma-agent__model {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.dilemma-response-text {
+  margin: 0 0 0.75rem;
+  font-size: 0.88rem;
+  line-height: 1.6;
+  font-family: inherit;
+}
+
+.dilemma-judge {
+  padding: 0.7rem 0.8rem;
+  border: 2px solid #6366f1;
+  border-radius: 0.6rem;
+  background: #f0f4ff;
+}
+
+.dilemma-judge__title {
+  margin: 0 0 0.4rem;
+  color: #4f46e5;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.dilemma-judge__line {
+  margin: 0 0 0.3rem;
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+
+.dilemma-judge__reason {
+  margin: 0.4rem 0 0;
+  color: var(--color-muted);
+  font-size: 0.78rem;
+  line-height: 1.5;
+}
+
+.dilemma-judge__empty {
+  margin: 0;
+  font-size: 0.78rem;
+}
+
+.dilemma-provenance {
+  margin: 0.65rem 0 0;
+  font-size: 0.68rem;
+  line-height: 1.4;
+}
+
+.dilemma-comparison__header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 1rem;
+  align-items: center;
+  margin-bottom: 0.9rem;
+  font-size: 0.75rem;
+}
+
+.dilemma-comparison__kicker {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.dilemma-summary-text {
+  margin: 0;
+  font-size: 0.85rem;
+  line-height: 1.6;
+  font-family: inherit;
+}
+
+.dilemma-agent-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 1.25rem;
+  align-items: start;
+}
+
+.dilemma-agent {
+  min-width: 0;
+  padding: 0.85rem 0.9rem;
+  border: 1px solid var(--color-border);
+  border-radius: 0.65rem;
+  background: var(--color-bg);
+}
+
+.dilemma-agent--a { border-left: 4px solid #6366f1; }
+.dilemma-agent--b { border-right: 4px solid #ec4899; }
+
+@media (max-width: 800px) {
+  .dilemma-agent-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .dilemma-agent--a { border-left-width: 1px; border-top: 4px solid #6366f1; }
+  .dilemma-agent--b { border-right-width: 1px; border-top: 4px solid #ec4899; }
+}
+
 /* Data-source and result-summary controls */
 .data-source-notice {
   display: flex;

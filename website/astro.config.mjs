@@ -10,8 +10,8 @@ const artifactsRoot = fileURLToPath(new URL('../artifacts/', import.meta.url));
  *
  * Public-directory symlinks are convenient but are not reliable across
  * Astro/Vite versions and worktrees. The dev source of truth is the
- * repository-level `artifacts/` directory, so expose only its ft/ and bs/
- * prefixes with an explicit, traversal-safe middleware.
+ * repository-level `artifacts/` directory, so expose only its ft/, bs/ and
+ * dilemmas/ prefixes with an explicit, traversal-safe middleware.
  */
 function localArtifactsDevPlugin() {
   return {
@@ -20,7 +20,7 @@ function localArtifactsDevPlugin() {
       // Older checkouts may still have public/ft or public/bs symlinks. Astro
       // would follow them during a production build and accidentally upload
       // the artifact mirror, so fail with an actionable message instead.
-      for (const name of ['ft', 'bs']) {
+      for (const name of ['ft', 'bs', 'dilemmas']) {
         const publicLink = new URL(`./public/${name}`, import.meta.url);
         try {
           if (fs.lstatSync(publicLink).isSymbolicLink()) {
@@ -41,7 +41,7 @@ function localArtifactsDevPlugin() {
         } catch {
           return next();
         }
-        if (!/^\/(?:ft|bs)(?:\/|$)/.test(pathname)) return next();
+        if (!/^\/(?:ft|bs|dilemmas)(?:\/|$)/.test(pathname)) return next();
 
         const relative = pathname.replace(/^\/+/, '');
         let filePath = path.resolve(artifactsRoot, relative);

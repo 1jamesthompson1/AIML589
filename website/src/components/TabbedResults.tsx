@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
 import ResultsViewer from './ResultsViewer';
 import SimulationViewer from './SimulationViewer';
+import DilemmasViewer from './DilemmasViewer';
 
 const tabs = [
   { id: 'evals', label: 'Fine-tuning Results' },
   { id: 'simulation', label: 'Simulation Results' },
+  { id: 'dilemmas', label: 'Dilemma Results' },
   { id: 'interact', label: 'Interact with Model' },
 ];
 
@@ -62,6 +64,12 @@ export default function TabbedResults() {
         {activeTab === 'simulation' && (
           <div className="container">
             <SimulationViewer />
+          </div>
+        )}
+
+        {activeTab === 'dilemmas' && (
+          <div className="container">
+            <DilemmasViewer />
           </div>
         )}
 

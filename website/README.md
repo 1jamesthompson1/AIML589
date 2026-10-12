@@ -18,8 +18,9 @@ src/
 │   ├── PipelineAnimation.tsx    # Interactive pipeline graphic (React island)
 │   ├── ResultsViewer.tsx        # Eval results browser (React island)
 │   ├── SimulationViewer.tsx     # Behavioural-simulation runs browser (React island)
+│   ├── DilemmasViewer.tsx       # Dilemma runs and comparisons browser (React island)
 │   ├── DataSourceNotice.tsx     # Local/bucket source indicator and switch link
-│   └── TabbedResults.tsx        # Results-viewer tabs (evals / simulations / interact)
+│   └── TabbedResults.tsx        # Results-viewer tabs (evals / simulations / dilemmas / interact)
 ├── layouts/        # Page shell components
 │   └── BaseLayout.astro        # Shared header/footer wrapper
 ├── lib/            # Runtime data-source and fetch helpers
@@ -37,12 +38,12 @@ npm run preview   # Serve built site locally
 
 ## Data flow
 
-Both data viewers fetch **at runtime**; heavy artifacts are not bundled by a
+All data viewers fetch **at runtime**; heavy artifacts are not bundled by a
 production build. The default source depends on the environment:
 
-- `npm run dev` reads `artifacts/ft` and `artifacts/bs` directly from the
-  repository root through a dev-server middleware. It does not require a
-  symlink, a download, or an HF sync.
+- `npm run dev` reads `artifacts/ft`, `artifacts/bs` and `artifacts/dilemmas`
+  directly from the repository root through a dev-server middleware. It does
+  not require a symlink, a download, or an HF sync.
 - Production builds and `npm run preview` read the public HF storage bucket
   (`1jamesthompson1/wvs-nz-value-alignment-evals`).
 - `?local=0` forces the bucket in development; `?local=1` forces local files
@@ -124,6 +125,32 @@ The simulation viewer provides:
 There is no per-run `audit.txt`. Cross-model audits are embedded under
 `audits` in each `artifacts/bs/comparisons/...json` document.
 
+### Dilemma runs and comparisons
+
+`code/dilemmas/export_results.py` writes `artifacts/dilemmas/runs/index.json`
+(schema `wvs-dilemma-runs-index/v2`: profiles, the dilemma inventory, models,
+and every run) plus one directory per run containing `response.txt`,
+`judge.json`, `config.json`, and the transcript. `code/dilemmas/compare.py`
+writes one JSON per cross-model pair under
+`artifacts/dilemmas/comparisons/<model-pair>/<scenario>/` and rebuilds
+`artifacts/dilemmas/comparisons/index.json` from every stored file.
+
+The dilemma viewer has two modes for the selected dilemma:
+
+- **Inline responses** shows one card per model, each with a run selector so a
+  specific response (run 1–N) can be chosen, the response text, and the
+  judge's classification (decision, value, reason);
+- **Comparison** picks one stored cross-model comparison and shows the
+  survey-style block (situation, question, "this is what happened", preference
+  and AI-use questions) followed by both stored source responses and the
+  judge results loaded from the current runs export.
+
+If the comparisons index is missing, the comparison mode explains that
+`uv run python code/dilemmas/compare.py` must be run first; the inline mode
+works from the runs manifest alone. An older runs index without the dilemma
+inventory still works: the viewer falls back to a selected run's `config.json`
+for the dilemma text.
+
 ## Deployment
 
 Pushing to `main` triggers a GitHub Action that builds and deploys to GitHub
@@ -139,7 +166,10 @@ Pages. DNS for `nz-llm.sjhl.nz` is a `CNAME` pointing to
 3. For simulations, run the export workflow in
    `code/behavioural-simulations/README.md` to regenerate the run/comparison
    manifests.
-4. Use the normal repository artifact workflow when the results should be
+4. For dilemmas, run `uv run python code/dilemmas/export_results.py` (runs
+   manifest) and `uv run python code/dilemmas/compare.py` (comparisons and
+   their index) as described in `code/dilemmas/README.md`.
+5. Use the normal repository artifact workflow when the results should be
    published; the website itself never syncs or downloads artifacts.
 
 The site picks up a new manifest on refresh. It does not need a rebuild for a

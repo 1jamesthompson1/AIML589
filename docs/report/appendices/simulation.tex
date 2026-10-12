@@ -1,3 +1,6 @@
+\fixmeinline{Clean up to be appendix appropriate.}
+\label{app:simulation}
+
 In Chapter \ref{chap:finetuning} it was shown that a model can be fine-tuned to answer a \termref{value-survey} in a similar manner to a human...? However the goal of this is to have a model behave in a manner that is aligned with humans and this can only be tested by putting the model in a situation where it needs to make decisions. In this chapter I conduct behavioural simulations of the model to see what decisions it makes when put in various simulated deployment scenarios. The goal here is to test if fine tuned models make decisions that are appreciably different to a baseline model which will answer \rqref{align}. Additionally summaries of the trajectories of each simulation are used in \ref{chap:survey} to answer \rqref{prefer}.
 
 
@@ -10,7 +13,7 @@ A presentation and discussion of the results...
 
 \section{Simulation setup}
 
-To test how a model acts it is best practice to use a simulation of deployment environments, for reasons discussed in \ref{subsec:realistic-behaviour}. This is common place when testing for safety and capabilities of AI systems \cite{}. Differently from usual evaluations/benchmarks is that there is no right or wrong answer in these simulations, it is exploratory in nature to understand its behaviour.
+To test how a model acts it is best practice to use a simulation of deployment environments, for reasons discussed in \ref{subsec:realistic-behaviour}. This is common place when testing for safety and capabilities of AI systems \cn. Differently from usual evaluations/benchmarks is that there is no right or wrong answer in these simulations, it is exploratory in nature to understand its behaviour.
 
 
 
@@ -55,13 +58,12 @@ Each of the profiles are built as realistic agentic harnesses for the model. Thi
 
 The choice of situations are based on trying to illicit value rich decisions from the model. Specifically we would like to have situations in which on aggregate the USA and China disagrees with New Zealand. The choice of these two countries is due to most of the frontier LLM models originate from them. There are various ways to understand value systems (see section \ref{sec:values}) yet due to the use of the World Values Survey understanding the countries through the lens of the Inglehart-Welzel cultural map is used \cite{WVSMAP}. This splits values into two dimensions: traditional vs secular-rational values and survival vs self-expression values. China and New Zealand have similar traditional vs secular-rational values yet NZ is very self-expressive while China is more survivalist. USA is generally more traditional and survival oriented than New Zealand however more self-expressive than China.
 
-Look at \tabref{ft-divergent-questions-Qwen3.8-27B} we can see which question Qwen 3.8diverges the most from New Zealand. From these top 25 questions situations were hand crafted so that each situation has a value difference that is representative of one or more of the questions.
+Look at \tabref{ft-divergent-questions-Qwen3.8-27B} we can see which question Qwen 3.8diverges the most from New Zealand. Problematically these questions are not significally more divergent than the other questions so choosing these questions to create situations would be namely fitting noise. Instead the WVS questions are mapped into the Schwartz value system \cn[Schwartz value system reference] and then the tensions between base models and New Zealand are used to create situations.
 
 A full list of the situations is shown in \tabref{behavioural-sim-profiles}.
 
 \ctable{ft-divergent-questions-Qwen3.8-27B}{A list of the top 25 questions that Qwen 3.8 diverges the most from New Zealand.}
 
-\ctable{ft-similar-questions-Qwen3.8-27B}{A list of the top 25 questions that Qwen 3.8 is most similar to New Zealand.}
 
 \ctable{behavioural-sim-profiles}{Simulation profiles and situations. Bolded entries are interactive scenarios.}
 
