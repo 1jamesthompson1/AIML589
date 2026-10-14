@@ -1,6 +1,6 @@
 """Render a PDF mockup of the live survey definition.
 
-Walks ``survey_definition.build(variant)`` (the same payloads
+Walks ``survey_definition.build()`` (the same payloads
 ``qualtrics_sync.py`` pushes to the remote survey) and emits a plain LaTeX
 questionnaire so a human can eyeball the exact deployed wording. Run:
 
@@ -19,7 +19,7 @@ DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(DIR))
 import survey_definition as sd  # noqa: E402
 
-MAX_SAMPLE_BLOCKS = 2  # of the 25 randomised comparison blocks
+MAX_SAMPLE_BLOCKS = 2  # of the randomised comparison blocks
 
 PREAMBLE = r"""\documentclass[11pt,a4paper]{article}
 \usepackage[margin=2.2cm]{geometry}
@@ -95,14 +95,6 @@ def html_to_latex(text: str) -> str:
         for p in re.split("([" + re.escape(sents) + "])", out)
     ]
     return "".join(pieces)
-
-
-def short_label(desc: str) -> str:
-    """Readable 'content moderator - harassment campaign' from the ugly
-    comparison id/description."""
-    s = re.sub(r"^Comparison:\s*", "", desc)
-    s = re.sub(r"^[0-9a-zA-Z]{20}_", "", s.split("__")[0])
-    return s.rsplit("_", 1)[0].replace("_", " ")
 
 
 def two_line(label: str) -> str:
@@ -243,14 +235,21 @@ Every item is skippable via its ``Prefer not to say' option.}""")
         out.append(question(q["QuestionText"], body))
 
     # --- Section B: task description + comparison sample ---------------------
-    out.append(r"""\section*{Section B - The comparison task}
-\note{The exact comparisions and scenarios are not yet finalised. The two blocks below are just a sample to get the picture of what
-they look like. Actual respondents see approximately 5 comparisions randomly
-drawn from a pool of 625 questions. The full list of scenarios is public
-on the project website: \url{https://nz-llm.sjhl.nz/agents/}. Each block
-contains three questions: the scenario description, the Agent 1 vs Agent 2
+    out.append(
+        r"""\section*{Section B - The comparison task}
+\note{The exact blocks shown are not yet finalised. The two blocks below are
+just a sample to get the picture of what they look like. Actual respondents see
+approximately """
+        + str(sd.N_PAIRS_SHOWN)
+        + r""" blocks randomly drawn from a pool of """
+        + str(len(d["comparison_blocks"]))
+        + r""" dilemma blocks (each block one pair of model answers to the same
+dilemma). The dilemmas are public on the project website:
+\url{https://nz-llm.sjhl.nz/results-viewer/?tab=dilemmas}. Each block contains
+three questions: the role and dilemma with both answers, the Agent 1 vs Agent 2
 preference, and whether they agree with an AI agent being used in that
-situation at all.}""")
+situation at all.}"""
+    )
     desc_b = d["section_b"]["questions"][0]
     out.append(question(desc_b["QuestionText"], ""))
     pref_q = next(
@@ -269,11 +268,7 @@ situation at all.}""")
     for i, b in enumerate(d["comparison_blocks"][:MAX_SAMPLE_BLOCKS], 1):
         desc_q = next(q for q in b["questions"] if q["QuestionType"] == "DB")
         out.append(
-            r"\blocktitle{Comparison "
-            + str(i)
-            + "}{"
-            + tex_escape(short_label(b["description"]))
-            + r"}"
+            r"\blocktitle{Comparison " + str(i) + "}{" + tex_escape(b["label"]) + r"}"
         )
         out.append(question(desc_q["QuestionText"], ""))
         out.append(question(pref_q["QuestionText"], horizontal_scale(pref_labels)))

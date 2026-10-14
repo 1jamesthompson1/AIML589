@@ -11,7 +11,6 @@ export const LOCAL_FT_BASE = '/ft/evals/';
 export const LOCAL_BS_BASE = '/bs/runs/';
 export const LOCAL_COMPARISONS_BASE = '/bs/comparisons/';
 export const LOCAL_DILEMMAS_BASE = '/dilemmas/runs/';
-export const LOCAL_DILEMMAS_COMPARISONS_BASE = '/dilemmas/comparisons/';
 
 export const urlParams = typeof window !== 'undefined'
   ? new URLSearchParams(window.location.search)
@@ -43,13 +42,6 @@ export function comparisonsBaseUrl(manifestUrlValue: string): string {
   // The manifest is normally at bs/runs/index.json. Keep custom manifest
   // URLs useful by deriving the sibling comparisons directory from them.
   return manifestUrlValue.replace(/bs\/runs\/?.*$/, 'bs/comparisons/');
-}
-
-export function dilemmaComparisonsBaseUrl(manifestUrlValue: string): string {
-  if (isLocalSourceUrl(manifestUrlValue)) return LOCAL_DILEMMAS_COMPARISONS_BASE;
-  // The manifest is normally at dilemmas/runs/index.json; derive the sibling
-  // comparisons directory from it so ?manifest= overrides keep working.
-  return manifestUrlValue.replace(/dilemmas\/runs\/?.*$/, 'dilemmas/comparisons/');
 }
 
 export function sourceSwitchHref(local: boolean): string {

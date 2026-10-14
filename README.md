@@ -72,7 +72,7 @@ Separated into pipeline phases:
 - **`training-dataset/`** — Wrangles WVS data, clusters respondents via LCA, builds training datasets (modal, sampled, distributional).
 - **`fine-tuning/`** — LoRA fine-tunes open-weight LLMs on the dataset and evaluates distributional alignment.
 - **`behavioural-simulations/`** — Runs agentic simulations and generates comparisons for the survey.
-- **`dilemmas/`** — Single-response NZ moral dilemmas with LLM judge classifications and cross-model comparison summaries.
+- **`dilemmas/`** — Single-response NZ moral dilemmas with LLM judge classifications.
 
 Each has its own README. Code is written as Marimo notebooks for reproducibility and bash scripts for automation.
 

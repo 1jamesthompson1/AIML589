@@ -514,6 +514,121 @@ section {
   text-transform: uppercase;
 }
 
+.dilemma-stimulus__lead {
+  margin: 0.5rem 0 0.2rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--color-muted);
+}
+
+.dilemma-stimulus__role {
+  margin: 0 0 0.6rem;
+  color: var(--color-muted);
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+
+/* Per-dilemma outcome chart: grouped bars, one bar per model per answer
+ * option, height = share of that model's exported runs. */
+.dilemma-outcomes {
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: 0.75rem;
+  padding: 0.9rem 1rem 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.dilemma-outcomes__title {
+  margin: 0 0 0.5rem;
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.dilemma-outcomes__legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 1.1rem;
+  margin-bottom: 0.75rem;
+  font-size: 0.78rem;
+  color: var(--color-muted);
+}
+
+.dilemma-outcomes__legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.dilemma-outcomes__swatch {
+  display: inline-block;
+  width: 0.7rem;
+  height: 0.7rem;
+  border-radius: 0.2rem;
+}
+
+.dilemma-outcomes__chart {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.75rem;
+  height: 10rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.dilemma-outcomes__group {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  height: 100%;
+}
+
+.dilemma-outcomes__bars {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 0.25rem;
+  width: 100%;
+  height: 100%;
+}
+
+.dilemma-outcomes__bar-wrap {
+  display: flex;
+  flex: 0 1 2.2rem;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  height: 100%;
+}
+
+.dilemma-outcomes__bar-value {
+  font-size: 0.62rem;
+  color: var(--color-muted);
+  line-height: 1;
+  margin-bottom: 0.15rem;
+}
+
+.dilemma-outcomes__bar {
+  width: 100%;
+  min-height: 2px;
+  border-radius: 0.25rem 0.25rem 0 0;
+}
+
+.dilemma-outcomes__group-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--color-muted);
+  padding-bottom: 0.15rem;
+}
+
+.dilemma-outcomes__options {
+  margin: 0.6rem 0 0;
+  padding-left: 1.2rem;
+  font-size: 0.75rem;
+  color: var(--color-muted);
+  line-height: 1.45;
+}
+
 .dilemma-stimulus__situation {
   margin: 0 0 0.6rem;
   font-size: 0.9rem;
@@ -545,6 +660,31 @@ section {
   line-height: 1.5;
 }
 
+.dilemma-prompt {
+  margin-top: 0.7rem;
+  padding-top: 0.6rem;
+  border-top: 1px dashed var(--color-border);
+}
+
+.dilemma-prompt summary {
+  cursor: pointer;
+  color: var(--color-muted);
+  font-size: 0.72rem;
+}
+
+.dilemma-prompt__text {
+  margin: 0.5rem 0 0;
+  max-height: 26rem;
+  overflow: auto;
+  padding: 0.7rem 0.8rem;
+  border: 1px solid var(--color-border);
+  border-radius: 0.5rem;
+  background: var(--color-surface);
+  font-size: 0.75rem;
+  line-height: 1.55;
+  color: var(--color-muted);
+}
+
 .dilemma-response-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(22rem, 1fr));
@@ -570,8 +710,7 @@ section {
   margin-bottom: 0.7rem;
 }
 
-.dilemma-panel__kicker,
-.dilemma-agent__kicker {
+.dilemma-panel__kicker {
   margin: 0 0 0.1rem;
   color: var(--color-muted);
   font-size: 0.65rem;
@@ -580,8 +719,7 @@ section {
   text-transform: uppercase;
 }
 
-.dilemma-panel__model,
-.dilemma-agent__model {
+.dilemma-panel__model {
   margin: 0;
   font-size: 0.95rem;
   font-weight: 700;
@@ -633,58 +771,6 @@ section {
   margin: 0.65rem 0 0;
   font-size: 0.68rem;
   line-height: 1.4;
-}
-
-.dilemma-comparison__header {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.4rem 1rem;
-  align-items: center;
-  margin-bottom: 0.9rem;
-  font-size: 0.75rem;
-}
-
-.dilemma-comparison__kicker {
-  margin: 0;
-  color: var(--color-muted);
-  font-size: 0.7rem;
-  font-weight: 800;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
-
-.dilemma-summary-text {
-  margin: 0;
-  font-size: 0.85rem;
-  line-height: 1.6;
-  font-family: inherit;
-}
-
-.dilemma-agent-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: 1.25rem;
-  align-items: start;
-}
-
-.dilemma-agent {
-  min-width: 0;
-  padding: 0.85rem 0.9rem;
-  border: 1px solid var(--color-border);
-  border-radius: 0.65rem;
-  background: var(--color-bg);
-}
-
-.dilemma-agent--a { border-left: 4px solid #6366f1; }
-.dilemma-agent--b { border-right: 4px solid #ec4899; }
-
-@media (max-width: 800px) {
-  .dilemma-agent-grid {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .dilemma-agent--a { border-left-width: 1px; border-top: 4px solid #6366f1; }
-  .dilemma-agent--b { border-right-width: 1px; border-top: 4px solid #ec4899; }
 }
 
 /* Data-source and result-summary controls */

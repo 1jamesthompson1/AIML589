@@ -23,6 +23,7 @@ from __future__ import annotations
 import json
 import os
 import re
+import sys
 from pathlib import Path
 
 from inspect_ai import Task, task
@@ -40,6 +41,11 @@ from inspect_ai.solver import Generate, Solver, TaskState, solver
 
 HERE = Path(__file__).resolve().parent
 PROFILES_DIR = HERE / "profiles"
+
+# OpenRouter generations (target models and the judge) are attributed to the
+# repository's "Dilemmas" app - see code/openrouter_attribution.py.
+sys.path.insert(0, str(HERE.parent))
+from openrouter_attribution import DILEMMAS_HEADERS, attributed_config  # noqa: E402
 
 
 def load_profiles() -> list[dict]:
@@ -97,7 +103,9 @@ def single_response(max_tokens: int = 6000) -> Solver:
                 input=state.messages,
                 tools=[],
                 cache=False,
-                config=GenerateConfig(max_tokens=max_tokens),
+                config=attributed_config(
+                    model, GenerateConfig(max_tokens=max_tokens), DILEMMAS_HEADERS
+                ),
             )
             if state.output.message.text and state.output.message.text.strip():
                 break
@@ -189,11 +197,15 @@ def dilemma_judge(max_tokens: int = 4000) -> Scorer:
         model = _judge_model()
         output = await model.generate(
             [ChatMessageUser(content=prompt)],
-            config=GenerateConfig(
-                response_schema=ResponseSchema(
-                    name="dilemma_choice", json_schema=schema, strict=True
+            config=attributed_config(
+                model,
+                GenerateConfig(
+                    response_schema=ResponseSchema(
+                        name="dilemma_choice", json_schema=schema, strict=True
+                    ),
+                    max_tokens=max_tokens,
                 ),
-                max_tokens=max_tokens,
+                DILEMMAS_HEADERS,
             ),
         )
         parsed = _parse(output.completion or "", options)
@@ -219,7 +231,7 @@ def dilemma_judge(max_tokens: int = 4000) -> Scorer:
 
 @task
 def dilemmas() -> Task:
-    """All hand-written dilemmas across the six work environments."""
+    """All hand-written dilemmas across the deployed-agent profiles."""
     return Task(
         name="wvs-dilemmas",
         dataset=build_samples(),

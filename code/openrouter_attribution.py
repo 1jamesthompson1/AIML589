@@ -32,6 +32,9 @@ COMPARISONS_HEADERS = openrouter_headers(
 WVS_VALUE_MAP_HEADERS = openrouter_headers(
     "WVS Value Map", "https://nz-llm.sjhl.nz/results-viewer/?tab=evals"
 )
+DILEMMAS_HEADERS = openrouter_headers(
+    "Dilemmas", "https://nz-llm.sjhl.nz/results-viewer/?tab=dilemmas"
+)
 
 
 def headers_for_provider(

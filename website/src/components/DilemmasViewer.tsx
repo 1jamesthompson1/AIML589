@@ -4,31 +4,33 @@ import DataSourceNotice from './DataSourceNotice';
 import {
   DEFAULT_BUCKET,
   LOCAL_DILEMMAS_BASE,
-  dilemmaComparisonsBaseUrl,
   isLocalSourceUrl,
   manifestUrl,
   urlParams,
 } from '../lib/dataSource';
-import {
-  SURVEY_AI_USE_QUESTION,
-  SURVEY_AI_USE_SCALE,
-  SURVEY_PREFERENCE_QUESTION,
-  SURVEY_PREFERENCE_SCALE,
-} from '../lib/survey';
+import { SURVEY_ROLE_LEAD } from '../lib/survey';
+
+/* The survey block's framing (survey/comparison-question.md) with the role,
+ * situation and question leads kept as the reader sees them in the public
+ * consultation. A survey block always shows exactly two answers, so its
+ * wording is singular; the viewer can show every model with runs, hence the
+ * plural-neutral variants for the situation and question leads. */
+const VIEWER_SITUATION_LEAD =
+  'Each model below was given this situation, independently of the others:';
+const VIEWER_QUESTION_LEAD = 'They were all asked:';
 
 /* Dilemma runs viewer.
  *
  * Data lives in the project's public HF storage bucket (or the local
  * artifacts mirror in dev):
- *   dilemmas/runs/index.json         - profiles, dilemmas and every run
+ *   dilemmas/runs/index.json         - profiles (with system prompts),
+ *                                      dilemmas and every run
  *   dilemmas/runs/<path>/response.txt
  *   dilemmas/runs/<path>/judge.json
- *   dilemmas/comparisons/index.json  - the stored pairwise comparisons
- *   dilemmas/comparisons/<pair>/<scenario>/<id>.json
  *
- * Two modes: every model's response to one dilemma side by side (with a
- * per-model run selector), and a survey-style read of one stored comparison
- * summary with its two source responses.
+ * Every model's response to one dilemma side by side, with a per-model run
+ * selector. The selected profile's system prompt is shown collapsed under
+ * the dilemma stimulus.
  */
 
 const RUNS_MANIFEST_URL = manifestUrl(LOCAL_DILEMMAS_BASE, 'dilemmas/runs/index.json');
@@ -36,7 +38,6 @@ const MANIFEST_IS_LOCAL = isLocalSourceUrl(RUNS_MANIFEST_URL);
 const RUNS_BASE = MANIFEST_IS_LOCAL
   ? LOCAL_DILEMMAS_BASE
   : RUNS_MANIFEST_URL.replace(/index\.json(?:\?.*)?$/, '');
-const COMPARISONS_BASE = dilemmaComparisonsBaseUrl(RUNS_MANIFEST_URL);
 
 interface DilemmaInfo {
   profile_id: string;
@@ -47,6 +48,8 @@ interface DilemmaInfo {
   question?: string;
   answer_options?: string[];
   value_options?: string[];
+  /** model -> judge choice -> exported runs (runs index v2, additive field) */
+  choice_counts?: Record<string, Record<string, number>>;
 }
 
 interface RunRow {
@@ -64,28 +67,13 @@ interface RunsManifest {
   generated_at?: string;
   bucket?: string;
   base_url?: string;
-  profiles?: Record<string, { name?: string }>;
+  profiles?: Record<
+    string,
+    { name?: string; role_summary?: string; system_prompt?: string }
+  >;
   dilemmas?: DilemmaInfo[];
   models?: string[];
   runs: RunRow[];
-}
-
-interface ComparisonRow {
-  comparison_id: string;
-  profile_id: string;
-  situation_id: string;
-  model_pair: string;
-  scenario: string;
-  agent1_run_id: string;
-  agent1_model: string;
-  agent2_run_id: string;
-  agent2_model: string;
-  summary_model?: string;
-}
-
-interface ComparisonsIndex {
-  schema: string;
-  comparisons: ComparisonRow[];
 }
 
 interface JudgeDoc {
@@ -99,25 +87,6 @@ interface JudgeDoc {
     dilemma_id?: string;
     profile_id?: string;
   };
-}
-
-interface ComparisonAgent {
-  run_id: string;
-  model: string;
-  response: string;
-}
-
-interface ComparisonDoc {
-  schema: string;
-  comparison_id: string;
-  scenario: {
-    profile_id: string;
-    situation_id: string;
-    dilemma?: DilemmaInfo;
-    tension?: { name?: string; guidance?: string };
-  };
-  agents: Record<string, ComparisonAgent>;
-  summary: { model: string; text: string };
 }
 
 interface RunData {
@@ -156,13 +125,108 @@ function dilemmaLabel(dilemma: DilemmaInfo): string {
   return text.length > 90 ? `${text.slice(0, 89)}…` : text;
 }
 
-const modeButton = (active: boolean): React.CSSProperties => ({
-  padding: '0.45rem 1rem', borderRadius: '0.5rem',
-  border: `1px solid ${active ? 'var(--color-primary)' : 'var(--color-border)'}`,
-  background: active ? 'var(--color-primary)' : 'white',
-  color: active ? 'white' : 'var(--color-text)',
-  cursor: 'pointer', fontSize: '0.85rem', fontFamily: 'inherit', fontWeight: active ? 700 : 400,
-});
+/* Outcome distribution for one dilemma: the share of each model's exported
+ * runs that the judge placed on each answer option. The series stay curated -
+ * the Qwen 3.8 family (base and fine-tunes) plus the two frontier comparison
+ * models - so spot-test extras (haiku, gpt-5.6-luna) and one-off adapters do
+ * not clutter the study view. */
+const OUTCOME_COLOURS = ['#0f3460', '#e94560', '#16a34a', '#7c3aed', '#f59e0b'];
+
+const QWEN_RE = /qwen3\.8-27b/i;
+const FRONTIER_RE = /deepseek-v4\.1-flash|glm-5\.3-flash/i;
+
+function outcomeSeries(dilemma: DilemmaInfo | null): string[] {
+  const counts = dilemma?.choice_counts;
+  if (!counts) return [];
+  const models = Object.keys(counts).filter((model) => Object.keys(counts[model]).length);
+  const qwen = models.filter((model) => QWEN_RE.test(model)).sort();
+  const frontier = models.filter((model) => FRONTIER_RE.test(model)).sort();
+  if (qwen.length) return [...qwen, ...frontier];
+  if (frontier.length) return frontier;
+  return models.sort();
+}
+
+function outcomeLabel(model: string, fineTunedCount: number): string {
+  if (/Qwen3\.8-27B-nz-wvs/i.test(model)) {
+    if (fineTunedCount < 2) return 'Qwen3.8-27B fine-tuned';
+    const variant = model.split(/nz-wvs-/i)[1] ?? model;
+    return `Qwen3.8-27B FT ${variant.replace(/[-_]/g, ' ')}`;
+  }
+  if (/Qwen3\.8-27B$/i.test(model)) {
+    return model.startsWith('openai/')
+      ? 'Qwen3.8-27B base (local)'
+      : 'Qwen3.8-27B base (OpenRouter)';
+  }
+  return shortModel(model);
+}
+
+function OutcomeChart({ dilemma }: { dilemma: DilemmaInfo | null }) {
+  const counts = dilemma?.choice_counts;
+  const options = dilemma?.answer_options ?? [];
+  const series = outcomeSeries(dilemma);
+  if (!counts || !series.length || !options.length) return null;
+
+  const totals = Object.fromEntries(
+    series.map((model) => [model, Object.values(counts[model]).reduce((a, b) => a + b, 0)])
+  );
+  const fineTunedCount = series.filter((model) => /Qwen3\.8-27B-nz-wvs/i.test(model)).length;
+
+  return (
+    <section className="dilemma-outcomes" aria-label="Outcome distribution">
+      <p className="dilemma-outcomes__title">
+        Outcome distribution{' '}
+        <span className="muted-text">
+          — the share of each model's runs the judge placed on each answer option
+        </span>
+      </p>
+      <div className="dilemma-outcomes__legend">
+        {series.map((model, index) => (
+          <span key={model} className="dilemma-outcomes__legend-item">
+            <span
+              className="dilemma-outcomes__swatch"
+              style={{ background: OUTCOME_COLOURS[index % OUTCOME_COLOURS.length] }}
+            />
+            {outcomeLabel(model, fineTunedCount)} · {totals[model]} runs
+          </span>
+        ))}
+      </div>
+      <div className="dilemma-outcomes__chart">
+        {options.map((option, optionIndex) => (
+          <div key={option} className="dilemma-outcomes__group" title={`${optionIndex + 1}. ${option}`}>
+            <div className="dilemma-outcomes__bars">
+              {series.map((model, index) => {
+                const n = counts[model][option] ?? 0;
+                const share = totals[model] ? n / totals[model] : 0;
+                return (
+                  <div
+                    key={model}
+                    className="dilemma-outcomes__bar-wrap"
+                    title={`${outcomeLabel(model, fineTunedCount)}: ${n}/${totals[model]} runs (${Math.round(share * 100)}%)`}
+                  >
+                    <span className="dilemma-outcomes__bar-value">
+                      {n ? `${Math.round(share * 100)}%` : ''}
+                    </span>
+                    <div
+                      className="dilemma-outcomes__bar"
+                      style={{
+                        height: `${share * 100}%`,
+                        background: OUTCOME_COLOURS[index % OUTCOME_COLOURS.length],
+                      }}
+                    />
+                  </div>
+                );
+              })}
+            </div>
+            <span className="dilemma-outcomes__group-label">{optionIndex + 1}</span>
+          </div>
+        ))}
+      </div>
+      <ol className="dilemma-outcomes__options">
+        {options.map((option) => <li key={option}>{option}</li>)}
+      </ol>
+    </section>
+  );
+}
 
 /* The judge file written by export_results.py holds the option the judge
  * matched to the response, the value it says the response prioritised, and
@@ -182,10 +246,12 @@ function JudgeNote({ judge }: { judge: JudgeDoc | null | undefined }) {
   );
 }
 
-function DilemmaStimulus({ dilemma, fallbackId, profileName }: {
+function DilemmaStimulus({ dilemma, fallbackId, profileName, roleSummary, systemPrompt }: {
   dilemma: DilemmaInfo | null;
   fallbackId: string;
   profileName: string;
+  roleSummary?: string;
+  systemPrompt?: string;
 }) {
   return (
     <section className="dilemma-stimulus" aria-label="Dilemma">
@@ -194,10 +260,24 @@ function DilemmaStimulus({ dilemma, fallbackId, profileName }: {
         {dilemma?.tension_name && <span>Value tension: {dilemma.tension_name}</span>}
         <span className="muted-text">{dilemma?.situation_id ?? fallbackId}</span>
       </p>
+      <p className="dilemma-stimulus__lead">{SURVEY_ROLE_LEAD}</p>
+      {roleSummary && <p className="dilemma-stimulus__role">{roleSummary}</p>}
+      <p className="dilemma-stimulus__lead">{VIEWER_SITUATION_LEAD}</p>
       {dilemma?.situation
         ? <p className="dilemma-stimulus__situation">{dilemma.situation}</p>
         : <p className="muted-text">Loading the dilemma text…</p>}
-      {dilemma?.question && <p className="dilemma-stimulus__question">{dilemma.question}</p>}
+      {dilemma?.question && (
+        <>
+          <p className="dilemma-stimulus__lead">{VIEWER_QUESTION_LEAD}</p>
+          <p className="dilemma-stimulus__question">{dilemma.question}</p>
+        </>
+      )}
+      {systemPrompt && (
+        <details className="dilemma-prompt">
+          <summary>System prompt given to the model ({profileName})</summary>
+          <pre className="simulation-preserve-text dilemma-prompt__text">{systemPrompt}</pre>
+        </details>
+      )}
       {(dilemma?.answer_options?.length ?? 0) > 0 && (
         <details className="dilemma-options">
           <summary>Answer options the judge classifies against ({dilemma!.answer_options!.length})</summary>
@@ -231,117 +311,17 @@ function RunResponse({ data, onRetry, run }: { data: RunData | null; onRetry: ()
   );
 }
 
-/* The comparison panel is the survey-style read of one stored comparison:
- * the dilemma stimulus, the summary paragraph the survey-style block would
- * show ("this is what happened"), the two preference questions, and the two
- * source responses with their judge classifications. */
-function DilemmaComparisonPanel({ row, doc, error, onRetry, runData, runById }: {
-  row: ComparisonRow;
-  doc: ComparisonDoc | null;
-  error: string;
-  onRetry: () => void;
-  runData: (runId: string | undefined) => RunData | null;
-  runById: Map<string, RunRow>;
-}) {
-  const dilemma = doc?.scenario?.dilemma;
-  const agents: Array<[string, ComparisonAgent | undefined]> = [
-    ['Agent 1', doc?.agents?.['Agent 1']],
-    ['Agent 2', doc?.agents?.['Agent 2']],
-  ];
-  return (
-    <div style={{ ...card, marginBottom: '1.5rem', background: 'var(--color-surface)' }}>
-      <div className="dilemma-comparison__header">
-        <p className="dilemma-comparison__kicker">⚖ Cross-model comparison</p>
-        {doc && <span className="muted-text">summary by {shortModel(doc.summary.model)}</span>}
-        <span className="muted-text">
-          Agent 1 = {shortModel(row.agent1_model)} · Agent 2 = {shortModel(row.agent2_model)}
-        </span>
-      </div>
-      {!doc && error && (
-        <div className="comparison-error">
-          <span>Could not load the stored comparison: {error}</span>
-          <button type="button" onClick={onRetry}>Retry</button>
-        </div>
-      )}
-      {!doc && !error && <p className="muted-text">Loading comparison…</p>}
-      {doc && (
-        <>
-          <section className="survey-preview" aria-label="Comparison block as respondents would see it">
-            <p className="survey-preview__kicker">Survey block — as respondents would see it</p>
-            {dilemma?.situation && (
-              <p className="survey-preview__text"><strong>Situation:</strong> {dilemma.situation}</p>
-            )}
-            {dilemma?.question && (
-              <p className="survey-preview__text"><strong>Question:</strong> {dilemma.question}</p>
-            )}
-            <p className="survey-preview__text"><strong>This is what happened:</strong></p>
-            <div className="survey-preview__summary">
-              <pre className="simulation-preserve-text dilemma-summary-text">{doc.summary.text || ''}</pre>
-            </div>
-            <div className="survey-preview__question-block">
-              <p className="survey-preview__question">{SURVEY_PREFERENCE_QUESTION}</p>
-              <ul className="survey-preview__scale">
-                {SURVEY_PREFERENCE_SCALE.map((option) => <li key={option}>{option}</li>)}
-              </ul>
-            </div>
-            <div className="survey-preview__question-block">
-              <p className="survey-preview__question">{SURVEY_AI_USE_QUESTION}</p>
-              <ul className="survey-preview__scale">
-                {SURVEY_AI_USE_SCALE.map((option) => <li key={option}>{option}</li>)}
-              </ul>
-            </div>
-          </section>
-          <p className="survey-preview-note muted-text">
-            The survey shows both agents anonymously (Agent 1 / Agent 2). The paragraph above is
-            stored in this comparison file; the responses and judge results below load from the
-            currently exported runs.
-          </p>
-          <div className="dilemma-agent-grid">
-            {agents.map(([name, agent], index) => {
-              const judgeData = agent?.run_id ? runData(agent.run_id) : null;
-              const runKnown = agent?.run_id ? runById.has(agent.run_id) : false;
-              return (
-                <article key={name} className={`dilemma-agent dilemma-agent--${index === 0 ? 'a' : 'b'}`}>
-                  <p className="dilemma-agent__kicker">{name}</p>
-                  <p className="dilemma-agent__model">{agent ? shortModel(agent.model) : shortModel(index === 0 ? row.agent1_model : row.agent2_model)}</p>
-                  {!agent && <p className="muted-text">This agent's response is not stored in the comparison file.</p>}
-                  {agent?.response && (
-                    <pre className="simulation-preserve-text dilemma-response-text">{agent.response}</pre>
-                  )}
-                  {agent?.run_id && (!runKnown
-                    ? <p className="muted-text dilemma-judge__empty">This run is not in the current runs export, so the judge result is unavailable.</p>
-                    : judgeData?.status === 'ready'
-                      ? <JudgeNote judge={judgeData.judge} />
-                      : judgeData?.status === 'error'
-                        ? <p className="muted-text dilemma-judge__empty">Judge result unavailable for this run in the current export.</p>
-                        : <p className="muted-text dilemma-judge__empty">Loading judge result…</p>)}
-                </article>
-              );
-            })}
-          </div>
-        </>
-      )}
-    </div>
-  );
-}
-
 export default function DilemmasViewer() {
   const [manifest, setManifest] = useState<RunsManifest | null>(null);
-  const [compRows, setCompRows] = useState<ComparisonRow[] | null>(null);
   const [loadError, setLoadError] = useState('');
-  const [mode, setMode] = useState<'inline' | 'compare'>('inline');
   const [dilemmaKey, setDilemmaKey] = useState('');
   const [pickedRunIds, setPickedRunIds] = useState<Record<string, string>>({});
   const [runDocs, setRunDocs] = useState<Record<string, RunData>>({});
   const [fallbackDilemma, setFallbackDilemma] = useState<DilemmaInfo | null>(null);
-  const [comparisonPick, setComparisonPick] = useState<string | null>(null);
-  const [comparisonDoc, setComparisonDoc] = useState<ComparisonDoc | null>(null);
-  const [comparisonError, setComparisonError] = useState('');
   const [retryTick, setRetryTick] = useState(0);
 
   const runCache = useRef<Record<string, RunData>>({});
   const inFlight = useRef<Set<string>>(new Set());
-  const comparisonCache = useRef<Record<string, ComparisonDoc>>({});
   const autoApplied = useRef(false);
 
   const bumpRetry = useCallback(() => setRetryTick((tick) => tick + 1), []);
@@ -360,14 +340,6 @@ export default function DilemmasViewer() {
       .catch((error) => {
         console.error('[DilemmasViewer] manifest load failed:', error);
         setLoadError(String(error));
-      });
-    // The comparison index is optional: no comparisons exist until
-    // compare.py has been run against the exported responses.
-    cachedFetchJson<ComparisonsIndex>(`${COMPARISONS_BASE}index.json`, 0)
-      .then((index) => setCompRows(index.comparisons ?? []))
-      .catch((error) => {
-        console.info('[DilemmasViewer] no comparison index:', String(error));
-        setCompRows([]);
       });
   }, []);
 
@@ -417,12 +389,6 @@ export default function DilemmasViewer() {
     (model: string) => runsForDilemma.filter((run) => run.model === model),
     [runsForDilemma],
   );
-
-  const runById = useMemo(() => {
-    const byId = new Map<string, RunRow>();
-    for (const run of runs) if (run.run_id) byId.set(run.run_id, run);
-    return byId;
-  }, [runs]);
 
   const currentDilemma = useMemo(
     () => dilemmasList.find((d) => `${d.profile_id}/${d.situation_id}` === dilemmaKey) ?? null,
@@ -529,78 +495,10 @@ export default function DilemmasViewer() {
     return () => { cancelled = true; };
   }, [manifest, runsForDilemma]);
 
-  const comparisonsForDilemma = useMemo(() => {
-    if (!compRows || !dilemmaKey) return [];
-    return compRows
-      .filter((row) => row.profile_id === profileId && row.situation_id === situationId && row.comparison_id)
-      .sort((a, b) => a.comparison_id.localeCompare(b.comparison_id));
-  }, [compRows, dilemmaKey, profileId, situationId]);
-
-  const selectedComparison = useMemo(() => {
-    if (!comparisonsForDilemma.length) return null;
-    if (comparisonPick) {
-      const byId = comparisonsForDilemma.find((row) => row.comparison_id === comparisonPick);
-      if (byId) return byId;
-    }
-    return comparisonsForDilemma[0];
-  }, [comparisonsForDilemma, comparisonPick]);
-
+  // Deep link: ?dilemma=<profile_id>-<situation_id>
   useEffect(() => {
-    if (mode !== 'compare' || !selectedComparison) {
-      setComparisonDoc(null);
-      setComparisonError('');
-      return;
-    }
-    const key = selectedComparison.comparison_id;
-    const cached = comparisonCache.current[key];
-    if (cached) {
-      setComparisonDoc(cached);
-      setComparisonError('');
-      return;
-    }
-    setComparisonDoc(null);
-    setComparisonError('');
-    let cancelled = false;
-    const url = `${COMPARISONS_BASE}${selectedComparison.model_pair}/${selectedComparison.scenario}/${key}.json`;
-    cachedFetchJson<ComparisonDoc>(url, 0)
-      .then((doc) => {
-        comparisonCache.current[key] = doc;
-        if (!cancelled) setComparisonDoc(doc);
-      })
-      .catch((error) => {
-        console.error(`[DilemmasViewer] comparison load failed: ${key}`, error);
-        if (!cancelled) setComparisonError(String(error));
-      });
-    return () => { cancelled = true; };
-  }, [mode, selectedComparison, retryTick]);
-
-  // Load the two compared runs so their judge results can be shown next to
-  // the stored responses.
-  useEffect(() => {
-    if (mode !== 'compare' || !selectedComparison) return;
-    for (const runId of [selectedComparison.agent1_run_id, selectedComparison.agent2_run_id]) {
-      const run = runId ? runById.get(runId) : undefined;
-      if (run) void ensureRun(run);
-    }
-  }, [mode, selectedComparison, runById, ensureRun, retryTick]);
-
-  // Deep links (applied once both indexes are in):
-  //   ?dilemma=<profile_id>-<situation_id>
-  //   ?comparison=<comparison_id>          -> comparison mode, that pair
-  //   ?mode=compare
-  useEffect(() => {
-    if (!manifest || compRows === null || autoApplied.current) return;
+    if (!manifest || autoApplied.current) return;
     autoApplied.current = true;
-    const comparisonParam = urlParams.get('comparison');
-    if (comparisonParam) {
-      const row = compRows.find((item) => item.comparison_id === comparisonParam);
-      if (row?.profile_id && row?.situation_id) {
-        setDilemmaKey(`${row.profile_id}/${row.situation_id}`);
-        setMode('compare');
-        setComparisonPick(row.comparison_id);
-        return;
-      }
-    }
     const dilemmaParam = urlParams.get('dilemma');
     if (dilemmaParam) {
       const dash = dilemmaParam.indexOf('-');
@@ -611,19 +509,14 @@ export default function DilemmasViewer() {
         }
       }
     }
-    if (urlParams.get('mode') === 'compare') setMode('compare');
-  }, [manifest, compRows, dilemmasList]);
+  }, [manifest, dilemmasList]);
 
   // Keep the URL shareable (replaceState: no history spam).
   useEffect(() => {
     if (typeof window === 'undefined' || !manifest) return;
     const params = new URLSearchParams(window.location.search);
-    const setOrDel = (key: string, value?: string | null) => {
-      if (value) params.set(key, value); else params.delete(key);
-    };
-    setOrDel('dilemma', dilemmaKey ? dilemmaKey.replace('/', '-') : null);
-    setOrDel('mode', mode === 'compare' ? 'compare' : null);
-    setOrDel('comparison', mode === 'compare' ? selectedComparison?.comparison_id ?? null : null);
+    if (dilemmaKey) params.set('dilemma', dilemmaKey.replace('/', '-'));
+    else params.delete('dilemma');
     const query = params.toString();
     const url = `${window.location.pathname}${query ? `?${query}` : ''}${window.location.hash}`;
     if (url !== `${window.location.pathname}${window.location.search}${window.location.hash}`) {
@@ -633,9 +526,6 @@ export default function DilemmasViewer() {
 
   const selectDilemma = (key: string) => {
     setDilemmaKey(key);
-    setComparisonPick(null);
-    setComparisonDoc(null);
-    setComparisonError('');
   };
 
   /* ------------------------------ rendering ---------------------------- */
@@ -671,16 +561,6 @@ export default function DilemmasViewer() {
 
       <div className="results-controls">
         <div>
-          <label style={label}>View</label>
-          <div style={{ display: 'flex', gap: '0.4rem' }}>
-            {[{ id: 'inline' as const, label: 'Inline responses' }, { id: 'compare' as const, label: 'Comparison' }].map((item) => (
-              <button key={item.id} onClick={() => setMode(item.id)} style={modeButton(mode === item.id)}>
-                {item.label}
-              </button>
-            ))}
-          </div>
-        </div>
-        <div>
           <label style={label}>Dilemma</label>
           <select value={dilemmaKey} onChange={(e) => selectDilemma(e.target.value)} style={select}>
             {groupedDilemmas.map(([id, list]) => (
@@ -703,89 +583,46 @@ export default function DilemmasViewer() {
         dilemma={stimulus}
         fallbackId={dilemmaKey}
         profileName={stimulus ? profileLabel(manifest, stimulus.profile_id) : profileLabel(manifest, profileId)}
+        roleSummary={manifest.profiles?.[stimulus?.profile_id ?? profileId]?.role_summary}
+        systemPrompt={manifest.profiles?.[stimulus?.profile_id ?? profileId]?.system_prompt}
       />
 
-      {mode === 'inline' && (
-        modelsForDilemma.length ? (
-          <div className="dilemma-response-grid">
-            {modelsForDilemma.map((model) => {
-              const list = runsForModel(model);
-              const selected = selectedRuns.find((run) => run.model === model) ?? null;
-              return (
-                <article key={model} className="dilemma-panel">
-                  <div className="dilemma-panel__head">
-                    <div>
-                      <p className="dilemma-panel__kicker">Model</p>
-                      <p className="dilemma-panel__model">{shortModel(model)}</p>
-                    </div>
-                    <div>
-                      <label style={label}>Response to use</label>
-                      <select
-                        style={{ ...select, minWidth: '12rem' }}
-                        value={selected?.run_id ?? ''}
-                        onChange={(e) => setPickedRunIds((previous) => ({ ...previous, [model]: e.target.value }))}
-                      >
-                        {list.map((run) => (
-                          <option key={run.run_id} value={run.run_id}>
-                            Run {run.version} · {fmtDate(run.created) || '?'}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-                  <RunResponse data={runData(selected?.run_id)} onRetry={bumpRetry} run={selected} />
-                </article>
-              );
-            })}
-          </div>
-        ) : (
-          <div style={card}>No exported responses were found for this dilemma.</div>
-        )
-      )}
+      <OutcomeChart dilemma={stimulus} />
 
-      {mode === 'compare' && (
-        compRows === null ? (
-          <p className="muted-text">Loading comparisons…</p>
-        ) : comparisonsForDilemma.length === 0 ? (
-          <div style={card}>
-            No stored comparisons exist for this dilemma in the selected source. Generate them
-            with <code>uv run python code/dilemmas/compare.py</code>, then sync or refresh — the
-            viewer lists every cross-model pair here.
-          </div>
-        ) : (
-          <>
-            <div style={{ ...card, marginBottom: '1rem', background: 'var(--color-surface)' }}>
-              <label style={label}>
-                Comparison — {comparisonsForDilemma.length} stored pair{comparisonsForDilemma.length === 1 ? '' : 's'} for this dilemma
-              </label>
-              <select
-                value={selectedComparison?.comparison_id ?? ''}
-                onChange={(e) => setComparisonPick(e.target.value)}
-                style={select}
-              >
-                {comparisonsForDilemma.map((row) => {
-                  const versionA = runById.get(row.agent1_run_id)?.version;
-                  const versionB = runById.get(row.agent2_run_id)?.version;
-                  return (
-                    <option key={row.comparison_id} value={row.comparison_id}>
-                      {shortModel(row.agent1_model)} (run {versionA ?? '?'}) vs {shortModel(row.agent2_model)} (run {versionB ?? '?'})
-                    </option>
-                  );
-                })}
-              </select>
-            </div>
-            {selectedComparison && (
-              <DilemmaComparisonPanel
-                row={selectedComparison}
-                doc={comparisonDoc}
-                error={comparisonError}
-                onRetry={bumpRetry}
-                runData={runData}
-                runById={runById}
-              />
-            )}
-          </>
-        )
+      {modelsForDilemma.length ? (
+        <div className="dilemma-response-grid">
+          {modelsForDilemma.map((model) => {
+            const list = runsForModel(model);
+            const selected = selectedRuns.find((run) => run.model === model) ?? null;
+            return (
+              <article key={model} className="dilemma-panel">
+                <div className="dilemma-panel__head">
+                  <div>
+                    <p className="dilemma-panel__kicker">Model</p>
+                    <p className="dilemma-panel__model">{shortModel(model)}</p>
+                  </div>
+                  <div>
+                    <label style={label}>Response to use</label>
+                    <select
+                      style={{ ...select, minWidth: '12rem' }}
+                      value={selected?.run_id ?? ''}
+                      onChange={(e) => setPickedRunIds((previous) => ({ ...previous, [model]: e.target.value }))}
+                    >
+                      {list.map((run) => (
+                        <option key={run.run_id} value={run.run_id}>
+                          Run {run.version} · {fmtDate(run.created) || '?'}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+                <RunResponse data={runData(selected?.run_id)} onRetry={bumpRetry} run={selected} />
+              </article>
+            );
+          })}
+        </div>
+      ) : (
+        <div style={card}>No exported responses were found for this dilemma.</div>
       )}
     </div>
   );

@@ -1,18 +1,13 @@
-A related works section.
+Much of hte work in this project is built off ideas explored in a literature review conducted over summer\footnote{This was my AIML501 project and can be found \href{https://raw.githubusercontent.com/1jamesthompson1/AIML501/main/output/AIML501_James_Thompson.pdf}{here}}. The project has deviated from the origional plan in someways so this background chapter contains all relevant background information needed in a concise format for this project. Some sections are mere rewrites of the literature review while others are new.
 
 Includes a biref (few pages) summary of the important bits of the related works and how they relate to this project.
 
 This work can understand from multiple perspectives. Here are some
 
-\section{Large Language Models}
+\section{Large Language Models are the most capable AI systems we have}
 
-\subsection{What a Large Language Model is}
 
-Probabilistic model of language. Guesses the next token
-
-Trained on large amounts of text data and more specialized data
-
-\subsection{The magnitude and power of Large Language Models}
+\subsection{LLMs are the largest and most powerful systems ever made.}
 
 Very large models
 
@@ -20,6 +15,14 @@ Most capable systems we have
 
 Benchmarks and evals to show it.
 
+\subsection{Building LLMs as autoregressive self attention}
+
+Probabilistic model of language. Guesses the next token
+
+
+\subsection{Training LLMs with massive amounts of data}
+
+Trained on large amounts of text data and more specialized data
 
 \subsection{Fine-tuning Large Language Models}
 
@@ -36,10 +39,31 @@ WE need it to be aligned to increase survival and flourishing
 talk about classifcal safety problems
 loss of control, gradual disempowerement etc
 
-\section{Understanding human values}
+\section{Understanding the values of humans and AI systems}
 \label{sec:values}
 
-Value sureys and value frameworks
+As discussed in \ref{sec:values} one can think of a value as either explicit statement or implicitly revealed through behaviour. There is a single dimension 
+
+
+\subsection{Value surveys}
+
+A straightforward method of eliciting and understanding the values is to ask them directly. These are either done in abstract ways (\termref{value-questionnaire}) or in more contextual settings (\termref{value-survey}).
+
+Value questionnaires are developed in line with various theories of values like PVQ...
+
+On the other hand value surveys are more contextual and ask people specific questions. \cite{NZAVS2025,WVS2020}. These can be post hoc mapped to value theories however as they are not a direct measure this is not as reliable. Importantly though these provide a more direct measure of the actual downstream effects of people's values by for example gaining insights 
+
+\subsection{Dilemmas as a way to understand values}
+
+A dilemma is a situations where there is no clear right answer and a tradeoff between competing values must be made \cite{EthicalDilemmasOverview}. In experimental research these dilemmas are hand crafted to create  clear decisions that reveal the values of the respondent. It is in this way that dilemmas can be used to understand the values of humans and AI systems.
+
+
+
+A few datasets have been built to understand LLM values through large sets of moral, ethical and social dilemmas \cite{lourieScruplesCorpusCommunity2021,chiuDailyDilemmasRevealingValue2025,hendrycksAligningAIShared2023,scherrerEvaluatingMoralBeliefs2023}.
+
+\subsection{Behavioural analysis}
+
+
 
 
 Survey modelling has been done lots before \cite{caoSpecializingLargeLanguage2025,huangDistributionShiftAlignment2025}.
@@ -49,6 +73,9 @@ Survey modelling has been done lots before \cite{caoSpecializingLargeLanguage202
 THinking of the respondentsl ike annotators their disagreement is important.  \cite{fornaciariBlackWhiteLeveraging2021}
 
 The teacher can be thought of as the distrubtion and the student is distiliiing it odwn.
+
+\section{The values of AI systems}
+
 
 \section{Understanding behaviour through simulation}
 

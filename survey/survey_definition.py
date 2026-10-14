@@ -19,9 +19,10 @@ Survey structure:
 - Section A - About you (demographics first, for screening; every item
   skippable)
 - Section B - The comparison task (a two-sentence description of the
-  context of the scenario task)
-- One comparison block per scenario pair (3 questions each), wired into a
-  BlockRandomizer showing N_PAIRS_SHOWN of them per respondent
+  context of the dilemma task)
+- One comparison block per version-matched pair of runs on the same
+  dilemma (3 questions each), wired into a BlockRandomizer showing
+  N_PAIRS_SHOWN of them per respondent
 - Section C block (attitude and policy questions)
 - Branch: distribution == volunteer -> prize-draw block; ``yes`` ends the
   survey with an advanced redirect to the prize-draw/website URL
@@ -29,19 +30,25 @@ Survey structure:
 Intro wording comes from participant-information-sheet.md (the shared
 information sheet; the volunteer-only raffle paragraph is marked with an
 ``<!--volunteer ... -->`` block). Comparison content comes from
-code/behavioural-simulations/output/comparisons: one <pair>.json per
-scenario (schema wvs-comparison/v1). Question DataExportTags are the
-pair's comparison_id with a suffix (_0, _pref, _aiuse) so response columns
-join 1:1 with comparison records (which carry the agents per pair).
+code/dilemmas/output/runs: the exported runs manifest (index.json, schema
+wvs-dilemma-runs-index/v2) is paired into blocks, one per version-matched
+pair of runs from two different models answering the same dilemma. Each
+block shows the profile's role summary, the dilemma, and both responses
+side by side as Agent 1 / Agent 2. Question DataExportTags are the pair's
+``<run_id>__<run_id>`` comparison id with a suffix (_0, _pref, _aiuse), so
+response columns join 1:1 with the two runs of the block (join the run ids
+back through the runs manifest to decode the models).
 """
 
+import itertools
 import json
 import re
+from collections import defaultdict
 from pathlib import Path
 
 DIR = Path(__file__).resolve().parent
 REPO = DIR.parent
-COMPARISONS_DIR = REPO / "code" / "behavioural-simulations" / "output" / "comparisons"
+RUNS_DIR = REPO / "code" / "dilemmas" / "output" / "runs"
 
 N_PAIRS_SHOWN = 5
 
@@ -698,16 +705,101 @@ def _load_template() -> str:
 
 def description_text(record: dict) -> str:
     """The comparison descriptive question: the template's ``{?...?}``
-    markers filled from the pair's record (audits ignored for now)."""
-    s = record["scenario"]
+    markers filled from the block record."""
     text = _load_template()
     for marker, value in (
-        ("profile", s["profile_summary"]),
-        ("situation", s["situation_summary"]),
-        ("summary", record["summary"]["text"]),
+        ("role", record["role"]),
+        ("situation", record["situation"]),
+        ("question", record["question"]),
+        ("response1", record["responses"][0]),
+        ("response2", record["responses"][1]),
     ):
         text = text.replace("{?%s?}" % marker, value)
+    unknown = re.search(r"\{\?\w+\?\}", text)
+    if unknown:
+        raise ValueError(
+            f"comparison-question.md uses unknown marker {unknown.group(0)}"
+        )
     return md_to_html(text)
+
+
+# --- Blocks from the exported dilemma runs ----------------------------------
+
+
+def _response_text(run: dict) -> str:
+    """The run's exported response text, or '' when the file is missing."""
+    path = RUNS_DIR / run["path"] / "response.txt"
+    return path.read_text(encoding="utf-8").strip() if path.exists() else ""
+
+
+def survey_records() -> list[dict]:
+    """One record per survey block, from the exported dilemma runs.
+
+    Runs are grouped by dilemma and paired across models by version: for
+    every unordered pair of models and every repetition version both models
+    share, one block carries that pair's two responses. Two models with 10
+    repetitions each give 10 blocks per dilemma, so each block is answered
+    by roughly the same number of respondents (and no pair is left unjudged).
+    The first model in sorted order is Agent 1; the block's tag carries both
+    run ids, so which model played which agent can be decoded afterwards.
+    """
+    manifest_path = RUNS_DIR / "index.json"
+    if not manifest_path.exists():
+        raise SystemExit(
+            f"No dilemma runs manifest at {manifest_path} - run "
+            "code/dilemmas/export_results.py first."
+        )
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    if manifest.get("schema") != "wvs-dilemma-runs-index/v2":
+        raise SystemExit(
+            f"Unknown runs manifest schema {manifest.get('schema')!r} in {manifest_path}"
+        )
+    profiles = manifest["profiles"]
+    dilemmas = {(d["profile_id"], d["situation_id"]): d for d in manifest["dilemmas"]}
+    # (profile, dilemma) -> model -> version -> run
+    runs: dict[tuple[str, str], dict[str, dict[int, dict]]] = defaultdict(
+        lambda: defaultdict(dict)
+    )
+    for run in manifest["runs"]:
+        by_model = runs[(run["profile_id"], run["situation_id"])]
+        by_model[run["model"]][run["version"]] = run
+
+    records = []
+    for key in sorted(runs):
+        by_model = runs[key]
+        if len(by_model) < 2:
+            print(f"SKIPPED {key}: only one model has runs")
+            continue
+        dilemma = dilemmas[key]
+        profile = profiles.get(key[0], {})
+        for first, second in itertools.combinations(sorted(by_model), 2):
+            shared = sorted(set(by_model[first]) & set(by_model[second]))
+            for version in shared:
+                agents = [by_model[model][version] for model in (first, second)]
+                responses = [_response_text(run) for run in agents]
+                if not all(responses):
+                    print(f"SKIPPED {key} v{version}: an exported response is empty")
+                    continue
+                records.append(
+                    {
+                        "comparison_id": (
+                            f"{agents[0]['run_id']}__{agents[1]['run_id']}"
+                        ),
+                        "label": f"{key[0]} - {key[1]} v{version}",
+                        "role": profile.get("role_summary")
+                        or profile.get("name")
+                        or key[0],
+                        "situation": dilemma["situation"],
+                        "question": dilemma["question"],
+                        "responses": responses,
+                    }
+                )
+    if not records:
+        raise SystemExit(
+            f"No version-matched run pairs in {manifest_path} - the survey needs "
+            "at least two models with runs on the same dilemma."
+        )
+    return records
 
 
 # --- The definition ---------------------------------------------------------
@@ -718,30 +810,21 @@ def build() -> dict:
     ``distribution`` channels)."""
     if _def_cache:
         return _def_cache["d"]
-    comparison_blocks = []
-    records = sorted(COMPARISONS_DIR.glob("*/*/*.json"))
-    if not records:
-        raise SystemExit(
-            f"No comparison <pair>.json files under {COMPARISONS_DIR} - run "
-            "code/behavioural-simulations/build_comparisons.py first."
-        )
-    for json_path in records:
-        record = json.loads(json_path.read_text(encoding="utf-8"))
-        if record.get("schema") != "wvs-comparison/v1":
-            print(f"SKIPPED {json_path.name}: unknown schema {record.get('schema')!r}")
-            continue
-        cid = record["comparison_id"]
-        comparison_blocks.append(
-            {
-                "description": f"Comparison: {cid}",
-                "collapsed": False,
-                "questions": [
-                    db_payload(cid + "_0", description_text(record)),
-                    mc_sahr_payload(cid + "_pref"),
-                    mc_single_payload(cid + "_aiuse", AIUSE_TEXT, AIUSE_SCALE),
-                ],
-            }
-        )
+    comparison_blocks = [
+        {
+            "description": f"Comparison: {record['comparison_id']}",
+            "label": record["label"],
+            "collapsed": False,
+            "questions": [
+                db_payload(record["comparison_id"] + "_0", description_text(record)),
+                mc_sahr_payload(record["comparison_id"] + "_pref"),
+                mc_single_payload(
+                    record["comparison_id"] + "_aiuse", AIUSE_TEXT, AIUSE_SCALE
+                ),
+            ],
+        }
+        for record in survey_records()
+    ]
 
     intro_paid = {
         "description": "Introduction_paid",
@@ -778,11 +861,13 @@ def build() -> dict:
             db_payload(
                 "D_taskB",
                 md_to_html(
-                    "In the next part of the survey, you will read short work "
-                    "scenarios in which an AI agent acted, each shown through two "
-                    "different versions of the agent.\n\nAll simulations are "
-                    "completely fictional and do not represent any real person, "
-                    "company or situation."
+                    "In the next part of the survey, you will read short "
+                    "situations in which an AI assistant was asked what it "
+                    "would do. For each situation you will see two answers, "
+                    "labelled Agent 1 and Agent 2, and you will not be told "
+                    "which AI systems produced them.\n\nAll situations are "
+                    "completely fictional and do not represent any real "
+                    "person, company or situation."
                 ),
             )
         ],
@@ -884,7 +969,7 @@ def flow(name_to_id: dict[str, str], qids_by_tag: dict[str, str]) -> dict:
         if b["description"] in name_to_id
     ]
     # SubSet larger than the pool breaks the respondent flow - sync may run
-    # while a build_comparisons batch is still landing pairs.
+    # while a runs export is still landing blocks.
     subset = min(build()["randomizer_subset"], max(len(comps), 1))
     q85 = qids_by_tag[PRIZE_DRAW_TAG]
     flow_items = [

@@ -17,7 +17,9 @@ sets `volunteer`. The survey flow (mirrored by `survey_definition.build()`):
    to say"), top of the survey for screening
 4. Section B - The comparison task: a two-sentence description of the
    task context
-5. BlockRandomizer: 5 of the 625 comparison blocks (25 scenarios with 5 samples each and 2 models generating samples) per respondent
+5. BlockRandomizer: 5 of the dilemma blocks per respondent (one block per
+   version-matched pair of runs from two different models on the same
+   dilemma: 30 dilemmas x 10 repetitions -> 300 blocks)
 6. Section C - Your thoughts: attitude and policy questions
 7. Branch on `volunteer` -> prize-draw question; a `yes` answer ends the
    survey with a redirect
@@ -25,7 +27,13 @@ sets `volunteer`. The survey flow (mirrored by `survey_definition.build()`):
 - `survey_definition.py` - the definition (single source of truth).
   Intro wording comes from `participant-information-sheet.md` including the
   `<!--volunteer ... -->` conditional paragraph (parsed by
-  `sheet_for_channel`); comparison wording from `comparison-question.md`.
+  `sheet_for_channel`); comparison wording from `comparison-question.md`, and
+  the comparison blocks themselves from the exported runs
+  (`code/dilemmas/output/runs/index.json`). Each block shows the profile's
+  one-sentence role summary, the dilemma, and both runs' responses under
+  Agent 1 / Agent 2 headings. The definition fails fast when the manifest is
+  missing or has no version-matched pairs (run
+  `code/dilemmas/export_results.py` first).
   The public website mirrors the respondent-facing question text and answer
   scales in `website/src/lib/survey.ts`; update that file when they change.
 
@@ -36,15 +44,15 @@ sets `volunteer`. The survey flow (mirrored by `survey_definition.build()`):
   uv run survey/qualtrics_sync.py
   ```
 
-  Agent 1/Agent 2 labels per comparison: not stored anywhere key-based - join
-  response data on the question tag's comparison_id with the pair record in
-  `code/behavioural-simulations/output/comparisons` to decode which exported
-  model played which agent.
+  Agent 1/Agent 2 labels per block: the DataExportTag is
+  `<run_id>__<run_id>` (+ `_0`, `_pref`, `_aiuse`), so the two run ids join
+  the response row back to the runs manifest to decode which model played
+  which agent.
 
 ## Survey documents
 
-Two parts to the survey: the main part is ranking which agent's actions the
-respondent prefers in a given scenario (the comparison blocks in
+Two parts to the survey: the main part is ranking which agent's answer the
+respondent prefers in a given dilemma (the comparison blocks in
 Section B), and a second part about how they view the world and AI
 (Section C; the WVS-derived cluster-assignment questions).
 

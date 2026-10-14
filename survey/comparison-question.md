@@ -2,26 +2,38 @@
 
 Content below the `---` is the respondent-facing descriptive question for
 each comparison block. `{?...?}` markers are substituted verbatim from the
-pair's `comparison.json`:
+block record built by `survey_definition.survey_records()`:
 
-- `{?profile?}` — `scenario.profile_summary`
-- `{?situation?}` — `scenario.situation_summary`
-- `{?summary?}` — `summary.text` (the frontier-model difference summary)
+- `{?role?}` — the profile's one-sentence role summary
+  (`code/dilemmas/profiles/<profile>.json`)
+- `{?situation?}` / `{?question?}` — the dilemma
+  (`code/dilemmas/output/runs/index.json`)
+- `{?response1?}` / `{?response2?}` — the two runs' exported response texts,
+  shown as Agent 1 and Agent 2
 
 Rendered to HTML by `survey_definition.description_text()` — edit the text
-below to change the question wording.
+below to change the question wording. Respondents are never told which
+models produced the responses.
 
 ---
 
-An AI agent was built to the following work profile:
+An AI assistant was deployed in the following role:
 
-{?profile?}
+{?role?}
 
-Two different versions of the agent were each given the chance to handle
-this situation independently:
+Two versions of the assistant were each given this situation, independently
+of the other:
 
 {?situation?}
 
-**This is what happened:**
+They were both asked:
 
-{?summary?}
+{?question?}
+
+**Agent 1:**
+
+{?response1?}
+
+**Agent 2:**
+
+{?response2?}
