@@ -64,6 +64,17 @@ def _model_short_name(model: str) -> str:
     return model.split("/", 1)[-1]
 
 
+def _apply_system_prompt_prefix(system_prompt: str, prefix: str | None) -> str:
+    """Prepend ``prefix`` to a dataset system prompt (empty = unchanged).
+
+    Used for prompted base-model baselines: the instruction goes first so the
+    dataset's answer-format instruction (the trailing IMPORTANT block) stays
+    last, where the model is most sensitive to it.
+    """
+    prefix = (prefix or "").strip()
+    return f"{prefix}\n\n{system_prompt}" if prefix else system_prompt
+
+
 def _fmt_duration(seconds: float) -> str:
     seconds = int(seconds)
     hours = seconds // 3600
@@ -297,6 +308,20 @@ def parse_args(argv=None):
         default=None,
         help="Directory to save evaluation results. "
         "Default: output/evals/<model>/<dataset>-<timestamp>/",
+    )
+    p.add_argument(
+        "--output-label",
+        default=None,
+        help="Model-directory name under output/evals/ (default: the served "
+        "model's short name). Use for prompt variants that must not "
+        "overwrite the model's normal results, e.g. 'Qwen3.8-27B-prompted'.",
+    )
+    p.add_argument(
+        "--system-prompt-prefix",
+        default=None,
+        help="Text prepended to every example's system prompt, e.g. a "
+        "persona instruction for a prompted base-model baseline. Prepending "
+        "keeps the dataset's answer-format instruction at the end.",
     )
     p.add_argument(
         "--max-tokens",
@@ -945,6 +970,7 @@ def _run_evaluation(
     concurrency=1,
     extra_body=None,
     use_logprobs=True,
+    system_prompt_prefix=None,
 ):
     import json
     import time
@@ -995,7 +1021,10 @@ def _run_evaluation(
             )
 
     def _query_args(example):
-        messages = build_messages(example["system_prompt"], example["user_prompt"])
+        messages = build_messages(
+            _apply_system_prompt_prefix(example["system_prompt"], system_prompt_prefix),
+            example["user_prompt"],
+        )
         return dict(
             model=model,
             messages=messages,
@@ -1196,6 +1225,7 @@ def _adapter_fires_check(
     reasoning: bool,
     n_examples: int = 16,
     default_headers: dict[str, str] | None = None,
+    system_prompt_prefix: str | None = None,
 ):
     """Verify the served adapter actually changes the model's outputs.
 
@@ -1241,7 +1271,10 @@ def _adapter_fires_check(
     indices = list(range(0, total, step))[:n_probes]
     for i, idx in enumerate(indices):
         ex = ds[idx]
-        messages = build_messages(ex["system_prompt"], ex["user_prompt"])
+        messages = build_messages(
+            _apply_system_prompt_prefix(ex["system_prompt"], system_prompt_prefix),
+            ex["user_prompt"],
+        )
         kwargs = dict(
             messages=messages,
             max_tokens=1,
@@ -1407,7 +1440,13 @@ def main():
         f"{datetime.now().strftime('%Y%m%d_%H%M%S')}"
     )
     if args.output_dir is None:
-        model_name = _model_short_name(args.model)
+        if args.output_label and (
+            "/" in args.output_label or "\\" in args.output_label
+        ):
+            raise SystemExit(
+                "--output-label must be a single directory name (no path separators)"
+            )
+        model_name = args.output_label or _model_short_name(args.model)
         # Script-relative so evals always land in code/fine-tuning/output/evals
         # regardless of the working directory the caller used.
         output_dir = (
@@ -1448,6 +1487,11 @@ def main():
         f"(shared with training via prompt_construction.THINKING_ENABLED="
         f"{THINKING_ENABLED}); train/eval match when both are off."
     )
+    if args.system_prompt_prefix:
+        print(
+            "  [prompt-prefix] prepended to every system prompt: "
+            f"{args.system_prompt_prefix!r}"
+        )
     print()
 
     # Log a fully-rendered example prompt so the exact string sent to the
@@ -1455,7 +1499,10 @@ def main():
     if len(ds):
         ex = ds[0]
         print("  Example eval prompt (messages):")
-        print(f"    system: {ex['system_prompt'][:120]!r}")
+        print(
+            f"    system: "
+            f"{_apply_system_prompt_prefix(ex['system_prompt'], args.system_prompt_prefix)[:120]!r}"
+        )
         print(f"    user:   {ex['user_prompt'][:120]!r}")
         try:
             from transformers import AutoTokenizer
@@ -1463,7 +1510,9 @@ def main():
             tok = AutoTokenizer.from_pretrained(args.model, trust_remote_code=True)
             rendered = render_prompt_text(
                 tok,
-                ex["system_prompt"],
+                _apply_system_prompt_prefix(
+                    ex["system_prompt"], args.system_prompt_prefix
+                ),
                 ex["user_prompt"],
                 enable_thinking=args.reasoning,
             )
@@ -1528,6 +1577,8 @@ def main():
         "dataset_sha": dataset_sha,
         "model_sha": model_sha,
         "parent_model": parent_model,
+        "output_label": args.output_label,
+        "system_prompt_prefix": args.system_prompt_prefix,
     }
     (output_dir / "config.json").write_text(json.dumps(config, indent=2))
     print(f"[save] config -> {output_dir / 'config.json'}")
@@ -1550,6 +1601,7 @@ def main():
             parent_model=parent_model,
             reasoning=args.reasoning,
             default_headers=default_headers,
+            system_prompt_prefix=args.system_prompt_prefix,
         )
         if not adapter_check["fired"]:
             config["adapter_check"] = adapter_check
@@ -1578,6 +1630,7 @@ def main():
         concurrency=args.concurrency,
         extra_body=extra_body,
         use_logprobs=use_logprobs,
+        system_prompt_prefix=args.system_prompt_prefix,
     )
 
     # Strict reasoning-off bookkeeping. The retry fallback pops "reasoning"

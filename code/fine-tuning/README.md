@@ -111,6 +111,38 @@ nor a modest-but-real adapter effect trips it.
 
 ### Capability Evaluation
 
+### Prompted base-model baseline
+
+To test how much of the fine-tuning effect is reproducible by prompting
+alone, `prompted_eval.py` evaluates the base model with an instruction
+("Respond as an average New Zealand person would.", configurable)
+prepended to every dataset system prompt. Results land in
+`output/evals/<label>/` exactly like any other eval, with
+`label = <model short name>-prompted` by default. `analyze.py` maps a
+`<base>-prompted` dir back onto `<base>`, so a **Prompted** row appears
+under the base row in the fine-tuning and TVD tables (deltas vs Base show
+whether prompting closes the gap to NZ relative to fine-tuning).
+
+It does not start a server: reuse a running eval server or bring one up
+first. Because the instruction is prepended, each dataset system prompt
+keeps its answer-format instruction at the end, and the per-system-prompt
+breakdown is preserved (e.g. `no_persona` with vs without the addition).
+
+```bash
+# Against the usual vLLM server on localhost (EVAL_PORT, default 8087)
+uv run code/fine-tuning/prompted_eval.py --model Qwen/Qwen3.8-27B
+
+# OpenRouter base model, labelled to match its OpenRouter base-model dir
+uv run code/fine-tuning/prompted_eval.py --provider openrouter \
+    --model qwen/qwen3.8-27b --label qwen3.8-27b-prompted
+```
+
+Defaults to `modal_response` + `first_token_distribution` on
+`train,validation` (overall population), skips dataset configs that
+already have a completed run (`--force` reruns), and records the prompt
+text in each run's `config.json`. The label must be
+`<base eval dir>-prompted` for the row to join that model's table.
+
 ### Value map (OpenRouter base models)
 
 `evaluate.py` can evaluate hosted base models through OpenRouter. Eligible

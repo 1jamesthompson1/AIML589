@@ -16,6 +16,8 @@ In section \ref{sec:ft-dataset} and section \ref{sec:ft-methods} I describe the 
 
 Each model has an innate value system that is a result of the specific trianing data and training methods used to create the model. This is shown in \tabref{models-vs-population} where the models are compared to the empirical survey data. The models are compared to the empirical survey data by calculating the KL divergence between the model's response distribution and the empirical survey response distribution.
 
+
+
 Gemma 4 31B
 Ling 3.0 Tiny
 Nemotron 3.5 Lightning
@@ -32,6 +34,16 @@ Compare between system prompts with one that is the persona as a NZ model.
 
 Post hoc analysis
 
+\subsection{Prompting a model to respond like a NZ person}
+This is the cheapest method of alignment. It involves just prompting a model that it should respond like a New Zealander and relies on the model having a sufficiently good internal model of what a New Zealander is like. 
+
+A simple prompt is used and appended to the system prompts of the model in the evaluations. "Respond as an average New Zealand person would".
+\ctable{ft-results-nopersona-Qwen3.8-27B}{The results of the base model, prompted model and fine tuned model on the world values survey evaluations when using only the \texttt{no-persona} system prompt.}
+
+As can be seen in both \tabref{ft-results-nopersona-Qwen3.8-27B} and \tabref{ft-results-Qwen3.8-27B} the prompted model does not perform as well as the fine-tuned model. It even performs worse on almost every measure. This demonstrates that the Qwen 3.8 27B model has insufficient knowledge of how a New Zealander would respond to the survey questions and that simple prompting alone is not sufficient. 
+
+It is plausible that more complex prompting—namely few-shot or longer personas—could improve the prompted model's performance. This has not been tested.
+
 \section{The results of Fine-tuning LLMs on value survey data}
 \label{sec:ft-results}
 
@@ -41,11 +53,8 @@ Discuss the various methods of evaluating the efficacy of fine-tuning, including
 - Survey modelling (how well the model predicts survey responses)
 - Response distributions (how well the model's response distributions match the survey data)
 
-\ctable{ft-results-Qwen3.5-9B}{The results of fine-tuning Qwen-3.5-9B on the WVS data. The table shows the accuracy, cross-entropy and KL divergence for the base model and various fine-tuned models on the training, validation and overall datasets. This is calculated by running the model with reasoning off agasint the modal response dataset.}
 
-\ctable{ft-capability-Qwen3.5-9B}{The capability of Qwen-3.5-9B on various benchmarks. The table shows the accuracy and 95\% confidence intervals for the MMLU-Pro, GPQA Diamond and SWE-bench benchmarks. This is calculated by running the model with reasoning off agasint the modal response dataset.}
-
-\ctable{ft-results-Qwen3.6-27B}{The results of fine-tuning Qwen-3.6-27B on the WVS data. The table shows the accuracy, cross-entropy and KL divergence for the base model and various fine-tuned models on the training, validation and overall datasets. This is calculated by running the model with reasoning off agasint the modal response dataset.}
+\ctable{ft-results-Qwen3.8-27B}{The results of fine-tuning Qwen-3.8-27B on the WVS data. The table shows the accuracy, cross-entropy and KL divergence for the base model and various fine-tuned models on the training, validation and overall datasets. This is calculated by running the model with reasoning off agasint the modal response dataset.}
 
 Also explore other concepts of:
 - Is fine-tuning robust to reasoning on and off?

@@ -49,12 +49,16 @@ def _(EVALS_ROOT, ast, json, pd):
     MAIN_MODAL_CONFIGS = ("modal_response",)
 
     METHOD_PRETTY = {
+        "prompted": "Prompted",
         "modal_response": "Modal response",
         "sampled_response": "Sampled response",
         "first_token_distribution": "First token",
         "full_string_distribution": "Full string",
     }
     METHOD_ORDER = [
+        # Prompted baseline first: the same base model with an added persona
+        # instruction (not a fine-tune), directly under the Base row.
+        "prompted",
         "modal_response",
         "sampled_response",
         "first_token_distribution",
@@ -71,10 +75,14 @@ def _(EVALS_ROOT, ast, json, pd):
     TASK_ORDER = ["mmlu_pro", "gpqa_diamond", "swe_bench"]
 
     def base_and_method(model_name):
-        # "{base}-nz-wvs-{method}" -> (base, method); no suffix -> (name, "base")
+        # "{base}-nz-wvs-{method}" -> (base, method); a "{base}-prompted" dir
+        # is the base model evaluated with an added persona instruction (not
+        # a fine-tune); anything else is a plain base model.
         if "nz-wvs-" in model_name:
             base, method = model_name.split("nz-wvs-", 1)
             return base.rstrip("-"), method
+        if model_name.endswith("-prompted"):
+            return model_name[: -len("-prompted")], "prompted"
         return model_name, "base"
 
     def newest_run(model_dir, keep=None):
@@ -291,7 +299,11 @@ def _(adapter_rows, collapse_versions, model_frames, parse_list, pd):
         """Console view: mean question-level TVD per split + Δ vs Base."""
         for base_model, table in tables.items():
             base_row = table[table["label"] == "Base"]
-            base_val = float(base_row["tvd_validation"].iloc[0])
+            base_val = (
+                float(base_row["tvd_validation"].iloc[0])
+                if not base_row.empty
+                else float("nan")
+            )
             print(f"\n=== {base_model} — mean TVD (%) vs NZ population ===")
             out = pd.DataFrame(index=table["label"])
             out["Validation"] = table["tvd_validation"].round(1).values
@@ -331,7 +343,14 @@ def _(pd, tvd_tables, write_latex_table):
         written = []
         for base_model, table in tables.items():
             base_row = table[table["label"] == "Base"]
-            base_val = float(base_row["tvd_validation"].iloc[0])
+            # A prompted dir can exist without a base run (e.g. the prompted
+            # eval used OpenRouter while the base used vLLM): no base row
+            # means all deltas stay NaN and render as "--".
+            base_val = (
+                float(base_row["tvd_validation"].iloc[0])
+                if not base_row.empty
+                else float("nan")
+            )
             out = pd.DataFrame(index=table["label"], columns=columns)
             out.index.name = None
             fmt = {}
@@ -488,11 +507,14 @@ def _(mo):
 def _(METRICS, SPLITS, adapter_rows, collapse_versions, model_frames, np, pd):
     # Building the main table data.
 
-    def collect_modal_metrics():
+    def collect_modal_metrics(system_prompt_id_filter=None):
         """Per (model, split) mean metrics, averaged over the system prompts,
         from the newest non-reasoning modal-config eval run. Only the
         overall population is kept; rows tagged with a cluster
         subpopulation are dropped.
+
+        With ``system_prompt_id_filter`` only that system prompt's rows are
+        scored (e.g. ``"no_persona"`` for the prompted-vs-base comparison).
 
         Older eval runs did not tag every row with a split/subpopulation:
         they are treated as validation-only over the whole population, so
@@ -502,6 +524,8 @@ def _(METRICS, SPLITS, adapter_rows, collapse_versions, model_frames, np, pd):
         for model, (base, method, df) in model_frames.items():
             if not {"expected_text", "model_answer"}.issubset(df.columns):
                 continue
+            if system_prompt_id_filter is not None:
+                df = df[df["system_prompt_id"] == system_prompt_id_filter]
             for (split, sp_id), h in df.groupby(
                 ["split", "system_prompt_id"], dropna=False
             ):
@@ -559,12 +583,11 @@ def _(METRICS, SPLITS, adapter_rows, collapse_versions, model_frames, np, pd):
         combined["split"] = "overall"
         return pd.concat([by_split, mean_over_prompts(combined)], ignore_index=True)
 
-    def build_main_tables():
+    def build_main_tables(metrics):
         """dict base_model -> DataFrame, one row per fine-tuned version (base
         first), 9 columns = 3 metrics x 3 splits. All models are matched to
         the overall population. Duplicate entries (several eval dirs mapping
         to the same method) are averaged per split."""
-        metrics = collect_modal_metrics()
         tables = {}
         base_refs = {}
         for base_model in sorted(metrics["base_model"].unique()):
@@ -586,6 +609,9 @@ def _(METRICS, SPLITS, adapter_rows, collapse_versions, model_frames, np, pd):
             table = pd.DataFrame(table_rows)
             tables[base_model] = table
             # Reference values of the base model, for the "vs base" deltas.
+            # A prompted dir can exist without a base run (prompted eval via
+            # a different provider than the base): NaN keeps every consumer
+            # working and renders the deltas as "--".
             base_vals = table[table["label"] == "Base"]
             if not base_vals.empty:
                 base_refs[base_model] = {
@@ -593,13 +619,20 @@ def _(METRICS, SPLITS, adapter_rows, collapse_versions, model_frames, np, pd):
                     for split in SPLITS
                     for metric in METRICS
                 }
+            else:
+                base_refs[base_model] = {
+                    f"{metric}_{split}": float("nan")
+                    for split in SPLITS
+                    for metric in METRICS
+                }
         return tables, base_refs
 
-    def show_main_tables():
+    def show_main_tables(tables, base_refs, context="overall population"):
         """Console view: metrics x {Validation, Train, All, Δ vs Base}.
         Δ vs Base = adapter minus base on the held-out validation split
         (positive Δ accuracy = better; negative Δ CE/KL = better). The
-        base row shows "--" for the deltas."""
+        base row shows "--" for the deltas. ``context`` labels the data
+        scope in the header (overall population or one system prompt)."""
         metric_labels = {
             "accuracy": "Acc (%)",
             "cross_entropy": "CE",
@@ -609,7 +642,7 @@ def _(METRICS, SPLITS, adapter_rows, collapse_versions, model_frames, np, pd):
         for base_model, table in tables.items():
             base = base_refs[base_model]
             print(
-                f"\n=== {base_model} — overall population "
+                f"\n=== {base_model} — {context} "
                 "(validation = held-out questions/prompts) ==="
             )
             cols = pd.MultiIndex.from_product(
@@ -633,9 +666,15 @@ def _(METRICS, SPLITS, adapter_rows, collapse_versions, model_frames, np, pd):
                 "(+Acc / −CE / −KL means improvement)"
             )
 
-    tables, base_refs = build_main_tables()
-    show_main_tables()
-    return base_refs, tables
+    tables, base_refs = build_main_tables(collect_modal_metrics())
+    show_main_tables(tables, base_refs)
+    return (
+        base_refs,
+        build_main_tables,
+        collect_modal_metrics,
+        show_main_tables,
+        tables,
+    )
 
 
 @app.cell
@@ -644,9 +683,12 @@ def _(base_refs, pd, tables, write_latex_table):
     # split (held-out questions/prompts) comes first as the honest measure of
     # generalisation, and "vs Base" = adapter minus base on validation
     # (+Acc / -CE / -KL means the fine-tuned model moved towards the NZ
-    # response distribution).
+    # response distribution). Also used for the no_persona-only table via
+    # name_template.
 
-    def render_tables_to_tex():
+    def render_tables_to_tex(
+        tables, base_refs, name_template="ft-results-{base_model}.tex"
+    ):
         METRIC_LABELS = ["Accuracy", "CE", "KL"]
         METRIC_COLS = ["accuracy", "cross_entropy", "kl_divergence"]
         SPLIT_LABELS = ["Validation", "Train", "All", "vs Base"]
@@ -681,14 +723,56 @@ def _(base_refs, pd, tables, write_latex_table):
                     out,
                     fmt,
                     out.shape[1],
-                    f"ft-results-{base_model}.tex",
+                    name_template.format(base_model=base_model),
                     senses=SENSES,
                 )
             )
         return written
 
-    table_files = render_tables_to_tex()
+    table_files = render_tables_to_tex(tables, base_refs)
     table_files
+    return (render_tables_to_tex,)
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    ### No-persona prompted vs fine-tuned
+
+    Same layout and metrics as the main table, computed only on the
+    ``no_persona`` system prompt (no persona wording at all), so the
+    **Prompted** row is exactly that prompt plus the added "respond as an
+    average New Zealand person would" instruction. Comparing Prompted with
+    Base shows the effect of prompting alone on the most neutral prompt;
+    comparing it with the fine-tuned rows shows how much of fine-tuning's
+    move towards the NZ population a single instruction reproduces. The
+    validation column is thin — only the held-out questions answered under
+    this one prompt. LaTeX is written to
+    ``code/figures/ft-results-nopersona-<model>.tex``.
+    """)
+    return
+
+
+@app.cell
+def _(
+    build_main_tables,
+    collect_modal_metrics,
+    render_tables_to_tex,
+    show_main_tables,
+):
+    # no_persona-only version of the main table: the prompted baseline and
+    # every fine-tuned method scored on just this system prompt.
+    nopersona_metrics = collect_modal_metrics(system_prompt_id_filter="no_persona")
+    nopersona_tables, nopersona_base_refs = build_main_tables(nopersona_metrics)
+    show_main_tables(
+        nopersona_tables, nopersona_base_refs, context="no_persona prompt only"
+    )
+    nopersona_table_files = render_tables_to_tex(
+        nopersona_tables,
+        nopersona_base_refs,
+        name_template="ft-results-nopersona-{base_model}.tex",
+    )
+    nopersona_table_files
     return
 
 
