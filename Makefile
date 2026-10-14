@@ -71,7 +71,7 @@ watch:
 	docname=$$(sed -n 's/^[[:space:]]*\\docname{\(.*\)}/\1/p' "$$src" 2>/dev/null); \
 	[ -z "$$docname" ] && docname="$$base"; \
 	mkdir -p "$$outdir"; \
-	$(LATEXMK) -pdf -f -pvc -pv- $(WATCH_SHELL_ESCAPE) -outdir="$$outdir" -cd -interaction=nonstopmode \
+	$(LATEXMK) -pdf -f -pvc -view=none $(WATCH_SHELL_ESCAPE) -outdir="$$outdir" -cd -interaction=nonstopmode \
 	  -jobname="$$docname" "$$src"
 
 # Print the report word count (same computation as the working draft notice)
