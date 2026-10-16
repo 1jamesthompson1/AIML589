@@ -1,9 +1,5 @@
 """Build or sync the remote Qualtrics survey from ``survey_definition``.
 
-All writes go through the Qualtrics survey-definitions API; no QSF file is
-involved. ``generate_survey_qsf.py`` stays only as the reference
-implementation of the underlying definition.
-
 Sync target: the survey id in `QUALTRICS_SURVEY_ID` (repo root `.env`), or
 the id passed on the command line.
 Sync keys, verified stable and idempotent:
@@ -30,6 +26,8 @@ Endpoints used on this datacenter (X-API-TOKEN auth):
 Usage:
 
     uv run survey/qualtrics_sync.py                 # sync managed survey
+    uv run survey/qualtrics_sync.py --clear         # empty the survey first, then sync
+    uv run survey/qualtrics_sync.py --clear --workers 8
     uv run survey/qualtrics_sync.py --bootstrap     # create, clear, build
     uv run survey/qualtrics_sync.py SV_xxxxxxxxxxx  # sync one specific survey
 
@@ -388,17 +386,57 @@ def sync_blocks(sv_id: str, wanted_blocks: list[dict]) -> dict[str, str]:
 # ---------------------------------------------------------------------------
 
 
-def clear(sv_id: str) -> None:
+def clear(sv_id: str, workers: int = 1) -> None:
     """Remove every question and block the copy brought over.
 
     Block deletes are best-effort: some blocks (e.g. the survey's default
     or protected ones) are rejected with 400 and the sync will manage
-    their contents anyway.
+    their contents anyway. Question deletes run in ``workers`` parallel
+    threads when ``workers`` > 1 (the survey-definitions API has no bulk
+    delete, so the calls are per-question; parallelism only hides the
+    per-call server latency). Idempotent: already-gone ids are skipped, so
+    re-running finishes an interrupted clear.
     """
-    for q in all_questions(sv_id).values():
-        request(
-            "DELETE", f"/API/v3/survey-definitions/{sv_id}/questions/{q['QuestionID']}"
-        )
+    questions = list(all_questions(sv_id).values())
+    qids = [q["QuestionID"] for q in questions]
+    print(f"clearing {len(qids)} questions from {sv_id} ({workers} workers)")
+    if workers <= 1:
+        for i, qid in enumerate(qids, 1):
+            try:
+                request(
+                    "DELETE",
+                    f"/API/v3/survey-definitions/{sv_id}/questions/{qid}",
+                )
+            except RuntimeError:
+                continue  # already gone or protected
+            if i % 250 == 0:
+                print(f"  deleted {i}/{len(qids)}", flush=True)
+    else:
+        from concurrent.futures import ThreadPoolExecutor, as_completed
+
+        def delete(qid: str):
+            try:
+                request(
+                    "DELETE",
+                    f"/API/v3/survey-definitions/{sv_id}/questions/{qid}",
+                )
+                return True
+            except RuntimeError:
+                return False
+
+        deleted = done = 0
+        with ThreadPoolExecutor(max_workers=workers) as pool:
+            futures = [pool.submit(delete, qid) for qid in qids]
+            for fut in as_completed(futures):
+                done += 1
+                deleted += bool(fut.result())
+                if done % 250 == 0:
+                    print(f"  {done}/{len(qids)} handled", flush=True)
+        print(f"  pass: {deleted}/{len(qids)} deleted", flush=True)
+        remaining = list(all_questions(sv_id).values())
+        if remaining and deleted:
+            print(f"retry pass for {len(remaining)} leftovers", flush=True)
+            return clear(sv_id, workers)  # finish failed/skipped deletes
     for bid in list(remote_blocks(sv_id).values()):
         try:
             request("DELETE", f"/API/v3/survey-definitions/{sv_id}/blocks/{bid}")
@@ -432,6 +470,21 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("survey_id", nargs="?", default=None)
     parser.add_argument("--bootstrap", action="store_true")
+    parser.add_argument(
+        "--clear",
+        action="store_true",
+        help="delete all remote questions/blocks before syncing (needed "
+        "when the remote survey is too full: creates fail above the "
+        "account's survey-size ceiling)",
+    )
+    parser.add_argument(
+        "--workers",
+        type=int,
+        default=1,
+        metavar="N",
+        help="parallel threads for --clear question deletes (Qualtrics has "
+        "no bulk delete; N threads hide the per-call server latency)",
+    )
     args = parser.parse_args()
 
     definition, wanted_questions, wanted_blocks = flatten_definition()
@@ -454,6 +507,10 @@ def main() -> None:
             )
 
     print(f"managing {sv_id}")
+    if args.clear:
+        print(f"clearing {sv_id} before sync")
+        clear(sv_id, max(args.workers, 1))
+        print(f"cleared {sv_id}")
     qids_by_tag = sync_questions(sv_id, wanted_questions)
     for b in wanted_blocks:
         b["qids"] = [qids_by_tag[q["DataExportTag"]] for q in b["questions"]]

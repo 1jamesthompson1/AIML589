@@ -53,6 +53,44 @@ For [vast.ai](https://vast.ai) there is a helper script `vastgpu.py` which finds
 
 Normally you don't call `vastgpu.py` directly — pass `--vast` to `run_all.py` and it provisions the instance, runs the whole grid on it, and destroys it afterwards (see below).
 
+### Watchdog (`watchdog.py`)
+
+Forgetting a rented instance running overnight bills hours for nothing, so
+every **`vastgpu.py launch` starts a watchdog** and every **`teardown` stops
+it**. It pushes to an [ntfy.sh](https://ntfy.sh) topic (free app on the phone,
+subscribe to the topic once): a standing "still running (uptime, vLLM
+up/down, time-to-deadline)" message every `--watchdog-heartbeat-min`
+(default 60), soft deadline reminders (T-60m/15m/5m), and at the hard deadline
+(`--watchdog-deadline-hours`, default 8) it **destroys the vast instance** —
+as does idle detection when the serve process ends and the box would
+otherwise bill for nothing overnight. From the topic you can reply `status`,
+`extend 4` (hours), or `teardown now`. `--no-watchdog` skips arming.
+
+Two watchers are provisioned per launch: the primary runs `nohup` on the GPU
+box (`~/llm-ft/watchdog.log`; survives ssh drops and a sleeping laptop), and a
+fallback watcher runs on the dev machine. `run.sh serve` never touches
+watchdogs (and stops syncing watchdog keys into `finetune.env` — if you rearm
+a box manually after a serve without running `launch`, pass `--ntfy`
+explicitly or use `launch`). Teardown stops the remote guard first (while the
+box can still receive its exit message), then destroys the instance, then
+kills the local watcher. Teardown works for vast.ai instances only
+(university hosts just get the phone pings).
+
+`.env` keys (repo root; launch syncs `WATCHDOG_NTFY_URL` and `VAST_API_KEY`
+into the instance's `finetune.env` so the remote guard can destroy it itself):
+
+```
+WATCHDOG_NTFY_URL=https://ntfy.sh/<private-topic>   # required; ntfy topics cap at 64 chars
+VAST_API_KEY=...                                    # full-account key, only consumed for teardown
+```
+
+Use a long unguessable topic name (the URL is the only credential). The VAST
+API key is full-account — arming remote teardown means that key lives on the
+rented box's `finetune.env`; if you'd rather not, launch with
+`--no-watchdog` or keep the guard notification-only (`watchdog.py
+--no-teardown`). Test the loop end-to-end cheaply with
+`--watchdog-deadline-hours 0.01` on any box.
+
 ### University GPU machines
 
 There are many university machines with GPUs. They operate on a first in first serve so finding a free GPU is a bit of a pain. 

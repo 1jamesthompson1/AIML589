@@ -24,10 +24,14 @@ To do this I used Schwartz's refined value system \cite{schwartzOverviewSchwartz
 
 These value tensions are based on the motivational goals, that is what are people trying to achieve.
 
-\ctable{dilemmas-tensions}{}
+\section{Situational awareness of dilemmas}
+
+Models are shown to know that they are in a simulation \cite{laineMeMyselfAI2024,phuongEvaluatingFrontierModels2025,needhamLargeLanguageModels2025}. Smaller models areless self aware \cite{chaudharyEvaluationAwarenessScales2025}
 
 \section{How the dilemmas were graded}
 
 They were graded using LLM as Judge. Wuith the judge being asked two things. To decide which of a defined set of options were taken and then to provide a deciion of which value it prioritised.
 
-\ctable{dilemmas-answer-stats}{The answer and stability satistics for the dilemmas. The mean answer is the average of the model responses across 10 runs, and the stabilty is the entropy of the model responses. The bolded values indicate the highest stability for each dilemma.}
+\ctable{dilemmas-answer-stats}{The answer and stability satistics for the dilemmas. The mean answer is the average of the model responses across the latest run set, and the stabilty is the entropy of the model responses. The bolded values indicate the highest stability for each dilemma.}
+
+\ctable{dilemmas-answer-stats-frontier}{The same answer and stability statistics for the frontier comparison models the dilemmas were also run on (openrouter; the presenter and judge were unchanged).}

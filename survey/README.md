@@ -18,8 +18,10 @@ sets `volunteer`. The survey flow (mirrored by `survey_definition.build()`):
 4. Section B - The comparison task: a two-sentence description of the
    task context
 5. BlockRandomizer: 5 of the dilemma blocks per respondent (one block per
-   version-matched pair of runs from two different models on the same
-   dilemma: 30 dilemmas x 10 repetitions -> 300 blocks)
+   repetition where the fine-tuned adapter and the base model both have an
+   exported run: 30 dilemmas x 5 repetitions -> 141 blocks with the current
+   run sets; Agent 1/Agent 2 order is a stable pseudo-random assignment per
+   run pair, so neither model is systematically first)
 6. Section C - Your thoughts: attitude and policy questions
 7. Branch on `volunteer` -> prize-draw question; a `yes` answer ends the
    survey with a redirect
@@ -29,10 +31,12 @@ sets `volunteer`. The survey flow (mirrored by `survey_definition.build()`):
   `<!--volunteer ... -->` conditional paragraph (parsed by
   `sheet_for_channel`); comparison wording from `comparison-question.md`, and
   the comparison blocks themselves from the exported runs
-  (`code/dilemmas/output/runs/index.json`). Each block shows the profile's
-  one-sentence role summary, the dilemma, and both runs' responses under
-  Agent 1 / Agent 2 headings. The definition fails fast when the manifest is
-  missing or has no version-matched pairs (run
+  (`code/dilemmas/output/runs/index.json`). Each block reads the profile's
+  one-sentence role summary and framing live from the profile JSON (dilemma
+  intro opening the block, outro bridging the situation and question, so
+  wording edits need no re-export), then the dilemma situation and question,
+  and both runs' responses under Agent 1 / Agent 2 headings. The definition
+  fails fast when the manifest is missing or has no version-matched pairs (run
   `code/dilemmas/export_results.py` first).
   The public website mirrors the respondent-facing question text and answer
   scales in `website/src/lib/survey.ts`; update that file when they change.
@@ -60,6 +64,11 @@ Section B), and a second part about how they view the world and AI
   respondents see before starting. The `.md` is the source the generator
   converts into the survey's title page (edit the `.md`, the `.tex` is the
   printable/official copy).
+- `generate_mockup.py` - renders the live definition to
+  `output/survey-mockup.pdf` (LaTeX via the gitignored `survey-mockup.tex`).
+  Section B shows one comparison block per current profile - its first
+  dilemma in file order - for review; `--all` includes the retired profiles'
+  first dilemmas too.
 - `recruitment-flyer.tex` / `recruitment-post.txt` - recruitment material.
 - `hec-template-for-anonymous-surveys.docx` / `vuw-logo.pdf` - ethics /
   branding assets.

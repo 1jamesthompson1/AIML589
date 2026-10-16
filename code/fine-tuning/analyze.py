@@ -1860,8 +1860,8 @@ def _(
 @app.cell
 def _(tension_table):
     # The full ranked candidate list behind the report table: every pair that
-    # passes the candidate rule, with the columns used to curate the final
-    # eleven dilemma tensions (code/dilemmas/tensions.json). "Min" is the
+    # passes the candidate rule, with the columns used to curate the dilemma
+    # value tensions. "Min" is the
     # thinner pole's DIRECT-item count and "Spread" the item-TVD range behind
     # the pair mean - caveats on a row, not scores.
 

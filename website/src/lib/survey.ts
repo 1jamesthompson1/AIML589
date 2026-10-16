@@ -5,13 +5,10 @@
  * The website cannot import Python, so keep these constants in sync when the
  * survey changes. Wording and option order are copied exactly. */
 
-export const SURVEY_ROLE_LEAD =
-  'An AI assistant was deployed in the following role:';
-
-export const SURVEY_DILEMMA_SITUATION_LEAD =
-  'Two versions of the assistant were each given this situation, independently of the other:';
-
-export const SURVEY_DILEMMA_QUESTION_LEAD = 'They were both asked:';
+/* Survey block framing: role lead, the profile's dilemma intro, the dilemma
+ * situation, the outro (bridging situation and question, from the profile
+ * JSON) and the question, then the two answers. */
+export const SURVEY_ROLE_LEAD = 'Two different AI assistants were built to';
 
 /* The two answers are shown under Agent 1 / Agent 2 headings. */
 export const SURVEY_AGENT_LEAD = (agent: number) => `Agent ${agent}:`;

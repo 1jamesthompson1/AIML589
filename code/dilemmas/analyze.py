@@ -15,63 +15,16 @@ def _():
 
     # Shared LaTeX table helpers live in code/latex_tables.py.
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-    from latex_tables import write_latex_table, write_text_table
+    from latex_tables import write_latex_table
 
     HERE = Path(__file__).resolve().parent
-    return HERE, json, np, pd, write_latex_table, write_text_table
-
-
-@app.cell
-def _(HERE, json, pd, write_text_table):
-    # Reference table for the rest of the analysis: the eleven value tensions
-    # every handwritten dilemma is written around. Dilemmas and judge results
-    # point at a tension by id (the `tension` field), so this table is the
-    # shared key for the sections below. The third value option
-    # in the JSON is always "Other or unclear", so it is left out here. The
-    # named form ("Security–personal: ...") stays in tensions.json for the
-    # judge; the report cells carry only the definition, so
-    # the columns stay narrow.
-    # The table is also written to code/figures/dilemmas-tensions.tex for the
-    # report to import with \ctable{dilemmas-tensions}{...}.
-
-    def value_definition(value: str) -> str:
-        """Drop the leading value name so the cell is just the definition."""
-        return value.split(": ", 1)[1] if ": " in value else value
-
-    def tensions_table() -> pd.DataFrame:
-        """One row per tension: the two sides it sets against each other and
-        the guidance for reading a decision as that tension."""
-        tensions = json.loads((HERE / "tensions.json").read_text(encoding="utf-8"))
-        rows = []
-        for tension in tensions:
-            first, second = tension["value_options"][:2]
-            rows.append(
-                {
-                    "#": tension["id"],
-                    "Tension": tension["name"],
-                    "First value": value_definition(first),
-                    "Second value": value_definition(second),
-                    "Guidance": tension["guidance"],
-                }
-            )
-        return pd.DataFrame(rows)
-
-    tensions_df = tensions_table()
-    write_text_table(
-        tensions_df,
-        "dilemmas-tensions.tex",
-        column_format="@{}rp{3.0cm}p{3.3cm}p{3.3cm}p{5.6cm}@{}",
-        ragged_columns=("Tension", "First value", "Second value", "Guidance"),
-    )
-
-    tensions_df
-    return (tensions_df,)
+    return HERE, json, np, pd, write_latex_table
 
 
 @app.cell
 def _(HERE, json, np, pd, write_latex_table):
     # Per-dilemma answer statistics from the exported runs, ranked by how far
-    # the two models diverge on the dilemma.
+    # the models diverge on the dilemma.
     #
     # "Mean answer" is the mean chosen option index (1 = the first option, up
     # to and including "Other or unclear"), which locates where the answers
@@ -92,24 +45,15 @@ def _(HERE, json, np, pd, write_latex_table):
     # (profile, dilemma, model) is scored on its most recent run set only, so
     # the statistics use the option list the index currently publishes.
     #
-    # The table is also written to code/figures/dilemmas-answer-stats.tex for
-    # the report to import with \ctable{dilemmas-answer-stats}{...}.
-    def answer_stats() -> pd.DataFrame:
-        # Only the study models appear in the table: the fine-tuned
-        # Qwen3.8-27B, its base (local vLLM or the OpenRouter service), and
-        # the two frontier comparison models. Spot-test extras
-        # (claude-haiku-5.5, gpt-5.6-luna) stay out; add an entry here when
-        # the study models change (the label is the column name, so keep the
-        # Qwen entries sorting before the frontier ones).
-        model_labels = {
-            "openai/Qwen3.8-27B-nz-wvs-full_string_distribution-overall": (
-                "Qwen3.8-27B FT"
-            ),
-            "openai/Qwen/Qwen3.8-27B": "Qwen3.8-27B base",
-            "openrouter/qwen/qwen3.8-27b": "Qwen3.8-27b",
-            "openrouter/deepseek/deepseek-v4.1-flash": "deepseek-v4.1-flash",
-            "openrouter/z-ai/glm-5.3-flash": "glm-5.3-flash",
-        }
+    # The table is also written to code/figures/dilemmas-answer-stats.tex and
+    # dilemmas-answer-stats-frontier.tex for the report to import with
+    # \ctable{...}.
+    def answer_stats(
+        model_labels: dict[str, str], model_order: list[str]
+    ) -> pd.DataFrame:
+        # The model set is passed in: see the two sets defined below the
+        # function (the fine-tuned adapters and the frontier comparison
+        # models).
         runs_dir = HERE / "output" / "runs"
         manifest_path = runs_dir / "index.json"
         if not manifest_path.exists():
@@ -176,32 +120,91 @@ def _(HERE, json, np, pd, write_latex_table):
         divergence = pd.Series(divergence, name="Divergence")
         stats = pd.concat([mean_answer, stability], axis=1).unstack("Model")
         stats.insert(0, ("Divergence", "TVD"), divergence.reindex(stats.index))
+        # Keep the requested model order (pandas would otherwise sort the
+        # columns alphabetically by label).
+        columns = [("Divergence", "TVD")]
+        columns += [
+            (stat, model)
+            for stat in ("Mean answer", "Stability")
+            for model in model_order
+        ]
+        stats = stats.reindex(columns=columns)
         stats = stats.sort_values(
             ("Divergence", "TVD"), ascending=False, na_position="last", kind="stable"
         )
         return stats.round(2)
 
-    answer_stats_df = answer_stats()
+    MODEL_SETS = {
+        # The study set: all four fine-tuned Qwen3.8-27B adapter variants
+        # ("overall" adapters served from the local vLLM server) plus their
+        # base model.
+        "dilemmas-answer-stats": {
+            "description": "fine-tuned Qwen3.8-27B adapters and base",
+            "labels": {
+                "openai/Qwen3.8-27B-nz-wvs-full_string_distribution-overall": (
+                    "FT full-string"
+                ),
+                "openai/Qwen3.8-27B-nz-wvs-first_token_distribution-overall": (
+                    "FT first-token"
+                ),
+                "openai/Qwen3.8-27B-nz-wvs-modal_response-overall": "FT modal",
+                "openai/Qwen3.8-27B-nz-wvs-sampled_response-overall": "FT sampled",
+                "openai/Qwen/Qwen3.8-27B": "Qwen3.8-27B base",
+            },
+            "order": [
+                "FT full-string",
+                "FT sampled",
+                "FT modal",
+                "FT first-token",
+                "Qwen3.8-27B base",
+            ],
+        },
+        # For curiosity: the frontier comparison models the same dilemmas
+        # were also run on.
+        "dilemmas-answer-stats-frontier": {
+            "description": "frontier comparison models",
+            "labels": {
+                "openrouter/qwen/qwen3.8-27b": "Qwen3.8-27b",
+                "openrouter/deepseek/deepseek-v4.1-flash": "deepseek-v4.1-flash",
+                "openrouter/anthropic/claude-haiku-5.5": "claude-haiku",
+                "openrouter/openai/gpt-5.6-luna": "gpt-5.6-luna",
+                "openrouter/z-ai/glm-5.3-flash": "glm-5.3-flash",
+            },
+            "order": [
+                "Qwen3.8-27b",
+                "claude-haiku",
+                "deepseek-v4.1-flash",
+                "gpt-5.6-luna",
+                "glm-5.3-flash",
+            ],
+        },
+    }
 
-    if not answer_stats_df.empty:
+    def write_stats_table(stats: pd.DataFrame, filename: str) -> None:
         # The LaTeX figure keeps multi-level columns: the top header row
         # groups the statistics and the second row holds the models, like
         # the fine-tuning tables. The stub columns are unnamed so the index
         # names do not add a header row of their own.
-        answer_stats_tex_df = answer_stats_df.copy()
-        answer_stats_tex_df.index = answer_stats_tex_df.index.set_names([None, None])
-        answer_stats_tex_df.columns = answer_stats_tex_df.columns.set_names(
-            [None, None]
-        )
+        stats_tex_df = stats.copy()
+        stats_tex_df.index = stats_tex_df.index.set_names([None, None])
+        stats_tex_df.columns = stats_tex_df.columns.set_names([None, None])
         write_latex_table(
-            answer_stats_tex_df,
+            stats_tex_df,
             "{:.2f}",
-            answer_stats_tex_df.shape[1],
-            "dilemmas-answer-stats.tex",
+            stats_tex_df.shape[1],
+            filename,
             senses={"Stability": "max"},
-            column_format="ll" + "r" * answer_stats_tex_df.shape[1],
+            column_format="ll" + "r" * stats_tex_df.shape[1],
             stub_label="",
         )
+
+    result: dict[str, pd.DataFrame] = {}
+    for filename, spec in MODEL_SETS.items():
+        df = answer_stats(spec["labels"], spec["order"])
+        if not df.empty:
+            write_stats_table(df, filename + ".tex")
+        result[spec["description"]] = df
+    answer_stats_df = result["fine-tuned Qwen3.8-27B adapters and base"]
 
     answer_stats_df
     return (answer_stats_df,)
@@ -227,7 +230,6 @@ def _(HERE, json, np, pd):
             for dilemma in profile["dilemmas"]:
                 current[dilemma["id"]] = {
                     "profile_id": profile["profile"],
-                    "tension": dilemma["tension"],
                     "situation": dilemma["situation"],
                     "question": dilemma["question"],
                     "answer_options": dilemma["answer_options"],
@@ -294,7 +296,6 @@ def _(HERE, json, np, pd):
             row = {
                 "Profile": entry["profile_id"],
                 "Dilemma": situation_id,
-                "T": entry["tension"],
                 "Runs": total,
                 "Balance": round(max(balance, 0.0), 2),
             }

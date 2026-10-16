@@ -33,14 +33,15 @@ information sheet; the volunteer-only raffle paragraph is marked with an
 code/dilemmas/output/runs: the exported runs manifest (index.json, schema
 wvs-dilemma-runs-index/v2) is paired into blocks, one per version-matched
 pair of runs from two different models answering the same dilemma. Each
-block shows the profile's role summary, the dilemma, and both responses
+block shows the profile's role summary and framing (intro and outro, from
+the profile JSON), the dilemma question, and both responses
 side by side as Agent 1 / Agent 2. Question DataExportTags are the pair's
 ``<run_id>__<run_id>`` comparison id with a suffix (_0, _pref, _aiuse), so
 response columns join 1:1 with the two runs of the block (join the run ids
 back through the runs manifest to decode the models).
 """
 
-import itertools
+import hashlib
 import json
 import re
 from collections import defaultdict
@@ -49,6 +50,28 @@ from pathlib import Path
 DIR = Path(__file__).resolve().parent
 REPO = DIR.parent
 RUNS_DIR = REPO / "code" / "dilemmas" / "output" / "runs"
+PROFILES_DIR = REPO / "code" / "dilemmas" / "profiles"
+
+# The survey compares one fine-tuned adapter against the untuned base model:
+# one block per repetition (version) both models have exported for a dilemma.
+FT_MODEL = "openai/Qwen3.8-27B-nz-wvs-first_token_distribution-overall"
+BASE_MODEL = "openai/Qwen/Qwen3.8-27B"
+PAIR_MODELS = (BASE_MODEL, FT_MODEL)
+
+
+def agent_order(agents: list) -> list:
+    """Stable pseudo-random Agent 1 / Agent 2 assignment.
+
+    A hash of the sorted run ids picks the order, so no model is
+    systematically first (sorted-name order would always put the base model
+    first) while repeated builds keep the same layout - the Qualtrics export
+    tags embed the order.
+    """
+    key = hashlib.md5(
+        "__".join(sorted(run["run_id"] for run in agents)).encode()
+    ).digest()
+    return agents if key[0] % 2 == 0 else agents[::-1]
+
 
 N_PAIRS_SHOWN = 5
 
@@ -705,12 +728,16 @@ def _load_template() -> str:
 
 def description_text(record: dict) -> str:
     """The comparison descriptive question: the template's ``{?...?}``
-    markers filled from the block record."""
+    markers filled from the block record. The profile's framing lines may be
+    absent (older profiles); an empty value is substituted as a blank
+    paragraph and drops out of the rendered HTML."""
     text = _load_template()
     for marker, value in (
         ("role", record["role"]),
+        ("dilemma_intro", record["dilemma_intro"]),
         ("situation", record["situation"]),
         ("question", record["question"]),
+        ("dilemma_outro", record["dilemma_outro"]),
         ("response1", record["responses"][0]),
         ("response2", record["responses"][1]),
     ):
@@ -732,16 +759,38 @@ def _response_text(run: dict) -> str:
     return path.read_text(encoding="utf-8").strip() if path.exists() else ""
 
 
+def _profile_sources() -> dict[str, dict]:
+    """Profile JSONs keyed by profile id (the ``profile`` field), so the
+    survey shows current role and framing wording rather than the copy
+    frozen into the runs manifest."""
+    out: dict[str, dict] = {}
+    for path in sorted(PROFILES_DIR.glob("*.json")):
+        try:
+            data = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as exc:
+            print(f"SKIPPED profile file {path.name}: {exc}")
+            continue
+        bid = data.get("profile") or path.stem
+        out[bid] = data
+    return out
+
+
 def survey_records() -> list[dict]:
     """One record per survey block, from the exported dilemma runs.
 
-    Runs are grouped by dilemma and paired across models by version: for
-    every unordered pair of models and every repetition version both models
-    share, one block carries that pair's two responses. Two models with 10
-    repetitions each give 10 blocks per dilemma, so each block is answered
-    by roughly the same number of respondents (and no pair is left unjudged).
-    The first model in sorted order is Agent 1; the block's tag carries both
-    run ids, so which model played which agent can be decoded afterwards.
+    Each block pairs the fine-tuned model with the untuned base model
+    (``PAIR_MODELS``): one block per repetition (version) that both models
+    have exported for the dilemma. Which model plays Agent 1 is a stable
+    pseudo-random assignment per run pair (``agent_order``), so neither
+    position is systematically tied to one model; with the current 5-epoch
+    run sets that gives 5 blocks per dilemma (fewer where a scenario's run
+    set was reset mid-test). The block tag carries both run ids in agent
+    order, so which model played which agent can be decoded afterwards.
+
+    Role and framing read live from ``code/dilemmas/profiles/<profile>.json``
+    (the source of truth for what the agent is), so wording edits show up in
+    the survey without re-exporting runs; the manifest's exported copy is the
+    fallback when a profile file is gone.
     """
     manifest_path = RUNS_DIR / "index.json"
     if not manifest_path.exists():
@@ -756,6 +805,7 @@ def survey_records() -> list[dict]:
         )
     profiles = manifest["profiles"]
     dilemmas = {(d["profile_id"], d["situation_id"]): d for d in manifest["dilemmas"]}
+    profile_files = _profile_sources()
     # (profile, dilemma) -> model -> version -> run
     runs: dict[tuple[str, str], dict[str, dict[int, dict]]] = defaultdict(
         lambda: defaultdict(dict)
@@ -767,33 +817,43 @@ def survey_records() -> list[dict]:
     records = []
     for key in sorted(runs):
         by_model = runs[key]
-        if len(by_model) < 2:
-            print(f"SKIPPED {key}: only one model has runs")
+        if BASE_MODEL not in by_model or FT_MODEL not in by_model:
+            print(
+                f"SKIPPED {key}: base/fine-tuned pair has no runs "
+                f"({', '.join(m.rsplit('/', 1)[-1] for m in PAIR_MODELS if m in by_model) or 'none present'})"
+            )
             continue
         dilemma = dilemmas[key]
-        profile = profiles.get(key[0], {})
-        for first, second in itertools.combinations(sorted(by_model), 2):
-            shared = sorted(set(by_model[first]) & set(by_model[second]))
-            for version in shared:
-                agents = [by_model[model][version] for model in (first, second)]
-                responses = [_response_text(run) for run in agents]
-                if not all(responses):
-                    print(f"SKIPPED {key} v{version}: an exported response is empty")
-                    continue
-                records.append(
-                    {
-                        "comparison_id": (
-                            f"{agents[0]['run_id']}__{agents[1]['run_id']}"
-                        ),
-                        "label": f"{key[0]} - {key[1]} v{version}",
-                        "role": profile.get("role_summary")
-                        or profile.get("name")
-                        or key[0],
-                        "situation": dilemma["situation"],
-                        "question": dilemma["question"],
-                        "responses": responses,
-                    }
-                )
+        profile = profile_files.get(key[0]) or profiles.get(key[0], {})
+        shared = sorted(set(by_model[BASE_MODEL]) & set(by_model[FT_MODEL]))
+        if not shared:
+            print(f"SKIPPED {key}: base/fine-tuned share no exported repetition")
+            continue
+        for version in shared:
+            agents = agent_order(
+                [by_model[BASE_MODEL][version], by_model[FT_MODEL][version]]
+            )
+            responses = [_response_text(run) for run in agents]
+            if not all(responses):
+                print(f"SKIPPED {key} v{version}: an exported response is empty")
+                continue
+            records.append(
+                {
+                    "comparison_id": (f"{agents[0]['run_id']}__{agents[1]['run_id']}"),
+                    "label": f"{key[0]} - {key[1]} v{version}",
+                    "role": profile.get("role_summary")
+                    or profile.get("name")
+                    or key[0],
+                    # Survey framing from the profile JSON (read live,
+                    # with the manifest's exported copy as fallback);
+                    # "" for profiles that do not define it.
+                    "dilemma_intro": profile.get("dilemma_intro", ""),
+                    "dilemma_outro": profile.get("dilemma_outro", ""),
+                    "situation": dilemma["situation"],
+                    "question": dilemma["question"],
+                    "responses": responses,
+                }
+            )
     if not records:
         raise SystemExit(
             f"No version-matched run pairs in {manifest_path} - the survey needs "
@@ -862,10 +922,10 @@ def build() -> dict:
                 "D_taskB",
                 md_to_html(
                     "In the next part of the survey, you will read short "
-                    "situations in which an AI assistant was asked what it "
-                    "would do. For each situation you will see two answers, "
-                    "labelled Agent 1 and Agent 2, and you will not be told "
-                    "which AI systems produced them.\n\nAll situations are "
+                    "situations in which an AI agent was asked what it would do in it. "
+                    "You will be asked to compare the two responses and provide your "
+                    "opinion on which one you prefer. "
+                    "\n\nAll situations are "
                     "completely fictional and do not represent any real "
                     "person, company or situation."
                 ),

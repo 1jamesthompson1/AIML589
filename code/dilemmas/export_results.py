@@ -10,12 +10,11 @@ spot test does not leave stale runs of other models in the manifest (used by
 exporter skips them so older logs cannot resurrect the removed profiles.
 
 ``index.json`` is the website manifest: it lists every exported run plus each
-profile (name, the one-sentence role summary from ``profiles/<profile>.json``
-and the system prompt the model was given) and every dilemma (situation,
-question, answer options, and the tension name and value options resolved from
-``tensions.json``) so the viewer and the survey can render a dilemma without
-fetching each run's ``config.json`` first. ``index.csv`` keeps the flat run
-table.
+profile (name, the one-sentence role summary, the survey framing - intro and
+outro from ``profiles/<profile>.json`` - and the system prompt the model was
+given) and every dilemma (situation, question, answer options) so the viewer
+and the survey can render a dilemma without fetching each run's
+``config.json`` first. ``index.csv`` keeps the flat run table.
 """
 
 from __future__ import annotations
@@ -51,18 +50,12 @@ def load_retired_samples() -> frozenset[str]:
     return frozenset(data.get("retired", []))
 
 
-def load_tensions() -> dict[int, dict]:
-    """Tension definitions by id. Dilemmas link to these; they do not copy them."""
-    tensions = json.loads((HERE / "tensions.json").read_text(encoding="utf-8"))
-    return {tension["id"]: tension for tension in tensions}
-
-
 def load_profiles() -> dict[str, dict]:
     """Profile definitions by profile id.
 
     The profile JSON files stay the source of truth for what the agent is
-    (name, role summary, organisation): the exported run only pins the system
-    prompt it actually used.
+    (name, role summary, survey framing): the exported run only pins the
+    system prompt it actually used.
     """
     profiles = {}
     for path in sorted((HERE / "profiles").glob("*.json")):
@@ -129,7 +122,6 @@ async def export(
     rows = []
     profiles: dict[str, dict] = {}
     dilemmas: dict[tuple[str, str], dict] = {}
-    tensions = load_tensions()
     profile_defs = load_profiles()
     # (profile, dilemma) -> model -> judge choice -> runs, for the website's
     # per-dilemma outcome chart. Filled as runs are exported; the live dict is
@@ -163,14 +155,12 @@ async def export(
                 if choice:
                     choices[(profile, dilemma_id)][model][choice] += 1
             raw_dilemma = sample.metadata["dilemma"]
-            tension = tensions[raw_dilemma["tension"]]
-            # Profiles carry only the tension id, so resolve the name and value
-            # options from tensions.json. Older logs still hold copies of both;
-            # drop them so every exported run has the same dilemma shape.
+            # Older logs hold copies of the removed tension fields; drop them
+            # so every exported run has the same dilemma shape.
             dilemma = {
                 key: value
                 for key, value in raw_dilemma.items()
-                if key not in ("tension_name", "value_options")
+                if key not in ("tension", "tension_name", "value_options")
             }
             definition = profile_defs.get(profile, {})
             profiles.setdefault(
@@ -182,18 +172,19 @@ async def export(
                         or profile
                     ),
                     "role_summary": definition.get("role_summary", ""),
+                    # Survey framing (survey/comparison-question.md) shown
+                    # around the dilemma; profiles without it export "".
+                    "dilemma_intro": definition.get("dilemma_intro", ""),
+                    "dilemma_outro": definition.get("dilemma_outro", ""),
                     "system_prompt": run_system_prompt(sample),
                 },
             )
             dilemmas[(profile, dilemma_id)] = {
                 "profile_id": profile,
                 "situation_id": dilemma_id,
-                "tension": dilemma.get("tension"),
-                "tension_name": tension["name"],
                 "situation": dilemma.get("situation", ""),
                 "question": dilemma.get("question", ""),
                 "answer_options": dilemma.get("answer_options", []),
-                "value_options": tension["value_options"],
                 # model -> judge choice -> exported runs, for the viewer's
                 # outcome chart (live dict; complete once every run is seen)
                 "choice_counts": choices[(profile, dilemma_id)],

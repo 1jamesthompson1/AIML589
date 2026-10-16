@@ -629,6 +629,100 @@ section {
   line-height: 1.45;
 }
 
+/* All-dilemma summary statistics: one row per dilemma with the pooled
+ * outcome balance, the mean pairwise divergence between models and the mean
+ * within-model stability. Collapsed, like the manifest inventory. */
+.dilemma-stats {
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: 0.75rem;
+  padding: 0.7rem 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.dilemma-stats summary {
+  cursor: pointer;
+  color: var(--color-primary);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.dilemma-stats summary span {
+  margin-left: 0.4rem;
+  color: var(--color-muted);
+  font-size: 0.72rem;
+  font-weight: 400;
+}
+
+.dilemma-stats__note {
+  margin: 0.6rem 0;
+  font-size: 0.72rem;
+  line-height: 1.55;
+}
+
+.dilemma-stats__scroll { overflow-x: auto; }
+
+.dilemma-stats__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.72rem;
+}
+
+.dilemma-stats__table th,
+.dilemma-stats__table td {
+  padding: 0.4rem 0.5rem;
+  border-bottom: 1px solid var(--color-border);
+  text-align: left;
+  vertical-align: top;
+}
+
+.dilemma-stats__table th:first-child,
+.dilemma-stats__table td:first-child { white-space: nowrap; }
+
+.dilemma-stats__table th {
+  color: var(--color-muted);
+  font-weight: 600;
+}
+
+.dilemma-stats__number {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.dilemma-stats__table tbody tr { cursor: pointer; }
+
+.dilemma-stats__table tbody tr:not(.dilemma-stats__row--current):hover,
+.dilemma-stats__table tbody tr:not(.dilemma-stats__row--current):focus-within {
+  background: var(--color-surface);
+}
+
+.dilemma-stats__row--current {
+  background: #eff6ff;
+  font-weight: 600;
+}
+
+/* The dilemma label is a real button so keyboard users can select a row;
+ * the whole row also selects on click. */
+.dilemma-stats__link {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.dilemma-stats__link:hover,
+.dilemma-stats__link:focus-visible { text-decoration: underline; }
+
+.dilemma-stimulus__intro {
+  margin: 0 0 0.6rem;
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
+
 .dilemma-stimulus__situation {
   margin: 0 0 0.6rem;
   font-size: 0.9rem;

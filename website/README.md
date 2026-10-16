@@ -142,12 +142,24 @@ and the transcript.
 The dilemma viewer shows one card per model for the selected dilemma, each
 with a run selector so a specific response (run 1–N) can be chosen, the
 response text, and the judge's classification (decision, value, reason). The
-stimulus keeps the survey block's framing (role → situation → question, with
-the leads mirrored from `survey/comparison-question.md`; the viewer uses
-plural-neutral wording because it can show more than two models), shows the
-profile's role summary, and shows the selected profile's system prompt
+stimulus keeps the survey block's framing (role lead → the profile's dilemma
+intro → situation → question, with the role lead mirrored from
+`survey/comparison-question.md`), shows the profile's role summary and the
+situation the model was given, and keeps the selected profile's system prompt
 collapsed under it (the prompt actually used by the exported runs; older
-manifests without either simply omit them).
+manifests without them simply omit them). The stored outro is not shown: it
+says two agents answered, and the viewer can show every model.
+
+At the top of the viewer, above the dilemma selector, a collapsed **Dilemma
+statistics** table lists every dilemma in the manifest with the same three
+summary metrics the report's `code/dilemmas/analyze.py` tables use, computed
+over the runs the chart plots: **balance** of the pooled outcomes (H / ln k
+over all runs, 1.00 = even spread), **avg divergence** between the models
+(mean pairwise total variation distance between their outcome distributions)
+and **avg stability** (the mean over models of 1 - H / ln k within each
+model's own runs). Rows are sorted by avg divergence and the selected
+dilemma's row is highlighted; clicking a row opens that dilemma in the viewer
+and collapses the table.
 
 Under the stimulus, an **outcome distribution** chart shows, per answer
 option, the share of each model's exported runs the judge placed on it

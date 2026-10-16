@@ -10,13 +10,12 @@ import {
 } from '../lib/dataSource';
 import { SURVEY_ROLE_LEAD } from '../lib/survey';
 
-/* The survey block's framing (survey/comparison-question.md) with the role,
- * situation and question leads kept as the reader sees them in the public
- * consultation. A survey block always shows exactly two answers, so its
- * wording is singular; the viewer can show every model with runs, hence the
- * plural-neutral variants for the situation and question leads. */
-const VIEWER_SITUATION_LEAD =
-  'Each model below was given this situation, independently of the others:';
+/* The survey block's framing (survey/comparison-question.md): role lead,
+ * the profile's dilemma intro, the situation and the question, then the
+ * answers. A survey block always shows exactly two answers, so its stored
+ * outro ("Two different agents answered this question") is not shown here -
+ * the viewer can show every model with runs. The question lead is the
+ * plural-neutral fallback for profiles without an intro. */
 const VIEWER_QUESTION_LEAD = 'They were all asked:';
 
 /* Dilemma runs viewer.
@@ -42,12 +41,9 @@ const RUNS_BASE = MANIFEST_IS_LOCAL
 interface DilemmaInfo {
   profile_id: string;
   situation_id: string;
-  tension?: number | null;
-  tension_name?: string;
   situation?: string;
   question?: string;
   answer_options?: string[];
-  value_options?: string[];
   /** model -> judge choice -> exported runs (runs index v2, additive field) */
   choice_counts?: Record<string, Record<string, number>>;
 }
@@ -69,7 +65,13 @@ interface RunsManifest {
   base_url?: string;
   profiles?: Record<
     string,
-    { name?: string; role_summary?: string; system_prompt?: string }
+    {
+      name?: string;
+      role_summary?: string;
+      dilemma_intro?: string;
+      dilemma_outro?: string;
+      system_prompt?: string;
+    }
   >;
   dilemmas?: DilemmaInfo[];
   models?: string[];
@@ -228,49 +230,192 @@ function OutcomeChart({ dilemma }: { dilemma: DilemmaInfo | null }) {
   );
 }
 
+/* Dilemma-level statistics for the all-dilemmas table, computed from the
+ * same choice_counts the outcome chart plots, over the same curated series,
+ * with the definitions the report analysis uses (code/dilemmas/analyze.py,
+ * spot_test.py):
+ *   Balance         H / ln(k) over the pooled shares of every run (1.00 =
+ *                   runs spread evenly across the options, 0.00 = every run
+ *                   on one option).
+ *   Avg divergence  mean pairwise total variation distance between the
+ *                   models' outcome distributions (0.00 = identical,
+ *                   1.00 = no shared option).
+ *   Avg stability   mean over models of 1 - H / ln(k) within that model's
+ *                   own runs (1.00 = same option every time).
+ * A metric is null when it cannot be computed: no judged runs, a single
+ * answer option (ln k = 0) or one model only (no pairs to average). */
+
+function normalisedEntropy(shares: number[]): number {
+  const entropy = -shares.reduce((sum, p) => sum + (p > 0 ? p * Math.log(p) : 0), 0);
+  return shares.length > 1 ? entropy / Math.log(shares.length) : 0;
+}
+
+interface DilemmaStats {
+  runs: number;
+  balance: number | null;
+  divergence: number | null;
+  stability: number | null;
+}
+
+function dilemmaStats(dilemma: DilemmaInfo): DilemmaStats {
+  const options = dilemma.answer_options ?? [];
+  const counts = dilemma.choice_counts ?? {};
+  const perModel = outcomeSeries(dilemma)
+    .map((model) => options.map((option) => counts[model]?.[option] ?? 0))
+    .filter((row) => row.some((count) => count > 0));
+  const rowTotal = (row: number[]) => row.reduce((sum, count) => sum + count, 0);
+  const runs = perModel.reduce((sum, row) => sum + rowTotal(row), 0);
+  if (!runs || options.length < 2) {
+    return { runs, balance: null, divergence: null, stability: null };
+  }
+  const shares = perModel.map((row) => row.map((count) => count / rowTotal(row)));
+  const pooled = options.map((_, index) => perModel.reduce((sum, row) => sum + row[index], 0) / runs);
+  const pairTvds = shares.flatMap((left, position) =>
+    shares.slice(position + 1).map((right) =>
+      0.5 * left.reduce((sum, share, index) => sum + Math.abs(share - right[index]), 0)));
+  return {
+    runs,
+    balance: normalisedEntropy(pooled),
+    divergence: pairTvds.length ? pairTvds.reduce((sum, value) => sum + value, 0) / pairTvds.length : null,
+    stability: shares.reduce((sum, row) => sum + 1 - normalisedEntropy(row), 0) / shares.length,
+  };
+}
+
+/* All-dilemma statistics table: one row per dilemma in the manifest, sorted
+ * by average divergence so the dilemmas where the models split most sit at
+ * the top. The table doubles as navigation: clicking a row selects that
+ * dilemma for the rest of the viewer and collapses the table so the newly
+ * selected dilemma's view is in place. The row for the selected dilemma is
+ * highlighted. */
+function DilemmaStatsTable({ dilemmas, manifest, currentKey, onSelect }: {
+  dilemmas: DilemmaInfo[];
+  manifest: RunsManifest;
+  currentKey: string;
+  onSelect: (key: string) => void;
+}) {
+  const rows = useMemo(
+    () => dilemmas
+      .map((dilemma) => ({ dilemma, stats: dilemmaStats(dilemma) }))
+      .sort((a, b) =>
+        (b.stats.divergence ?? -1) - (a.stats.divergence ?? -1)
+        || a.dilemma.profile_id.localeCompare(b.dilemma.profile_id)
+        || a.dilemma.situation_id.localeCompare(b.dilemma.situation_id)),
+    [dilemmas],
+  );
+  // Controlled so that picking a dilemma can collapse the table and leave
+  // the reader on that dilemma's stimulus, chart and responses.
+  const [open, setOpen] = useState(false);
+  // Older manifests without the inventory have no answer options or counts,
+  // so no row can be scored; hide the table rather than showing dashes.
+  if (!rows.some((row) => row.stats.runs > 0)) return null;
+  const fixed = (value: number | null) => (value == null ? '—' : value.toFixed(2));
+  const pick = (key: string) => {
+    onSelect(key);
+    setOpen(false);
+  };
+  return (
+    <details
+      className="dilemma-stats"
+      open={open}
+      onToggle={(event) => setOpen(event.currentTarget.open)}
+    >
+      <summary>
+        Dilemma statistics
+        <span>{rows.length} dilemmas · balance, divergence, stability · sorted by avg divergence · click a row to open that dilemma</span>
+      </summary>
+      <p className="muted-text dilemma-stats__note">
+        Over the runs the outcome chart plots: <strong>Balance</strong> is H / ln(k) across every
+        run's option (1.00 = runs spread evenly over the options, 0.00 = every run on one);{' '}
+        <strong>avg divergence</strong> is the mean pairwise total variation distance between the
+        models' outcome distributions (0.00 = identical, 1.00 = no shared option);{' '}
+        <strong>avg stability</strong> is the mean over models of 1 - H / ln(k) within that
+        model's own runs (1.00 = same option every time).
+      </p>
+      <div className="dilemma-stats__scroll">
+        <table className="dilemma-stats__table">
+          <thead>
+            <tr>
+              <th>Profile</th>
+              <th>Dilemma</th>
+              <th className="dilemma-stats__number">Runs</th>
+              <th className="dilemma-stats__number">Balance</th>
+              <th className="dilemma-stats__number">Avg divergence</th>
+              <th className="dilemma-stats__number">Avg stability</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map(({ dilemma, stats }) => {
+              const key = `${dilemma.profile_id}/${dilemma.situation_id}`;
+              const fullText = dilemma.question || dilemma.situation || dilemma.situation_id;
+              return (
+                <tr
+                  key={key}
+                  className={key === currentKey ? 'dilemma-stats__row--current' : undefined}
+                  onClick={() => pick(key)}
+                >
+                  <td>{profileLabel(manifest, dilemma.profile_id)}</td>
+                  <td>
+                    <button type="button" className="dilemma-stats__link" title={fullText}>
+                      {dilemmaLabel(dilemma)}
+                    </button>
+                  </td>
+                  <td className="dilemma-stats__number">{stats.runs || '—'}</td>
+                  <td className="dilemma-stats__number">{fixed(stats.balance)}</td>
+                  <td className="dilemma-stats__number">{fixed(stats.divergence)}</td>
+                  <td className="dilemma-stats__number">{fixed(stats.stability)}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </details>
+  );
+}
+
 /* The judge file written by export_results.py holds the option the judge
- * matched to the response, the value it says the response prioritised, and
- * its one-line reason. Older files may carry only answer/explanation. */
+ * matched to the response and its one-line reason. Older files may carry
+ * only answer/explanation. */
 function JudgeNote({ judge }: { judge: JudgeDoc | null | undefined }) {
   if (!judge) return <p className="muted-text dilemma-judge__empty">No judge result is stored for this run.</p>;
   const choice = judge.metadata?.choice ?? judge.answer ?? '—';
-  const value = judge.metadata?.value;
   const reason = judge.metadata?.reason ?? judge.explanation;
   return (
     <div className="dilemma-judge">
       <p className="dilemma-judge__title">⚖ Judge classification</p>
       <p className="dilemma-judge__line"><strong>Decision:</strong> {choice}</p>
-      {value && <p className="dilemma-judge__line"><strong>Value prioritised:</strong> {value}</p>}
       {reason && <p className="dilemma-judge__reason">{reason}</p>}
     </div>
   );
 }
 
-function DilemmaStimulus({ dilemma, fallbackId, profileName, roleSummary, systemPrompt }: {
+function DilemmaStimulus({ dilemma, fallbackId, profileName, roleSummary, dilemmaIntro, systemPrompt }: {
   dilemma: DilemmaInfo | null;
   fallbackId: string;
   profileName: string;
   roleSummary?: string;
+  dilemmaIntro?: string;
   systemPrompt?: string;
 }) {
   return (
     <section className="dilemma-stimulus" aria-label="Dilemma">
       <p className="dilemma-stimulus__meta">
         <span>{profileName}</span>
-        {dilemma?.tension_name && <span>Value tension: {dilemma.tension_name}</span>}
         <span className="muted-text">{dilemma?.situation_id ?? fallbackId}</span>
       </p>
       <p className="dilemma-stimulus__lead">{SURVEY_ROLE_LEAD}</p>
       {roleSummary && <p className="dilemma-stimulus__role">{roleSummary}</p>}
-      <p className="dilemma-stimulus__lead">{VIEWER_SITUATION_LEAD}</p>
-      {dilemma?.situation
-        ? <p className="dilemma-stimulus__situation">{dilemma.situation}</p>
-        : <p className="muted-text">Loading the dilemma text…</p>}
-      {dilemma?.question && (
+      {dilemmaIntro && <p className="dilemma-stimulus__intro">{dilemmaIntro}</p>}
+      {dilemma?.situation && (
+        <p className="dilemma-stimulus__situation">{dilemma.situation}</p>
+      )}
+      {dilemma?.question ? (
         <>
-          <p className="dilemma-stimulus__lead">{VIEWER_QUESTION_LEAD}</p>
+          {!dilemmaIntro && <p className="dilemma-stimulus__lead">{VIEWER_QUESTION_LEAD}</p>}
           <p className="dilemma-stimulus__question">{dilemma.question}</p>
         </>
+      ) : (
+        <p className="muted-text">Loading the dilemma text…</p>
       )}
       {systemPrompt && (
         <details className="dilemma-prompt">
@@ -559,6 +704,13 @@ export default function DilemmasViewer() {
         ⚠️ <strong>Development results.</strong> This viewer exposes the raw dilemma artifacts currently present in the selected local or bucket manifest. Treat them as pipeline results, not as pilot/final study conclusions.
       </div>
 
+      <DilemmaStatsTable
+        dilemmas={dilemmasList}
+        manifest={manifest}
+        currentKey={dilemmaKey}
+        onSelect={selectDilemma}
+      />
+
       <div className="results-controls">
         <div>
           <label style={label}>Dilemma</label>
@@ -583,7 +735,11 @@ export default function DilemmasViewer() {
         dilemma={stimulus}
         fallbackId={dilemmaKey}
         profileName={stimulus ? profileLabel(manifest, stimulus.profile_id) : profileLabel(manifest, profileId)}
-        roleSummary={manifest.profiles?.[stimulus?.profile_id ?? profileId]?.role_summary}
+        roleSummary={
+          manifest.profiles?.[stimulus?.profile_id ?? profileId]?.role_summary
+          || manifest.profiles?.[stimulus?.profile_id ?? profileId]?.name
+        }
+        dilemmaIntro={manifest.profiles?.[stimulus?.profile_id ?? profileId]?.dilemma_intro}
         systemPrompt={manifest.profiles?.[stimulus?.profile_id ?? profileId]?.system_prompt}
       />
 

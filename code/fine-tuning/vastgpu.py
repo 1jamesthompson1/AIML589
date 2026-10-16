@@ -21,10 +21,12 @@ GPU variants, RTX_PRO_6000_S and RTX_PRO_6000_WS.
 Commands:
     find      Search vast.ai for suitable offers (creates nothing)
     launch    Rent the cheapest matching offer, wait for it to boot,
-              write an ssh config entry (host alias below) and print
+              write an ssh config entry (host alias below), start the
+              phone watchdog (remote guard + local fallback) and print
               the alias as the LAST line of stdout
-    teardown  Destroy the instance started by 'launch', remove the ssh
-              config entry and delete the state file
+    teardown  Stop the watchdogs, destroy the instance started by
+              'launch', remove the ssh config entry and delete the
+              state file
 
 Options:
     --num-gpus N      Minimum GPUs required (default: 1)
@@ -65,6 +67,14 @@ from dotenv import load_dotenv
 SCRIPT_DIR = Path(__file__).resolve().parent
 SSH_CONFIG = SCRIPT_DIR / ".ssh_config"
 STATE_FILE = SCRIPT_DIR / ".vastgpu.state"
+WATCHDOG_SCRIPT = SCRIPT_DIR / "watchdog.py"
+# Remote layout matches run.sh's REMOTE_DIR: finetune.env + watchdog.py live there.
+REMOTE_WORKDIR = "llm-ft"
+REMOTE_WATCHDOG_LOG = "~/llm-ft/watchdog.log"
+LOCAL_WATCHDOG_LOG = Path.home() / ".vastgpu-watchdog-local.log"
+# Keys written into the box's finetune.env: the HF vars (same as run.sh syncs)
+# plus the two the watchdog needs to notify and to arm teardown.
+ENV_KEYS = ("HF_TOKEN", "HF_ORG", "HF_COLLECTION", "VAST_API_KEY", "WATCHDOG_NTFY_URL")
 
 # Markers delimiting the auto-generated block in .ssh_config
 BLOCK_BEGIN = "# BEGIN AUTO-GENERATED vast-gpu"
@@ -426,6 +436,178 @@ def list_instances() -> list[dict]:
         return []
 
 
+# ── watchdog lifecycle (phone notifications + auto-teardown) ──
+
+
+def _ssh(alias: str, command: str, *, timeout: int = 45, stdin_text: str | None = None):
+    """One ssh over the managed alias; returns (rc, combined output)."""
+    proc = subprocess.run(
+        ["ssh", "-F", str(SSH_CONFIG), alias, command],
+        input=stdin_text,
+        capture_output=True,
+        text=True,
+        timeout=timeout,
+    )
+    return proc.returncode, (proc.stdout + proc.stderr).strip()
+
+
+def _repo_env_value(key: str) -> str:
+    """A `KEY=value` line from the repo .env (empty string when absent)."""
+    path = SCRIPT_DIR / ".." / ".." / ".env"
+    try:
+        for line in path.read_text(encoding="utf-8").splitlines():
+            if line.startswith(f"{key}="):
+                return line.split("=", 1)[1].strip().strip("\"'")
+    except OSError:
+        pass
+    return ""
+
+
+def _write_remote_env(alias: str) -> None:
+    """Write finetune.env on the box from the repo .env (watchdog + HF keys)."""
+    content = (
+        "\n".join(
+            f"{key}={_repo_env_value(key)}" for key in ENV_KEYS if _repo_env_value(key)
+        )
+        + "\n"
+    )
+    _ssh(
+        alias,
+        f"umask 077; mkdir -p ~/{REMOTE_WORKDIR}; cat > ~/{REMOTE_WORKDIR}/finetune.env",
+        stdin_text=content,
+    )
+
+
+def remote_watchdog_running(alias: str) -> bool:
+    """One watchdog.py process on the box? (`[w]…` beats the self-match.)"""
+    rc, _ = _ssh(alias, 'pgrep -f "[w]atchdog.py" >/dev/null && echo yes')
+    return rc == 0
+
+
+def start_remote_watchdog(
+    alias: str, inst_id: int, deadline_h: float, heartbeat_m: float
+) -> None:
+    """nohup the remote guard on the box (python3 only, no uv/dotenv needed).
+
+    The spawn runs in an explicit subshell: a plain long-lived background
+    child keeps the ssh session's channel open until the child exits (seen
+    with this exact launch), which made `launch` hang; `( … & )` detaches
+    and returns immediately.
+    """
+    command = (
+        f"cd ~/{REMOTE_WORKDIR}; "
+        f"( nohup python3 watchdog.py --site remote "
+        f"--envfile finetune.env --instance-id {inst_id} "
+        f"--deadline-hours {deadline_h} --heartbeat-min {heartbeat_m} "
+        f">> {REMOTE_WATCHDOG_LOG} 2>&1 < /dev/null & )"
+    )
+    _ssh(alias, command)
+
+
+def stop_remote_watchdog(alias: str) -> None:
+    """SIGTERM the remote guard so it can publish one final message."""
+    rc, _ = _ssh(alias, 'pkill -f "[w]atchdog.py"', timeout=20)
+    if rc != 0:
+        print("  (no remote watchdog found to stop)")
+
+
+def local_watchdog_running() -> bool:
+    proc = subprocess.run(
+        ["pgrep", "-f", "[w]atchdog.py --site local"], capture_output=True
+    )
+    return proc.returncode == 0
+
+
+def stop_local_watchdog() -> None:
+    """Kill every dev-machine fallback watcher (vastgpu teardown)."""
+    if not local_watchdog_running():
+        return
+    proc = subprocess.run(
+        ["pgrep", "-f", "[w]atchdog.py --site local"], capture_output=True, text=True
+    )
+    for pid in proc.stdout.split():
+        subprocess.run(["kill", pid.strip()], capture_output=True)
+    subprocess.run(["sleep", "0.5"], capture_output=True)
+    if not local_watchdog_running():
+        print("Stopped the local fallback watchdog.")
+
+
+def ensure_watchdog(
+    alias: str, inst_id: int, *, deadline_h: float, heartbeat_m: float, enabled: bool
+) -> None:
+    """Put the phone watchdog in place for this instance (idempotent).
+
+    finetune.env on the box is refreshed from the repo .env every launch, the
+    remote guard starts unless one is already running, and the dev-machine
+    fallback watcher starts once (vastgpu teardown stops both). Skips quietly
+    with a notice when --no-watchdog is given or the topic URL is missing.
+    """
+    if not enabled:
+        print("(watchdog disabled via --no-watchdog)")
+        return
+    print("==> Starting watchdog (phone notifications + auto-teardown)...")
+    ntfy = _repo_env_value("WATCHDOG_NTFY_URL")
+    if not ntfy:
+        print(
+            "  (WATCHDOG_NTFY_URL not set in repo .env — no watchdog; "
+            "add it to arm phone pings and teardown)"
+        )
+        return
+    _write_remote_env(alias)
+    try:
+        scp = subprocess.run(
+            [
+                "scp",
+                "-F",
+                str(SSH_CONFIG),
+                str(WATCHDOG_SCRIPT),
+                f"{alias}:~/{REMOTE_WORKDIR}/watchdog.py",
+            ],
+            capture_output=True,
+            text=True,
+            timeout=60,
+        )
+        if scp.returncode != 0:
+            print(f"  watchdog scp failed: {scp.stderr.strip()}", flush=True)
+            return
+    except (OSError, subprocess.SubprocessError) as error:
+        print(f"  watchdog scp failed: {error}", flush=True)
+        return
+    if remote_watchdog_running(alias):
+        print(
+            "  remote watchdog already running on the box — leaving it "
+            "(deadline may differ; 'teardown' removes it)"
+        )
+    else:
+        start_remote_watchdog(alias, inst_id, deadline_h, heartbeat_m)
+        print(
+            f"  remote watchdog started: heartbeat {heartbeat_m:.0f}m, "
+            f"deadline {deadline_h:.0f}h, instance {inst_id} teardown armed"
+        )
+    if local_watchdog_running():
+        print("  local fallback watchdog already running — leaving it")
+    else:
+        try:
+            log = open(LOCAL_WATCHDOG_LOG, "ab")  # noqa: SIM115 — long-lived watcher
+            subprocess.Popen(
+                [
+                    sys.executable,
+                    str(WATCHDOG_SCRIPT),
+                    "--site",
+                    "local",
+                    "--teardown",
+                    "--deadline-hours",
+                    str(deadline_h + 2),
+                ],
+                stdout=log,
+                stderr=subprocess.STDOUT,
+                start_new_session=True,
+            )
+            print(f"  local fallback watcher started (log: {LOCAL_WATCHDOG_LOG})")
+        except (OSError, subprocess.SubprocessError) as error:
+            print(f"  local watcher failed to start: {error}", flush=True)
+
+
 # ── ssh config management ────────────────────────────────────
 
 
@@ -529,6 +711,13 @@ def cmd_launch(args: argparse.Namespace) -> None:
                 f"Instance {st['instance_id']} (from {STATE_FILE.name}) "
                 "is already running - reusing it."
             )
+            ensure_watchdog(
+                args.host_alias,
+                int(st["instance_id"]),
+                deadline_h=args.watchdog_deadline_hours,
+                heartbeat_m=args.watchdog_heartbeat_min,
+                enabled=not args.no_watchdog,
+            )
             print(args.host_alias)
             return
 
@@ -556,6 +745,13 @@ def cmd_launch(args: argparse.Namespace) -> None:
                     write_ssh_block(
                         ssh_block(args.host_alias, host, port, args.ssh_key)
                     )
+                    ensure_watchdog(
+                        args.host_alias,
+                        inst_id,
+                        deadline_h=args.watchdog_deadline_hours,
+                        heartbeat_m=args.watchdog_heartbeat_min,
+                        enabled=not args.no_watchdog,
+                    )
                     print(args.host_alias)
                     return
                 # running but no ssh info yet — fall through to boot-wait it
@@ -566,6 +762,13 @@ def cmd_launch(args: argparse.Namespace) -> None:
                     state_write(args.host_alias, inst_id, host, port)
                     write_ssh_block(
                         ssh_block(args.host_alias, host, port, args.ssh_key)
+                    )
+                    ensure_watchdog(
+                        args.host_alias,
+                        inst_id,
+                        deadline_h=args.watchdog_deadline_hours,
+                        heartbeat_m=args.watchdog_heartbeat_min,
+                        enabled=not args.no_watchdog,
                     )
                     print(args.host_alias)
                     return
@@ -660,30 +863,44 @@ def cmd_launch(args: argparse.Namespace) -> None:
     print()
     print(f"Instance ready: ssh root@{host} -p {port}")
     print(f"ssh config written: Host {args.host_alias} in {SSH_CONFIG}")
+    ensure_watchdog(
+        args.host_alias,
+        inst_id,
+        deadline_h=args.watchdog_deadline_hours,
+        heartbeat_m=args.watchdog_heartbeat_min,
+        enabled=not args.no_watchdog,
+    )
     print(args.host_alias)  # last line of stdout = the alias for run_all.py
 
 
 def cmd_teardown(args: argparse.Namespace) -> None:
     check_api_key()
     st = state_read()
-    if st.get("instance_id"):
-        inst_id = int(st["instance_id"])
-        status = instance_status(inst_id)
+
+    # Stop the watchdogs first: the remote guard can only publish its exit
+    # message while the box is still reachable, and the local watcher must
+    # not react to the mid-teardown instance state.
+    if st.get("alias"):
+        stop_remote_watchdog(st["alias"])
+    stop_local_watchdog()
+
+    tracked = int(st["instance_id"]) if st.get("instance_id") else None
+    if tracked:
+        status = instance_status(tracked)
         if status:
-            print(f"Destroying instance {inst_id} (status: {status})...")
+            print(f"Destroying instance {tracked} (status: {status})...")
             if not args.yes:
-                answer = input(f"Irreversible! Destroy instance {inst_id}? [y/N] ")
+                answer = input(f"Irreversible! Destroy instance {tracked}? [y/N] ")
                 if answer.lower() != "y":
                     sys.exit("Aborted.")
-            destroy_instance(inst_id)
+            destroy_instance(tracked)
         else:
-            print(f"Instance {inst_id} not found on vast.ai (already destroyed?)")
+            print(f"Instance {tracked} not found on vast.ai (already destroyed?)")
     else:
         print(f"No instance recorded in {STATE_FILE.name}.")
 
     # Safety net: catch any wvs-vast instances left untracked by the state
     # file (e.g. a destroy that was aborted while the vm was still billed).
-    tracked = int(st["instance_id"]) if st.get("instance_id") else None
     leftovers = [
         d
         for d in list_instances()
@@ -702,7 +919,7 @@ def cmd_teardown(args: argparse.Namespace) -> None:
 
     remove_ssh_block()
     STATE_FILE.unlink(missing_ok=True)
-    print("Removed ssh config block and state file. Done.")
+    print("Removed watchdogs, ssh config block and state file. Done.")
 
 
 def parse_args(argv=None) -> argparse.Namespace:
@@ -770,6 +987,23 @@ def parse_args(argv=None) -> argparse.Namespace:
                 default=DEFAULT_TEMPLATE_HASH,
                 help="vast.ai template hash (use a CUDA *devel* "
                 "image so nvcc exists for vLLM/FlashInfer JIT)",
+            )
+            sp.add_argument(
+                "--no-watchdog",
+                action="store_true",
+                help="Do not start the phone watchdog (remote + local)",
+            )
+            sp.add_argument(
+                "--watchdog-deadline-hours",
+                type=float,
+                default=8.0,
+                help="Hard teardown deadline the watchdog counts from launch",
+            )
+            sp.add_argument(
+                "--watchdog-heartbeat-min",
+                type=float,
+                default=60.0,
+                help="Minutes between standing watchdog status messages",
             )
         sp.set_defaults(func=fn)
         if name in ("launch", "teardown"):

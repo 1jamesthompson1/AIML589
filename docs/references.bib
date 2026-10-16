@@ -872,6 +872,19 @@
   file = {/home/james/snap/zotero-snap/common/Zotero/storage/9I6RURCR/Chan et al. - 2023 - Harms from Increasingly Agentic Algorithmic Systems.pdf}
 }
 
+@misc{chaudharyEvaluationAwarenessScales2025,
+  title = {Evaluation {{Awareness Scales Predictably}} in {{Open-Weights Large Language Models}}},
+  author = {Chaudhary, Maheep and Su, Ian and Hooda, Nikhil and Shankar, Nishith and Tan, Julia and Zhu, Kevin and Lagasse, Ryan and Sharma, Vasu and Panda, Ashwinee},
+  year = 2025,
+  month = sep,
+  journal = {arXiv.org},
+  urldate = {2026-10-16},
+  abstract = {Large language models (LLMs) can internally distinguish between evaluation and deployment contexts, a behaviour known as \textbackslash emph\textbraceleft evaluation awareness\textbraceright. This undermines AI safety evaluations, as models may conceal dangerous capabilities during testing. Prior work demonstrated this in a single \$70\$B model, but the scaling relationship across model sizes remains unknown. We investigate evaluation awareness across \$15\$ models scaling from \$0.27\$B to \$70\$B parameters from four families using linear probing on steering vector activations. Our results reveal a clear power-law scaling: evaluation awareness increases predictably with model size. This scaling law enables forecasting deceptive behavior in future larger models and guides the design of scale-aware evaluation strategies for AI safety. A link to the implementation of this paper can be found at https://anonymous.4open.science/r/evaluation-awareness-scaling-laws/README.md.},
+  howpublished = {https://arxiv.org/abs/2509.13333v2},
+  langid = {english},
+  file = {/home/james/snap/zotero-snap/common/Zotero/storage/UIRGDGGE/Chaudhary et al. - 2025 - Evaluation Awareness Scales Predictably in Open-Weights Large Language Models.pdf}
+}
+
 @misc{cheeQuIP2BitQuantization2024,
   title = {{{QuIP}}: 2-{{Bit Quantization}} of {{Large Language Models With Guarantees}}},
   shorttitle = {{{QuIP}}},
@@ -2184,6 +2197,20 @@
   file = {/home/james/snap/zotero-snap/common/Zotero/storage/37L24T5H/Kwa et al. - 2025 - Measuring AI Ability to Complete Long Tasks.pdf;/home/james/snap/zotero-snap/common/Zotero/storage/K8KEDTY3/2503.html}
 }
 
+@misc{laineMeMyselfAI2024,
+  title = {Me, {{Myself}}, and {{AI}}: {{The Situational Awareness Dataset}} ({{SAD}}) for {{LLMs}}},
+  shorttitle = {Me, {{Myself}}, and {{AI}}},
+  author = {Laine, Rudolf and Chughtai, Bilal and Betley, Jan and Hariharan, Kaivalya and Scheurer, Jeremy and Balesni, Mikita and Hobbhahn, Marius and Meinke, Alexander and Evans, Owain},
+  year = 2024,
+  month = jul,
+  journal = {arXiv.org},
+  urldate = {2026-10-16},
+  abstract = {AI assistants such as ChatGPT are trained to respond to users by saying, "I am a large language model". This raises questions. Do such models know that they are LLMs and reliably act on this knowledge? Are they aware of their current circumstances, such as being deployed to the public? We refer to a model's knowledge of itself and its circumstances as situational awareness. To quantify situational awareness in LLMs, we introduce a range of behavioral tests, based on question answering and instruction following. These tests form the \$\textbackslash textbf\textbraceleft Situational Awareness Dataset (SAD)\textbraceright\$, a benchmark comprising 7 task categories and over 13,000 questions. The benchmark tests numerous abilities, including the capacity of LLMs to (i) recognize their own generated text, (ii) predict their own behavior, (iii) determine whether a prompt is from internal evaluation or real-world deployment, and (iv) follow instructions that depend on self-knowledge. We evaluate 16 LLMs on SAD, including both base (pretrained) and chat models. While all models perform better than chance, even the highest-scoring model (Claude 3 Opus) is far from a human baseline on certain tasks. We also observe that performance on SAD is only partially predicted by metrics of general knowledge (e.g. MMLU). Chat models, which are finetuned to serve as AI assistants, outperform their corresponding base models on SAD but not on general knowledge tasks. The purpose of SAD is to facilitate scientific understanding of situational awareness in LLMs by breaking it down into quantitative abilities. Situational awareness is important because it enhances a model's capacity for autonomous planning and action. While this has potential benefits for automation, it also introduces novel risks related to AI safety and control. Code and latest results available at https://situational-awareness-dataset.org .},
+  howpublished = {https://arxiv.org/abs/2407.04694v1},
+  langid = {english},
+  file = {/home/james/snap/zotero-snap/common/Zotero/storage/J463PVJN/Laine et al. - 2024 - Me, Myself, and AI The Situational Awareness Dataset (SAD) for LLMs.pdf}
+}
+
 @book{lazarsfeldLatentStructureAnalysis1968,
   title = {Latent {{Structure Analysis}}},
   author = {Lazarsfeld, Paul F. and Henry, Neil W.},
@@ -3035,6 +3062,19 @@
   number = {FEB94},
   urldate = {2025-12-06},
   file = {/home/james/snap/zotero-snap/common/Zotero/storage/4VQ8GBEC/19940045.html}
+}
+
+@misc{phuongEvaluatingFrontierModels2025,
+  title = {Evaluating {{Frontier Models}} for {{Stealth}} and {{Situational Awareness}}},
+  author = {Phuong, Mary and Zimmermann, Roland S. and Wang, Ziyue and Lindner, David and Krakovna, Victoria and Cogan, Sarah and Dafoe, Allan and Ho, Lewis and Shah, Rohin},
+  year = 2025,
+  month = may,
+  journal = {arXiv.org},
+  urldate = {2026-10-16},
+  abstract = {Recent work has demonstrated the plausibility of frontier AI models scheming -- knowingly and covertly pursuing an objective misaligned with its developer's intentions. Such behavior could be very hard to detect, and if present in future advanced systems, could pose severe loss of control risk. It is therefore important for AI developers to rule out harm from scheming prior to model deployment. In this paper, we present a suite of scheming reasoning evaluations measuring two types of reasoning capabilities that we believe are prerequisites for successful scheming: First, we propose five evaluations of ability to reason about and circumvent oversight (stealth). Second, we present eleven evaluations for measuring a model's ability to instrumentally reason about itself, its environment and its deployment (situational awareness). We demonstrate how these evaluations can be used as part of a scheming inability safety case: a model that does not succeed on these evaluations is almost certainly incapable of causing severe harm via scheming in real deployment. We run our evaluations on current frontier models and find that none of them show concerning levels of either situational awareness or stealth.},
+  howpublished = {https://arxiv.org/abs/2505.01420v4},
+  langid = {english},
+  file = {/home/james/snap/zotero-snap/common/Zotero/storage/D3CNWXWJ/Phuong et al. - 2025 - Evaluating Frontier Models for Stealth and Situational Awareness.pdf}
 }
 
 @book{pinkerBetterAngelsOur2012,

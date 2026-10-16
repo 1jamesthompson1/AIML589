@@ -22,6 +22,16 @@ Only the models passed with ``--model`` (repeatable) are run; with no
 ``JUDGE_MODEL`` in ``.env``. Pass ``--base-url`` to run against a vLLM server
 (e.g. the fine-tuned Qwen3.8 adapters served from code/fine-tuning) with the
 model as ``openai/<served-model-name>``; the judge role keeps its own endpoint.
+
+When no explicitly local model is requested, a vLLM server on
+``--vllm-port`` (default 8087, from ``EVAL_PORT``) is probed; if it answers,
+every served adapter is auto-added as an ``openai/<name>`` target alongside
+the other models. For those adapters an extra **first-token probe** runs
+after the epochs: one plain chat request (``max_tokens=1``, top-20
+logprobs, ``top_k`` and ``chat_template_kwargs`` matching the fine-tuning
+eval) whose next-token distribution is printed raw per model — the
+"as a regular model" preference signal (the dilemma prompts do not
+number their options, so no option mapping is forced).
 """
 
 from __future__ import annotations
@@ -36,6 +46,8 @@ import subprocess
 import sys
 import tempfile
 import time
+import urllib.error
+import urllib.request
 from collections import Counter
 from pathlib import Path
 
@@ -47,6 +59,7 @@ REPO = HERE.parents[1]
 OUTPUT_DIR = HERE / "output"
 LOG_DIR = OUTPUT_DIR / "logs"
 RUNS_DIR = OUTPUT_DIR / "runs"
+FIRST_TOKEN_PATH = OUTPUT_DIR / "first_token.json"
 
 # Fallback only: used when no --model is passed; any --model replaces it.
 # The spot-test set: the Qwen base model, two frontier comparison models, a
@@ -132,11 +145,16 @@ def run_cost(usage: dict) -> tuple[float, bool]:
 
 
 def scenario_lookup() -> dict[str, tuple[str, int, str, dict]]:
-    """Map every sample id and dilemma id to (profile, index, id, dilemma)."""
+    """Map every sample id and dilemma id to (profile, index, id, dilemma).
+
+    The dilemma carries its profile's ``system_prompt`` (as the Inspect task
+    attaches it per sample) — the first-token probe reads it from here.
+    """
     lookup: dict[str, tuple[str, int, str, dict]] = {}
     for path in sorted((HERE / "profiles").glob("*.json")):
         profile = json.loads(path.read_text(encoding="utf-8"))
         for index, dilemma in enumerate(profile["dilemmas"]):
+            dilemma = {**dilemma, "system_prompt": profile["system_prompt"]}
             entry = (profile["profile"], index, dilemma["id"], dilemma)
             lookup[f"{profile['profile']}-{index}"] = entry
             lookup[dilemma["id"]] = entry
@@ -163,6 +181,133 @@ def inspect_command() -> list[str]:
     if shutil.which("inspect"):
         return ["inspect"]
     return ["uv", "run", "inspect"]
+
+
+# vLLM eval server: EVAL_PORT matches run_all.py's tunnel port default.
+VLLM_PORT = int(os.environ.get("EVAL_PORT", "8087"))
+
+
+def vllm_served_models(port: int) -> list[str]:
+    """The model ids a vLLM server serves on the port ([] if it is not up)."""
+    try:
+        with urllib.request.urlopen(
+            f"http://localhost:{port}/v1/models", timeout=2
+        ) as resp:
+            payload = json.loads(resp.read())
+        return [item["id"] for item in payload.get("data", []) if item.get("id")]
+    except (urllib.error.URLError, OSError, ValueError, KeyError):
+        return []
+
+
+def first_token_probe(
+    model: str,
+    base_url: str,
+    system_prompt: str,
+    user_prompt: str,
+) -> dict | None:
+    """One-token chat completion: the model's natural first-token distribution.
+
+    Treats the adapter exactly as a regular model — a plain
+    ``[system, user]`` chat request asking for the next token, no option
+    list wrangling. Note the dilemma prompts do not number their options,
+    so the distribution is over raw first tokens (the prose opening), not
+    option indices. ``chat_template_kwargs``/``top_k`` match evaluate.py so
+    the request reaches the adapter in its fine-tuned prompt format
+    (THINKING_ENABLED=False ⇒ closed empty think block). Returns a small
+    summary dict, or None when the probe fails (never fatal).
+    """
+    request = urllib.request.Request(
+        f"{base_url.rstrip('/')}/chat/completions",
+        data=json.dumps(
+            {
+                "model": model,
+                "messages": [
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt},
+                ],
+                "max_tokens": 1,
+                "temperature": 0.0,
+                "top_p": 1.0,
+                "top_k": 20,
+                "logprobs": True,
+                "top_logprobs": 20,
+                "chat_template_kwargs": {"enable_thinking": False},
+            }
+        ).encode("utf-8"),
+        headers={
+            "Content-Type": "application/json",
+            "Authorization": "Bearer EMPTY",
+        },
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=300) as resp:
+            payload = json.loads(resp.read())
+    except (urllib.error.URLError, OSError, ValueError) as error:
+        print(f"  first-token probe failed for {model}: {error}")
+        return None
+    choice = (payload.get("choices") or [{}])[0]
+    content = (choice.get("logprobs") or {}).get("content") or []
+    raw = (content[0].get("top_logprobs") or [])[:20] if content else []
+    if not raw:
+        return None
+    return {
+        "first_token": raw[0].get("token"),
+        "top_tokens": [
+            {
+                "token": entry.get("token"),
+                "logprob": entry.get("logprob"),
+                "p": round(math.exp(entry.get("logprob") or 0.0), 4),
+            }
+            for entry in raw
+        ],
+    }
+
+
+def run_first_token_probes(
+    local_models: list[str], base_url: str, dilemma: dict, sample_id: str
+) -> dict[str, dict]:
+    """Probe every vLLM-served model once and store the distributions.
+
+    Results go to ``output/first_token.json`` under the scenario key (the
+    same ``<profile>-<dilemma>`` id the run exporter uses) so spot tests
+    overwrite rather than accumulate. The dilemma prompts do not number
+    their options, so the top tokens are printed raw (the human maps them
+    onto the options printed above, or the analysed prose prefix).
+    """
+    results: dict[str, dict] = {}
+    prompt = f"{dilemma['situation']}\n\n{dilemma['question']}"
+    for model in local_models:
+        # The chat API wants the bare served id; ``openai/<name>`` is inspect
+        # routing sugar — a 404 otherwise (the provider prefix is not part of
+        # the served model name).
+        served = model.removeprefix("openai/")
+        probe = first_token_probe(served, base_url, dilemma["system_prompt"], prompt)
+        if not probe:
+            print(f"  {model.split('/')[-1]:34s} first-token probe unavailable")
+            continue
+        rendered = [
+            f"'{entry['token']}' {entry['p']:.2f}" for entry in probe["top_tokens"][:6]
+        ]
+        print(f"  {model.split('/')[-1]:34s} first token: {', '.join(rendered)}")
+        results[model] = probe
+
+    path = FIRST_TOKEN_PATH
+    payload = {}
+    if path.exists():
+        try:
+            payload = json.loads(path.read_text(encoding="utf-8"))
+        except ValueError:
+            payload = {}
+    payload[sample_id] = {
+        "scenario": sample_id,
+        "dilemma_id": dilemma["id"],
+        "base_url": base_url,
+        "models": results,
+    }
+    path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+    print(f"  first-token probe written to {path.relative_to(REPO)}")
+    return results
 
 
 def eval_command(
@@ -215,7 +360,10 @@ def run_models(
     are touched."""
     procs: list[tuple[str, subprocess.Popen, Path | None]] = []
     for model in models:
-        command = eval_command(model, judge, epochs, sample_id, base_url)
+        # Only vLLM-served targets get the base URL; openrouter/ models and
+        # the judge keep their own endpoints.
+        command_base = base_url if base_url and model.startswith("openai/") else None
+        command = eval_command(model, judge, epochs, sample_id, command_base)
         if verbose:
             print(f"\n>>> {' '.join(command)}\n", flush=True)
             procs.append((model, subprocess.Popen(command, cwd=REPO), None))
@@ -371,8 +519,24 @@ def main() -> None:
     parser.add_argument(
         "--base-url",
         default=None,
-        help="Base URL of a vLLM server (e.g. http://localhost:8087/v1); pass "
-        "served models as openai/<name>. The judge keeps its own endpoint.",
+        help="Base URL of a vLLM server (e.g. http://localhost:8087/v1). It "
+        "applies to the openai/<name> target models (the judge and any "
+        "openrouter/ models keep their own endpoint). Without --base-url, "
+        "any server on --vllm-port is probed and its adapters implicitly "
+        "get http://localhost:<port>/v1 as base URL.",
+    )
+    parser.add_argument(
+        "--vllm-port",
+        type=int,
+        default=VLLM_PORT,
+        help="Port to probe for an already-running vLLM server (EVAL_PORT "
+        "env overrides the default). Served adapters are auto-added as "
+        "targets and get a first-token probe.",
+    )
+    parser.add_argument(
+        "--no-adapters",
+        action="store_true",
+        help="Disable the auto-discovery of served adapters on --vllm-port.",
     )
     parser.add_argument(
         "--verbose",
@@ -408,6 +572,38 @@ def main() -> None:
         models = list(DEFAULT_MODELS)
         print(f"No --model given; using the default pair: {', '.join(models)}")
 
+    # ── vLLM adapter auto-discovery + per-model base URL ──────────
+    # Local adapter models (``openai/<name>``) talk to the vLLM server;
+    # every other model keeps its own provider endpoint. An explicit
+    # ``--base-url`` applies to the ``openai/<name>`` models only: the
+    # judge and openrouter models always use their own endpoints.
+    # Without ``--base-url`` the server on --vllm-port is probed: when it
+    # answers, every served adapter is auto-added as a target and the
+    # implicit base URL ``http://localhost:<port>/v1`` covers them.
+    local_models = [model for model in models if model.startswith("openai/")]
+    base_url = args.base_url
+    if not base_url and not args.no_adapters:
+        served = vllm_served_models(args.vllm_port)
+        if served:
+            implicit = f"http://localhost:{args.vllm_port}/v1"
+            print(
+                f"vLLM server on :{args.vllm_port} serves {len(served)} "
+                f"model(s): {', '.join(served)}"
+            )
+            for name in served:
+                candidate = f"openai/{name}"
+                if candidate not in models:
+                    models.append(candidate)
+                    print(f"  auto-added {candidate}")
+            local_models = [model for model in models if model.startswith("openai/")]
+            if local_models and base_url is None:
+                base_url = implicit
+    if local_models and base_url is None:
+        raise SystemExit(
+            "openai/<name> models requested but no --base-url given and no "
+            f"vLLM server answered on port {args.vllm_port}"
+        )
+
     print(f"Scenario: {sample_id} ({dilemma_id})")
     print(f"Question: {dilemma['question']}")
     for number, option in enumerate(dilemma["answer_options"], 1):
@@ -416,16 +612,25 @@ def main() -> None:
 
     if args.dry_run:
         for model in models:
+            command_base = base_url if model.startswith("openai/") else None
             print(
                 ">>> "
                 + " ".join(
-                    eval_command(model, judge, args.epochs, sample_id, args.base_url)
+                    eval_command(model, judge, args.epochs, sample_id, command_base)
                 )
             )
+        if local_models and base_url:
+            print(f"(first-token probes would run against {base_url})")
         print("dry run: no evaluation, no export")
         return
 
-    run_models(models, judge, args.epochs, sample_id, args.base_url, args.verbose)
+    run_models(models, judge, args.epochs, sample_id, base_url, args.verbose)
+
+    # First-token probe for the vLLM-served adapters ("as a regular model"):
+    # one plain next-token request each; failure is never fatal.
+    if local_models and base_url:
+        print(f"\nFirst-token probes ({base_url}):")
+        run_first_token_probes(local_models, base_url, dilemma, sample_id)
 
     for path in clear_exported(profile_id, dilemma_id, models):
         print(f"removed old export {path.relative_to(REPO)}")

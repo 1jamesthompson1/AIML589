@@ -2,7 +2,10 @@
 
 Walks ``survey_definition.build()`` (the same payloads
 ``qualtrics_sync.py`` pushes to the remote survey) and emits a plain LaTeX
-questionnaire so a human can eyeball the exact deployed wording. Run:
+questionnaire so a human can eyeball the exact deployed wording. Section B
+shows one comparison block per current profile, on the profile's first
+dilemma (file order), rather than one per dilemma; ``--all`` includes the
+retired profiles' first dilemmas too. Run:
 
     uv run survey/generate_mockup.py
 
@@ -10,7 +13,9 @@ writes ``survey/survey-mockup.tex``, which ``make`` compiles to
 ``survey/output/survey-mockup.pdf`` (the jobname comes from the filename).
 """
 
+import argparse
 import html as html_mod
+import json
 import re
 import sys
 from pathlib import Path
@@ -19,7 +24,7 @@ DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(DIR))
 import survey_definition as sd  # noqa: E402
 
-MAX_SAMPLE_BLOCKS = 2  # of the randomised comparison blocks
+PROFILES_DIR = DIR.parent / "code" / "dilemmas" / "profiles"
 
 PREAMBLE = r"""\documentclass[11pt,a4paper]{article}
 \usepackage[margin=2.2cm]{geometry}
@@ -181,8 +186,47 @@ def question(title: str, body: str) -> str:
     )
 
 
-def render() -> str:
-    """Build the LaTeX source."""
+def first_dilemma_ids(include_retired: bool = False) -> dict[str, str]:
+    """Each profile's first dilemma id, from the profile JSON files.
+
+    The file's ``dilemmas`` list order is the source of truth for what
+    "first" means; retired profiles live in ``code/dilemmas/defunct`` and
+    are included only with ``include_retired``."""
+    dirs = [PROFILES_DIR]
+    if include_retired:
+        dirs.append(PROFILES_DIR.parent / "dilemmas" / "defunct")
+    mapping: dict[str, str] = {}
+    for directory in dirs:
+        for path in sorted(directory.glob("*.json")):
+            profile = json.loads(path.read_text(encoding="utf-8"))
+            mapping[profile["profile"]] = profile["dilemmas"][0]["id"]
+    return mapping
+
+
+def one_per_profile(blocks: list[dict], include_retired: bool = False) -> list[dict]:
+    """One block per profile: the profile's first dilemma, first model pair.
+
+    The block label built by ``survey_records`` is
+    ``"<profile> - <dilemma id> v<version>"``; the first block on the
+    profile's first dilemma is the first model pair's first repetition,
+    so the choice is deterministic."""
+    first = first_dilemma_ids(include_retired)
+    picked: list[dict] = []
+    seen: set[str] = set()
+    for block in blocks:
+        profile, rest = block["label"].split(" - ", 1)
+        if profile in seen:
+            continue
+        if first.get(profile) != rest.rsplit(" v", 1)[0]:
+            continue
+        seen.add(profile)
+        picked.append(block)
+    return picked
+
+
+def render(include_retired: bool = False) -> str:
+    """Build the LaTeX source. ``include_retired`` also renders the retired
+    profiles (each on its first dilemma)."""
     d = sd.build()
     out = [
         PREAMBLE,
@@ -234,17 +278,29 @@ Every item is skippable via its ``Prefer not to say' option.}""")
         body = radio_options([c["Display"] for c in q["Choices"].values()], mark)
         out.append(question(q["QuestionText"], body))
 
-    # --- Section B: task description + comparison sample ---------------------
+    # --- Section B: task description + one comparison per profile -----------
+    situations = one_per_profile(d["comparison_blocks"], include_retired)
+    pool_profiles = len(
+        {block["label"].split(" - ", 1)[0] for block in d["comparison_blocks"]}
+    )
+    covered = (
+        f"every profile in the pool ({len(situations)})"
+        if include_retired
+        else f"each current profile - its first dilemma ({len(situations)} of "
+        + str(pool_profiles)
+        + " profiles in the pool)"
+    )
     out.append(
         r"""\section*{Section B - The comparison task}
-\note{The exact blocks shown are not yet finalised. The two blocks below are
-just a sample to get the picture of what they look like. Actual respondents see
+\note{Below: one comparison for """
+        + covered
+        + r""", so the block wording can be reviewed. Actual respondents see
 approximately """
         + str(sd.N_PAIRS_SHOWN)
-        + r""" blocks randomly drawn from a pool of """
+        + r""" blocks drawn at random from a pool of """
         + str(len(d["comparison_blocks"]))
-        + r""" dilemma blocks (each block one pair of model answers to the same
-dilemma). The dilemmas are public on the project website:
+        + r""" blocks (each block one pair of model answers to the same dilemma). The
+dilemmas are public on the project website:
 \url{https://nz-llm.sjhl.nz/results-viewer/?tab=dilemmas}. Each block contains
 three questions: the role and dilemma with both answers, the Agent 1 vs Agent 2
 preference, and whether they agree with an AI agent being used in that
@@ -265,7 +321,7 @@ situation at all.}"""
         for q in b["questions"]
         if q["DataExportTag"].endswith("_aiuse")
     )
-    for i, b in enumerate(d["comparison_blocks"][:MAX_SAMPLE_BLOCKS], 1):
+    for i, b in enumerate(situations, 1):
         desc_q = next(q for q in b["questions"] if q["QuestionType"] == "DB")
         out.append(
             r"\blocktitle{Comparison " + str(i) + "}{" + tex_escape(b["label"]) + r"}"
@@ -319,8 +375,16 @@ prize-draw survey.}""")
 
 
 def main() -> None:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--all",
+        action="store_true",
+        help="also render the retired profiles (first dilemmas)",
+    )
+    args = parser.parse_args()
+
     out_path = DIR / "survey-mockup.tex"
-    out_path.write_text(render())
+    out_path.write_text(render(include_retired=args.all))
     print(f"wrote survey-mockup.tex ({out_path.stat().st_size // 1024} kB)")
 
     # Compile straight to the PDF (survey/output/) so the mockup is always

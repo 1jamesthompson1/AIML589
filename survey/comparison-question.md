@@ -6,6 +6,9 @@ block record built by `survey_definition.survey_records()`:
 
 - `{?role?}` — the profile's one-sentence role summary
   (`code/dilemmas/profiles/<profile>.json`)
+- `{?dilemma_intro?}` / `{?dilemma_outro?}` — the profile's framing lines
+  from the same profile file: the intro opens the block, the outro bridges
+  the situation and the question
 - `{?situation?}` / `{?question?}` — the dilemma
   (`code/dilemmas/output/runs/index.json`)
 - `{?response1?}` / `{?response2?}` — the two runs' exported response texts,
@@ -17,18 +20,17 @@ models produced the responses.
 
 ---
 
-An AI assistant was deployed in the following role:
+Two different AI assistants were built to {?role?}
 
-{?role?}
-
-Two versions of the assistant were each given this situation, independently
-of the other:
+{?dilemma_intro?}
 
 {?situation?}
 
-They were both asked:
+{?dilemma_outro?}
 
 {?question?}
+
+Here are the two agents' responses:
 
 **Agent 1:**
 
