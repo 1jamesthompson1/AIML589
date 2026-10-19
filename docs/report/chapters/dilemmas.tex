@@ -6,27 +6,35 @@ The structure of the chapter is as follows:
 
 This is the results section which goes first.
 
-\section{How the dilemmas were constructed}
-
-The key way to construct the dilemmas was to create dilemmas that were relevant to the New Zealand population, sufficiently controversial and clear in the value tension.
-
-\subsection{Targeted value tensions}
-
-To guide the writing process of dilemmas I focused on a set of value tensions that were defined in the value space of Schwartz refined value system.
-
-To do this I used Schwartz's refined value system \cite{schwartzOverviewSchwartzTheory2012} to identify the values in which the New Zealand population differs from the base LLM (Qwen 3.8 27B). To do this each of the questions in the World Values Survey (WVS) were mapped to the Schwartz value system. Then by seeing hte distribution of responses to the WVS questions we can identify the value tensions that are most different between the base model and the New Zealand population.  Furthermore given the circular nature of the Schwartz value system, each value has an inherent tension with opposite values (which are used to construct the candidate value tensions). The result of this can be found in \tabref{value-tensions-qwen3.8-27b}. 
-
-\ctable{value-tensions-qwen3.8-27b}{The value tensions identified in the WVS survey data. Each value tension is defined as the average difference between the questions that are mapped to either of the two values.}
-
-1. Value tensiosn are defined based on circumplex structure of the Schwartz value system. The values are arranged in a circular structure, where adjacent values are compatible and opposite values are in tension with each other.
-2. Each questions in the WVS survye is mapped to be relevant to one or more of the Schwartz values.
-3. The tensions are then calculated by calculating the aggregate difference between the base model and the New Zealand population for each of the value tensions. Where a value tension is defined as the average difference between the questions that are mapped to either of the two values.
-
-These value tensions are based on the motivational goals, that is what are people trying to achieve.
-
-\section{Situational awareness of dilemmas}
+\subsection{Situational awareness of dilemmas}
 
 Models are shown to know that they are in a simulation \cite{laineMeMyselfAI2024,phuongEvaluatingFrontierModels2025,needhamLargeLanguageModels2025}. Smaller models areless self aware \cite{chaudharyEvaluationAwarenessScales2025}
+
+\section{Creating a small Dilemma dataset by hand}
+
+The dilemmas were constructed by hand with three objectives in in mind. These objectives exist to make the project tractable and to ensure that the downstream survey is of high quality. The objectives are as follows:
+
+\begin{enumerate}
+    \item Each dilemma should be self contained and simple enough that any New Zealander could read and understand it without needing to know the context of the project.
+    \item The dilemma should reveal a clear decision that must be made.
+    \item Each of the decisions that could be made must be defensible under some commonsense moral or ethical framework.
+\end{enumerate}
+
+Notably the value tensions that are tested is not a comprehensive list of all value tensisons and instead is a best-effort coverage of various value tensions.
+
+
+\subsection{Writing of the dilemmas}
+It was an interactive design process in which initially 10 dilemmas were constructed. 
+Then these ten dilemmas were given two variations each which target a similar trade off.
+
+Iterativing with teesting with a ensemble of frontier models to test fo balance, divergence and stabilty
+
+\section{Dilemmas as single response agents}
+The goal of the Dilemmas was to test the models responses in an out of distriubtion setting.
+
+This mean that maintaining some realism is required to invoke the model to respond 'as if' it were in deployment.
+
+The way to do this was the framing of the system prompt in which each model was given a systme pormt htat both told them they were the first step in an agentic process as well as giving them a large amount of relevant documents to reference (e.g Code of Conducts). These reference documents were real public documents where relevant.
 
 \section{How the dilemmas were graded}
 

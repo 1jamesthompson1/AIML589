@@ -107,6 +107,12 @@ MODEL_PRICES: dict[str, dict[str, float]] = {
         "cache_read": 0.02,
         "cache_write": 0.25,
     },
+    "openrouter/openai/gpt-6-luna": {
+        "input": 0.10,
+        "output": 0.50,
+        "cache_read": 0.01,
+        "cache_write": 0.125,
+    },
 }
 PRICE_UNIT = 1_000_000
 

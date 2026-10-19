@@ -1,43 +1,43 @@
-"""Spot-test one dilemma: re-run it, replace its exported runs, print the picks.
+"""Spot-test one dilemma: re-run it for the chosen models.
 
 The iteration loop for hand-editing a dilemma in ``profiles/``:
 
-    uv run python code/dilemmas/spot_test.py cosmetic_clinic-0
-    uv run python code/dilemmas/spot_test.py cosmetic_clinic_t8_filler_requests
+    uv run python code/dilemmas/spot_test.py clinical_support-0
+    uv run python code/dilemmas/spot_test.py clinical_support_suicide_risk
     uv run python code/dilemmas/spot_test.py --list
 
 The scenario may be a sample id (``<profile>-<index>``) or a dilemma id. The
-script runs a fresh set of epochs (default 5) for each given model and replaces
-only those models' exported runs for the scenario (their earlier runs are
-cleared; every other model's runs stay in place), so the local website copy
-shows the new results alongside the untouched ones. Other dilemmas are
-untouched.
+script runs a fresh set of epochs (default 5) for each given model, then
+prints each model's picks, stability and cost read straight from the ``.eval``
+logs it wrote. Nothing is exported: the website keeps the previous export
+until ``export_results.py`` is run.
 
 Models run in parallel; by default their inspect output is captured to a
-temporary log file (path printed, tail shown on failure) so the console stays
-quiet. Pass ``--verbose`` to stream it instead.
+temporary log file (tail shown on failure) so the console stays quiet. Pass
+``--verbose`` to stream it instead. After the runs, the inspect ``.eval`` logs
+the spot test wrote are listed per model.
 
 Only the models passed with ``--model`` (repeatable) are run; with no
-``--model`` the default pair is used. The judge comes from ``--judge`` or
+``--model`` the default set is used. The judge comes from ``--judge`` or
 ``JUDGE_MODEL`` in ``.env``. Pass ``--base-url`` to run against a vLLM server
 (e.g. the fine-tuned Qwen3.8 adapters served from code/fine-tuning) with the
 model as ``openai/<served-model-name>``; the judge role keeps its own endpoint.
 
-When no explicitly local model is requested, a vLLM server on
-``--vllm-port`` (default 8087, from ``EVAL_PORT``) is probed; if it answers,
-every served adapter is auto-added as an ``openai/<name>`` target alongside
-the other models. For those adapters an extra **first-token probe** runs
-after the epochs: one plain chat request (``max_tokens=1``, top-20
-logprobs, ``top_k`` and ``chat_template_kwargs`` matching the fine-tuning
-eval) whose next-token distribution is printed raw per model — the
-"as a regular model" preference signal (the dilemma prompts do not
-number their options, so no option mapping is forced).
+Local models are opt-in: pass an ``openai/<name>`` target and it runs
+against ``--base-url`` (or the server probed on ``--vllm-port``, default
+8087) together with every other model that server serves (the base model and
+its adapters) — ``--no-adapters`` keeps exactly the models passed. Nothing
+local runs when no ``openai/`` target is given. For those adapters an extra
+**first-token probe** runs after the epochs: one plain chat request
+(``max_tokens=1``, top-20 logprobs, ``top_k`` and ``chat_template_kwargs``
+matching the fine-tuning eval) whose next-token distribution is printed raw
+per model — the "as a regular model" preference signal (the dilemma prompts do
+not number their options, so no option mapping is forced).
 """
 
 from __future__ import annotations
 
 import argparse
-import asyncio
 import json
 import math
 import os
@@ -49,16 +49,17 @@ import time
 import urllib.error
 import urllib.request
 from collections import Counter
+from datetime import datetime
 from pathlib import Path
 
-from export_results import export as export_runs
-from export_results import slug
+from inspect_ai.log import read_eval_log
 
 HERE = Path(__file__).resolve().parent
 REPO = HERE.parents[1]
 OUTPUT_DIR = HERE / "output"
-LOG_DIR = OUTPUT_DIR / "logs"
-RUNS_DIR = OUTPUT_DIR / "runs"
+# Spot-test logs live beside (not inside) the full-run bundles, so they can
+# be wiped freely and never get mistaken for a complete run.
+LOG_DIR = OUTPUT_DIR / "logs" / "spot"
 FIRST_TOKEN_PATH = OUTPUT_DIR / "first_token.json"
 
 # Fallback only: used when no --model is passed; any --model replaces it.
@@ -66,17 +67,18 @@ FIRST_TOKEN_PATH = OUTPUT_DIR / "first_token.json"
 # fast Anthropic model and GLM. The fine-tuned Qwen adapters are served
 # locally and run with --base-url and --model openai/<served-model-name>.
 DEFAULT_MODELS = (
-    "openrouter/qwen/qwen3.8-27b",
+    # "openrouter/qwen/qwen3.8-27b",
     "openrouter/deepseek/deepseek-v4.1-flash",
-    "openrouter/openai/gpt-5.6-luna",
+    "openrouter/openai/gpt-6-luna",
     "openrouter/anthropic/claude-haiku-5.5",
     "openrouter/z-ai/glm-5.3-flash",
 )
 
 # OpenRouter list prices, USD per million tokens, fetched from
-# https://openrouter.ai/api/v1/models on 2026-10-14 (per-token prices x 1e6).
-# Re-check when adding models or after price changes; unpriced models report
-# tokens only. Prices change: the behavioural-similarity table in
+# https://openrouter.ai/api/v1/models (per-token prices x 1e6). Original set
+# fetched 2026-10-14; gpt-6-luna checked 2026-10-19. Re-check when adding
+# models or after price changes; unpriced models report tokens only. Prices
+# change: the behavioural-similarity table in
 # code/behavioural-simulations/export_results.py is a 2026-09-08 snapshot and
 # GLM has since doubled.
 MODEL_PRICES: dict[str, dict[str, float]] = {
@@ -90,11 +92,11 @@ MODEL_PRICES: dict[str, dict[str, float]] = {
         "output": 0.891,
         "cache_read": 0.0054,
     },
-    "openrouter/openai/gpt-5.6-luna": {
-        "input": 0.20,
-        "output": 1.20,
-        "cache_read": 0.02,
-        "cache_write": 0.25,
+    "openrouter/openai/gpt-6-luna": {
+        "input": 0.10,
+        "output": 0.50,
+        "cache_read": 0.01,
+        "cache_write": 0.125,
     },
     "openrouter/anthropic/claude-haiku-5.5": {
         "input": 0.10,
@@ -110,6 +112,23 @@ MODEL_PRICES: dict[str, dict[str, float]] = {
 }
 PRICE_UNIT = 1_000_000
 
+# Fine-tuned adapter id convention (code/fine-tuning/finetune.py):
+# {HF_ORG}/{model_slug}-nz-wvs-{dataset}-{subpopulation}. Console displays
+# truncate these to "FT <dataset>"; full ids stay in manifests and JSON.
+FT_MARKER = "-nz-wvs-"
+
+
+def short_name(model: str) -> str:
+    """Compact console display name: provider prefix dropped; fine-tuned
+    adapters (``<base>-nz-wvs-<dataset>-<population>``) compress to
+    ``FT <dataset>`` so table columns stay narrow. Full ids remain in the
+    manifest, the exported runs and the Inspect logs list."""
+    name = model.split("/")[-1]
+    if FT_MARKER in name:
+        rest = name.partition(FT_MARKER)[2]
+        return f"FT {rest.rpartition('-')[0] or rest}"
+    return name
+
 
 def _price_for(model: str) -> dict[str, float] | None:
     """The MODEL_PRICES entry for a model (longest matching prefix)."""
@@ -118,8 +137,8 @@ def _price_for(model: str) -> dict[str, float] | None:
 
 
 def run_cost(usage: dict) -> tuple[float, bool]:
-    """USD cost of one run's exported usage block, and False when it holds a
-    model with no price entry.
+    """USD cost of one run's usage block, and False when it holds a model
+    with no price entry.
 
     The block covers the evaluated model and the judge (each run judges its
     own response), so both are billed. Cached input uses the cache rate when
@@ -284,12 +303,12 @@ def run_first_token_probes(
         served = model.removeprefix("openai/")
         probe = first_token_probe(served, base_url, dilemma["system_prompt"], prompt)
         if not probe:
-            print(f"  {model.split('/')[-1]:34s} first-token probe unavailable")
+            print(f"  {short_name(model):34s} first-token probe unavailable")
             continue
         rendered = [
             f"'{entry['token']}' {entry['p']:.2f}" for entry in probe["top_tokens"][:6]
         ]
-        print(f"  {model.split('/')[-1]:34s} first token: {', '.join(rendered)}")
+        print(f"  {short_name(model):34s} first token: {', '.join(rendered)}")
         results[model] = probe
 
     path = FIRST_TOKEN_PATH
@@ -317,7 +336,8 @@ def eval_command(
 
     ``--model-base-url`` applies to the evaluated model only (inspect resolves
     the judge role separately), so a vLLM-served target can still be judged by
-    a hosted model."""
+    a hosted model. The metadata stamps mark every log as a spot test of this
+    scenario, so logs stay self-describing when copied around."""
     command = inspect_command() + [
         "eval",
         "code/dilemmas/task.py",
@@ -328,9 +348,13 @@ def eval_command(
         "--epochs",
         str(epochs),
         "--log-dir",
-        "code/dilemmas/output/logs",
+        "code/dilemmas/output/logs/spot",
         "--sample-id",
         sample_id,
+        "--metadata",
+        "kind=spot",
+        "--metadata",
+        f"scenario={sample_id}",
     ]
     if base_url:
         command += [
@@ -355,9 +379,8 @@ def run_models(
     """Run one epoch set per model in parallel, keeping the console quiet.
 
     Each model's inspect output is captured to a temporary log file unless
-    ``verbose`` is set; the log path is printed so it can be tailed, and the
-    last lines are shown if a run fails. A failure aborts before the exports
-    are touched."""
+    ``verbose`` is set; the last lines are shown if a run fails. A failure
+    aborts before the exports are touched."""
     procs: list[tuple[str, subprocess.Popen, Path | None]] = []
     for model in models:
         # Only vLLM-served targets get the base URL; openrouter/ models and
@@ -377,13 +400,12 @@ def run_models(
             )
             log.close()
             procs.append((model, proc, path))
-            print(f"  started {model} (log: {path})")
 
     started = time.monotonic()
     failures = []
     for model, proc, path in procs:
         code = proc.wait()
-        short = model.split("/")[-1]
+        short = short_name(model)
         elapsed = time.monotonic() - started
         print(
             f"  {short:34s} {'ok' if code == 0 else f'FAILED (exit {code})'}"
@@ -402,16 +424,53 @@ def run_models(
         )
 
 
-def clear_exported(profile_id: str, dilemma_id: str, models: list[str]) -> list[Path]:
-    """Remove the exported run directories for the scenario and these models."""
-    directory = slug(f"{profile_id}-{dilemma_id}")
-    removed = []
-    for model in models:
-        path = RUNS_DIR / slug(model) / directory
-        if path.is_dir():
-            shutil.rmtree(path)
-            removed.append(path)
-    return removed
+def fresh_eval_logs(started_at: float) -> dict[str, list[tuple[datetime, Path]]]:
+    """The spot logs this test wrote, grouped by their header's model.
+
+    A log counts when its header ``created`` time is after ``started_at`` (a
+    cheap mtime pre-filter skips the older logs without parsing). The file
+    name carries no model, so the grouping uses the header, where both
+    ``openrouter/`` targets and the vLLM ``openai/<name>`` adapters map to
+    their model.
+    """
+    fresh: dict[str, list[tuple[datetime, Path]]] = {}
+    for path in sorted(LOG_DIR.glob("*.eval")):
+        try:
+            if path.stat().st_mtime < started_at:
+                continue
+            header = read_eval_log(path, header_only=True)
+            created = datetime.fromisoformat(header.eval.created)
+        except Exception:
+            continue  # unreadable/truncated log or bad timestamp: skip it
+        if created.timestamp() <= started_at:
+            continue
+        fresh.setdefault(header.eval.model, []).append((created, path))
+    return fresh
+
+
+def list_new_eval_logs(
+    fresh: dict[str, list[tuple[datetime, Path]]], models: list[str]
+) -> None:
+    """Print the inspect ``.eval`` logs this spot test wrote, one block each."""
+    if not fresh:
+        print("  (none)")
+        return
+    remaining = dict(fresh)
+    for model in dict.fromkeys(models):
+        logs = remaining.pop(model, None)
+        if not logs:
+            continue
+        print(f"  {model}")
+        for created, path in sorted(logs):
+            print(
+                f"    {created.strftime('%H:%M:%S')}  {path.relative_to(REPO).as_posix()}"
+            )
+    for model, logs in sorted(remaining.items()):  # not in --model: one block anyway
+        print(f"  {model}")
+        for created, path in sorted(logs):
+            print(
+                f"    {created.strftime('%H:%M:%S')}  {path.relative_to(REPO).as_posix()}"
+            )
 
 
 def stability(picks: list[int], option_count: int) -> float:
@@ -422,66 +481,90 @@ def stability(picks: list[int], option_count: int) -> float:
     return 1 - entropy / math.log(option_count)
 
 
-def summarise(dilemma_id: str, options: list[str], rerun_models: set[str]) -> None:
-    """Print the picks per run, counts, stability, cost and cross-model divergence.
+def summarise(
+    fresh: dict[str, list[tuple[datetime, Path]]],
+    dilemma_id: str,
+    options: list[str],
+    rerun_models: set[str],
+) -> None:
+    """Print the re-run models' picks per run, counts, stability and cost.
 
-    Models in ``rerun_models`` were run by this invocation; the rest are
-    earlier exported runs for the scenario that were kept. Stability is
-    1 - H / ln(k) over the picks (1.00 = every run made the same choice): per
-    model, then pooled across the runs this spot test made. Costs are the
-    exported token usage priced with MODEL_PRICES, target and judge together.
+    Read from the ``.eval`` logs this spot test just wrote — nothing has to
+    be exported first. One aligned table line per model (``short_name``
+    truncates the fine-tuned adapter prefix). Stability is 1 - H / ln(k) over
+    the picks (1.00 = every run made the same choice); costs are the runs'
+    token usage priced with MODEL_PRICES, target and judge together.
     """
-    manifest = json.loads((RUNS_DIR / "index.json").read_text(encoding="utf-8"))
-    rows = [row for row in manifest["runs"] if row["situation_id"] == dilemma_id]
-    by_model: dict[str, list[tuple[int, int | None]]] = {}
+    by_model: dict[str, list[tuple[datetime, int, int | None]]] = {}
     costs: dict[str, float] = {}
     unpriced: set[str] = set()
-    for row in rows:
-        run_dir = RUNS_DIR / row["path"]
-        judge = json.loads((run_dir / "judge.json").read_text(encoding="utf-8"))
-        choice = (judge.get("metadata") or {}).get("choice") or judge.get("answer")
-        index = options.index(choice) + 1 if choice in options else None
-        by_model.setdefault(row["model"], []).append((row["version"], index))
-        usage = json.loads((run_dir / "config.json").read_text(encoding="utf-8"))
-        cost, priced = run_cost(usage.get("usage") or {})
-        costs[row["model"]] = costs.get(row["model"], 0.0) + cost
-        if not priced:
-            unpriced.add(row["model"])
+    runs = 0
+    skipped = 0
+    for model in sorted(fresh):
+        for created, path in sorted(fresh[model]):
+            log = read_eval_log(path)
+            for sample in log.samples or []:
+                scenario = (sample.metadata or {}).get("dilemma") or {}
+                if scenario.get("id") != dilemma_id:
+                    continue
+                # Match the export: errored or empty runs are not results
+                # (e.g. samples left behind by an aborted eval).
+                response = sample.output.completion if sample.output else ""
+                if sample.error or not (response or "").strip():
+                    skipped += 1
+                    continue
+                runs += 1
+                score = (sample.scores or {}).get("dilemma_judge")
+                choice = ""
+                if score is not None:
+                    choice = (
+                        (score.metadata or {}).get("choice") or score.answer or ""
+                    ).strip()
+                index = options.index(choice) + 1 if choice in options else None
+                by_model.setdefault(model, []).append((created, sample.epoch, index))
+                usage = {
+                    name: tokens.model_dump(mode="json")
+                    for name, tokens in (sample.model_usage or {}).items()
+                }
+                cost, priced = run_cost(usage)
+                costs[model] = costs.get(model, 0.0) + cost
+                if not priced:
+                    unpriced.add(model)
 
-    print(f"\nResults for {dilemma_id} ({len(rows)} exported runs)")
+    print(f"\nResults for {dilemma_id} ({runs} runs this spot test)")
+    if skipped:
+        print(f"  ({skipped} sample(s) skipped: errored or empty response)")
     distributions: dict[str, Counter] = {}
-    for model, runs in sorted(by_model.items()):
-        picks = [index for _, index in sorted(runs)]
-        ran = model in rerun_models
-        name = model.split("/")[-1] + (" (ran)" if ran else " (kept)")
+    for model, model_runs in sorted(by_model.items()):
+        picks = [index for _, _, index in sorted(model_runs)]
+        name = short_name(model)
         if any(index is None for index in picks):
             print(f"  {name:30s} picks {picks} (missing judge result)")
             continue
         counts = Counter(picks)
         rendered = ", ".join(f"{index} x{n}" for index, n in sorted(counts.items()))
-        cost = f"${costs.get(model, 0.0):.4f}" if ran else "kept (no new spend)"
         print(
             f"  {name:30s} picks {picks}  |  {rendered}"
             f"  |  stability {stability(picks, len(options)):.2f}"
-            f"  |  cost {cost}"
+            f"  |  cost ${costs.get(model, 0.0):.4f}"
         )
         distributions[model] = counts
 
     pooled = [
         index
         for model in sorted(rerun_models)
-        for _, index in sorted(by_model.get(model, []))
+        for _, _, index in sorted(by_model.get(model, []))
         if index is not None
     ]
     if pooled:
         total_cost = sum(costs.get(model, 0.0) for model in rerun_models)
         warning = (
             " (some models are unpriced: tokens only, cost is a lower bound)"
-            if unpriced & rerun_models
+            if unpriced
             else ""
         )
         print(
-            f"  overall stability (all {len(pooled)} runs this spot test made): "
+            f"\n  overall stability (all {len(pooled)} runs this spot test made): "
             f"{stability(pooled, len(options)):.2f}"
         )
         print(f"  spot-test cost: ${total_cost:.4f}{warning}")
@@ -511,7 +594,7 @@ def main() -> None:
     parser.add_argument(
         "scenario",
         nargs="?",
-        help="Sample id (e.g. cosmetic_clinic-0) or dilemma id",
+        help="Sample id (e.g. clinical_support-0) or dilemma id",
     )
     parser.add_argument("--model", action="append", dest="models", default=None)
     parser.add_argument("--epochs", type=int, default=5)
@@ -536,7 +619,9 @@ def main() -> None:
     parser.add_argument(
         "--no-adapters",
         action="store_true",
-        help="Disable the auto-discovery of served adapters on --vllm-port.",
+        help="Keep exactly the models passed: don't auto-add the other "
+        "models the vLLM server serves when an openai/<name> target is "
+        "given.",
     )
     parser.add_argument(
         "--verbose",
@@ -570,22 +655,24 @@ def main() -> None:
         models = list(args.models)
     else:
         models = list(DEFAULT_MODELS)
-        print(f"No --model given; using the default pair: {', '.join(models)}")
+        print(f"No --model given; using the default set: {', '.join(models)}")
 
-    # ── vLLM adapter auto-discovery + per-model base URL ──────────
-    # Local adapter models (``openai/<name>``) talk to the vLLM server;
-    # every other model keeps its own provider endpoint. An explicit
-    # ``--base-url`` applies to the ``openai/<name>`` models only: the
-    # judge and openrouter models always use their own endpoints.
-    # Without ``--base-url`` the server on --vllm-port is probed: when it
-    # answers, every served adapter is auto-added as a target and the
-    # implicit base URL ``http://localhost:<port>/v1`` covers them.
-    local_models = [model for model in models if model.startswith("openai/")]
+    # ── vLLM-served models + per-model base URL ──────────────────
+    # Local models (``openai/<name>``) talk to the vLLM server; every other
+    # model keeps its own provider endpoint. Nothing local runs unless an
+    # ``openai/<name>`` target is given: that target runs against
+    # --base-url (or the probed server) together with every other model the
+    # server serves (base + adapters). --no-adapters keeps exactly the
+    # models passed. An explicit --base-url applies to the ``openai/<name>``
+    # models only: the judge and openrouter models always use their own
+    # endpoints.
     base_url = args.base_url
-    if not base_url and not args.no_adapters:
+    local_models = [model for model in models if model.startswith("openai/")]
+    if local_models and not args.no_adapters:
         served = vllm_served_models(args.vllm_port)
         if served:
-            implicit = f"http://localhost:{args.vllm_port}/v1"
+            if base_url is None:
+                base_url = f"http://localhost:{args.vllm_port}/v1"
             print(
                 f"vLLM server on :{args.vllm_port} serves {len(served)} "
                 f"model(s): {', '.join(served)}"
@@ -595,14 +682,18 @@ def main() -> None:
                 if candidate not in models:
                     models.append(candidate)
                     print(f"  auto-added {candidate}")
-            local_models = [model for model in models if model.startswith("openai/")]
-            if local_models and base_url is None:
-                base_url = implicit
+    local_models = [model for model in models if model.startswith("openai/")]
     if local_models and base_url is None:
-        raise SystemExit(
-            "openai/<name> models requested but no --base-url given and no "
-            f"vLLM server answered on port {args.vllm_port}"
-        )
+        # --no-adapters (or a server that stopped answering): resolve the
+        # base URL from the server on the probed port when one answers.
+        if vllm_served_models(args.vllm_port):
+            base_url = f"http://localhost:{args.vllm_port}/v1"
+            print(f"vLLM server answered on :{args.vllm_port}")
+        else:
+            raise SystemExit(
+                "openai/<name> models requested but no --base-url given and no "
+                f"vLLM server answered on port {args.vllm_port}"
+            )
 
     print(f"Scenario: {sample_id} ({dilemma_id})")
     print(f"Question: {dilemma['question']}")
@@ -624,6 +715,7 @@ def main() -> None:
         print("dry run: no evaluation, no export")
         return
 
+    started_at = time.time()  # logs created after this are this spot test's
     run_models(models, judge, args.epochs, sample_id, base_url, args.verbose)
 
     # First-token probe for the vLLM-served adapters ("as a regular model"):
@@ -632,17 +724,14 @@ def main() -> None:
         print(f"\nFirst-token probes ({base_url}):")
         run_first_token_probes(local_models, base_url, dilemma, sample_id)
 
-    for path in clear_exported(profile_id, dilemma_id, models):
-        print(f"removed old export {path.relative_to(REPO)}")
-    # Replace only the re-run models' runs; the other models' exported runs
-    # for the scenario stay in place. (Pass --reset-model to export_results.py
-    # to drop them instead.)
-    count = asyncio.run(
-        export_runs(LOG_DIR, RUNS_DIR, reset_samples=frozenset({sample_id}))
-    )
-    print(f"re-exported {count} runs")
-
-    summarise(dilemma_id, dilemma["answer_options"], set(models))
+    # The inspect .eval logs this spot test produced, one block per model,
+    # then the picks/stability/cost summary read straight from those logs.
+    # Nothing is exported — the website keeps the previous export until
+    # `uv run python code/dilemmas/export_results.py` refreshes it.
+    print("\nInspect logs:")
+    fresh = fresh_eval_logs(started_at)
+    list_new_eval_logs(fresh, models)
+    summarise(fresh, dilemma_id, dilemma["answer_options"], set(models))
 
 
 if __name__ == "__main__":

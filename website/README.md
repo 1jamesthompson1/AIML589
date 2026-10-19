@@ -133,15 +133,19 @@ There is no per-run `audit.txt`. Cross-model audits are embedded under
 
 ### Dilemma runs
 
-`code/dilemmas/export_results.py` writes `artifacts/dilemmas/runs/index.json`
-(schema `wvs-dilemma-runs-index/v2`: profiles with their one-sentence role
-summary and system prompts, the dilemma inventory, models, and every run) plus
-one directory per run containing `response.txt`, `judge.json`, `config.json`,
-and the transcript.
+`code/dilemmas/export_results.py` writes one manifest per exported full-run
+batch (`artifacts/dilemmas/runs/full/<run-id>/index.json`, schema
+`wvs-dilemma-runs-index/v2`: profiles with their one-sentence role summary and
+system prompts, the dilemma inventory, models, and every run) plus one
+directory per run containing `response.txt`, `judge.json`, `config.json`, and
+the transcript. `artifacts/dilemmas/runs/batches.json` lists every exported
+batch for the **Batch** selector.
 
 The dilemma viewer shows one card per model for the selected dilemma, each
 with a run selector so a specific response (run 1–N) can be chosen, the
-response text, and the judge's classification (decision, value, reason). The
+response text, and the judge's classification (decision, value, reason, and —
+when the run's `judge.json` carries it — the verbatim quote the judge picked
+to show what the model valued). The
 stimulus keeps the survey block's framing (role lead → the profile's dilemma
 intro → situation → question, with the role lead mirrored from
 `survey/comparison-question.md`), shows the profile's role summary and the
@@ -151,23 +155,32 @@ manifests without them simply omit them). The stored outro is not shown: it
 says two agents answered, and the viewer can show every model.
 
 At the top of the viewer, above the dilemma selector, a collapsed **Dilemma
-statistics** table lists every dilemma in the manifest with the same three
-summary metrics the report's `code/dilemmas/analyze.py` tables use, computed
-over the runs the chart plots: **balance** of the pooled outcomes (H / ln k
-over all runs, 1.00 = even spread), **avg divergence** between the models
-(mean pairwise total variation distance between their outcome distributions)
-and **avg stability** (the mean over models of 1 - H / ln k within each
-model's own runs). Rows are sorted by avg divergence and the selected
-dilemma's row is highlighted; clicking a row opens that dilemma in the viewer
-and collapses the table.
+statistics** table lists every dilemma in the manifest with the same summary
+metrics the report's `code/dilemmas/analyze.py` tables use, computed over the
+runs the chart plots: **balance** of the pooled outcomes (H / ln k over all
+runs, 1.00 = even spread), **balance (not other)** (the same H / ln k over the
+decided options only — "Other or unclear" dropped and the shares
+renormalised, so balance the catch-all earned is not mistaken for the models
+splitting), **avg divergence** between the models (mean pairwise total
+variation distance between their outcome distributions) and **avg stability**
+(the mean over models of 1 - H / ln k within each model's own runs). Columns
+are sortable by clicking a heading (numeric columns start largest-first, text
+columns A→Z; default is avg divergence descending) and the selected dilemma's
+row is highlighted; clicking a row opens that dilemma in the viewer and
+collapses the table.
 
 Under the stimulus, an **outcome distribution** chart shows, per answer
 option, the share of each model's exported runs the judge placed on it
 (grouped bars; the answer options are listed underneath). The series are
 curated from the dilemma's `choice_counts`: the Qwen 3.8 family (base and
 fine-tunes) plus deepseek-v4.1-flash and glm-5.3-flash when they have runs for
-the dilemma — spot-test extras (haiku-5.5, gpt-5.6-luna) never appear, and
+the dilemma — spot-test extras (haiku-5.5, gpt-6-luna) never appear, and
 when no Qwen runs exist the chart falls back to the frontier pair.
+
+A **Batch** selector above the dilemma picker lists every exported full run
+(`runs/batches.json`) and loads the selected batch's own manifest
+(`runs/full/<run-id>/index.json`); it defaults to the newest batch. There is
+no merged/live view, and spot runs are not shown in it.
 
 An older runs index without the dilemma inventory still works: the viewer
 falls back to a selected run's `config.json` for the dilemma text.

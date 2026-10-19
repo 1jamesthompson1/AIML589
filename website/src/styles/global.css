@@ -684,6 +684,32 @@ section {
   font-weight: 600;
 }
 
+/* Sortable headers: a real button per column so keyboard users can sort; the
+ * active column is highlighted and shows the direction arrow. */
+.dilemma-stats__sort {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.25rem;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.dilemma-stats__sort:hover,
+.dilemma-stats__sort:focus-visible { color: var(--color-text); }
+
+.dilemma-stats__sort--active,
+.dilemma-stats__sort--active:hover { color: var(--color-primary); }
+
+.dilemma-stats__sort-arrow { font-size: 0.6rem; opacity: 0.5; }
+
+.dilemma-stats__sort--active .dilemma-stats__sort-arrow { opacity: 1; }
+
 .dilemma-stats__number {
   text-align: right;
   font-variant-numeric: tabular-nums;
@@ -853,6 +879,16 @@ section {
   margin: 0.4rem 0 0;
   color: var(--color-muted);
   font-size: 0.78rem;
+  line-height: 1.5;
+}
+
+.dilemma-judge__quote {
+  margin: 0.4rem 0 0;
+  padding-left: 0.6rem;
+  border-left: 2px solid #c7d2fe;
+  color: var(--color-muted);
+  font-size: 0.78rem;
+  font-style: italic;
   line-height: 1.5;
 }
 

@@ -21,15 +21,18 @@ const VIEWER_QUESTION_LEAD = 'They were all asked:';
 /* Dilemma runs viewer.
  *
  * Data lives in the project's public HF storage bucket (or the local
- * artifacts mirror in dev):
- *   dilemmas/runs/index.json         - profiles (with system prompts),
- *                                      dilemmas and every run
- *   dilemmas/runs/<path>/response.txt
- *   dilemmas/runs/<path>/judge.json
+ * artifacts mirror in dev), one manifest per exported full-run batch:
+ *   dilemmas/runs/batches.json             - every exported batch
+ *   dilemmas/runs/full/<run-id>/index.json - that batch's profiles,
+ *                                            dilemmas and runs
+ *   dilemmas/runs/full/<run-id>/<path>/response.txt
+ *   dilemmas/runs/full/<run-id>/<path>/judge.json
  *
- * Every model's response to one dilemma side by side, with a per-model run
- * selector. The selected profile's system prompt is shown collapsed under
- * the dilemma stimulus.
+ * There is no merged/live view: the viewer defaults to the newest batch and
+ * the Batch selector loads one batch's own manifest at a time. Every model's
+ * response to one dilemma side by side, with a per-model run selector. The
+ * selected profile's system prompt is shown collapsed under the dilemma
+ * stimulus.
  */
 
 const RUNS_MANIFEST_URL = manifestUrl(LOCAL_DILEMMAS_BASE, 'dilemmas/runs/index.json');
@@ -63,6 +66,8 @@ interface RunsManifest {
   generated_at?: string;
   bucket?: string;
   base_url?: string;
+  /** Per-batch exports only: the bundle this manifest is the export of. */
+  run_id?: string;
   profiles?: Record<
     string,
     {
@@ -78,6 +83,22 @@ interface RunsManifest {
   runs: RunRow[];
 }
 
+/** One exported full-run bundle (see code/dilemmas/full_run.py). */
+interface BatchInfo {
+  run_id: string;
+  generated_at?: string;
+  models?: string[];
+  runs?: number;
+  /** Set while the batch is still running (exported with --partial). */
+  partial?: boolean;
+}
+
+interface BatchesDoc {
+  schema?: string;
+  generated_at?: string;
+  batches: BatchInfo[];
+}
+
 interface JudgeDoc {
   value?: number | null;
   answer?: string;
@@ -86,6 +107,8 @@ interface JudgeDoc {
     choice?: string;
     value?: string;
     reason?: string;
+    quote?: string;
+    reasoning_source?: string;
     dilemma_id?: string;
     profile_id?: string;
   };
@@ -130,7 +153,7 @@ function dilemmaLabel(dilemma: DilemmaInfo): string {
 /* Outcome distribution for one dilemma: the share of each model's exported
  * runs that the judge placed on each answer option. The series stay curated -
  * the Qwen 3.8 family (base and fine-tunes) plus the two frontier comparison
- * models - so spot-test extras (haiku, gpt-5.6-luna) and one-off adapters do
+ * models - so spot-test extras (haiku, gpt-6-luna) and one-off adapters do
  * not clutter the study view. */
 const OUTCOME_COLOURS = ['#0f3460', '#e94560', '#16a34a', '#7c3aed', '#f59e0b'];
 
@@ -237,6 +260,13 @@ function OutcomeChart({ dilemma }: { dilemma: DilemmaInfo | null }) {
  *   Balance         H / ln(k) over the pooled shares of every run (1.00 =
  *                   runs spread evenly across the options, 0.00 = every run
  *                   on one option).
+ *   Balance (not
+ *   other)          the same H / ln(k) pooled over the decided options only:
+ *                   the "Other or unclear" catch-all is dropped and the
+ *                   remaining shares renormalised, so a dilemma that looks
+ *                   balanced only because runs fall on the catch-all reads as
+ *                   what it is. Null when there are fewer than two other
+ *                   options or every run was "Other or unclear".
  *   Avg divergence  mean pairwise total variation distance between the
  *                   models' outcome distributions (0.00 = identical,
  *                   1.00 = no shared option).
@@ -250,9 +280,16 @@ function normalisedEntropy(shares: number[]): number {
   return shares.length > 1 ? entropy / Math.log(shares.length) : 0;
 }
 
+/* The "Other or unclear" catch-all ("not other" metrics drop it). Matched on
+ * the option text so it also holds for older manifests with other labels. */
+function otherOptionIndex(options: string[]): number {
+  return options.findIndex((option) => /^other\b/i.test(option.trim()));
+}
+
 interface DilemmaStats {
   runs: number;
   balance: number | null;
+  balanceNoOther: number | null;
   divergence: number | null;
   stability: number | null;
 }
@@ -266,42 +303,94 @@ function dilemmaStats(dilemma: DilemmaInfo): DilemmaStats {
   const rowTotal = (row: number[]) => row.reduce((sum, count) => sum + count, 0);
   const runs = perModel.reduce((sum, row) => sum + rowTotal(row), 0);
   if (!runs || options.length < 2) {
-    return { runs, balance: null, divergence: null, stability: null };
+    return { runs, balance: null, balanceNoOther: null, divergence: null, stability: null };
   }
   const shares = perModel.map((row) => row.map((count) => count / rowTotal(row)));
   const pooled = options.map((_, index) => perModel.reduce((sum, row) => sum + row[index], 0) / runs);
+  // Drop the catch-all and renormalise: entropy is not scale-invariant, so
+  // the remaining shares have to sum to one before scoring.
+  const otherIndex = otherOptionIndex(options);
+  const decided = pooled.filter((_, index) => index !== otherIndex);
+  const decidedTotal = decided.reduce((sum, share) => sum + share, 0);
+  const balanceNoOther = otherOptionIndex(options) >= 0 && decided.length > 1 && decidedTotal > 0
+    ? normalisedEntropy(decided.map((share) => share / decidedTotal))
+    : null;
   const pairTvds = shares.flatMap((left, position) =>
     shares.slice(position + 1).map((right) =>
       0.5 * left.reduce((sum, share, index) => sum + Math.abs(share - right[index]), 0)));
   return {
     runs,
     balance: normalisedEntropy(pooled),
+    balanceNoOther,
     divergence: pairTvds.length ? pairTvds.reduce((sum, value) => sum + value, 0) / pairTvds.length : null,
     stability: shares.reduce((sum, row) => sum + 1 - normalisedEntropy(row), 0) / shares.length,
   };
 }
 
-/* All-dilemma statistics table: one row per dilemma in the manifest, sorted
- * by average divergence so the dilemmas where the models split most sit at
- * the top. The table doubles as navigation: clicking a row selects that
- * dilemma for the rest of the viewer and collapses the table so the newly
- * selected dilemma's view is in place. The row for the selected dilemma is
- * highlighted. */
+/* All-dilemma statistics table: one row per dilemma in the manifest. The
+ * columns are sortable (click a heading; the arrow shows the active column
+ * and direction), defaulting to average divergence descending so the
+ * dilemmas where the models split most sit at the top. The table doubles as
+ * navigation: clicking a row selects that dilemma for the rest of the viewer
+ * and collapses the table so the newly selected dilemma's view is in place.
+ * The row for the selected dilemma is highlighted. */
+
+type StatsSortKey = 'profile' | 'dilemma' | 'runs' | 'balance' | 'balanceNoOther' | 'divergence' | 'stability';
+
+/* Numeric columns start largest-first (the old fixed divergence order), text
+ * columns A→Z; clicking the active column flips the direction. */
+const STATS_SORT_COLUMNS: Array<{ key: StatsSortKey; label: string; numeric: boolean }> = [
+  { key: 'profile', label: 'Profile', numeric: false },
+  { key: 'dilemma', label: 'Dilemma', numeric: false },
+  { key: 'runs', label: 'Runs', numeric: true },
+  { key: 'balance', label: 'Balance', numeric: true },
+  { key: 'balanceNoOther', label: 'Balance (not other)', numeric: true },
+  { key: 'divergence', label: 'Avg divergence', numeric: true },
+  { key: 'stability', label: 'Avg stability', numeric: true },
+];
+
 function DilemmaStatsTable({ dilemmas, manifest, currentKey, onSelect }: {
   dilemmas: DilemmaInfo[];
   manifest: RunsManifest;
   currentKey: string;
   onSelect: (key: string) => void;
 }) {
-  const rows = useMemo(
-    () => dilemmas
+  const [sort, setSort] = useState<{ key: StatsSortKey; desc: boolean }>({ key: 'divergence', desc: true });
+  const toggleSort = (key: StatsSortKey) => {
+    setSort((previous) => (
+      previous.key === key
+        ? { key, desc: !previous.desc }
+        : { key, desc: STATS_SORT_COLUMNS.find((column) => column.key === key)!.numeric }
+    ));
+  };
+  const rows = useMemo(() => {
+    const value = (row: { dilemma: DilemmaInfo; stats: DilemmaStats }): string | number | null => {
+      switch (sort.key) {
+        case 'profile': return profileLabel(manifest, row.dilemma.profile_id);
+        // Sort by the full dilemma text, not the 90-character table label.
+        case 'dilemma': return row.dilemma.question || row.dilemma.situation || row.dilemma.situation_id;
+        case 'runs': return row.stats.runs || null;
+        default: return row.stats[sort.key];
+      }
+    };
+    const factor = sort.desc ? -1 : 1;
+    return dilemmas
       .map((dilemma) => ({ dilemma, stats: dilemmaStats(dilemma) }))
-      .sort((a, b) =>
-        (b.stats.divergence ?? -1) - (a.stats.divergence ?? -1)
-        || a.dilemma.profile_id.localeCompare(b.dilemma.profile_id)
-        || a.dilemma.situation_id.localeCompare(b.dilemma.situation_id)),
-    [dilemmas],
-  );
+      .sort((a, b) => {
+        const left = value(a);
+        const right = value(b);
+        // A null metric (uncomputable, or no runs) always sorts last.
+        if (left == null || right == null) {
+          return (left == null ? 1 : 0) - (right == null ? 1 : 0);
+        }
+        const primary = typeof left === 'string' || typeof right === 'string'
+          ? String(left).localeCompare(String(right), undefined, { sensitivity: 'base' })
+          : left - right;
+        return factor * primary
+          || a.dilemma.profile_id.localeCompare(b.dilemma.profile_id)
+          || a.dilemma.situation_id.localeCompare(b.dilemma.situation_id);
+      });
+  }, [dilemmas, manifest, sort]);
   // Controlled so that picking a dilemma can collapse the table and leave
   // the reader on that dilemma's stimulus, chart and responses.
   const [open, setOpen] = useState(false);
@@ -321,11 +410,14 @@ function DilemmaStatsTable({ dilemmas, manifest, currentKey, onSelect }: {
     >
       <summary>
         Dilemma statistics
-        <span>{rows.length} dilemmas · balance, divergence, stability · sorted by avg divergence · click a row to open that dilemma</span>
+        <span>{rows.length} dilemmas · balance, balance (not other), divergence, stability · click a column to sort, a row to open that dilemma</span>
       </summary>
       <p className="muted-text dilemma-stats__note">
         Over the runs the outcome chart plots: <strong>Balance</strong> is H / ln(k) across every
         run's option (1.00 = runs spread evenly over the options, 0.00 = every run on one);{' '}
+        <strong>Balance (not other)</strong> is the same H / ln(k) over the decided options only
+        ("Other or unclear" dropped and the shares renormalised), so balance earned by the
+        catch-all is not counted as the models splitting;{' '}
         <strong>avg divergence</strong> is the mean pairwise total variation distance between the
         models' outcome distributions (0.00 = identical, 1.00 = no shared option);{' '}
         <strong>avg stability</strong> is the mean over models of 1 - H / ln(k) within that
@@ -335,12 +427,28 @@ function DilemmaStatsTable({ dilemmas, manifest, currentKey, onSelect }: {
         <table className="dilemma-stats__table">
           <thead>
             <tr>
-              <th>Profile</th>
-              <th>Dilemma</th>
-              <th className="dilemma-stats__number">Runs</th>
-              <th className="dilemma-stats__number">Balance</th>
-              <th className="dilemma-stats__number">Avg divergence</th>
-              <th className="dilemma-stats__number">Avg stability</th>
+              {STATS_SORT_COLUMNS.map((column) => {
+                const active = sort.key === column.key;
+                return (
+                  <th
+                    key={column.key}
+                    className={column.numeric ? 'dilemma-stats__number' : undefined}
+                    aria-sort={active ? (sort.desc ? 'descending' : 'ascending') : undefined}
+                  >
+                    <button
+                      type="button"
+                      className={active ? 'dilemma-stats__sort dilemma-stats__sort--active' : 'dilemma-stats__sort'}
+                      onClick={() => toggleSort(column.key)}
+                      title={`Sort by ${column.label.toLowerCase()}`}
+                    >
+                      {column.label}
+                      <span className="dilemma-stats__sort-arrow" aria-hidden="true">
+                        {active ? (sort.desc ? '▼' : '▲') : '↕'}
+                      </span>
+                    </button>
+                  </th>
+                );
+              })}
             </tr>
           </thead>
           <tbody>
@@ -361,6 +469,7 @@ function DilemmaStatsTable({ dilemmas, manifest, currentKey, onSelect }: {
                   </td>
                   <td className="dilemma-stats__number">{stats.runs || '—'}</td>
                   <td className="dilemma-stats__number">{fixed(stats.balance)}</td>
+                  <td className="dilemma-stats__number">{fixed(stats.balanceNoOther)}</td>
                   <td className="dilemma-stats__number">{fixed(stats.divergence)}</td>
                   <td className="dilemma-stats__number">{fixed(stats.stability)}</td>
                 </tr>
@@ -374,17 +483,19 @@ function DilemmaStatsTable({ dilemmas, manifest, currentKey, onSelect }: {
 }
 
 /* The judge file written by export_results.py holds the option the judge
- * matched to the response and its one-line reason. Older files may carry
- * only answer/explanation. */
+ * matched to the response, its one-line reason and a verbatim quote showing
+ * what the assistant valued. Older files may carry only answer/explanation. */
 function JudgeNote({ judge }: { judge: JudgeDoc | null | undefined }) {
   if (!judge) return <p className="muted-text dilemma-judge__empty">No judge result is stored for this run.</p>;
   const choice = judge.metadata?.choice ?? judge.answer ?? '—';
   const reason = judge.metadata?.reason ?? judge.explanation;
+  const quote = judge.metadata?.quote;
   return (
     <div className="dilemma-judge">
       <p className="dilemma-judge__title">⚖ Judge classification</p>
       <p className="dilemma-judge__line"><strong>Decision:</strong> {choice}</p>
       {reason && <p className="dilemma-judge__reason">{reason}</p>}
+      {quote && <blockquote className="dilemma-judge__quote">“{quote}”</blockquote>}
     </div>
   );
 }
@@ -459,6 +570,9 @@ function RunResponse({ data, onRetry, run }: { data: RunData | null; onRetry: ()
 export default function DilemmasViewer() {
   const [manifest, setManifest] = useState<RunsManifest | null>(null);
   const [loadError, setLoadError] = useState('');
+  const [batches, setBatches] = useState<BatchesDoc | null>(null);
+  const [batchesReady, setBatchesReady] = useState(false);
+  const [selectedBatch, setSelectedBatch] = useState('');
   const [dilemmaKey, setDilemmaKey] = useState('');
   const [pickedRunIds, setPickedRunIds] = useState<Record<string, string>>({});
   const [runDocs, setRunDocs] = useState<Record<string, RunData>>({});
@@ -473,11 +587,32 @@ export default function DilemmasViewer() {
 
   /* ------------------------------- data ------------------------------- */
 
+  /* One batch at a time: the selected batch's own manifest. There is no
+   * merged/live manifest. */
+  const manifestUrl = selectedBatch ? `${RUNS_BASE}full/${selectedBatch}/index.json` : '';
+  const runsBase = selectedBatch ? `${RUNS_BASE}full/${selectedBatch}/` : `${RUNS_BASE}full/`;
+
   useEffect(() => {
-    console.info(`[DilemmasViewer] fetching manifest: ${RUNS_MANIFEST_URL}`);
+    console.info(`[DilemmasViewer] fetching batches: ${RUNS_BASE}batches.json`);
+    cachedFetchJson<BatchesDoc>(`${RUNS_BASE}batches.json`, 0)
+      .then((data) => {
+        console.info(`[DilemmasViewer] batches loaded: ${data.batches?.length ?? 0}`);
+        setBatches(data);
+        // Default to the newest batch (batches.json is newest-first).
+        setSelectedBatch((current) => current || data.batches?.find((batch) => batch.run_id)?.run_id || '');
+      })
+      .catch(() => setBatches(null)) // no batches.json: show the empty state
+      .finally(() => setBatchesReady(true));
+  }, []);
+
+  useEffect(() => {
+    if (!batchesReady || !manifestUrl) return;
+    console.info(`[DilemmasViewer] fetching manifest: ${manifestUrl}`);
+    setManifest(null);
+    setLoadError('');
     // The manifest is the gatekeeper for new runs, so always re-fetch it
     // (0 TTL) rather than serving a stale copy from the localStorage cache.
-    cachedFetchJson<RunsManifest>(RUNS_MANIFEST_URL, 0)
+    cachedFetchJson<RunsManifest>(manifestUrl, 0)
       .then((data) => {
         console.info(`[DilemmasViewer] manifest loaded: ${data.runs?.length ?? 0} runs`);
         setManifest(data);
@@ -486,7 +621,17 @@ export default function DilemmasViewer() {
         console.error('[DilemmasViewer] manifest load failed:', error);
         setLoadError(String(error));
       });
-  }, []);
+  }, [manifestUrl, batchesReady]);
+
+  // A batch switch resets the per-model picks and the run caches (run ids
+  // are batch-local: eval id + sample + epoch).
+  useEffect(() => {
+    setPickedRunIds({});
+    setRunDocs({});
+    runCache.current = {};
+    inFlight.current.clear();
+    setFallbackDilemma(null);
+  }, [selectedBatch]);
 
   const runs = useMemo(() => manifest?.runs ?? [], [manifest]);
 
@@ -568,7 +713,7 @@ export default function DilemmasViewer() {
     runCache.current[run.run_id] = loading;
     setRunDocs((previous) => ({ ...previous, [run.run_id]: loading }));
     try {
-      const base = `${RUNS_BASE}${run.path}/`;
+      const base = `${runsBase}${run.path}/`;
       const [response, judge] = await Promise.all([
         cachedFetchText(`${base}response.txt`),
         cachedFetchJson<JudgeDoc>(`${base}judge.json`).catch(() => null),
@@ -584,7 +729,7 @@ export default function DilemmasViewer() {
       inFlight.current.delete(run.run_id);
       setRunDocs((previous) => ({ ...previous, [run.run_id]: runCache.current[run.run_id] }));
     }
-  }, []);
+  }, [runsBase]);
 
   const runData = useCallback(
     (runId: string | undefined): RunData | null => (runId ? runDocs[runId] ?? runCache.current[runId] ?? null : null),
@@ -634,11 +779,11 @@ export default function DilemmasViewer() {
       return;
     }
     let cancelled = false;
-    cachedFetchJson<{ dilemma?: DilemmaInfo }>(`${RUNS_BASE}${runsForDilemma[0].path}/config.json`, 0)
+    cachedFetchJson<{ dilemma?: DilemmaInfo }>(`${runsBase}${runsForDilemma[0].path}/config.json`, 0)
       .then((config) => { if (!cancelled && config.dilemma) setFallbackDilemma(config.dilemma); })
       .catch((error) => console.info('[DilemmasViewer] dilemma fallback load failed:', String(error)));
     return () => { cancelled = true; };
-  }, [manifest, runsForDilemma]);
+  }, [manifest, runsForDilemma, runsBase]);
 
   // Deep link: ?dilemma=<profile_id>-<situation_id>
   useEffect(() => {
@@ -675,6 +820,22 @@ export default function DilemmasViewer() {
 
   /* ------------------------------ rendering ---------------------------- */
 
+  if (batchesReady && !manifestUrl) {
+    return (
+      <div style={{ padding: '3rem 0' }}>
+        <div style={card}>
+          <strong>No dilemma batches found</strong>
+          <p style={{ marginTop: '0.5rem', fontSize: '0.85rem' }}>
+            <code>{RUNS_BASE}batches.json</code> is missing or lists no exported
+            batches. Export one with{' '}
+            <code>uv run python code/dilemmas/export_results.py</code> and reload.
+          </p>
+        </div>
+        <DataSourceNotice manifestUrl={`${RUNS_BASE}batches.json`} kind="dilemma" />
+      </div>
+    );
+  }
+
   if (loadError) {
     return (
       <div style={{ padding: '3rem 0' }}>
@@ -682,12 +843,12 @@ export default function DilemmasViewer() {
           <strong>Could not load dilemma data</strong>
           <p style={{ marginTop: '0.5rem', fontSize: '0.85rem' }}>{loadError}</p>
           <p style={{ marginTop: '0.5rem', fontSize: '0.8rem' }}>
-            The selected source is <code>{RUNS_MANIFEST_URL}</code>. {MANIFEST_IS_LOCAL
-              ? 'No local dilemma manifest was found. Run uv run python code/dilemmas/export_results.py to populate artifacts/dilemmas/runs/index.json.'
+            The selected manifest is <code>{manifestUrl}</code>. {MANIFEST_IS_LOCAL
+              ? 'No local batch manifest was found. Check the batch exists under artifacts/dilemmas/runs/full/.'
               : 'Check the public bucket link in the data-source notice below.'}
           </p>
         </div>
-        <DataSourceNotice manifestUrl={RUNS_MANIFEST_URL} kind="dilemma" />
+        <DataSourceNotice manifestUrl={manifestUrl} kind="dilemma" />
       </div>
     );
   }
@@ -698,7 +859,7 @@ export default function DilemmasViewer() {
 
   return (
     <div>
-      <DataSourceNotice bucket={manifest.bucket || DEFAULT_BUCKET} manifestUrl={RUNS_MANIFEST_URL} kind="dilemma" />
+      <DataSourceNotice bucket={manifest.bucket || DEFAULT_BUCKET} manifestUrl={manifestUrl} kind="dilemma" />
       {manifest.generated_at && <p className="manifest-generated muted-text">Manifest generated {new Date(manifest.generated_at).toLocaleString()}</p>}
       <div style={{ marginBottom: '1.5rem', padding: '1rem 1.25rem', background: '#fff7ed', borderRadius: '0.6rem', border: '2px solid #f59e0b', fontSize: '0.9rem', fontWeight: 600, color: '#9a3412', lineHeight: 1.6 }}>
         ⚠️ <strong>Development results.</strong> This viewer exposes the raw dilemma artifacts currently present in the selected local or bucket manifest. Treat them as pipeline results, not as pilot/final study conclusions.
@@ -712,6 +873,26 @@ export default function DilemmasViewer() {
       />
 
       <div className="results-controls">
+        {batches && batches.batches.length > 0 && (
+          <div>
+            <label style={label}>Batch</label>
+            <select
+              value={selectedBatch}
+              onChange={(e) => setSelectedBatch(e.target.value)}
+              style={select}
+            >
+              {/* One batch at a time: each option loads that batch's own
+                  manifest (runs/full/<run-id>/index.json). */}
+              {batches.batches
+                .filter((batch) => batch.run_id)
+                .map((batch) => (
+                  <option key={batch.run_id} value={batch.run_id}>
+                    {batch.run_id} · {batch.models?.length ?? '?'} models · {batch.runs ?? '?'} runs{batch.partial ? ' · partial' : ''}
+                  </option>
+                ))}
+            </select>
+          </div>
+        )}
         <div>
           <label style={label}>Dilemma</label>
           <select value={dilemmaKey} onChange={(e) => selectDilemma(e.target.value)} style={select}>

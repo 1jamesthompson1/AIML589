@@ -167,14 +167,14 @@ def _(HERE, json, np, pd, write_latex_table):
                 "openrouter/qwen/qwen3.8-27b": "Qwen3.8-27b",
                 "openrouter/deepseek/deepseek-v4.1-flash": "deepseek-v4.1-flash",
                 "openrouter/anthropic/claude-haiku-5.5": "claude-haiku",
-                "openrouter/openai/gpt-5.6-luna": "gpt-5.6-luna",
+                "openrouter/openai/gpt-6-luna": "gpt-6-luna",
                 "openrouter/z-ai/glm-5.3-flash": "glm-5.3-flash",
             },
             "order": [
                 "Qwen3.8-27b",
                 "claude-haiku",
                 "deepseek-v4.1-flash",
-                "gpt-5.6-luna",
+                "gpt-6-luna",
                 "glm-5.3-flash",
             ],
         },
@@ -220,7 +220,11 @@ def _(HERE, json, np, pd):
     # skipped as stale (they measured an earlier version of the scenario).
     # Columns 1-4 are option indices in the dilemma's answer_options ("--"
     # when it has fewer options); Balance is H / ln(k): 1.00 = even spread,
-    # 0.00 = one option.
+    # 0.00 = one option. "Balance (not other)" recomputes that H / ln(k) with
+    # the "Other or unclear" catch-all dropped and the remaining shares
+    # renormalised, so a dilemma looks as balanced as its real decisions
+    # warrant; it is NaN when there is no catch-all option, fewer than two
+    # other options, or every run was "Other or unclear".
     def answer_distribution() -> pd.DataFrame:
         runs_dir = HERE / "output" / "runs"
         manifest = json.loads((runs_dir / "index.json").read_text(encoding="utf-8"))
@@ -293,11 +297,37 @@ def _(HERE, json, np, pd):
             )
             if not balance:  # normalise a rounded -0.0
                 balance = 0.0
+            # Balance with the "Other or unclear" catch-all dropped.
+            other_index = next(
+                (
+                    i
+                    for i, option in enumerate(entry["answer_options"])
+                    if option.strip().lower().startswith("other")
+                ),
+                None,
+            )
+            decided = [
+                counts.get(i, 0)
+                for i in range(1, option_count + 1)
+                if (i - 1) != other_index
+            ]
+            decided_total = sum(decided)
+            if other_index is not None and len(decided) > 1 and decided_total:
+                decided_shares = [n / decided_total for n in decided]
+                decided_entropy = -sum(p * np.log(p) for p in decided_shares if p > 0)
+                balance_not_other = float(decided_entropy / np.log(len(decided)))
+                if not balance_not_other:  # normalise a rounded -0.0
+                    balance_not_other = 0.0
+            else:
+                balance_not_other = None
             row = {
                 "Profile": entry["profile_id"],
                 "Dilemma": situation_id,
                 "Runs": total,
                 "Balance": round(max(balance, 0.0), 2),
+                "Balance (not other)": (
+                    None if balance_not_other is None else round(balance_not_other, 2)
+                ),
             }
             for index in range(1, 5):
                 row[str(index)] = (

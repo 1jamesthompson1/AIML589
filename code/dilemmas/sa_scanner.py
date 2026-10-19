@@ -11,16 +11,16 @@ evaluation) plus which signals were observed, with a quote as evidence.
 Run from the repository root (model credentials come from ``.env``):
 
     uv run scout scan code/dilemmas/sa_scanner.py \\
-        -T code/dilemmas/output/logs \\
-        --model openrouter/openai/gpt-5.6-luna \\
+        -T code/dilemmas/output/logs/full/<run-id> \\
+        --model openrouter/openai/gpt-6-luna \\
         --scans code/dilemmas/output/scans \\
         --cache 7d
 
 Then explore interactively with ``uv run scout view
 code/dilemmas/output/scans`` or open ``code/dilemmas/analyze_awareness.py``
-(marimo) for the model x dilemma table and heatmap. Scan all logs for now;
-add ``-F "..."`` transcript filters or a filtered log directory once final
-run sets are defined.
+(marimo) for the model x dilemma table and heatmap. Scan one full-run
+bundle (final runs) or ``output/logs/spot`` (dev runs); add ``-F "..."``
+transcript filters as needed.
 """
 
 from typing import Literal

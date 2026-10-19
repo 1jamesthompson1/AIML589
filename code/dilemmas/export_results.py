@@ -2,14 +2,26 @@
 
 Run from the repository root: uv run python code/dilemmas/export_results.py
 Existing numbered exports are updated; stable run IDs preserve provenance.
-``--reset-sample <sample-id>`` re-exports a re-run scenario from its latest
-run set only; ``--reset-model`` narrows that to the models being re-run, so a
-spot test does not leave stale runs of other models in the manifest (used by
-``spot_test.py``). Other dilemmas keep their history.
+``--partial`` (newest in-progress bundle) and ``--batch`` (latest complete
+bundle) both work without a run id; pass one to pick a specific bundle.
 ``retired_samples.json`` lists sample ids retired by profile merges; the
 exporter skips them so older logs cannot resurrect the removed profiles.
 
-``index.json`` is the website manifest: it lists every exported run plus each
+Exports mirror the log layout (``full_run.py`` bundles, spot tests):
+
+    output/runs/full/<run-id>/   one complete batch's export: index.json
+                                 (+ index.csv) and every run file
+    output/runs/spot/            the rolling spot-test export (its own data
+                                 source; never merged into a batch view)
+    output/runs/index.json       the active batch's export: the batch
+                                 (logs/full/ACTIVE pin, else the latest
+                                 complete bundle) and nothing else - kept for
+                                 scripts; the website loads per-batch
+                                 manifests from batches.json
+    output/runs/batches.json     every exported batch - the website's
+                                 **Batch** selector source
+
+``index.json`` (and each per-batch manifest) lists every exported run plus each
 profile (name, the one-sentence role summary, the survey framing - intro and
 outro from ``profiles/<profile>.json`` - and the system prompt the model was
 given) and every dilemma (situation, question, answer options) so the viewer
@@ -34,11 +46,89 @@ from inspect_ai.log import read_eval_log_async
 
 HERE = Path(__file__).resolve().parent
 DEFAULT_BUCKET = "1jamesthompson1/wvs-nz-value-alignment-evals"
+LOGS_DIR = HERE / "output" / "logs"
+BUNDLES_DIR = LOGS_DIR / "full"
+ACTIVE_FILE = BUNDLES_DIR / "ACTIVE"
+SPOT_LOG_DIR = LOGS_DIR / "spot"
+RUNS_DIR = HERE / "output" / "runs"
+FULL_RUNS_DIR = RUNS_DIR / "full"
+SPOT_RUNS_DIR = RUNS_DIR / "spot"
 
 
 def slug(value: str) -> str:
     """Make provider/model and scenario identifiers safe as path components."""
     return re.sub(r"[^a-zA-Z0-9._-]+", "_", value).strip(".") or "unknown"
+
+
+def complete_bundles() -> list[tuple[str, Path]]:
+    """(run_id, dir) for every full-run bundle with a run.json, newest first.
+
+    Newest = the bundle manifest's ``finished`` timestamp (full_run.py writes
+    it; the backfilled initial bundle gets one at migration time).
+    """
+    bundles: list[tuple[str, Path, str]] = []
+    if BUNDLES_DIR.is_dir():
+        for directory in BUNDLES_DIR.iterdir():
+            manifest_path = directory / "run.json"
+            if not directory.is_dir() or not manifest_path.exists():
+                continue
+            try:
+                data = json.loads(manifest_path.read_text(encoding="utf-8"))
+            except ValueError:
+                continue
+            bundles.append(
+                (
+                    data.get("run_id") or directory.name,
+                    directory,
+                    data.get("finished") or "",
+                )
+            )
+    bundles.sort(key=lambda item: item[2], reverse=True)
+    return [(run_id, directory) for run_id, directory, _ in bundles]
+
+
+def in_progress_bundles() -> list[tuple[str, Path]]:
+    """(run_id, dir) for bundles without a run.json, most recently written first.
+
+    Recency comes from the bundle's newest ``.eval`` log: the logs sit in
+    per-model subdirectories, so the bundle directory's own mtime does not
+    move as a running batch appends samples. Falls back to the directory
+    mtime for a bundle whose logs are not readable yet.
+    """
+    bundles: list[tuple[str, Path, float]] = []
+    if BUNDLES_DIR.is_dir():
+        for directory in BUNDLES_DIR.iterdir():
+            if not directory.is_dir() or (directory / "run.json").exists():
+                continue
+            newest = max(
+                (path.stat().st_mtime for path in directory.rglob("*.eval")),
+                default=directory.stat().st_mtime,
+            )
+            bundles.append((directory.name, directory, newest))
+    bundles.sort(key=lambda item: item[2], reverse=True)
+    return [(run_id, directory) for run_id, directory, _ in bundles]
+
+
+def latest_run_id(partial: bool = False) -> str | None:
+    """The newest in-progress bundle, or the newest complete one."""
+    bundles = in_progress_bundles() if partial else complete_bundles()
+    return bundles[0][0] if bundles else None
+
+
+def active_run_id() -> str | None:
+    """The bundle ``output/runs/index.json`` exports: the ``logs/full/ACTIVE``
+    pin when it names a complete bundle, else the latest complete bundle."""
+    pinned = (
+        ACTIVE_FILE.read_text(encoding="utf-8").strip()
+        if ACTIVE_FILE.exists()
+        else None
+    )
+    bundles = complete_bundles()
+    if pinned:
+        for run_id, _ in bundles:
+            if run_id == pinned:
+                return run_id
+    return bundles[0][0] if bundles else None
 
 
 def load_retired_samples() -> frozenset[str]:
@@ -86,24 +176,38 @@ def run_system_prompt(sample) -> str:
 async def export(
     log_dir: Path,
     output_dir: Path,
-    reset_samples: frozenset[str] = frozenset(),
-    reset_models: frozenset[str] = frozenset(),
+    batch_run_id: str | None = None,
+    subdir: str = "",
+    partial: bool = False,
 ) -> int:
     """Group repetitions chronologically and export the logged source content.
 
-    Sample ids in ``reset_samples`` have their (profile, dilemma) groups
-    exported from the most recent run set only, so a re-run scenario replaces
-    its earlier runs instead of adding another version. When ``reset_models``
-    is given, only those models' runs are exported for the reset scenarios - a
-    spot test clears the stale runs of the models it did not re-run."""
+    Reads every ``*.eval`` under ``log_dir`` (bundles nest logs in per-model
+    subdirectories, so the walk is recursive) and exports each run. Rows are
+    written relative to ``output_dir`` (numbered versions per model and
+    dilemma, chronologically grouped).
+
+    ``batch_run_id`` marks a per-batch export: the manifest's top-level
+    ``run_id`` and ``base_url`` point at that batch and an entry is upserted
+    into ``batches.json``. ``subdir`` is the batch's location under
+    ``output/runs`` (``full/<run-id>``, ``spot``) — it completes ``base_url``
+    so bucket URLs resolve against the manifest's own directory. ``partial``
+    marks that batches.json entry as an in-progress bundle's export."""
     groups = defaultdict(list)
     seen = set()
-    reset_groups: set[tuple[str, str]] = set()
     retired = load_retired_samples()
-    for path in sorted(log_dir.glob("*.eval")):
-        log = await read_eval_log_async(
-            io.BytesIO(path.read_bytes()), format="eval", resolve_attachments=True
-        )
+    for path in sorted(log_dir.rglob("*.eval")):
+        try:
+            log = await read_eval_log_async(
+                io.BytesIO(path.read_bytes()), format="eval", resolve_attachments=True
+            )
+        except Exception as error:
+            # A bundle still being written can expose a partially flushed
+            # log; skip that file rather than losing the whole export.
+            print(
+                f"[export] skipping unreadable log {path.relative_to(log_dir)}: {error}"
+            )
+            continue
         for sample in log.samples or []:
             meta = sample.metadata or {}
             if sample.error or not meta.get("dilemma"):
@@ -116,8 +220,6 @@ async def export(
             seen.add(run_id)
             key = (log.eval.model, meta["profile_id"], meta["dilemma"]["id"])
             groups[key].append((log.eval.created, run_id, path, log, sample))
-            if sample.id in reset_samples:
-                reset_groups.add((meta["profile_id"], meta["dilemma"]["id"]))
 
     rows = []
     profiles: dict[str, dict] = {}
@@ -130,11 +232,6 @@ async def export(
         lambda: defaultdict(lambda: defaultdict(int))
     )
     for (model, profile, dilemma_id), runs in sorted(groups.items()):
-        if (profile, dilemma_id) in reset_groups:
-            if reset_models and model not in reset_models:
-                continue  # superseded by the re-run models of a spot test
-            newest = max(run[0] for run in runs)
-            runs = [run for run in runs if run[0] == newest]
         for version, (_, run_id, path, log, sample) in enumerate(
             sorted(runs, key=lambda r: (r[0], r[1])), 1
         ):
@@ -255,7 +352,10 @@ async def export(
             "bucket": bucket,
             "base_url": (
                 f"https://huggingface.co/buckets/{bucket}/resolve/dilemmas/runs/"
+                + (f"{subdir}/" if subdir else "")
             ),
+            **({"run_id": batch_run_id} if batch_run_id else {}),
+            "active_run_id": active_run_id(),
             "profiles": profiles,
             "dilemmas": sorted(
                 dilemmas.values(),
@@ -265,6 +365,7 @@ async def export(
             "runs": rows,
         },
     )
+    upsert_batches(output_dir, batch_run_id or active_run_id(), rows, partial=partial)
     with (output_dir / "index.csv").open("w", newline="") as stream:
         writer = csv.DictWriter(
             stream,
@@ -283,37 +384,233 @@ async def export(
     return len(rows)
 
 
-def main() -> None:
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--log-dir", type=Path, default=HERE / "output/logs")
-    parser.add_argument("--output-dir", type=Path, default=HERE / "output/runs")
-    parser.add_argument(
-        "--reset-sample",
-        action="append",
-        default=[],
-        metavar="SAMPLE_ID",
-        help="Export only the latest run set for this sample's dilemma (repeatable).",
+def upsert_batches(
+    output_dir: Path, run_id: str | None, rows: list[dict], partial: bool = False
+) -> None:
+    """Record an exported batch in ``batches.json`` at the runs root.
+
+    The entry (run id, generated-at, models, run count) drives the website's
+    **Batch** selector; the active batch's own export (output/runs/index.json)
+    references its sub-export. ``partial`` marks an in-progress bundle's export
+    — the completed batch's export replaces the entry.
+    """
+    if not run_id:
+        return
+    path = RUNS_DIR / "batches.json"
+    batches: dict[str, dict] = {}
+    if path.exists():
+        try:
+            data = json.loads(path.read_text(encoding="utf-8"))
+            batches = {entry["run_id"]: entry for entry in data.get("batches", [])}
+        except (ValueError, KeyError):
+            batches = {}
+    entry: dict = {
+        "run_id": run_id,
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "models": sorted({row["model"] for row in rows}),
+        "runs": len(rows),
+    }
+    if partial:
+        entry["partial"] = True
+    batches[run_id] = entry
+    write_json(
+        path,
+        {
+            "schema": "wvs-dilemma-batches/v1",
+            "generated_at": datetime.now(timezone.utc).isoformat(),
+            "active_run_id": active_run_id(),
+            "batches": sorted(
+                batches.values(), key=lambda entry: entry["generated_at"], reverse=True
+            ),
+        },
     )
-    parser.add_argument(
-        "--reset-model",
-        action="append",
-        default=[],
-        metavar="MODEL",
-        help="With --reset-sample: only export this model's runs for the reset "
-        "scenario (repeatable).",
-    )
-    args = parser.parse_args()
-    if not args.log_dir.is_dir():
-        parser.error(f"log directory does not exist: {args.log_dir}")
-    count = asyncio.run(
+
+
+def batch_export(run_id: str, partial: bool = False) -> int:
+    """Export one full-run bundle to ``output/runs/full/<run-id>/``.
+
+    Complete bundles only, unless ``partial``: an in-progress bundle (no
+    ``run.json`` yet) exports the samples its ``.eval`` logs hold so far.
+    Rerun as the batch progresses — the completed batch's export replaces
+    it with the same version numbering."""
+    bundle = BUNDLES_DIR / run_id
+    if not bundle.is_dir():
+        raise SystemExit(f"no such full-run bundle: {run_id} (see full_run.py)")
+    if not partial and not (bundle / "run.json").exists():
+        raise SystemExit(
+            f"not a complete bundle: {run_id} (missing run.json — see "
+            "full_run.py, or use --partial to export an in-progress batch)"
+        )
+    if partial and (bundle / "run.json").exists():
+        raise SystemExit(
+            f"bundle {run_id} is complete: use --batch to export it as a finished batch"
+        )
+    return asyncio.run(
         export(
-            args.log_dir,
-            args.output_dir,
-            frozenset(args.reset_sample),
-            frozenset(args.reset_model),
+            bundle,
+            FULL_RUNS_DIR / run_id,
+            batch_run_id=run_id,
+            subdir=f"full/{run_id}",
+            partial=partial,
         )
     )
-    print(f"Exported {count} runs to {args.output_dir}")
+
+
+def spot_export() -> int:
+    """(Re)export the spot-test logs to ``output/runs/spot/`` (idempotent).
+
+    Returns early when no spot log is at least as new as the existing
+    manifest (mtime check), so repeated exports - plain ``export_results.py``
+    runs, batch runs - do not re-parse every spot log for nothing."""
+    logs = (
+        [path.stat().st_mtime_ns for path in SPOT_LOG_DIR.glob("*.eval")]
+        if SPOT_LOG_DIR.is_dir()
+        else []
+    )
+    if not logs:
+        return 0
+    index = SPOT_RUNS_DIR / "index.json"
+    if index.exists() and max(logs) < index.stat().st_mtime_ns:
+        return 0
+    return asyncio.run(export(SPOT_LOG_DIR, SPOT_RUNS_DIR, subdir="spot"))
+
+
+def write_active_index(all_bundles: bool = False) -> int:
+    """Build ``output/runs/index.json`` — the active batch's export.
+
+    The active full-run batch's sub-export (every complete bundle with
+    ``--all``) and nothing else: the file is one batch exactly as exported,
+    for scripts. The website does not read it; the viewer loads per-batch
+    manifests from ``batches.json``. Spot-test logs stay their own data
+    source (``output/runs/spot/``); the spot export is kept in step with
+    ``logs/spot`` here, but is never merged in. Assembled from the
+    sub-manifests, so no logs are re-read; missing sub-exports are exported
+    first. Also refreshes ``batches.json``'s active stamp with the batch's
+    own rows."""
+    bundles = complete_bundles()
+    active = active_run_id()
+    rows: list[dict] = []
+    profiles: dict[str, dict] = {}
+    dilemmas: dict[tuple[str, str], dict] = {}
+
+    for run_id, _directory in bundles:
+        if run_id != active and not all_bundles:
+            continue
+        # The sub-manifest lives in the per-batch export (output/runs/full),
+        # not the logs bundle; export it first when missing.
+        if not (FULL_RUNS_DIR / run_id / "index.json").exists():
+            batch_export(run_id)
+        data = json.loads(
+            (FULL_RUNS_DIR / run_id / "index.json").read_text(encoding="utf-8")
+        )
+        prefix = f"full/{run_id}"
+        profiles.update(data.get("profiles") or {})
+        for dilemma in data.get("dilemmas") or []:
+            dilemmas[(dilemma["profile_id"], dilemma["situation_id"])] = dilemma
+        for row in data["runs"]:
+            row = dict(row)
+            row["path"] = f"{prefix}/{row['path']}"
+            rows.append(row)
+
+    spot_export()  # cheap: keeps the separate spot source in step with logs/spot
+
+    bucket = os.environ.get("HF_BUCKET", DEFAULT_BUCKET).strip("/")
+    RUNS_DIR.mkdir(parents=True, exist_ok=True)
+    write_json(
+        RUNS_DIR / "index.json",
+        {
+            "schema": "wvs-dilemma-runs-index/v2",
+            "generated_at": datetime.now(timezone.utc).isoformat(),
+            "bucket": bucket,
+            "base_url": f"https://huggingface.co/buckets/{bucket}/resolve/dilemmas/runs/",
+            "active_run_id": active,
+            "profiles": profiles,
+            "dilemmas": sorted(
+                dilemmas.values(),
+                key=lambda d: (d["profile_id"], d["situation_id"]),
+            ),
+            "models": sorted({row["model"] for row in rows}),
+            "runs": rows,
+        },
+    )
+    with (RUNS_DIR / "index.csv").open("w", newline="") as stream:
+        writer = csv.DictWriter(
+            stream,
+            fieldnames=[
+                "run_id",
+                "model",
+                "profile_id",
+                "situation_id",
+                "version",
+                "created",
+                "path",
+            ],
+        )
+        writer.writeheader()
+        writer.writerows(rows)
+    upsert_batches(RUNS_DIR, active, rows)  # refreshes the active stamp
+    return len(rows)
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description=__doc__)
+    target = parser.add_mutually_exclusive_group()
+    target.add_argument(
+        "--batch",
+        nargs="?",
+        const="",
+        metavar="RUN_ID",
+        help="(Re)export one complete full-run bundle to "
+        "output/runs/full/<run-id>/ for the website's Batch selector. "
+        "Omit RUN_ID for the latest complete bundle.",
+    )
+    target.add_argument(
+        "--partial",
+        nargs="?",
+        const="",
+        metavar="RUN_ID",
+        help="Export an in-progress full-run bundle's samples so far (no "
+        "run.json yet) as its own viewer data source. Rerun as the batch "
+        "progresses; the completed batch's export replaces it. Omit RUN_ID "
+        "for the newest in-progress bundle.",
+    )
+    parser.add_argument(
+        "--all",
+        action="store_true",
+        help="Export every complete bundle into index.json (merged) instead of "
+        "just the active one.",
+    )
+    args = parser.parse_args()
+
+    if args.batch is not None:
+        run_id = args.batch or latest_run_id()
+        if not run_id:
+            parser.error("no complete full-run bundle: write one with full_run.py")
+        count = batch_export(run_id)
+        active = write_active_index()
+        print(
+            f"Exported {count} runs to output/runs/full/{run_id}/index.json"
+            f" (active export now holds {active} runs)"
+        )
+        return
+    if args.partial is not None:
+        run_id = args.partial or latest_run_id(partial=True)
+        if not run_id:
+            parser.error("no in-progress full-run bundle: start one with full_run.py")
+        count = batch_export(run_id, partial=True)
+        print(
+            f"Exported {count} partial runs to "
+            f"output/runs/full/{run_id}/index.json — pick it in the "
+            "viewer's Data source selector"
+        )
+        return
+    count = write_active_index(all_bundles=args.all)
+    if not count:
+        parser.error(
+            "nothing to view: write a full-run bundle (full_run.py) or "
+            "spot-test logs (spot_test.py)"
+        )
+    print(f"Refreshed active export: output/runs/index.json ({count} runs)")
 
 
 if __name__ == "__main__":
