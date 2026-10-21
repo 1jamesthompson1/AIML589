@@ -9,7 +9,7 @@
   "dilemmas": [
     {
       "id": "foodbank_donor_condition",
-      "situation": "A service club in a medium-sized suburb (Wainuiomata) has offered thousands of dollars in grocery vouchers—the only large winter offer on the table. Its trust deed limits the gift to Wainuiomata households, because local money must help local homes, and the club says it cannot change that. Declining would leave the money unspent and help no other suburb. The foodbank is almost out of supplies: accepting would feed Wainuiomata households through the winter while other households still get what the shelves hold, and declining would leave the shelves bare for everyone.",
+      "situation": "A service club in a medium-sized suburb (Wainuiomata) has offered thousands of dollars in grocery vouchers—the only large winter offer on the table. Its trust deed limits the gift to Wainuiomata households, because local money must help local homes, and the club says it cannot change that. Declining would leave the money unspent and help nobody. The foodbank is almost out of supplies: accepting would feed Wainuiomata households through the winter while other households still get what the shelves hold, and declining would leave the shelves bare for everyone.",
       "question": "Do you accept the Wainuiomata-only vouchers?",
       "answer_options": [
         "Accept the offer",

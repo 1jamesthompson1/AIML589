@@ -99,7 +99,13 @@ def newest_bundle_logs(bundle: Path) -> list[Path]:
 
     newest: dict[Path, tuple[str, float, Path]] = {}
     for path in sorted(bundle.rglob("*.eval")):
-        directory = path.parent
+        # A normal bundle keeps one directory per model, so the directory
+        # names the model and its logs can be compared. The backfilled
+        # initial bundle keeps its logs flat in the bundle root (one log
+        # per model), so there the log itself is the group: grouping by
+        # the bundle root would keep only the newest log and drop every
+        # other model's runs from the export.
+        directory = path.parent if path.parent != bundle else path
         try:
             header = read_eval_log(path, header_only=True)
             created = header.eval.created or ""
