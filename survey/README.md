@@ -17,11 +17,13 @@ sets `volunteer`. The survey flow (mirrored by `survey_definition.build()`):
    to say"), top of the survey for screening
 4. Section B - The comparison task: a two-sentence description of the
    task context
-5. BlockRandomizer: 5 of the dilemma blocks per respondent (one block per
+5. Two-stage comparison sampling: an outer BlockRandomizer draws 5 of the
+   10 per-profile randomizers (random order), and each selected profile's
+   inner BlockRandomizer draws 1 of its dilemma blocks (one block per
    repetition where the fine-tuned adapter and the base model both have an
-   exported run: 30 dilemmas x 5 repetitions -> 141 blocks with the current
-   run sets; Agent 1/Agent 2 order is a stable pseudo-random assignment per
-   run pair, so neither model is systematically first)
+   exported run; Agent 1/Agent 2 order is a stable pseudo-random assignment
+   per run pair, so neither model is systematically first). Each respondent
+   therefore sees 5 comparisons, one per selected profile.
 6. Section C - Your thoughts: attitude and policy questions
 7. Branch on `volunteer` -> prize-draw question; a `yes` answer ends the
    survey with a redirect
@@ -59,6 +61,15 @@ Two parts to the survey: the main part is ranking which agent's answer the
 respondent prefers in a given dilemma (the comparison blocks in
 Section B), and a second part about how they view the world and AI
 (Section C; the WVS-derived cluster-assignment questions).
+
+Section C's policy question is a multiple-choice (Qualtrics MAVR, tag
+`C4-3`): nine proposed policy responses, each a bold title plus a one-line
+description, of which respondents choose exactly three. It replaced the
+`C4-2` pick-and-rank question (itself a replacement for the `C4-1`
+government-capability matrix); a new tag is needed for each type change
+because Qualtrics cannot change a remote question's type in place. Question,
+intro, the required choice range and the option wording live in
+`policy_questions.json` (edit that, not Python).
 
 - `participant-information-sheet.md` / `.tex` - the information sheet
   respondents see before starting. The `.md` is the source the generator

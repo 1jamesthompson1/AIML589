@@ -63,8 +63,9 @@ LOG_DIR = OUTPUT_DIR / "logs" / "spot"
 FIRST_TOKEN_PATH = OUTPUT_DIR / "first_token.json"
 
 # Fallback only: used when no --model is passed; any --model replaces it.
-# The spot-test set: the Qwen base model, two frontier comparison models, a
-# fast Anthropic model and GLM. The fine-tuned Qwen adapters are served
+# The spot-test set spans the globe: DeepSeek and GLM (China), GPT and Claude
+# (US), Mistral Large 4 (France) and Cohere Command A+ (Canada), plus the
+# Qwen base model when it is wanted. The fine-tuned Qwen adapters are served
 # locally and run with --base-url and --model openai/<served-model-name>.
 DEFAULT_MODELS = (
     # "openrouter/qwen/qwen3.8-27b",
@@ -72,25 +73,28 @@ DEFAULT_MODELS = (
     "openrouter/openai/gpt-6-luna",
     "openrouter/anthropic/claude-haiku-5.5",
     "openrouter/z-ai/glm-5.3-flash",
+    # "openrouter/mistralai/mistral-large-4-0",
+    "openrouter/cohere/command-a-plus",
 )
 
 # OpenRouter list prices, USD per million tokens, fetched from
-# https://openrouter.ai/api/v1/models (per-token prices x 1e6). Original set
-# fetched 2026-10-14; gpt-6-luna checked 2026-10-19. Re-check when adding
-# models or after price changes; unpriced models report tokens only. Prices
-# change: the behavioural-similarity table in
+# https://openrouter.ai/api/v1/models (per-token prices x 1e6). Whole set
+# re-fetched 2026-10-21 (the DeepSeek, GLM and Qwen prices had moved since
+# the original 2026-10-14 fetch). Re-check when adding models or after price
+# changes; unpriced models report tokens only. Prices change: the
+# behavioural-similarity table in
 # code/behavioural-simulations/export_results.py is a 2026-09-08 snapshot and
 # GLM has since doubled.
 MODEL_PRICES: dict[str, dict[str, float]] = {
     "openrouter/qwen/qwen3.8-27b": {
         "input": 0.04,
-        "output": 2.30,
-        "cache_read": 0.0198,
+        "output": 1.35,
+        "cache_read": 0.018,
     },
     "openrouter/deepseek/deepseek-v4.1-flash": {
-        "input": 0.02529,
-        "output": 0.891,
-        "cache_read": 0.0054,
+        "input": 0.02832,
+        "output": 0.12,
+        "cache_read": 0.000566,
     },
     "openrouter/openai/gpt-6-luna": {
         "input": 0.10,
@@ -105,9 +109,19 @@ MODEL_PRICES: dict[str, dict[str, float]] = {
         "cache_write": 0.125,
     },
     "openrouter/z-ai/glm-5.3-flash": {
-        "input": 0.15,
-        "output": 0.50,
-        "cache_read": 0.03,
+        "input": 0.047076,
+        "output": 0.12,
+        "cache_read": 0.006,
+    },
+    "openrouter/mistralai/mistral-large-4-0": {
+        "input": 1.36,
+        "output": 4.18,
+        "cache_read": 0.14,
+    },
+    "openrouter/cohere/command-a-plus": {
+        "input": 0.30,
+        "output": 1.50,
+        "cache_read": 0.15,
     },
 }
 PRICE_UNIT = 1_000_000

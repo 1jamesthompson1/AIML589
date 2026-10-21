@@ -70,6 +70,8 @@ SENT: dict[str, str] = {
     "\x08": "\n\\begin{enumerate}\n",
     "\x09": "\n\\end{enumerate}\n",
     "\x0a": "\\item ",
+    "\x0b": "\\par\\medskip\n",
+    "\x0c": "\\vspace{0.7em}\n",
     "\x0d": r"\emph{",
 }
 
@@ -91,7 +93,13 @@ def html_to_latex(text: str) -> str:
     out = out.replace("<ul>", "\x06").replace("</ul>", "\x07")
     out = out.replace("<ol>", "\x08").replace("</ol>", "\x09")
     out = out.replace("<li>", "\x0a")
-    out = re.sub(r"<p>", "\x04", out)
+    out = re.sub(r"<p[^>]*margin-top[^>]*>", "\x0b", out)
+    out = re.sub(r"<p(\s[^>]*)?>", "\x04", out)
+    # A <br> at the very start or end of a paragraph has no line to end in
+    # LaTeX: render a leading one as vertical space and drop a trailing one.
+    out = out.replace("\x04\x03", "\x04\x0c")
+    out = out.replace(" \x03\x04", "\x04")
+    out = out.replace(" \x03\x05", "\x05")
     out = re.sub(r"</p>", "\x05", out)
     out = re.sub(r"<[^>]+>", "", out)
     sents = "".join(SENT)
@@ -118,9 +126,26 @@ def two_line(label: str) -> str:
     )
 
 
-def radio_options(options: list[str], mark: str = r"\radio") -> str:
-    """Vertical list of radios/checkboxes with plain option names."""
-    items = "\n".join(f"  \\item {mark} {tex_escape(o)}" for o in options)
+def policy_item(display: str) -> str:
+    """One PGR policy option to LaTeX: ``<b>title</b><br /><span>desc</span>``
+    renders as a bold title plus a small-font second line, matching the
+    Qualtrics display."""
+    title, _, rest = display.partition("<br")
+    rest = rest.split(">", 1)[-1]  # drop the rest of the <br /> tag
+    title = tex_escape(html_mod.unescape(re.sub(r"<[^>]+>", "", title))).strip()
+    desc = tex_escape(html_mod.unescape(re.sub(r"<[^>]+>", "", rest))).strip()
+    return r"\textbf{" + title + r"}\newline{\small " + desc + "}"
+
+
+def radio_options(
+    options: list[str], mark: str = r"\radio", escape: bool = True
+) -> str:
+    """Vertical list of radios/checkboxes with plain option names; with
+    ``escape=False`` the items are LaTeX already (e.g. ``html_to_latex``
+    output for options that carry bold text and a second line)."""
+    items = "\n".join(
+        f"  \\item {mark} {tex_escape(o) if escape else o}" for o in options
+    )
     return (
         "\\begin{itemize}[leftmargin=2.2em,itemsep=2pt,parsep=0pt,"
         "label={}]\n" + items + "\n\\end{itemize}"
@@ -294,13 +319,12 @@ Every item is skippable via its ``Prefer not to say' option.}""")
         r"""\section*{Section B - The comparison task}
 \note{Below: one comparison for """
         + covered
-        + r""", so the block wording can be reviewed. Actual respondents see
-approximately """
-        + str(sd.N_PAIRS_SHOWN)
-        + r""" blocks drawn at random from a pool of """
-        + str(len(d["comparison_blocks"]))
-        + r""" blocks (each block one pair of model answers to the same dilemma). The
-dilemmas are public on the project website:
+        + r""", so the block wording can be reviewed. Actual respondents see """
+        + str(sd.N_PROFILES_SHOWN)
+        + r""" comparisons: that many profiles are drawn at random from the """
+        + str(pool_profiles)
+        + r""" in the pool, and one dilemma (one pair of model answers) is drawn
+from each selected profile. The dilemmas are public on the project website:
 \url{https://nz-llm.sjhl.nz/results-viewer/?tab=dilemmas}. Each block contains
 three questions: the role and dilemma with both answers, the Agent 1 vs Agent 2
 preference, and whether they agree with an AI agent being used in that
@@ -349,6 +373,34 @@ situation at all.}"""
             body = radio_options(
                 [c["Display"] for c in q["Choices"].values()], r"\dragh"
             )
+        elif q["QuestionType"] == "PGR":
+            # Pick-and-rank: options are HTML (bold title + small-font
+            # description), so render each as a two-line item.
+            settings = q["Validation"]["Settings"]
+            rule = f"Rank at least {settings.get('MinChoices', '')}"
+            if settings.get("MaxChoices"):
+                rule += f" (up to {settings['MaxChoices']})"
+            body = (
+                r"\note{" + rule + r" and drag them into order "
+                r"(Qualtrics pick, group and rank).}"
+                + "\n\n"
+                + radio_options(
+                    [policy_item(c["Display"]) for c in q["Choices"].values()],
+                    r"\dragh",
+                    escape=False,
+                )
+            )
+        elif q["QuestionType"] == "MC" and q["Selector"] == "MAVR":
+            options = [c["Display"] for c in q["Choices"].values()]
+            if any("<" in o for o in options):
+                # Policy options carry HTML (bold title + small description).
+                body = radio_options(
+                    [policy_item(o) for o in options], r"\checkbox", escape=False
+                )
+            else:
+                body = radio_options(options, r"\checkbox")
+        elif q["Selector"] == "SAHR":
+            body = horizontal_scale([c["Display"] for c in q["Choices"].values()])
         else:
             body = radio_options([c["Display"] for c in q["Choices"].values()])
         out.append(question(q["QuestionText"], body))

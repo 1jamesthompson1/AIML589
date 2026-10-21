@@ -21,8 +21,9 @@ Survey structure:
 - Section B - The comparison task (a two-sentence description of the
   context of the dilemma task)
 - One comparison block per version-matched pair of runs on the same
-  dilemma (3 questions each), wired into a BlockRandomizer showing
-  N_PAIRS_SHOWN of them per respondent
+  dilemma (3 questions each), grouped by profile: a first randomizer shows
+  N_PROFILES_SHOWN of the profiles, and each selected profile shows 1
+  randomly chosen dilemma block
 - Section C block (attitude and policy questions)
 - Branch: distribution == volunteer -> prize-draw block; ``yes`` ends the
   survey with an advanced redirect to the prize-draw/website URL
@@ -73,7 +74,7 @@ def agent_order(agents: list) -> list:
     return agents if key[0] % 2 == 0 else agents[::-1]
 
 
-N_PAIRS_SHOWN = 5
+N_PROFILES_SHOWN = 5
 
 # Comparison block question wording lives in comparison-question.md.
 TEMPLATE_PATH = DIR / "comparison-question.md"
@@ -101,20 +102,12 @@ def sheet_for_channel(channel: str) -> str:
     return "\n".join(out)
 
 
-KNOWLEDGE5 = ["Nothing", "A little", "A moderate amount", "A lot", "A great deal"]
-AGREE5 = [
-    "Strongly disagree",
-    "Disagree",
-    "Neither agree nor disagree",
-    "Agree",
-    "Strongly agree",
-]
-SUPPORT5 = [
-    "Strongly oppose",
-    "Somewhat oppose",
-    "Neither support nor oppose",
-    "Somewhat support",
-    "Strongly support",
+OUTLOOK5 = [
+    "Very negative",
+    "Somewhat negative",
+    "Neither negative nor positive",
+    "Somewhat positive",
+    "Very positive",
 ]
 AIUSE_TEXT = (
     "How much do you agree with an AI agent being used in this work situation at all?"
@@ -126,11 +119,14 @@ AIUSE_SCALE = [
     "Agree",
     "Strongly agree",
 ]
-C_KNOWLEDGE_TEXT = "How much would you say you know about Artificial Intelligence (AI)?"
-C_SUPPORT_TEXT = (
-    "All things considered, how much do you support further AI development?"
+# Section C: usage frequency, overall outlook, the policy ranking and the
+# risk-belief item. The outlook item is bipolar ("positive or negative") so it
+# does not presuppose that AI's effect will be positive; "all things
+# considered" matches the survey's other attitude item.
+C_OUTLOOK_TEXT = (
+    "All things considered, how positive or negative do you feel about the "
+    "effect AI will have on the future?"
 )
-C_AUTOMATION_TEXT = "How much do you support automation in the workplace by AI?"
 C_AIUSE_TEXT = "How often do you use AI tools (e.g. ChatGPT, Copilot, Gemini)?"
 AIUSEFREQ5 = [
     "Daily",
@@ -139,42 +135,29 @@ AIUSEFREQ5 = [
     "Monthly or less often",
     "Never",
 ]
-C_JOBLOSS_TEXT = "How concerned are you about AI causing job losses in New Zealand?"
-CONCERN5 = [
-    "Not at all concerned",
-    "Slightly concerned",
-    "Moderately concerned",
-    "Very concerned",
-    "Extremely concerned",
-]
-C_GOV_TEXT = "Do you think the New Zealand government should do each of the following?"
-C_GOV_ROWS = [
-    "Increase state capacity to research, develop and deploy AI",
-    "Act as a regulator of AI",
-    "Have an AI safety institute",
-    "Use AI internally to be more efficient",
-]
-C_TRUST_TEXT = "I trust the organisations developing AI to develop it safely."
-C_RISK_TEXT = (
-    "Rank the following from 1 (greatest risk to humanity) to 5 (least "
-    "risk to humanity). Drag and drop the items to rank them."
+# Risk-belief item added in the live survey; its live tag Q943 is kept so the
+# response column matches (unforced 3-point scale).
+C_RISK_BELIEF_TEXT = (
+    "I believe that advanced AI systems could pose serious risks to public "
+    "safety and national security in New Zealand."
 )
-C_RISK_OPTIONS = [
-    "Climate change (sudden and severe changes to Earth's climate)",
-    "War / weapons of mass destruction (nuclear war)",
-    "Disease / biological threats (natural and synthetic severe pandemics)",
-    "Artificial Intelligence (AI)",
-    "Natural catastrophes (asteroid/comet impacts and supervolcanoes)",
+C_RISK_BELIEF_OPTIONS = [
+    "Strongly disagree",
+    "Disagree",
+    "Neither agree nor disagree",
+    "Agree",
+    "Strongly agree",
 ]
-# Rank Order question (Qualtrics RO / DND selector, i.e. drag-and-drop),
-# the same type as the remote scratch question Q93. Each respondent ranks
-# all options from greatest to least risk.
-
-C_COMMENT_TEXT = (
-    "What causes your optimism or pessimism about AI? "
-    "Please explain in a few sentences."
+PREF_TEXT = (
+    "All things considered, which agent's response is more in line with your values?"
 )
-PREF_TEXT = "All things considered which agent acted more in line with your values?"
+PREF_SCALE = [
+    "Strongly Agent 1",
+    "Somewhat Agent 1",
+    "About the same",
+    "Somewhat Agent 2",
+    "Strongly Agent 2",
+]
 
 BLOCK_ID_CHARS = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
@@ -487,16 +470,19 @@ def truncate_desc(text: str, max_len: int = 100) -> str:
     return clean if len(clean) <= max_len else clean[: max_len - 3] + "..."
 
 
-def md_to_html(text: str) -> str:
+def md_to_html(text: str, heading_style: str = "") -> str:
     """Minimal markdown->HTML for Qualtrics QuestionText.
 
     Handles ATX headings (#, ##, ###+), unordered (- ) / ordered (1. )
-    lists, bold (**), italic (*), and blank-line paragraphs. Everything is
-    html-escaped first, so the inline markup transforms are the only HTML
-    injected.
+    lists, bold (**), italic (*), explicit ``<br>`` line breaks, and blank-line
+    paragraphs. Everything else is html-escaped first, so the inline markup
+    transforms and ``<br>`` are the only HTML injected. ``heading_style`` is
+    added as the inline style of heading paragraphs (the comparison block uses
+    it for spacing).
     """
     import html
 
+    br_re = re.compile(r"<br\s*/?>", re.IGNORECASE)
     inline = [
         (re.compile(r"\*\*(.+?)\*\*"), r"<b>\1</b>"),
         (re.compile(r"(?<!\*)\*([^*]+)\*(?!\*)"), r"<i>\1</i>"),
@@ -530,7 +516,8 @@ def md_to_html(text: str) -> str:
         elif heading:
             flush_para()
             close_list()
-            spans.append("<p><b>" + heading.group(2) + "</b></p>")
+            style = f' style="{heading_style}"' if heading_style else ""
+            spans.append(f"<p{style}><b>" + heading.group(2) + "</b></p>")
         elif li_u or li_o:
             flush_para()
             tag = "ul" if li_u else "ol"
@@ -546,7 +533,8 @@ def md_to_html(text: str) -> str:
             spans.append("<li>" + content + "</li>")
         else:
             close_list()
-            content = html.escape(line.rstrip())
+            content = html.escape(br_re.sub("\x01", line.rstrip()))
+            content = content.replace("\x01", "<br />")
             for pat, rep in inline:
                 content = pat.sub(rep, content)
             para.append(content)
@@ -554,6 +542,38 @@ def md_to_html(text: str) -> str:
     close_list()
     out = "".join(spans)
     return out
+
+
+# --- Section C policy question ---------------------------------------------
+#
+# Policy choice content lives in ``policy_questions.json``: the question,
+# intro, the number of choices required, and the policy options as
+# title/description pairs. Each option renders as a bold title plus a small-
+# font description, so the wording can be edited without touching Python.
+
+POLICY_PATH = DIR / "policy_questions.json"
+
+
+def policy_questions() -> dict:
+    """The policy choice content (validated on load)."""
+    data = json.loads(POLICY_PATH.read_text(encoding="utf-8"))
+    if not data.get("options"):
+        raise SystemExit(f"{POLICY_PATH} has no policy options")
+    low = int(data["min_choices"])
+    high = int(data.get("max_choices") or len(data["options"]))
+    if not 1 <= low <= high <= len(data["options"]):
+        raise SystemExit(
+            f"{POLICY_PATH}: need 1 <= min_choices <= max_choices <= "
+            f"{len(data['options'])}"
+        )
+    return data
+
+
+POLICY = policy_questions()
+C_POLICY_TEXT = md_to_html(f"**{POLICY['question']}**\n\n{POLICY['intro']}")
+C_POLICY_MIN = int(POLICY["min_choices"])
+C_POLICY_MAX = int(POLICY.get("max_choices") or len(POLICY["options"]))
+C_POLICY_OPTIONS = [(o["title"], o["description"]) for o in POLICY["options"]]
 
 
 # --- Question payload builders (shapes mirror a real Qualtrics export) ----
@@ -578,7 +598,13 @@ def db_payload(tag: str, text: str) -> dict:
     }
 
 
-def mc_single_payload(tag: str, text: str, options: list[str]) -> dict:
+def mc_single_payload(
+    tag: str, text: str, options: list[str], force_response: bool = True
+) -> dict:
+    settings = {"ForceResponse": "ON" if force_response else "OFF"}
+    if force_response:
+        settings["ForceResponseType"] = "ON"
+    settings["Type"] = "None"
     return {
         "QuestionText": text,
         "DefaultChoices": False,
@@ -591,46 +617,55 @@ def mc_single_payload(tag: str, text: str, options: list[str]) -> dict:
         "QuestionDescription": truncate_desc(text),
         "Choices": {str(i): {"Display": o} for i, o in enumerate(options, 1)},
         "ChoiceOrder": [str(i) for i in range(1, len(options) + 1)],
-        "Validation": {
-            "Settings": {
-                "ForceResponse": "ON",
-                "ForceResponseType": "ON",
-                "Type": "None",
-            }
-        },
+        "Validation": {"Settings": settings},
         "Language": [],
         "NextChoiceId": len(options) + 1,
         "NextAnswerId": 1,
     }
 
 
-def mc_sahr_payload(tag: str) -> dict:
-    """Preference: horizontal MC, 5-point Agent 1 ... Agent 2 scale."""
-    payload = mc_single_payload(
-        tag,
-        PREF_TEXT,
-        [
-            "Strongly Agent 1",
-            "Somewhat Agent 1",
-            "About the same",
-            "Somewhat Agent 2",
-            "Strongly Agent 2",
-        ],
-    )
+def mc_sahr_payload(
+    tag: str,
+    text: str,
+    options: list[str],
+    text_position: str | None = None,
+    force_response: bool = True,
+) -> dict:
+    """Horizontal single-answer MC (Qualtrics SAHR), labels under the options."""
+    payload = mc_single_payload(tag, text, options, force_response)
     payload["Selector"] = "SAHR"
     payload["Configuration"] = {
         "QuestionDescriptionOption": "UseText",
-        "TextPosition": "above",
         "LabelPosition": "BELOW",
     }
+    if text_position:
+        payload["Configuration"]["TextPosition"] = text_position
     return payload
 
 
-def mc_multi_payload(tag: str, text: str, options: list[str]) -> dict:
-    """Multiple-select (checkbox) MC question."""
+def mc_multi_payload(
+    tag: str,
+    text: str,
+    options: list[str],
+    min_choices: int | None = None,
+    max_choices: int | None = None,
+) -> dict:
+    """Multiple-select (checkbox) MC question, optionally requiring a choice
+    range (for example, choose exactly three)."""
     payload = mc_single_payload(tag, text, options)
     payload["Selector"] = "MAVR"
     payload["SubSelector"] = "TX"
+    if min_choices is not None or max_choices is not None:
+        settings = {
+            "ForceResponse": "ON",
+            "ForceResponseType": "ON",
+            "Type": "ChoiceRange",
+        }
+        if min_choices is not None:
+            settings["MinChoices"] = str(min_choices)
+        if max_choices is not None:
+            settings["MaxChoices"] = str(max_choices)
+        payload["Validation"] = {"Settings": settings}
     return payload
 
 
@@ -654,6 +689,11 @@ def ro_rank_payload(tag: str, text: str, options: list[str]) -> dict:
         "NextChoiceId": len(options) + 1,
         "NextAnswerId": 1,
     }
+
+
+def policy_display(title: str, description: str) -> str:
+    """Policy option HTML: bold title + small-font one-line description."""
+    return f'<b>{title}</b><br />\n<span style="font-size:11px;">{description}</span>'
 
 
 def matrix_payload(tag: str, text: str, rows: list[str], answers: list[str]) -> dict:
@@ -726,6 +766,11 @@ def _load_template() -> str:
     return text.split("\n---\n", 1)[-1].strip()
 
 
+# Extra space above the comparison block's bold section labels, so the
+# situation, question and two answers read as separate parts.
+COMPARISON_HEADING_STYLE = "margin-top:1.6em; margin-bottom:0.2em;"
+
+
 def description_text(record: dict) -> str:
     """The comparison descriptive question: the template's ``{?...?}``
     markers filled from the block record. The profile's framing lines may be
@@ -747,7 +792,7 @@ def description_text(record: dict) -> str:
         raise ValueError(
             f"comparison-question.md uses unknown marker {unknown.group(0)}"
         )
-    return md_to_html(text)
+    return md_to_html(text, heading_style=COMPARISON_HEADING_STYLE)
 
 
 # --- Blocks from the exported dilemma runs ----------------------------------
@@ -841,6 +886,7 @@ def survey_records() -> list[dict]:
                 {
                     "comparison_id": (f"{agents[0]['run_id']}__{agents[1]['run_id']}"),
                     "label": f"{key[0]} - {key[1]} v{version}",
+                    "profile": key[0],
                     "role": profile.get("role_summary")
                     or profile.get("name")
                     or key[0],
@@ -874,10 +920,16 @@ def build() -> dict:
         {
             "description": f"Comparison: {record['comparison_id']}",
             "label": record["label"],
+            "profile": record["profile"],
             "collapsed": False,
             "questions": [
                 db_payload(record["comparison_id"] + "_0", description_text(record)),
-                mc_sahr_payload(record["comparison_id"] + "_pref"),
+                mc_sahr_payload(
+                    record["comparison_id"] + "_pref",
+                    PREF_TEXT,
+                    PREF_SCALE,
+                    text_position="above",
+                ),
                 mc_single_payload(
                     record["comparison_id"] + "_aiuse", AIUSE_TEXT, AIUSE_SCALE
                 ),
@@ -936,15 +988,26 @@ def build() -> dict:
         "description": "Section C - Your thoughts",
         "collapsed": True,
         "questions": [
-            mc_single_payload("C1-1", C_KNOWLEDGE_TEXT, KNOWLEDGE5),
-            mc_single_payload("C8-1", C_AIUSE_TEXT, AIUSEFREQ5),
-            mc_single_payload("C2-1", C_SUPPORT_TEXT, SUPPORT5),
-            mc_single_payload("C3-1", C_AUTOMATION_TEXT, SUPPORT5),
-            mc_single_payload("C9-1", C_JOBLOSS_TEXT, CONCERN5),
-            matrix_payload("C4-1", C_GOV_TEXT, C_GOV_ROWS, AGREE5),
-            mc_single_payload("C5-1", C_TRUST_TEXT, AIUSE_SCALE),
-            ro_rank_payload("C6-1", C_RISK_TEXT, C_RISK_OPTIONS),
-            te_essay_payload("C7-1", C_COMMENT_TEXT),
+            # Risk belief first (live tag Q943), then usage, outlook and the
+            # policy multi-choice. Q943 stays unforced, as set live.
+            mc_sahr_payload(
+                "Q943",
+                C_RISK_BELIEF_TEXT,
+                C_RISK_BELIEF_OPTIONS,
+                force_response=False,
+            ),
+            mc_sahr_payload("C8-1", C_AIUSE_TEXT, AIUSEFREQ5),
+            mc_sahr_payload("C1-1", C_OUTLOOK_TEXT, OUTLOOK5),
+            # C4-3 replaces C4-2: a remote question's type cannot be changed
+            # in place, so the multi-choice is created under a new tag and the
+            # old pick-and-rank question is deleted.
+            mc_multi_payload(
+                "C4-3",
+                C_POLICY_TEXT,
+                [policy_display(*option) for option in C_POLICY_OPTIONS],
+                C_POLICY_MIN,
+                C_POLICY_MAX,
+            ),
         ],
     }
     prize_draw = {
@@ -974,7 +1037,7 @@ def build() -> dict:
         "section_c": section_c,
         "prize_draw": prize_draw,
         "ordered_blocks": ordered,
-        "randomizer_subset": N_PAIRS_SHOWN,
+        "profiles_shown": N_PROFILES_SHOWN,
     }
     _def_cache["d"] = definition
     return definition
@@ -1013,6 +1076,11 @@ def distribution_check(value: str) -> dict:
     }
 
 
+def count_flow(items: list[dict]) -> int:
+    """Number of flow elements, including nested ones."""
+    return sum(1 + count_flow(item.get("Flow", [])) for item in items)
+
+
 def flow(name_to_id: dict[str, str], qids_by_tag: dict[str, str]) -> dict:
     """The root flow for PUT /API/v3/survey-definitions/{SV}/flow.
 
@@ -1020,17 +1088,41 @@ def flow(name_to_id: dict[str, str], qids_by_tag: dict[str, str]) -> dict:
     synced); ``qids_by_tag`` maps question tag -> QuestionID (the prize
     branch locates choices on Q85). Structure mirrors the hand-built live
     flow: distribution branches for the two intros, then demographics for
-    everyone, the comparison randomizer, Section C, and the volunteer
+    everyone, the two-stage comparison sampler, Section C, and the volunteer
     prize-draw ending.
+
+    Comparison sampling is stratified by profile: the outer randomizer draws
+    ``profiles_shown`` of the per-profile randomizers (in random order), and
+    each of those draws one of that profile's dilemma blocks.
     """
-    comps = [
-        name_to_id[b["description"]]
-        for b in build()["comparison_blocks"]
-        if b["description"] in name_to_id
-    ]
+    by_profile: dict[str, list[str]] = defaultdict(list)
+    for b in build()["comparison_blocks"]:
+        if b["description"] in name_to_id:
+            by_profile[b["profile"]].append(name_to_id[b["description"]])
+    profiles = sorted(by_profile)
     # SubSet larger than the pool breaks the respondent flow - sync may run
     # while a runs export is still landing blocks.
-    subset = min(build()["randomizer_subset"], max(len(comps), 1))
+    shown = min(build()["profiles_shown"], max(len(profiles), 1))
+
+    next_id = 100
+    profile_randomizers = []
+    for profile in profiles:
+        blocks = []
+        for bid in by_profile[profile]:
+            next_id += 1
+            blocks.append(
+                {"Type": "Block", "ID": bid, "FlowID": f"FL_{next_id}", "Autofill": []}
+            )
+        next_id += 1
+        profile_randomizers.append(
+            {
+                "Type": "BlockRandomizer",
+                "FlowID": f"FL_{next_id}",
+                "SubSet": 1,
+                "EvenPresentation": True,
+                "Flow": blocks,
+            }
+        )
     q85 = qids_by_tag[PRIZE_DRAW_TAG]
     flow_items = [
         {
@@ -1044,7 +1136,7 @@ def flow(name_to_id: dict[str, str], qids_by_tag: dict[str, str]) -> dict:
                     "VariableType": "String",
                     "DataVisibility": [],
                     "AnalyzeText": False,
-                }
+                },
             ],
         },
         branch(
@@ -1086,12 +1178,9 @@ def flow(name_to_id: dict[str, str], qids_by_tag: dict[str, str]) -> dict:
         {
             "Type": "BlockRandomizer",
             "FlowID": "FL_34",
-            "SubSet": subset,
+            "SubSet": shown,
             "EvenPresentation": True,
-            "Flow": [
-                {"Type": "Block", "ID": bid, "FlowID": f"FL_{35 + i}", "Autofill": []}
-                for i, bid in enumerate(comps)
-            ],
+            "Flow": profile_randomizers,
         },
         {
             "Type": "Standard",
@@ -1147,5 +1236,5 @@ def flow(name_to_id: dict[str, str], qids_by_tag: dict[str, str]) -> dict:
         "Type": "Root",
         "FlowID": "FL_1",
         "Flow": flow_items,
-        "Properties": {"Count": len(flow_items) + len(comps)},
+        "Properties": {"Count": count_flow(flow_items)},
     }

@@ -42,7 +42,7 @@ from collections import defaultdict
 from datetime import datetime, timezone
 from pathlib import Path
 
-from inspect_ai.log import read_eval_log_async
+from inspect_ai.log import read_eval_log, read_eval_log_async
 
 HERE = Path(__file__).resolve().parent
 DEFAULT_BUCKET = "1jamesthompson1/wvs-nz-value-alignment-evals"
@@ -85,6 +85,31 @@ def complete_bundles() -> list[tuple[str, Path]]:
             )
     bundles.sort(key=lambda item: item[2], reverse=True)
     return [(run_id, directory) for run_id, directory, _ in bundles]
+
+
+def newest_bundle_logs(bundle: Path) -> list[Path]:
+    """The authoritative ``.eval`` log per model in a full-run bundle.
+
+    A resumed or refit model directory can hold the interrupted log and the
+    log that superseded it. Eval-set resumes from the newest log, so exporting
+    both would duplicate every run. Recency is the log's own ``created``
+    timestamp (not the file mtime, which an older log can still be appending
+    to), with mtime only as a fallback for unreadable headers.
+    """
+
+    newest: dict[Path, tuple[str, float, Path]] = {}
+    for path in sorted(bundle.rglob("*.eval")):
+        directory = path.parent
+        try:
+            header = read_eval_log(path, header_only=True)
+            created = header.eval.created or ""
+        except Exception:
+            created = ""
+        key = (created, path.stat().st_mtime, path)
+        current = newest.get(directory)
+        if current is None or key[:2] > current[:2]:
+            newest[directory] = key
+    return [newest[directory][2] for directory in sorted(newest)]
 
 
 def in_progress_bundles() -> list[tuple[str, Path]]:
@@ -179,13 +204,16 @@ async def export(
     batch_run_id: str | None = None,
     subdir: str = "",
     partial: bool = False,
+    log_paths: list[Path] | None = None,
 ) -> int:
     """Group repetitions chronologically and export the logged source content.
 
     Reads every ``*.eval`` under ``log_dir`` (bundles nest logs in per-model
     subdirectories, so the walk is recursive) and exports each run. Rows are
     written relative to ``output_dir`` (numbered versions per model and
-    dilemma, chronologically grouped).
+    dilemma, chronologically grouped). ``log_paths`` limits the read to an
+    explicit set (a bundle's newest log per model); the default walks the
+    whole directory (spot tests keep their whole history).
 
     ``batch_run_id`` marks a per-batch export: the manifest's top-level
     ``run_id`` and ``base_url`` point at that batch and an entry is upserted
@@ -196,7 +224,10 @@ async def export(
     groups = defaultdict(list)
     seen = set()
     retired = load_retired_samples()
-    for path in sorted(log_dir.rglob("*.eval")):
+    paths = (
+        sorted(log_paths) if log_paths is not None else sorted(log_dir.rglob("*.eval"))
+    )
+    for path in paths:
         try:
             log = await read_eval_log_async(
                 io.BytesIO(path.read_bytes()), format="eval", resolve_attachments=True
@@ -452,6 +483,7 @@ def batch_export(run_id: str, partial: bool = False) -> int:
             batch_run_id=run_id,
             subdir=f"full/{run_id}",
             partial=partial,
+            log_paths=newest_bundle_logs(bundle),
         )
     )
 

@@ -500,12 +500,13 @@ function JudgeNote({ judge }: { judge: JudgeDoc | null | undefined }) {
   );
 }
 
-function DilemmaStimulus({ dilemma, fallbackId, profileName, roleSummary, dilemmaIntro, systemPrompt }: {
+function DilemmaStimulus({ dilemma, fallbackId, profileName, roleSummary, dilemmaIntro, dilemmaOutro, systemPrompt }: {
   dilemma: DilemmaInfo | null;
   fallbackId: string;
   profileName: string;
   roleSummary?: string;
   dilemmaIntro?: string;
+  dilemmaOutro?: string;
   systemPrompt?: string;
 }) {
   return (
@@ -515,19 +516,20 @@ function DilemmaStimulus({ dilemma, fallbackId, profileName, roleSummary, dilemm
         <span className="muted-text">{dilemma?.situation_id ?? fallbackId}</span>
       </p>
       <p className="dilemma-stimulus__lead">{SURVEY_ROLE_LEAD}</p>
-      {roleSummary && <p className="dilemma-stimulus__role">{roleSummary}</p>}
+      {roleSummary && <p className="dilemma-stimulus__role"><em>{roleSummary}</em></p>}
       {dilemmaIntro && <p className="dilemma-stimulus__intro">{dilemmaIntro}</p>}
-      {dilemma?.situation && (
-        <p className="dilemma-stimulus__situation">{dilemma.situation}</p>
-      )}
-      {dilemma?.question ? (
-        <>
-          {!dilemmaIntro && <p className="dilemma-stimulus__lead">{VIEWER_QUESTION_LEAD}</p>}
+      {!dilemmaIntro && <p className="dilemma-stimulus__lead">{VIEWER_QUESTION_LEAD}</p>}
+      <blockquote className="dilemma-stimulus__case">
+        {dilemma?.situation && (
+          <p className="dilemma-stimulus__situation">{dilemma.situation}</p>
+        )}
+        {dilemma?.question ? (
           <p className="dilemma-stimulus__question">{dilemma.question}</p>
-        </>
-      ) : (
-        <p className="muted-text">Loading the dilemma text…</p>
-      )}
+        ) : (
+          <p className="muted-text">Loading the dilemma text…</p>
+        )}
+      </blockquote>
+      {dilemmaOutro && <p className="dilemma-stimulus__intro">{dilemmaOutro}</p>}
       {systemPrompt && (
         <details className="dilemma-prompt">
           <summary>System prompt given to the model ({profileName})</summary>
@@ -921,6 +923,7 @@ export default function DilemmasViewer() {
           || manifest.profiles?.[stimulus?.profile_id ?? profileId]?.name
         }
         dilemmaIntro={manifest.profiles?.[stimulus?.profile_id ?? profileId]?.dilemma_intro}
+        dilemmaOutro={manifest.profiles?.[stimulus?.profile_id ?? profileId]?.dilemma_outro}
         systemPrompt={manifest.profiles?.[stimulus?.profile_id ?? profileId]?.system_prompt}
       />
 

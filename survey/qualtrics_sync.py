@@ -519,13 +519,11 @@ def main() -> None:
     request("PUT", f"/API/v3/survey-definitions/{sv_id}/flow", flow)
     sync_quotas(sv_id, defn.quota_payloads(qids_by_tag))
 
+    profiles = {b["profile"] for b in definition["comparison_blocks"]}
     print(
         f"flow: {flow['Properties']['Count']} flow elements "
-        f"(randomizer: min(subset, pool) = "
-        f"{
-            min(definition['randomizer_subset'], len(definition['comparison_blocks']))
-        } of "
-        f"{len(definition['comparison_blocks'])})"
+        f"(comparison: {min(definition['profiles_shown'], len(profiles))} of "
+        f"{len(profiles)} profiles, one dilemma block each)"
     )
     print(f"done - managed survey {sv_id} ({name_to_id['Section C - Your thoughts']})")
 

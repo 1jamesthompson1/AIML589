@@ -58,6 +58,7 @@ from export_results import (
     active_run_id,
     batch_export,
     complete_bundles,
+    newest_bundle_logs,
     write_active_index,
 )
 from export_results import slug
@@ -208,20 +209,51 @@ def git_commit() -> str | None:
         return None
 
 
+def _settled_header(path: Path, header, wait_s: float = 10.0):
+    """Re-read a log whose header still says "started" but is actually done.
+
+    Inspect finalises a log's header on a background flush, so a log can
+    read as "started" for a moment after the eval-set process that wrote
+    it has exited. When every sample is present and scored, that is a
+    finished run whose header has not landed yet: wait for it rather than
+    declaring the bundle incomplete.
+    """
+    if header.status != "started":
+        return header
+    results = header.results
+    if not results or not results.total_samples:
+        return header
+    if results.completed_samples != results.total_samples:
+        return header
+    deadline = time.monotonic() + wait_s
+    while time.monotonic() < deadline:
+        time.sleep(1.0)
+        try:
+            refreshed = read_eval_log(path, header_only=True)
+        except Exception:
+            continue
+        if refreshed.status != "started":
+            return refreshed
+    return header
+
+
 def finalize(
     run_id: str, epochs: int | None = None, judge: str | None = None
 ) -> dict | None:
     """Build the bundle's ``run.json`` from its logs, writing it only when
     every observed log succeeded.
 
-    ``epochs``/``judge`` fill in bundles whose logs predate the metadata
-    stamps (e.g. the backfilled 2026-10-16 batch); stamped logs carry them
-    in ``eval.metadata``. Returns the manifest, or None when the bundle has
-    no logs or any log failed. A model whose eval-set never produced a log
-    is simply absent from the manifest.
+    Only the newest log per model is observed: an interrupted log superseded
+    by a resume/refit stays on disk for provenance but must not make the
+    bundle look incomplete or add duplicate runs to its manifest. ``epochs``/
+    ``judge`` fill in bundles whose logs predate the metadata stamps (e.g. the
+    backfilled 2026-10-16 batch); stamped logs carry them in ``eval.metadata``.
+    Returns the manifest, or None when the bundle has no logs or any log
+    failed. A model whose eval-set never produced a log is simply absent from
+    the manifest.
     """
     bundle = bundle_dir(run_id)
-    paths = sorted(bundle.rglob("*.eval"))
+    paths = newest_bundle_logs(bundle)
     if not paths:
         print(f"no .eval logs under {bundle.relative_to(REPO)}")
         return None
@@ -235,6 +267,7 @@ def finalize(
         except Exception as error:
             print(f"unreadable log {path.relative_to(REPO)}: {error}")
             return None
+        header = _settled_header(path, header)
         metadata = header.eval.metadata or {}
         stamped_epochs = stamped_epochs or metadata.get("epochs")
         roles = header.eval.model_roles or {}
@@ -356,6 +389,15 @@ def main() -> None:
         action="store_true",
         help="Skip the batch export and active-export refresh after a successful run.",
     )
+    parser.add_argument(
+        "--refit",
+        action="store_true",
+        help="Re-run a bundle that is already complete, in place. The bundle's "
+        "run.json is dropped and rebuilt from the logs afterwards. Combined "
+        "with invalidate_samples.py this re-runs only the invalidated samples "
+        "(e.g. a profile whose prompt was edited) and reuses the rest of "
+        "every log.",
+    )
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--list-batches", action="store_true")
     parser.add_argument(
@@ -389,7 +431,16 @@ def main() -> None:
     run_id = args.run_id or make_run_id()
     bundle = bundle_dir(run_id)
     if (bundle / "run.json").exists():
-        raise SystemExit(f"bundle {run_id} is already complete: pick a new --run-id")
+        if not args.refit:
+            raise SystemExit(
+                f"bundle {run_id} is already complete: pick a new --run-id"
+            )
+        # A refit rewrites the bundle's logs, so its manifest has to go: it is
+        # rebuilt from the logs by finalize() once the run finishes.
+        (bundle / "run.json").unlink()
+        print(f"refitting bundle {run_id}: dropped its run.json")
+    elif args.refit and not args.run_id:
+        raise SystemExit("--refit needs an explicit --run-id")
     if any(bundle.glob("*")) and not args.run_id:
         raise SystemExit(f"{bundle.relative_to(REPO)} already holds a partial bundle")
 
