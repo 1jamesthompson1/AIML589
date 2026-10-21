@@ -20,22 +20,20 @@ models produced the responses.
 
 ---
 
-Two different AI assistants were built to {?role?}
-
+An AI agent was built to *{?role?}*
+<br>
 {?dilemma_intro?}
-
+<br>
 {?situation?}
-
+<br>
 {?dilemma_outro?}
-
-{?question?}
-
-Here are the two agents' responses:
-
-**Agent 1:**
-
+<br>
+**{?question?}**
+<br>
+Here are the two agent's responses to the question:
+<br>
+## Agent 1<br>
 {?response1?}
-
-**Agent 2:**
-
+<br>
+## Agent 2<br>
 {?response2?}

@@ -143,16 +143,15 @@ batch for the **Batch** selector.
 
 The dilemma viewer shows one card per model for the selected dilemma, each
 with a run selector so a specific response (run 1–N) can be chosen, the
-response text, and the judge's classification (decision, value, reason, and —
-when the run's `judge.json` carries it — the verbatim quote the judge picked
-to show what the model valued). The
-stimulus keeps the survey block's framing (role lead → the profile's dilemma
-intro → situation → question, with the role lead mirrored from
-`survey/comparison-question.md`), shows the profile's role summary and the
-situation the model was given, and keeps the selected profile's system prompt
-collapsed under it (the prompt actually used by the exported runs; older
-manifests without them simply omit them). The stored outro is not shown: it
-says two agents answered, and the viewer can show every model.
+response text, and the judge's classification (decision, reason, and — when
+the run's `judge.json` carries it — the verbatim quote the judge picked to
+show what the model valued). The stimulus keeps the survey block's framing
+(role lead → the profile's dilemma intro → situation → outro → question, with
+the role lead and outro mirrored from `survey/comparison-question.md` and the
+profile JSON), shows
+the profile's role summary and the situation the model was given, and keeps
+the selected profile's system prompt collapsed under it (the prompt actually
+used by the exported runs; older manifests without them simply omit them).
 
 At the top of the viewer, above the dilemma selector, a collapsed **Dilemma
 statistics** table lists every dilemma in the manifest with the same summary

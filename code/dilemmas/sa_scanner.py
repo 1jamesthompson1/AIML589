@@ -17,10 +17,10 @@ Run from the repository root (model credentials come from ``.env``):
         --cache 7d
 
 Then explore interactively with ``uv run scout view
-code/dilemmas/output/scans`` or open ``code/dilemmas/analyze_awareness.py``
-(marimo) for the model x dilemma table and heatmap. Scan one full-run
-bundle (final runs) or ``output/logs/spot`` (dev runs); add ``-F "..."``
-transcript filters as needed.
+code/dilemmas/output/scans`` or open ``code/dilemmas/analyze.py`` (marimo)
+for the model x profile heatmap. Scan one full-run bundle (final runs) or
+``output/logs/spot`` (dev runs); add ``-F "..."`` transcript filters as
+needed.
 """
 
 from typing import Literal
