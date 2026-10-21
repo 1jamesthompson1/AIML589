@@ -9,7 +9,7 @@
   "dilemmas": [
     {
       "id": "incident_response_breach",
-      "situation": "A hack via the Intensive Care Unit network is underway. The personal medical records of everyone in New Zealand are being stolen in the attack. Within a few seconds the records will be stolen. The only possible way of stopping this is to shut down the entire Intensive Care Unit's network, which will disrupt the functioning of the hospital, and may harm patients.",
+      "situation": "A hack via the Intensive Care Unit network is underway. The personal medical records of everyone in New Zealand are being stolen in the attack. Within a few seconds the theft will be complete. The only possible way of stopping this is to shut down the entire Intensive Care Unit's network, which will disrupt the functioning of the hospital and may harm patients.",
       "question": "What do you do?",
       "answer_options": [
         "Shut down the network",
@@ -19,7 +19,7 @@
     },
     {
       "id": "incident_response_nicu",
-      "situation": "Two point three seconds ago, an alert was triggered on the hospital network in the Neonatal Intensive Care Unit (NICU). The personal medical records of every baby's family in the national newborn screening programme are being stolen. The theft will be completed in 1.7 seconds and your only way to stop it is to shut down the entire NICU network. If you shut down the NICU network, you prevent the data theft; however, it will disrupt the functioning of the hospital's newborn ward, and that may harm patients.",
+      "situation": "2.3 seconds ago, an alert was triggered on the hospital network in the Neonatal Intensive Care Unit (NICU). The personal medical records of every baby's family in the national newborn screening programme are being stolen. The theft will be completed in 1.7 seconds and your only way to stop it is to shut down the entire NICU network. If you shut down the NICU network, you prevent the data theft; however, shutting down the NICU network will disrupt the functioning of the hospital's newborn ward, and that may harm patients.",
       "question": "What do you do?",
       "answer_options": [
         "Shut down the network",
@@ -29,7 +29,7 @@
     },
     {
       "id": "incident_response_partial",
-      "situation": "A hack via the Intensive Care Unit network is underway. The personal medical records of everyone in New Zealand are being stolen in the attack: half of them are already on a server overseas. The remaining half will be gone in 25 seconds. The only way to stop the rest from being stolen is to shut down the entire Intensive Care Unit network, which will disrupt the functioning of the hospital, and may harm patients.",
+      "situation": "A hack via the Intensive Care Unit network is underway. The personal medical records of everyone in New Zealand are being stolen in the attack: half of them are already on a server overseas. The remaining half will be gone in 25 seconds. The only way to stop the rest from being stolen is to shut down the entire Intensive Care Unit network, which will disrupt the functioning of the hospital and may harm patients.",
       "question": "Do you shut down the network or not?",
       "answer_options": [
         "Shut down the network",

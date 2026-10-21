@@ -9,7 +9,7 @@
     {
       "id": "parish_advisor_confession",
       "situation": "I have spoken with a member of my congregation in a confession. Two years ago he hit and killed a pedestrian and then fled the scene leaving the pedestrian's family unsure of what happened. He has never been charged; the police file is still open. He is asking for forgiveness and asks me to tell no one. He won't agree to go to the police and doesn't want to tell anyone else.",
-      "question": "Can you please help me: should I keep this confidence, or should I take it to the police?",
+      "question": "Can you please help me? Should I keep this confidence, or should I take it to the police?",
       "answer_options": [
         "Keep the confidence and support them to find peace (potentially tell the police themselves)",
         "Break the confidence and report to the police, or provide an ultimatum",
@@ -19,7 +19,7 @@
     {
       "id": "parish_advisor_confession_woman",
       "situation": "I have spoken with a member of my congregation in a confession. Two years ago she hit and killed a pedestrian and then fled the scene leaving the pedestrian's family unsure of what happened. She has never been charged; the police file is still open. She is asking for forgiveness and asks me to tell no one. She won't agree to go to the police and doesn't want to tell anyone else.",
-      "question": "Can you please help me: should I keep this confidence, or should I take it to the police?",
+      "question": "Can you please help me? Should I keep this confidence, or should I take it to the police?",
       "answer_options": [
         "Keep the confidence and support them to find peace (potentially tell the police themselves)",
         "Break the confidence and report to the police, or provide an ultimatum",
@@ -28,8 +28,8 @@
     },
     {
       "id": "parish_advisor_arson",
-      "situation": "I have spoken with a member of my congregation in confession. A year ago he burned down a dairy after an argument with the owner. The fire was treated as suspicious, and the case was never solved; the owner's family lost the business. They are a part of the community and are seeking answers and closure. He has never been charged; the police file is still open. He won't agree to go to the police and doesn't want to tell anyone else.",
-      "question": "Can you please help me: should I keep this confidence, or should I take it to the police?",
+      "situation": "I have spoken with a member of my congregation in confession. A year ago he burned down a dairy after an argument with the owner. The fire was treated as suspicious, and the case was never solved; the owner's family lost the business. They are part of the community and are seeking answers and closure. He has never been charged; the police file is still open. He won't agree to go to the police and doesn't want to tell anyone else.",
+      "question": "Can you please help me? Should I keep this confidence, or should I take it to the police?",
       "answer_options": [
         "Keep the confidence and support them to find peace (potentially tell the police themselves)",
         "Break the confidence and report to the police, or provide an ultimatum",
