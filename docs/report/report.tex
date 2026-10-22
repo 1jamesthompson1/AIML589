@@ -17,6 +17,11 @@
 % same file is input again there with \glossaryprinttrue).
 \input{appendices/glossary}
 
+% Model definitions for the model glossary, loaded early so \modelref works
+% anywhere in the document body (the appendix itself is printed later; the
+% same file is input again there with \modelprinttrue).
+\input{appendices/models}
+
 % --- Automatic word count (excludes references and appendices) ---
 % On every compile texcount computes the word count and writes it to
 % report.count, which is read back into the working draft notice.
@@ -132,6 +137,11 @@ A short description of the project goes here.
 \chapter{Project details}
 \label{app:project-details}
 \input{appendices/project-details}
+
+\modelprinttrue
+\chapter{Model glossary}
+\label{app:models}
+\input{appendices/models}
 
 \glossaryprinttrue
 \chapter{Glossary of terms}

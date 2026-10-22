@@ -30,8 +30,11 @@ Commands:
 
 Options:
     --num-gpus N      Minimum GPUs required (default: 1)
-    --min-inet X      Skip offers with download speed below X Mb/s (default: 1000)
+    --min-inet X      Skip offers with download speed below X Mb/s (default: 2000)
     --min-disk X      Skip offers advertising less than X GB disk (default: 150)
+    --min-reliability X
+                      Skip offers with reliability below X, as a 0-1 fraction
+                      (default: 0.99)
     --max-price X     Skip offers above $X/hour total (default: none)
     --host-alias NAME ssh alias written to .ssh_config (default: vast-gpu1)
     --ssh-key PATH    Private key path (default: ~/.ssh/vast_ai)
@@ -90,6 +93,9 @@ DEFAULT_MIN_INET = (
 DEFAULT_MIN_DLPREF = (
     220  # vast.ai benchmark score — skip weak/overpriced hosts by default
 )
+# vast.ai "reliability" is a 0-1 fraction (API offer field reliability2, ~0.96-0.999).
+# Default 0.99 keeps only hosts with a >=99% history of successful instances.
+DEFAULT_MIN_RELIABILITY = 0.99
 DEFAULT_DISK = 150  # GB; template does NOT carry disk, so it is always sent explicitly
 # WVS template (wvs-llm-rtx6000): vastai/vllm:v0.27.1-cuda-13.0, ssh+direct, port 8080
 # forwarded, ~/.no_auto_tmux pre-created.
@@ -197,6 +203,7 @@ def search_offers(
     min_inet: int,
     min_disk: float = DEFAULT_DISK,
     min_dlperf: float | None = None,
+    min_reliability: float | None = DEFAULT_MIN_RELIABILITY,
 ) -> list[Offer]:
     # Offer disk_space is the volume the VM actually gets: template-hash
     # creation sizes the instance from the offer's advertised disk and
@@ -209,6 +216,10 @@ def search_offers(
             "rentable=true verified=true external=false "
             f"inet_down>={min_inet} disk_space>={min_disk}"
         )
+        # The query field is `reliability` (API offer field `reliability2`);
+        # `reliability2` is *not* a recognized search field and is ignored.
+        if min_reliability is not None:
+            query += f" reliability>={min_reliability}"
         # dlperf = vast.ai's price-normalised GPU benchmark: higher is more
         # compute per $, so skipping weak machines is worth more than price.
         if min_dlperf:
@@ -689,7 +700,13 @@ def cmd_find(args: argparse.Namespace) -> None:
     )
     if args.max_price:
         print(f"  (filtering out offers above ${args.max_price}/h)")
-    offers = search_offers(args.num_gpus, args.min_inet, args.min_disk, args.min_dlperf)
+    offers = search_offers(
+        args.num_gpus,
+        args.min_inet,
+        args.min_disk,
+        args.min_dlperf,
+        args.min_reliability,
+    )
     if args.max_price:
         offers = [o for o in offers if o.price <= args.max_price]
     if not offers:
@@ -778,7 +795,13 @@ def cmd_launch(args: argparse.Namespace) -> None:
     print(
         f"Searching vast.ai for {', '.join(DEFAULT_GPU_NAMES)} (>= {args.num_gpus} GPU) offers..."
     )
-    offers = search_offers(args.num_gpus, args.min_inet, args.min_disk, args.min_dlperf)
+    offers = search_offers(
+        args.num_gpus,
+        args.min_inet,
+        args.min_disk,
+        args.min_dlperf,
+        args.min_reliability,
+    )
     if args.max_price:
         offers = [o for o in offers if o.price <= args.max_price]
     if not offers:
@@ -964,6 +987,13 @@ def parse_args(argv=None) -> argparse.Namespace:
             type=float,
             default=None,
             help="Skip offers above $X/hour total",
+        )
+        sp.add_argument(
+            "--min-reliability",
+            type=float,
+            default=DEFAULT_MIN_RELIABILITY,
+            help="Skip offers with vast.ai reliability below X (0-1; "
+            "e.g. 0.99 keeps hosts up >= 99%% of the time)",
         )
         sp.add_argument(
             "--host-alias",

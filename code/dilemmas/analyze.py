@@ -1,6 +1,6 @@
 import marimo
 
-__generated_with = "0.23.14"
+__generated_with = "0.25.1"
 app = marimo.App(width="medium")
 
 
@@ -22,6 +22,7 @@ def _(mo):
 @app.cell
 def _():
     import json
+    import random
     import sys
     from pathlib import Path
 
@@ -33,18 +34,21 @@ def _():
 
     # Shared LaTeX table helpers live in code/latex_tables.py.
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-    from latex_tables import write_latex_table
+    from latex_tables import escape_header, write_latex_table
 
     HERE = Path(__file__).resolve().parent
     return (
         HERE,
         Path,
+        escape_header,
         json,
         mo,
         np,
         pd,
         plt,
+        random,
         scan_results_df,
+        sys,
         write_latex_table,
     )
 
@@ -131,6 +135,10 @@ def _(mo):
     a clean split, which a modal share cannot show. With three repetitions the
     metric is coarse.
 
+    Each model's column gives the mean answer with its stability in
+    parentheses, e.g. `1.80 (0.54)`; the highest stability on a dilemma is
+    bolded in the LaTeX table.
+
     **Divergence** is the mean pairwise total variation distance between the
     models' distributions of chosen option indices: 0.00 = identical
     distributions, 1.00 = no shared option. Rows are sorted by it, so the most
@@ -149,9 +157,23 @@ def _(mo):
 
 @app.cell
 def _(HERE, Path, json, np, pd, write_latex_table):
-    def answer_stats(
-        model_labels: dict[str, str], model_order: list[str]
-    ) -> pd.DataFrame:
+    def load_run_choices(model_labels: dict[str, str]) -> tuple[pd.DataFrame, dict]:
+        """The exported runs of the requested models, one row per run.
+
+        The bundle is picked the way the answer statistics pick it: the
+        export holding the most of the requested models, and inside it the
+        most recent run set per (profile, dilemma, model), so superseded
+        runs are not counted twice. Both the answer statistics and the
+        aggregate below read their data from here, so the two always
+        describe the same runs.
+
+        Returns (runs, options):
+        - runs: Profile, Dilemma, Model (the label), Created and Index,
+          where Index is the 1-based position of the judged answer in the
+          dilemma's answer options. Runs without a judged answer are
+          dropped.
+        - options: dilemma id -> the dilemma's answer options.
+        """
         # The model set is passed in: see the two sets defined below the
         # function (the fine-tuned adapters and the frontier comparison
         # models). The two sets live in different bundles, so the bundle
@@ -191,7 +213,7 @@ def _(HERE, Path, json, np, pd, write_latex_table):
                 f"holds none of the models. Run `uv run python "
                 f"code/dilemmas/export_results.py` first."
             )
-            return pd.DataFrame()
+            return pd.DataFrame(), {}
         _, manifest, base = chosen
         options = {d["situation_id"]: d["answer_options"] for d in manifest["dilemmas"]}
         rows = []
@@ -215,13 +237,22 @@ def _(HERE, Path, json, np, pd, write_latex_table):
                 }
             )
         if not rows:
-            return pd.DataFrame()
+            return pd.DataFrame(), options
         runs = pd.DataFrame(rows).dropna(subset=["Index"])
         keys = ["Profile", "Dilemma", "Model"]
         # Superseded runs stay in the manifest for history; score each
         # (profile, dilemma, model) on its most recent run set only.
         latest = runs.groupby(keys)["Created"].transform("max")
         runs = runs[runs["Created"] == latest]
+        return runs, options
+
+    def answer_stats(
+        model_labels: dict[str, str], model_order: list[str]
+    ) -> pd.DataFrame:
+        runs, options = load_run_choices(model_labels)
+        if runs.empty:
+            return pd.DataFrame()
+        keys = ["Profile", "Dilemma", "Model"]
         mean_answer = runs.groupby(keys)["Index"].mean().rename("Mean answer")
         counts = runs.groupby(keys + ["Index"]).size()
         probabilities = counts / counts.groupby(level=[0, 1, 2]).sum()
@@ -266,28 +297,60 @@ def _(HERE, Path, json, np, pd, write_latex_table):
         )
         return stats.round(2)
 
+    def merge_answer_stats(
+        stats: pd.DataFrame, model_order: list[str], *, latex: bool = False
+    ) -> pd.DataFrame:
+        """One column per model: mean answer with its stability in parentheses.
+
+        The notebook shows plain text ("1.80 (0.54)"). The LaTeX table also
+        bolds the stability where it is the highest on the dilemma (the
+        caption's highlight), leaving the mean answer plain.
+        """
+        merged = {("Divergence", "TVD"): stats[("Divergence", "TVD")]}
+        stability = stats["Stability"][model_order]
+        best = stability.max(axis=1)
+        for model in model_order:
+            means = stats[("Mean answer", model)]
+            cells = []
+            for mean, value, top in zip(means, stability[model], best):
+                if pd.isna(mean):
+                    cells.append("--")
+                elif pd.isna(value):
+                    cells.append(f"{mean:.2f} (--)")
+                else:
+                    bold = "\\bfseries " if latex and np.isclose(value, top) else ""
+                    cells.append(f"{mean:.2f} ({bold}{value:.2f})")
+            merged[("Mean answer (stability)", model)] = cells
+        table = pd.DataFrame(merged, index=stats.index)
+        table.index = table.index.set_names([None, None])
+        table.columns = pd.MultiIndex.from_tuples(table.columns, names=[None, None])
+        return table
+
     MODEL_SETS = {
         # The study set: all four fine-tuned Qwen3.8-27B adapter variants
         # ("overall" adapters served from the local vLLM server) plus their
         # base model.
         "dilemmas-answer-stats": {
             "description": "fine-tuned Qwen3.8-27B adapters and base",
+            # The base model the adapters were fine-tuned from. Its pairs
+            # come first in the aggregate table.
+            "base": "Qwen3.8-27B base",
             "labels": {
                 "openai/Qwen3.8-27B-nz-wvs-full_string_distribution-overall": (
-                    "FT full-string"
+                    "full-string"
                 ),
                 "openai/Qwen3.8-27B-nz-wvs-first_token_distribution-overall": (
-                    "FT first-token"
+                    "first-token"
                 ),
-                "openai/Qwen3.8-27B-nz-wvs-modal_response-overall": "FT modal",
-                "openai/Qwen3.8-27B-nz-wvs-sampled_response-overall": "FT sampled",
+                "openai/Qwen3.8-27B-nz-wvs-modal_response-overall": "modal",
+                "openai/Qwen3.8-27B-nz-wvs-sampled_response-overall": "sampled",
                 "openai/Qwen/Qwen3.8-27B": "Qwen3.8-27B base",
             },
             "order": [
-                "FT full-string",
-                "FT sampled",
-                "FT modal",
-                "FT first-token",
+                "full-string",
+                "sampled",
+                "modal",
+                "first-token",
                 "Qwen3.8-27B base",
             ],
         },
@@ -312,20 +375,22 @@ def _(HERE, Path, json, np, pd, write_latex_table):
         },
     }
 
-    def write_stats_table(stats: pd.DataFrame, filename: str) -> None:
-        # The LaTeX figure keeps multi-level columns: the top header row
-        # groups the statistics and the second row holds the models, like
-        # the fine-tuning tables. The stub columns are unnamed so the index
-        # names do not add a header row of their own.
-        stats_tex_df = stats.copy()
-        stats_tex_df.index = stats_tex_df.index.set_names([None, None])
-        stats_tex_df.columns = stats_tex_df.columns.set_names([None, None])
+    def write_stats_table(
+        stats: pd.DataFrame, model_order: list[str], filename: str
+    ) -> None:
+        # Mean answer and stability share one column per model, with the
+        # highest stability on each dilemma bolded in the parentheses. The
+        # stub columns are unnamed so the index names do not add a header
+        # row of their own.
+        stats_tex_df = merge_answer_stats(stats, model_order, latex=True)
         write_latex_table(
             stats_tex_df,
-            "{:.2f}",
+            {("Divergence", "TVD"): "{:.2f}"},
             stats_tex_df.shape[1],
             filename,
-            senses={"Stability": "max"},
+            # No automatic highlights: the stability highlight is already in
+            # the merged cells, and the numeric divergence is left plain.
+            senses={},
             column_format="ll" + "r" * stats_tex_df.shape[1],
             stub_label="",
         )
@@ -333,12 +398,522 @@ def _(HERE, Path, json, np, pd, write_latex_table):
     result: dict[str, pd.DataFrame] = {}
     for filename, spec in MODEL_SETS.items():
         df = answer_stats(spec["labels"], spec["order"])
-        if not df.empty:
-            write_stats_table(df, filename + ".tex")
-        result[spec["description"]] = df
+        if df.empty:
+            result[spec["description"]] = df
+            continue
+        write_stats_table(df, spec["order"], filename + ".tex")
+        result[spec["description"]] = merge_answer_stats(df, spec["order"])
     answer_stats_df = result["fine-tuned Qwen3.8-27B adapters and base"]
 
     answer_stats_df
+    return MODEL_SETS, load_run_choices
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    ### Answer stats aggregate
+
+    Which model answers most like the other, and which models are most
+    different from each other. Every model answers every dilemma several
+    times (the run set), so a pair of models is compared two ways:
+
+    **Same / Different (modal)** — each model's modal answer on a dilemma
+    (the option the most runs chose) either matches the other model's or
+    it does not, so every dilemma is one "same" or one "different" for the
+    pair. This is the headline count: the model pair that agrees on most
+    dilemmas is the most alike, and the pair that agrees on fewest is the
+    most different.
+
+    **Same (run pairs)** — the share of run pairs (every run of one model
+    against every run of the other on the same dilemma) that chose the same
+    option. It sees the run-to-run wobble the modal count hides: two models
+    that both lean the same way but wobble differently score lower here.
+
+    **Mean TVD** — the mean total variation distance between the two
+    models' answer distributions on a dilemma: 0.00 means the same answers,
+    1.00 means no shared answer. It is the graded version of "different"
+    and the same measure as the divergence column of the table above.
+
+    The table covers the study set (the four fine-tuned adapters and the
+    base model). The pairs against the base model come first — each adapter
+    against the model it was fine-tuned from — and the fine-tuned models
+    against each other come below them, the most alike pair first in each
+    group. The lowest agreement (the most different pair) is highlighted in
+    the LaTeX table. The frontier set is the other key of `MODEL_SETS`, so
+    the same table can be rebuilt for those models by swapping the set.
+    """)
+    return
+
+
+@app.cell
+def _(MODEL_SETS, load_run_choices, mo, np, pd, write_latex_table):
+    def answer_agreement(
+        model_labels: dict[str, str],
+        model_order: list[str],
+        base: str | None = None,
+    ) -> pd.DataFrame:
+        """The same/different counts for every pair of models.
+
+        One row per model pair: the number of dilemmas compared, how many
+        the two models' modal answers matched ("Same") and how many did not
+        ("Different"), the same counts as a percentage, the run-pair
+        agreement percentage and the mean TVD.
+
+        The pairs against the base model come first (each adapter against
+        the model it was fine-tuned from), then the fine-tuned models
+        against each other; within each group the most alike pair is
+        first.
+        """
+        runs, _ = load_run_choices(model_labels)
+        if runs.empty:
+            return pd.DataFrame()
+        keys = ["Profile", "Dilemma", "Model"]
+        # How many runs each model chose each answer option.
+        counts = runs.groupby(keys + ["Index"]).size().rename("Runs").reset_index()
+        # The modal answer per model per dilemma: the option with the most
+        # runs. Ties go to the lowest option index, so the pick is
+        # deterministic.
+        ordered = counts.sort_values(keys + ["Index"])
+        modal = (
+            ordered.loc[ordered.groupby(keys)["Runs"].idxmax()]
+            .pivot(index=["Profile", "Dilemma"], columns="Model", values="Index")
+            .reindex(columns=model_order)
+        )
+        # The same counts as a wide table: one column per (model, option).
+        wide = counts.pivot_table(
+            index=["Profile", "Dilemma"],
+            columns=["Model", "Index"],
+            values="Runs",
+            aggfunc="sum",
+            fill_value=0,
+        )
+        options = sorted({option for _, option in wide.columns})
+        rows = []
+        for position, left in enumerate(model_order):
+            for right in model_order[position + 1 :]:
+                # The modal answers, on the dilemmas both models answered.
+                both = modal[[left, right]].dropna()
+                same = int((both[left] == both[right]).sum())
+                compared = len(both)
+                # The run-pair agreement and the TVD, per dilemma.
+                run_same = 0.0
+                run_total = 0.0
+                tvds = []
+                for _, dilemma_row in wide.iterrows():
+                    left_counts = dilemma_row[left].reindex(options).fillna(0.0)
+                    right_counts = dilemma_row[right].reindex(options).fillna(0.0)
+                    n_left, n_right = left_counts.sum(), right_counts.sum()
+                    if not n_left or not n_right:
+                        continue
+                    run_same += float((left_counts * right_counts).sum())
+                    run_total += float(n_left * n_right)
+                    tvds.append(
+                        0.5
+                        * (left_counts / n_left - right_counts / n_right).abs().sum()
+                    )
+                rows.append(
+                    {
+                        "Left": left,
+                        "Right": right,
+                        "Dilemmas": compared,
+                        "Same": same,
+                        "Different": compared - same,
+                        "Same %": 100 * same / compared if compared else np.nan,
+                        "Same % (run pairs)": (
+                            100 * run_same / run_total if run_total else np.nan
+                        ),
+                        "Mean TVD": float(np.mean(tvds)) if tvds else np.nan,
+                    }
+                )
+        pairs = pd.DataFrame(rows)
+        pairs["Pair"] = pairs["Left"] + " vs " + pairs["Right"]
+        # The pairs against the base model come first, the fine-tuned models
+        # against each other below them; the most alike pair first in each
+        # group.
+        pairs["Group"] = [
+            0 if base and base in (left, right) else 1
+            for left, right in zip(pairs["Left"], pairs["Right"])
+        ]
+        pairs = pairs.sort_values(
+            ["Group", "Same %", "Mean TVD"],
+            ascending=[True, False, True],
+            kind="stable",
+        )
+        return pairs.set_index("Pair")[
+            [
+                "Dilemmas",
+                "Same",
+                "Different",
+                "Same %",
+                "Same % (run pairs)",
+                "Mean TVD",
+            ]
+        ].round(2)
+
+    def write_agreement_table(pairs: pd.DataFrame) -> None:
+        """The LaTeX table the report can import with \\ctable{...}."""
+        # The pair table keeps a two-level header (the top row groups the
+        # measures, the second row holds the measure) and the stub column
+        # is unnamed so the index names do not add a header row of their own.
+        # The columns are re-ordered to match the header labels, which are
+        # assigned positionally.
+        pairs_tex_df = pairs[
+            [
+                "Dilemmas",
+                "Same",
+                "Same %",
+                "Same % (run pairs)",
+                "Different",
+                "Mean TVD",
+            ]
+        ].copy()
+        pairs_tex_df.columns = pd.MultiIndex.from_tuples(
+            [
+                ("Dilemmas", "compared"),
+                ("Same", "modal"),
+                ("Same", "modal %"),
+                ("Same", "run pairs %"),
+                ("Different", "modal"),
+                ("Distance", "mean TVD"),
+            ]
+        )
+        pairs_tex_df.columns = pairs_tex_df.columns.set_names([None, None])
+        pairs_tex_df.index = pairs_tex_df.index.set_names([None])
+        # The format keys are the escaped labels the Styler sees: the "%"
+        # signs are escaped by write_latex_table before it styles the table.
+        # The senses highlight the lowest agreement: the fewest "same"
+        # dilemmas, the most "different" ones and the largest distance.
+        write_latex_table(
+            pairs_tex_df,
+            {
+                ("Dilemmas", "compared"): "{:.0f}",
+                ("Same", "modal"): "{:.0f}",
+                ("Same", "modal \\%"): "{:.1f}",
+                ("Same", "run pairs \\%"): "{:.1f}",
+                ("Different", "modal"): "{:.0f}",
+                ("Distance", "mean TVD"): "{:.2f}",
+            },
+            pairs_tex_df.shape[1],
+            "dilemmas-answer-agreement.tex",
+            senses={"Same": "min", "Different": "max", "Distance": "max"},
+            column_format="l" + "r" * pairs_tex_df.shape[1],
+            stub_label="",
+        )
+
+    study_set = MODEL_SETS["dilemmas-answer-stats"]
+    agreement_pairs_df = answer_agreement(
+        study_set["labels"], study_set["order"], study_set.get("base")
+    )
+    if not agreement_pairs_df.empty:
+        write_agreement_table(agreement_pairs_df)
+        # The least alike pair: the lowest agreement, and the largest
+        # distance when the agreement is tied.
+        least = agreement_pairs_df.sort_values(
+            ["Same %", "Mean TVD"], ascending=[True, False]
+        ).iloc[0]
+        least_note = mo.md(
+            f"The least alike pair is **{least.name}**: the two models' modal "
+            f"answers matched on {int(least['Same'])} of "
+            f"{int(least['Dilemmas'])} dilemmas ({least['Same %']:.1f}%), "
+            f"mean TVD {least['Mean TVD']:.2f}."
+        )
+    else:
+        least_note = mo.md("No exported runs to compare yet.")
+    return least_note
+
+
+@app.cell
+def _(mo):
+    mo.md(r"""
+    ## H1: do the fine-tuned models answer differently from the base model?
+
+    The pre-specified test of H1. Each of the four fine-tuned models is
+    compared separately with the base model it was fine-tuned from.
+
+    **Per dilemma** the judge-classified action counts of the two models are
+    compared with a Monte Carlo permutation test: 10,000 replicates with a
+    fixed seed, permuting the model labels without replacement within the
+    dilemma (each model keeps its number of runs), so the null is the
+    distribution of the statistic when the two models' runs are
+    exchangeable. The effect size is the **total variation distance** (TVD)
+    between the two models' distributions over the dilemma's answer options:
+    0.00 when the distributions are the same, 1.00 when they share no mass.
+
+    **Overall** a model's effect size is the mean TVD across all the
+    dilemmas, and it is compared with the mean TVD of the permutation null
+    (the same permutations, averaged across the dilemmas). The four overall
+    p-values are Benjamini-Hochberg corrected, and H1 is supported for a
+    model when its BH-adjusted p is below .05 - overall when at least one of
+    the four models passes.
+
+    The p-values are Monte Carlo p-values, `(1 + #{null >= observed}) /
+    (replicates + 1)`, so the smallest possible p is 1/10,001. The
+    per-dilemma p-values are uncorrected: the pre-specified correction is
+    the Benjamini-Hochberg step across the four overall effects.
+
+    The rate of **"Other or unclear"** judge classifications is reported
+    separately (a catch-all classification carries no decision), and the
+    whole test is repeated with those runs excluded as a sensitivity check.
+    """)
+    return
+
+
+@app.cell
+def _(
+    HERE,
+    MODEL_SETS,
+    json,
+    load_run_choices,
+    mo,
+    pd,
+    sys,
+    write_latex_table,
+):
+    if str(HERE) not in sys.path:
+        sys.path.insert(0, str(HERE))
+    import h1_test
+
+    h1_set = MODEL_SETS["dilemmas-answer-stats"]
+    h1_runs, h1_options = load_run_choices(h1_set["labels"])
+    # The fine-tuned models, in the study set's order.
+    h1_order = [label for label in h1_set["order"] if label != h1_set["base"]]
+    # The test, and the sensitivity check: the same test with the "Other or
+    # unclear" runs dropped, so only the runs the judge could place on one
+    # of the dilemma's substantive options count.
+    h1_results = h1_test.run_h1(
+        h1_runs,
+        h1_options,
+        base_label=h1_set["base"],
+        model_order=h1_order,
+        replicates=h1_test.REPLICATES,
+        seed=h1_test.SEED,
+    )
+    h1_sensitivity = h1_test.run_h1(
+        h1_test.drop_unclear(h1_runs, h1_options),
+        h1_options,
+        base_label=h1_set["base"],
+        model_order=h1_order,
+        replicates=h1_test.REPLICATES,
+        seed=h1_test.SEED,
+    )
+
+    def h1_summary_frame(results):
+        """The summary of the test: one row per fine-tuned model."""
+        if results.summary.empty:
+            return pd.DataFrame()
+        frame = results.summary.set_index("Model")[
+            [
+                "Mean TVD",
+                "Null mean TVD",
+                "p (overall)",
+                "p (BH)",
+            ]
+        ].copy()
+        frame.index = frame.index.set_names(["Model"])
+        return frame
+
+    def h1_write_summary(frame, filename):
+        """The summary table the report can import with \\ctable{...}."""
+        write_latex_table(
+            frame,
+            {
+                "Mean TVD": "{:.3f}",
+                "Null mean TVD": "{:.3f}",
+                "p (overall)": "{:.4f}",
+                "p (BH)": "{:.4f}",
+            },
+            frame.shape[1],
+            filename,
+            senses={"p (BH)": "min"},
+            column_format="l" + "r" * frame.shape[1],
+            stub_label="Model",
+        )
+
+    def h1_dilemma_frame(results):
+        """The per-dilemma results: the TVD and its p-value per model."""
+        if results.per_dilemma.empty:
+            return pd.DataFrame()
+        frame = pd.DataFrame(index=sorted(results.per_dilemma["Dilemma"].unique()))
+        for model in h1_order:
+            subset = results.per_dilemma[
+                results.per_dilemma["Model"] == model
+            ].set_index("Dilemma")
+            frame[f"{model} TVD"] = subset["TVD"]
+            frame[f"{model} p"] = subset["p"]
+        frame.index = frame.index.set_names(["Dilemma"])
+        return frame
+
+    h1_summary_df = h1_summary_frame(h1_results)
+    h1_sensitivity_df = h1_summary_frame(h1_sensitivity)
+    h1_dilemma_df = h1_dilemma_frame(h1_results)
+    # The base model first, then the fine-tuned models in the study set's
+    # order, so the table reads like the rest of the notebook.
+    h1_other_df = (
+        h1_results.other_rates.set_index("Model").reindex([h1_set["base"]] + h1_order)
+        if not h1_results.other_rates.empty
+        else pd.DataFrame()
+    )
+    if not h1_summary_df.empty:
+        h1_write_summary(h1_summary_df, "dilemmas-h1-summary.tex")
+        h1_write_summary(h1_sensitivity_df, "dilemmas-h1-sensitivity.tex")
+        write_latex_table(
+            h1_other_df[["Runs", "Other or unclear", "Rate"]],
+            {"Runs": "{:.0f}", "Other or unclear": "{:.0f}", "Rate": "{:.1%}"},
+            3,
+            "dilemmas-h1-other-rates.tex",
+            senses={"Rate": "max"},
+            column_format="lrr",
+            stub_label="Model",
+        )
+        # The per-dilemma table: the largest TVD and the smallest p per
+        # column are highlighted.
+        h1_senses = {
+            column: ("max" if column.endswith("TVD") else "min")
+            for column in h1_dilemma_df.columns
+        }
+        write_latex_table(
+            h1_dilemma_df,
+            {
+                column: ("{:.2f}" if column.endswith("TVD") else "{:.3f}")
+                for column in h1_dilemma_df.columns
+            },
+            h1_dilemma_df.shape[1],
+            "dilemmas-h1-per-dilemma.tex",
+            senses=h1_senses,
+            column_format="l" + "r" * h1_dilemma_df.shape[1],
+            stub_label="Dilemma",
+        )
+
+    # The results are written out as JSON as well, so the numbers can be
+    # checked without rerunning the notebook.
+    h1_payload = {
+        "settings": {
+            "replicates": h1_test.REPLICATES,
+            "seed": h1_test.SEED,
+            "alpha": h1_test.ALPHA,
+            "base_model": h1_set["base"],
+            "models": h1_order,
+        },
+        "summary": json.loads(h1_results.summary.to_json(orient="records")),
+        "per_dilemma": json.loads(h1_results.per_dilemma.to_json(orient="records")),
+        "other_rates": json.loads(h1_results.other_rates.to_json(orient="records")),
+        "sensitivity": {
+            "summary": json.loads(h1_sensitivity.summary.to_json(orient="records")),
+            "per_dilemma": json.loads(
+                h1_sensitivity.per_dilemma.to_json(orient="records")
+            ),
+        },
+    }
+    h1_output = HERE / "output" / "h1-results.json"
+    h1_output.parent.mkdir(parents=True, exist_ok=True)
+    h1_output.write_text(json.dumps(h1_payload, indent=2) + "\n", encoding="utf-8")
+
+    h1_supported = (
+        h1_results.summary.loc[h1_results.summary["Supported"], "Model"].tolist()
+        if not h1_results.summary.empty
+        else []
+    )
+    if h1_summary_df.empty:
+        h1_note = mo.md("No exported runs to test yet.")
+    else:
+        h1_note = mo.md(
+            f"H1 is supported for **{len(h1_supported)} of "
+            f"{len(h1_summary_df)}** fine-tuned models: "
+            + (
+                ", ".join(f"**{model}**" for model in h1_supported)
+                if h1_supported
+                else "none"
+            )
+            + ". The overall test is the mean TVD across the "
+            f"{int(h1_results.summary['Dilemmas'].iloc[0])} dilemmas against the "
+            f"permutation null (10,000 replicates, seed {h1_test.SEED}), "
+            f"Benjamini-Hochberg corrected across the four models, so H1 is "
+            f"supported overall (at least one model passes). The sensitivity "
+            f"check (excluding the 'Other or unclear' runs) supports "
+            f"{int(h1_sensitivity.summary['Supported'].sum())} of "
+            f"{len(h1_sensitivity.summary)} models."
+        )
+    h1_note
+    return h1_order, h1_results
+
+
+@app.cell
+def _(HERE, h1_order, h1_results, plt, save_figure):
+    h1_fig_dir = HERE.parent / "figures"
+
+    if h1_results.per_dilemma.empty:
+        print("no exported runs to plot yet")
+    else:
+        # The permutation null of each model's overall effect: the observed
+        # mean TVD against the 10,000 permuted ones.
+        figure, axes = plt.subplots(2, 2, figsize=(11, 7), sharex=True)
+        summary = h1_results.summary.set_index("Model")
+        for axis, model in zip(axes.ravel(), h1_order):
+            null = h1_results.null_overall[model]
+            observed = float(summary.loc[model, "Mean TVD"])
+            axis.hist(null, bins=40, color="#c9c9c9", edgecolor="white")
+            axis.axvline(
+                null.mean(),
+                color="#555555",
+                linestyle="--",
+                linewidth=1.2,
+                label="null mean",
+            )
+            axis.axvline(observed, color="#d1642f", linewidth=2, label="observed")
+            axis.set_title(
+                f"{model}: observed {observed:.3f}, "
+                f"BH p = {summary.loc[model, 'p (BH)']:.4f}",
+                fontsize=9,
+            )
+            axis.set_xlabel("mean TVD across the dilemmas")
+            axis.legend(fontsize=8)
+        figure.suptitle(
+            "H1: the observed mean TVD against the permutation null", fontsize=11
+        )
+        figure.tight_layout()
+        h1_null_figure = save_figure(figure, h1_fig_dir / "dilemmas-h1-permutation.png")
+
+        # The per-dilemma TVD of each model: where the differences sit.
+        tvds = h1_results.per_dilemma.pivot(
+            index="Dilemma", columns="Model", values="TVD"
+        )[h1_order]
+        ps = h1_results.per_dilemma.pivot(index="Dilemma", columns="Model", values="p")[
+            h1_order
+        ]
+        order = tvds.mean(axis=1).sort_values(ascending=False).index
+        tvds, ps = tvds.loc[order], ps.loc[order]
+        grid = tvds.to_numpy(dtype=float)
+        figure, axis = plt.subplots(figsize=(7, 10))
+        image = axis.imshow(grid, cmap="YlOrRd", vmin=0, vmax=1, aspect="auto")
+        figure.colorbar(image, ax=axis, label="TVD between the two models")
+        axis.set_xticks(range(len(h1_order)))
+        axis.set_xticklabels(h1_order, fontsize=9)
+        axis.set_yticks(range(len(tvds)))
+        axis.set_yticklabels(tvds.index, fontsize=6)
+        for row in range(len(tvds)):
+            for column in range(len(h1_order)):
+                significant = ps.iloc[row, column] < 0.05
+                axis.text(
+                    column,
+                    row,
+                    f"{grid[row, column]:.2f}" + ("*" if significant else ""),
+                    ha="center",
+                    va="center",
+                    fontsize=7,
+                    color="black" if grid[row, column] < 0.6 else "white",
+                    fontweight="bold" if significant else "normal",
+                )
+        axis.set_title(
+            "H1: the per-dilemma TVD of each fine-tuned model against the base\n"
+            "(* marks a dilemma whose permutation p is below .05)",
+            fontsize=10,
+        )
+        figure.tight_layout()
+        h1_dilemma_figure = save_figure(
+            figure, h1_fig_dir / "dilemmas-h1-per-dilemma.png"
+        )
+        print(f"Figures written to {h1_null_figure} and {h1_dilemma_figure}")
     return
 
 
@@ -500,24 +1075,16 @@ def _(mo):
     the two agents' answers for every comparison: `1 - cos(a, b)`, where 0
     means the two answers say the same thing and 1 means they are unrelated.
 
-    The figure (`code/figures/dilemmas-comparison-distance-dilemmas.png`) ranks
-    the dilemmas by their mean distance and puts the judge's agreement rate
-    beside it. The agreement rate is the check on the measure: a dilemma where
-    the two models pick different answers should sit further apart than one
-    where they agree. The distance says how different the answers are, not
-    which answer is better - the survey is what asks that.
-
-    The data is the newest comparison run's "complete" subset: every pair of
-    the two models' runs on each dilemma.
+    The data is the newest comparison run's per-model pools: one pool per
+    fine-tune against the base model, each holding every pair of the two
+    models' runs on each dilemma. Each pool gets its own figure, named after
+    the fine-tune, so the four models can be compared side by side.
     """)
     return
 
 
 @app.cell
-def _(HERE, newest_matching, np, pd, plt, read_json, save_figure):
-    COLOUR_AGREE = "#3b7dd8"
-    COLOUR_DISAGREE = "#d1642f"
-
+def _(HERE, np, pd, read_json):
     def pair_rows(manifest, vectors, run_ids):
         """One row per comparison: the distance and the judge's verdict."""
         index = {run_id: position for position, run_id in enumerate(run_ids)}
@@ -537,12 +1104,128 @@ def _(HERE, newest_matching, np, pd, plt, read_json, save_figure):
                 agreement = "same" if choice1 == choice2 else "different"
             rows.append(
                 {
+                    "comparison_id": record["comparison_id"],
                     "dilemma_id": record["dilemma_id"],
+                    "profile_id": record["profile_id"],
+                    "situation_id": record["situation_id"],
                     "distance": 1.0 - similarity,
                     "agreement": agreement,
                 }
             )
         return pd.DataFrame(rows)
+
+    def model_label(manifest):
+        """The fine-tune's short name, e.g. 'modal_response-overall'."""
+        model = (manifest.get("models") or {}).get("model_b") or ""
+        name = model.rsplit("/", 1)[-1]
+        marker = "-nz-wvs-"
+        return name.split(marker, 1)[1] if marker in name else (name or "complete")
+
+    def pool_paths(directory):
+        """(name, manifest path, embeddings dir) for one run's pools.
+
+        Per-model subdirectories win over a leftover top-level pool, so an
+        old single-pool run is not analysed next to its replacements.
+        """
+        complete = directory / "complete"
+        pools = []
+        if complete.is_dir():
+            pools.extend(
+                (
+                    child.name,
+                    child / "comparisons.json",
+                    directory / "embeddings" / "complete" / child.name,
+                )
+                for child in sorted(complete.iterdir())
+                if child.is_dir() and (child / "comparisons.json").exists()
+            )
+        if not pools and (complete / "comparisons.json").exists():
+            pools.append(
+                (
+                    "complete",
+                    complete / "comparisons.json",
+                    directory / "embeddings" / "complete",
+                )
+            )
+        return pools
+
+    def load_pools(comparisons_dir):
+        """Every embedded comparison pool of the newest per-model run.
+
+        Each entry is the pool manifest, its embeddings path, the pair
+        distances and the model label. The figure, the agreement correlation
+        and the survey design all walk this one list, so they always describe
+        the same data. A run with per-model pools wins over a newer legacy
+        single-pool run, so a scratch single-pool test does not hide the main
+        comparison run; the legacy pool is still the fallback when no
+        per-model run has embeddings.
+        """
+        run_dirs = (
+            sorted(
+                (path for path in comparisons_dir.iterdir() if path.is_dir()),
+                key=lambda path: path.name,
+                reverse=True,
+            )
+            if comparisons_dir.is_dir()
+            else []
+        )
+        legacy_fallback = None
+        for directory in run_dirs:
+            pools = []
+            for name, manifest_path, embeddings_dir in pool_paths(directory):
+                vectors_path = embeddings_dir / "vectors.npz"
+                if not vectors_path.exists():
+                    continue
+                manifest = read_json(manifest_path)
+                cache = np.load(vectors_path)
+                rows = pair_rows(
+                    manifest,
+                    cache["vectors"],
+                    [str(value) for value in cache["run_ids"]],
+                )
+                pools.append(
+                    {
+                        "name": name,
+                        "label": model_label(manifest),
+                        "directory": directory,
+                        "manifest": manifest,
+                        "vectors_path": vectors_path,
+                        "rows": rows,
+                    }
+                )
+            if not pools:
+                continue
+            if any(pool["name"] != "complete" for pool in pools):
+                return pools
+            if legacy_fallback is None:
+                legacy_fallback = pools
+        if legacy_fallback is not None:
+            return legacy_fallback
+        print(
+            f"no embedded comparison pools under {comparisons_dir} - run "
+            "generate_comparisons.py and embed_responses.py first"
+        )
+        return []
+
+    pools = load_pools(HERE / "output" / "comparisons")
+
+    pd.DataFrame(
+        [
+            {
+                "pool": pool["name"],
+                "model": pool["label"],
+                "comparisons": len(pool["rows"]),
+            }
+            for pool in pools
+        ]
+    )
+    return (pools,)
+
+
+@app.cell
+def _(HERE, np, pd, plt, pools, save_figure):
+    COLOUR_AGREE = "#3b7dd8"
+    COLOUR_DISAGREE = "#d1642f"
 
     def dilemma_stats(rows):
         """The per-dilemma statistics the figure is drawn from."""
@@ -557,7 +1240,7 @@ def _(HERE, newest_matching, np, pd, plt, read_json, save_figure):
             .sort_values("mean")
         )
 
-    def dilemma_figure(stats, rows, out_path, title):
+    def dilemma_figure(stats, rows, out_path, title, subtitle):
         """The ranked per-dilemma figure: the mean distance on the left, the
         judge's agreement rate on the right, both on the dilemma order."""
         labels = [dilemma.rsplit("-", 1)[-1] for dilemma in stats.index]
@@ -610,59 +1293,500 @@ def _(HERE, newest_matching, np, pd, plt, read_json, save_figure):
         axes[0].set_yticklabels(labels, fontsize=8)
 
         figure.suptitle(title, fontsize=11)
-        figure.tight_layout()
+        figure.tight_layout(rect=(0, 0.04, 1, 1))
+        figure.text(
+            0.5,
+            0.01,
+            subtitle,
+            ha="center",
+            va="bottom",
+            fontsize=8,
+            color="#555",
+        )
         save_figure(figure, out_path)
 
-    def comparison_distance_figure(comparisons_dir, fig_dir):
+    def comparison_distance_figure(pool, fig_dir):
         """The figure and the per-dilemma stats it is drawn from.
 
-        Returns an empty frame and writes nothing when the comparisons have
-        not been generated or embedded yet, so the notebook still runs on a
-        fresh checkout.
+        One figure per model-vs-base pool, named after the pool, so the four
+        fine-tunes can be compared side by side. Writes nothing when the
+        comparisons have not been generated or embedded yet, so the notebook
+        still runs on a fresh checkout.
         """
-        directory = newest_matching(
-            comparisons_dir,
-            "*",
-            needs=("complete/comparisons.json", "embeddings/complete/vectors.npz"),
-        )
-        if directory is None:
+        rows = pool["rows"]
+        if rows.empty:
             print(
-                f"no complete comparisons with embeddings under {comparisons_dir} - "
-                "run generate_comparisons.py and embed_responses.py first"
+                f"no comparisons could be matched to the embeddings for {pool['name']}"
             )
             return pd.DataFrame(), None
-        manifest_path = directory / "complete" / "comparisons.json"
-        embeddings_path = directory / "embeddings" / "complete" / "vectors.npz"
-        manifest = read_json(manifest_path)
-        cache = np.load(embeddings_path)
-        rows = pair_rows(manifest, cache["vectors"], [str(v) for v in cache["run_ids"]])
-        if rows.empty:
-            print(f"no comparisons could be matched to {embeddings_path}")
-            return pd.DataFrame(), None
         stats = dilemma_stats(rows)
-        meta = read_json(embeddings_path.with_name("meta.json"), {})
-        model = meta.get("model", "the embedding model")
-        revision = meta.get("revision", "")
-        title = (
-            f"Embedding distance between the two models' answers "
-            f"({model}{' @ ' + revision[:8] if revision else ''}, "
-            f"complete set, {len(rows)} comparisons)"
-        )
-        out_path = fig_dir / "dilemmas-comparison-distance-dilemmas.png"
-        dilemma_figure(stats, rows, out_path, title)
+        title = "Embedding distance between the two models' answers"
+        subtitle = f"Fine-tuned model: {pool['label']}"
+        out_path = fig_dir / f"dilemmas-comparison-distance-{pool['name']}.png"
+        dilemma_figure(stats, rows, out_path, title, subtitle)
         same = int((rows["agreement"] == "same").sum())
-        print(f"Figure written to {out_path} (comparison run {directory.name})")
+        print(f"Figure written to {out_path} (comparison run {pool['directory'].name})")
         print(
             f"  distance: mean {rows['distance'].mean():.3f}, "
             f"same answer {same} of {len(rows)} pairs"
         )
         return stats, out_path
 
-    comparison_stats_df, comparison_figure_path = comparison_distance_figure(
-        HERE / "output" / "comparisons", HERE.parent / "figures"
-    )
+    def write_comparison_figures(pools, fig_dir):
+        """One distance figure per model-vs-base pool."""
+        frames = []
+        for pool in pools:
+            stats, _ = comparison_distance_figure(pool, fig_dir)
+            if stats is None:
+                continue
+            frames.append(stats.reset_index().assign(model=pool["label"]))
+        return pd.concat(frames, ignore_index=True) if frames else pd.DataFrame()
+
+    # Histogram of the comparison distances, one colour per fine-tune.
+    def write_comparison_histogram(pools, fig_dir):
+        """The distance distribution of every fine-tune on one coloured plot."""
+        usable = [pool for pool in pools if not pool["rows"].empty]
+        if not usable:
+            print("no comparisons could be matched to the embeddings")
+            return None
+        figure, axis = plt.subplots(figsize=(8, 5))
+        colours = plt.get_cmap("tab10").colors
+        for position, pool in enumerate(usable):
+            values = pool["rows"]["distance"]
+            colour = colours[position % len(colours)]
+            label = (
+                pool["label"]
+                .replace("_distribution-overall", "")
+                .replace("_response-overall", "")
+                .replace("_", " ")
+            )
+            axis.hist(
+                values,
+                bins=40,
+                range=(0.0, 1.0),
+                density=True,
+                histtype="step",
+                linewidth=1.8,
+                color=colour,
+                label=f"{label} (mean {values.mean():.3f})",
+            )
+            axis.axvline(values.mean(), color=colour, linestyle=":", linewidth=1.2)
+        axis.set_xlabel("cosine distance between the two answers")
+        axis.set_ylabel("share of pairs")
+        axis.set_title("Comparison distance by fine-tuned model", fontsize=10)
+        axis.legend(fontsize=8)
+        figure.tight_layout()
+        out_path = fig_dir / "dilemmas-comparison-distance-histogram.png"
+        save_figure(figure, out_path)
+        print(f"Figure written to {out_path}")
+        return out_path
+
+    comparison_stats_df = write_comparison_figures(pools, HERE.parent / "figures")
+
+    write_comparison_histogram(pools, HERE.parent / "figures")
 
     comparison_stats_df
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    ### Embeddings vs judge agreement
+    How correlated are the embeddings distances with the judge's answer option agreement?
+    """)
+    return
+
+
+@app.cell
+def _(mo, pd, pools):
+    def correlation_metrics(rows):
+        """Correlation between embedding distance and judge option agreement."""
+        scored = rows[rows["agreement"].isin(["same", "different"])].copy()
+        scored["same_option"] = (scored["agreement"] == "same").astype(float)
+
+        def metrics(group):
+            distance = group["distance"]
+            same = group["same_option"]
+            return pd.Series(
+                {
+                    "n": len(group),
+                    "same_option_rate": same.mean(),
+                    "mean_distance": distance.mean(),
+                    "mean_distance_same": distance[same == 1].mean(),
+                    "mean_distance_different": distance[same == 0].mean(),
+                    # Negative values mean that same-option answers tend to be
+                    # closer in embedding space.
+                    "pearson_r": distance.corr(same, method="pearson"),
+                    "spearman_r": distance.corr(same, method="spearman"),
+                }
+            )
+
+        per_dilemma = scored.groupby("dilemma_id", sort=True).apply(
+            metrics, include_groups=False
+        )
+        overall = metrics(scored).to_frame().T
+        overall.index = ["overall"]
+        return per_dilemma, overall
+
+    correlation_by_dilemma_frames = []
+    correlation_overall_frames = []
+    for pool in pools:
+        if pool["rows"].empty:
+            continue
+        per_dilemma, overall = correlation_metrics(pool["rows"])
+        correlation_by_dilemma_frames.append(
+            per_dilemma.reset_index().assign(model=pool["label"])
+        )
+        correlation_overall_frames.append(
+            overall.reset_index(drop=True).assign(model=pool["label"])
+        )
+    if correlation_overall_frames:
+        correlation_by_dilemma_df = pd.concat(
+            correlation_by_dilemma_frames, ignore_index=True
+        ).round(3)
+        correlation_overall_df = pd.concat(
+            correlation_overall_frames, ignore_index=True
+        ).round(3)
+    else:
+        print("No comparison data with embeddings is available.")
+        correlation_by_dilemma_df = pd.DataFrame()
+        correlation_overall_df = pd.DataFrame()
+
+    mo.vstack([correlation_by_dilemma_df, correlation_overall_df])
+    return
+
+
+@app.cell
+def _(mo):
+    mo.md(r"""
+    ## Survey design
+
+    The survey's questions are drawn from the comparison pool like this:
+
+    1. Each model's runs on a dilemma are paired one-to-one by sample index
+       (the run's `version`), so a 50-run set gives 50 pairwise comparisons
+       per dilemma rather than the full cross product. This is the comparison
+       a respondent sees: the same dilemma answered at the same time by two
+       different agents.
+    2. A dilemma where every index pair was judged the same answer option is
+       removed: every comparison is an agreement, so there is no value choice
+       to put to the respondent.
+    3. Each pair's cosine distance is measured from the two answers'
+       embeddings. A pair is dropped when its distance is below 0.20 **and**
+       the judge gave both answers the same option; a close pair that the
+       judge also scored the same would not show a real difference.
+    4. Per dilemma, a seeded random draw takes up to 10 of the remaining
+       pairs as the survey's questions.
+
+    The tables are grouped by profile and ranked by mean cosine distance
+    within each profile. **Agreement %** is the share of pairs the judge gave
+    the same answer option; disagreement is the remainder. The complete table
+    still lists the full-agreement dilemmas (at 100%); the selected table
+    only lists dilemmas that contribute questions.
+
+    The cells below write two tables per model - `survey-dilemma-stats-<model>.tex`
+    (every index pair) and `survey-dilemma-selected-stats-<model>.tex` (the
+    drawn questions) - and write each model's selected pairs as its own
+    `survey/<model>/` subset. The live Qualtrics survey reads the subset
+    chosen with `--model` (`survey/survey_definition.py`).
+    """)
+    return
+
+
+@app.cell
+def _(HERE, pools, random, sys):
+    if str(HERE) not in sys.path:
+        sys.path.insert(0, str(HERE))
+    from generate_comparisons import write_subset
+
+    # --- The survey design -----------------------------------------------------
+    # Each pool holds every cross pair of the base model's runs and one
+    # fine-tune's runs on a dilemma. The survey pairs each run of one model
+    # with the run of the other at the same sample index (the run's
+    # `version`), so the comparisons are one-to-one rather than the full cross
+    # product. The selection then:
+    #   1. drops a dilemma where every index pair was judged the same option
+    #      (every pair is an agreement, so there is no value choice to ask);
+    #   2. drops a pair when the cosine distance between the two answers is
+    #      below the threshold and the judge gave both answers the same
+    #      option;
+    #   3. per dilemma, draws up to the per-dilemma cap with a seeded RNG (one
+    #      RNG per dilemma, so the draw does not depend on the order the
+    #      dilemmas are walked in).
+    DISTANCE_THRESHOLD = 0.20
+    PER_DILEMMA = 10
+    SEED = 0
+
+    def index_pairs(records):
+        """One pair per sample index: the runs with the same ``version``.
+
+        The complete pool holds every cross pair, so the same-version pairs
+        are the one-to-one pairing the survey uses.
+        """
+        return [
+            record
+            for record in records
+            if record["agents"]["Agent 1"].get("version")
+            == record["agents"]["Agent 2"].get("version")
+        ]
+
+    def full_agreement_dilemmas(records):
+        """Dilemma ids where every index pair was judged the same option."""
+        by_dilemma = {}
+        for record in records:
+            by_dilemma.setdefault(record["dilemma_id"], []).append(record)
+        return {
+            dilemma_id
+            for dilemma_id, group in by_dilemma.items()
+            if all(record.get("same_choice") for record in group)
+        }
+
+    def select_comparisons(records, distances, threshold, per_dilemma, seed, pair):
+        """The survey's questions: drop close same-judged pairs, then draw."""
+        by_dilemma = {}
+        for record in records:
+            distance = distances.get(record["comparison_id"])
+            if distance is None:
+                continue
+            if distance < threshold and record.get("same_choice"):
+                continue
+            by_dilemma.setdefault(record["dilemma_id"], []).append(record)
+        chosen = set()
+        for dilemma_id in sorted(by_dilemma):
+            candidates = by_dilemma[dilemma_id]
+            rng = random.Random(f"{seed}:{pair}:{dilemma_id}")
+            picked = rng.sample(candidates, min(per_dilemma, len(candidates)))
+            chosen.update(record["comparison_id"] for record in picked)
+        return [record for record in records if record["comparison_id"] in chosen]
+
+    def build_survey_designs(pools):
+        """The survey selection for every model-vs-base pool."""
+        designs = []
+        for pool in pools:
+            manifest = pool["manifest"]
+            distances = dict(
+                zip(
+                    pool["rows"]["comparison_id"],
+                    pool["rows"]["distance"],
+                    strict=False,
+                )
+            )
+            # The complete dataset: one pair per sample index.
+            pool_records = index_pairs(manifest.get("comparisons", []))
+            # A full-agreement dilemma is left out of the draw entirely.
+            full_agreement = full_agreement_dilemmas(pool_records)
+            eligible = [
+                record
+                for record in pool_records
+                if record["dilemma_id"] not in full_agreement
+            ]
+            models = manifest.get("models") or {}
+            pair = f"{models.get('model_a')}|{models.get('model_b')}"
+            # The draw: the questions the survey actually asks.
+            records = select_comparisons(
+                eligible, distances, DISTANCE_THRESHOLD, PER_DILEMMA, SEED, pair
+            )
+            designs.append(
+                {
+                    "pool": pool,
+                    "records": records,
+                    "pool_records": pool_records,
+                    "distances": distances,
+                    "full_agreement": full_agreement,
+                }
+            )
+            print(
+                f"{pool['label']}: excluded {len(full_agreement)} "
+                f"full-agreement dilemmas, selected {len(records)} of "
+                f"{len(pool_records)} index pairs"
+            )
+        return designs
+
+    survey_designs = build_survey_designs(pools)
+
+    len(survey_designs)
+    return DISTANCE_THRESHOLD, PER_DILEMMA, SEED, survey_designs, write_subset
+
+
+@app.cell
+def _(
+    DISTANCE_THRESHOLD,
+    PER_DILEMMA,
+    SEED,
+    escape_header,
+    mo,
+    np,
+    pd,
+    survey_designs,
+    write_latex_table,
+):
+    def format_columns(frame):
+        """Distances to two decimals, percentages to one, counts plain."""
+        fmt = {}
+        for column in frame.columns:
+            label = escape_header(str(column))
+            if column == "Mean cosine distance":
+                fmt[label] = "{:.2f}"
+            elif column == "Agreement %":
+                fmt[label] = "{:.1f}"
+            elif frame[column].dtype.kind in "iu":
+                fmt[label] = "{:d}"
+            else:
+                fmt[label] = "{}"
+        return fmt
+
+    def survey_dilemma_stats(records, distances, with_below):
+        """One row per dilemma: mean distance and the judge's split.
+
+        ``with_below`` adds the number of pairs below the distance threshold,
+        which is only meaningful for the complete dataset (the selected
+        subset has already dropped some of those pairs).
+        """
+        rows = []
+        for dilemma_id in sorted({record["dilemma_id"] for record in records}):
+            group = [record for record in records if record["dilemma_id"] == dilemma_id]
+            values = np.array([distances[record["comparison_id"]] for record in group])
+            agreement = sum(1 for record in group if record.get("same_choice"))
+            row = {
+                "Profile": group[0]["profile_id"],
+                "Dilemma": group[0]["situation_id"],
+                "Mean cosine distance": float(values.mean()),
+                "Agreement %": 100.0 * agreement / len(group) if group else np.nan,
+            }
+            if with_below:
+                row[f"Below {DISTANCE_THRESHOLD:.2f}"] = int(
+                    (values < DISTANCE_THRESHOLD).sum()
+                )
+            rows.append(row)
+        columns = ["Profile", "Dilemma", "Mean cosine distance"]
+        if with_below:
+            columns.append(f"Below {DISTANCE_THRESHOLD:.2f}")
+        columns.append("Agreement %")
+        return pd.DataFrame(rows, columns=columns).round({"Mean cosine distance": 2})
+
+    def ranked_table(records, distances, with_below):
+        """Group by profile, then rank the dilemmas within a profile by mean
+        distance. The profile/dilemma pair is the table's two-level stub."""
+        return (
+            survey_dilemma_stats(records, distances, with_below)
+            .sort_values(
+                ["Profile", "Mean cosine distance"],
+                ascending=[True, False],
+                kind="stable",
+            )
+            .set_index(["Profile", "Dilemma"])
+        )
+
+    # --- The tables ------------------------------------------------------------
+    def write_survey_tables(survey_designs):
+        """The complete/selected tables and the rendered notebook view."""
+
+        def file_label(label):
+            """The short table suffix: modal_response-overall -> modal."""
+            return (
+                label.replace("_response-overall", "")
+                .replace("_distribution-overall", "")
+                .replace("_", "-")
+            )
+
+        rendered_tables = []
+        for design in survey_designs:
+            pool = design["pool"]
+            complete_table = ranked_table(
+                design["pool_records"], design["distances"], with_below=True
+            )
+            # Only dilemmas that actually contribute questions appear in the
+            # selected table (full-agreement dilemmas are excluded before the
+            # draw).
+            selected_table = ranked_table(
+                design["records"], design["distances"], with_below=False
+            )
+            for frame, stem in (
+                (complete_table, "survey-dilemma-stats"),
+                (selected_table, "survey-dilemma-selected-stats"),
+            ):
+                table = frame.copy()
+                table.index = table.index.set_names([None, None])
+                filename = f"{stem}-{file_label(pool['label'])}.tex"
+                write_latex_table(
+                    table,
+                    format_columns(table),
+                    table.shape[1],
+                    filename,
+                    senses={},
+                    column_format="ll" + "r" * table.shape[1],
+                    stub_label="",
+                )
+                print(f"wrote code/figures/{filename}")
+            rendered_tables.extend(
+                [
+                    mo.md(f"**{pool['label']}**"),
+                    mo.md("Complete dataset (one pair per sample index)"),
+                    complete_table,
+                    mo.md("Selected subset"),
+                    selected_table,
+                ]
+            )
+        return rendered_tables
+
+    print(
+        f"design: one pair per sample index; drop distance < "
+        f"{DISTANCE_THRESHOLD:.2f} judged the same; up to {PER_DILEMMA} per "
+        f"dilemma (seed {SEED})"
+    )
+    mo.vstack(write_survey_tables(survey_designs))
+    return
+
+
+@app.cell
+def _(DISTANCE_THRESHOLD, PER_DILEMMA, SEED, survey_designs, write_subset):
+
+    # --- The survey's questions ------------------------------------------------
+    # Each model's selected comparisons become its own `survey/<model>/`
+    # subset; the live Qualtrics survey reads the one chosen with
+    # `--model` (survey/survey_definition.py).
+    def write_survey_subsets(survey_designs):
+        """Write one selected-question subset per model."""
+        for design in survey_designs:
+            pool = design["pool"]
+            manifest = pool["manifest"]
+            models = manifest.get("models") or {}
+            write_subset(
+                pool["directory"] / "survey" / pool["name"],
+                pool["name"],
+                design["records"],
+                manifest.get("dilemmas", []),
+                {
+                    "run_id": manifest.get("run_id", pool["directory"].name),
+                    "label": pool["label"],
+                    "models": {
+                        "model_a": models.get("model_a"),
+                        "model_b": models.get("model_b"),
+                    },
+                    "selection": {
+                        "rule": (
+                            "one pair per sample index; remove full-agreement "
+                            "dilemmas; drop pairs below the distance threshold "
+                            "judged the same; then a seeded random draw per "
+                            "dilemma"
+                        ),
+                        "distance_threshold": DISTANCE_THRESHOLD,
+                        "per_dilemma": PER_DILEMMA,
+                        "seed": SEED,
+                        "pool": "complete (one pair per sample index)",
+                        "pool_size": len(design["pool_records"]),
+                        "selected": len(design["records"]),
+                    },
+                },
+            )
+            print(
+                f"wrote the {pool['label']} survey subset to "
+                f"{pool['directory'] / 'survey' / pool['name'] / 'comparisons.json'} "
+                f"({len(design['records'])} questions)"
+            )
+
+    write_survey_subsets(survey_designs)
     return
 
 

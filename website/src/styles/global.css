@@ -785,6 +785,33 @@ section {
   border-top: 1px dashed var(--color-border);
 }
 
+/* Where the stimulus text came from: the selected runs' own records. */
+.dilemma-stimulus__source {
+  margin: 0 0 0.6rem;
+  font-size: 0.72rem;
+  line-height: 1.5;
+}
+
+/* A run whose wording differs from the one the stimulus shows (a batch
+ * that mixes runs made before and after a profile edit). */
+.dilemma-wording-note {
+  margin: 0 0 0.6rem;
+  padding: 0.5rem 0.6rem;
+  border-left: 3px solid #f59e0b;
+  border-radius: 0 0.4rem 0.4rem 0;
+  background: #fff7ed;
+  color: #9a3412;
+  font-size: 0.75rem;
+  line-height: 1.5;
+}
+
+.dilemma-wording-note__text {
+  display: block;
+  margin-top: 0.3rem;
+  white-space: pre-line;
+  color: var(--color-text);
+}
+
 .dilemma-options summary {
   cursor: pointer;
   color: var(--color-muted);
@@ -808,6 +835,15 @@ section {
   cursor: pointer;
   color: var(--color-muted);
   font-size: 0.72rem;
+}
+
+.dilemma-prompt__label {
+  margin: 0.6rem 0 0;
+  color: var(--color-muted);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
 .dilemma-prompt__text {

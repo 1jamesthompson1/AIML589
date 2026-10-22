@@ -1,8 +1,8 @@
-The goal of this chapter and the survey is to be an downstream evaluation of the finetuned models to answer \rqref{prefer}. 
+The goal of this chapter and the survey is to be an downstream evaluation of the finetuned models to answer \rqref{prefer}. Only two models were compared the base model and the finetuned model which was choosen in the previous chapter. \fixme{Which model is the fine tuned model}.
 
 \section{Results of the survey}
 
-The public did prefer models that were aligned with their responses... Or maybe they don't. We are still to find out.
+The public did prefer models that were aligned with their responses... Or maybe they don't. We are still to find out...
 
 \section{How the survey was constructed}
 
@@ -15,41 +15,67 @@ Paid respondents answering online using a Qualtrics survey.
 
 We would like a representative sample of the New Zealand population. The representativeness is in two different spaces: the demographic space and the value space. That is we want to get a wide range of people that represent different demographics but also different ways of thinking within NZ.
 
-The WVS survey is intended to be a representative sample of the New Zealand population. However as seen in \figref{wvs-nz-demographics} it is not a perfect representation of the population with it skewing to older, less educated and more female. Therefore instead of trying to get a representative sample of the WVS sample we will try to get a representation sample of the NZ population directly. Common demographically representative sample variables are age, gender, ethnicity, and education \cite{statsnz2023gss,satherley2023polling}.
+The WVS survey is intended to be a representative sample of the New Zealand population. However as seen in \figref{top5-wvs-vs-census} it is not a perfect representation of the population with it skewing to older, less educated and more female. Therefore instead of trying to get a representative sample of the WVS sample we will try to get a representation sample of the NZ population directly. Common demographically representative sample variables are age, gender, ethnicity, and education \cite{statsnz2023gss,satherley2023polling}.
 
-\cfigure{top5-wvs-vs-census}{The WVS survey vs the census across some common demographic variables. Notably Ethnicity is not present in the WVS survey.}{wvs-nz-demographics}
+\cfigure{top5-wvs-vs-census}{The WVS survey vs the census across some common demographic variables. Notably Ethnicity is not present in the WVS survey.}
 
 To achieve some form of value representativeness we will use the WVS survey to select a set of variables that are most representative of the different ways of thinking in NZ. These are questions that provide the most amount of information about what the other responses would be. Looking at \figref{representative-variables} we can see that...
 
 
-
-
-To match the selected variables quota sampling is used in which we set quotas for each variable and then recruit participants until the quota is filled. THe more quotas that are used the harder it is to fill the quotas as you end up with a lot of specific quotas. Therefore the number of quotas was limited to \fixme{How many can be used.}
+To match the selected variables quota sampling is used in which we set quotas for each variable and then recruit participants until the quota is filled. THe more quotas that are used the harder it is to fill the quotas as you end up with a lot of specific quotas. Therefore the number of quotas was limited to 3 (Age, Gender, and Region). Importantly income was not used due to the difficulty of getting a representative sample of income in NZ. The quotas were set to match the census data for each variable. These were not interlocking and just used to create independent buckets that needed to be filled.
 
 To further help with downstream weights of the responses a few more demographic questions were asked. \fixme{Which extra ones}
 
 \subsection{Elicitation of preferences with pairwise ranking}
 
-Each participant is shown a short objective summary of a scenario which describes the work profile and the situation. They are then shown a summary of 2 different agents and their actions in the scenario. The participant is then asked 2 different questions. They are not told which model is the underlying model for each agent nor that they are LLMs (however this is expected to be inferred by the participants)
+Each participant is shown a short objective summary of a scenario which describes the work profile and the situation. They are then shown the response of the different agents in the scenario. They are not told which model is the underlying model for each agent nor that they are LLMs (however this is expected to be inferred by the participants)
 
 First they are asked "All things considered which one did you think acted more in lined with how you would want someone to act." Likert 5 scales from strongly Agent 1 to strongly Agent 2.
-Then for they are asked "How much do you agree with an AI agent being deployed in this situation to make decisions like the ones you just saw."
 
+Then for they are asked "How much do you agree with an AI agent being deployed in this situation to make decisions like the ones you just saw."
 
 
 \subsection{Selection of trajectories}
 
-There were 30 different dilemmas with 10 runs per model.
+There were 30 different dilemmas with 10 runs per model. Each model was ran 50 times through the dilemmas. Yet due to the combinatorial nature of the pairwise comparisons it was not possible to show all 50 runs for each model. Therefore a subset of the possible pairwise comparisons was selected.
+
+The idea is that where models agree on a response there is no need to check what the public prefers. We want to find the subspace where the models diverge and test if the fine tuned diverged in the right direction. Therefore we filter out comparisons in which the models agree on the same response and have embeddings that are too similar. As seen in \tabref{survey-dilemma-stats-modal}...
+
+\begin{enumerate}
+    \item Paired each of the 50 runs of each model with one run of the other model (using sample index). This gives 50 pairwise comparisons for each dilemma. \footnote{This simulates asking the question at the same time twice to two different people.}
+    \item Remove any dilemmas where the two models gave the same response more than 90\% of the time.
+    \item For each pairwise comparison we calculate the cosine distance of the embeddings of the two responses. If the cosine distance is less than 0.2 and the two responses were judged the same we filter them out.
+    \item For each dilemma we then randomly select 10 of the remaining pairwise comparisons to show to the participants.
+\end{enumerate}
+\fixmeinline{Add in updated numbers to the pipeline}
+
+\ctable{survey-dilemma-stats-modal}{The statistics of the complete set of pairwise statistics for the dilemmas.}
+
+The final set of pairwise comparisons that were selected contained...
+
+\ctable{survey-dilemma-selected-stats-modal}{The statistics of the selected pairwise comparisons for the dilemmas.}
 
 \subsection{Understanding respondents views on AI and the world}
 
-To help weight the responses of the participants and as a secondary line of inquiry we asked a series of questions to understand the respondents views on AI and the future.
+Extra questions where added to a final section of the survey to collect information about the respondents views on AI and their opinions on potential policy responses. This served as both a way to understand the preferences better and to understand the New Zealand public's views on AI.
 
-First were the question for each comparision that was about how comfortalbe they were ai being used in that situations.
+Three questions were asked about their views and usage. One about their current frequency of AI usage, one about their feelings on AI effects on the future and one about their beliefs about AI being a seriuos risk to New Zealand.
 
-Then they a re asked a series of questions about their viewws on AI effecting the future. Support for government regulation of AI...
+Lastly the participants were asked to pick their top 3 most liked policy responses to AI. The list of possible policy responses was generated from prior research conducted by Ben Cravens in his unpublished masters thesis.
 
 \cite{GlobalCatastrophicRisks}, \cite{moonGlobalCatastrophicRisk2024}
 
 
 \section{Analysis of the survey results}
+
+\subsection{Weighting of the survey results}
+
+\subsection{Linear Mixed Model Analysis}
+
+Using a linear mixed model to analyse the results of the survey. The model is as follows:
+
+\subsection{Bradley Terry pairwise preference model}
+
+To get a simple measure of which model was preferred more often than the others.
+
+\subsection{Power Analysis}

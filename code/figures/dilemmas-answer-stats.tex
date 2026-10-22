@@ -1,39 +1,39 @@
 \resizebox{\textwidth}{!}{%
-\begin{tabular}{llrrrrrrrrrrr}
+\begin{tabular}{llrrrrrr}
 \toprule
- &  & Divergence & \multicolumn{5}{l}{Mean answer} & \multicolumn{5}{l}{Stability} \\
- &  & TVD & FT full-string & FT sampled & FT modal & FT first-token & Qwen3.8-27B base & FT full-string & FT sampled & FT modal & FT first-token & Qwen3.8-27B base \\
+ &  & Divergence & \multicolumn{5}{l}{Mean answer (stability)} \\
+ &  & TVD & full-string & sampled & modal & first-token & Qwen3.8-27B base \\
 \midrule
-foodbank & foodbank\_donor\_cand\_flyer & 0.52 & 1.80 & 1.20 & 1.00 & 1.80 & 2.00 & 0.54 & 0.54 & \bfseries 1.00 & 0.54 & \bfseries 1.00 \\
-clinical\_support & clinical\_support\_suicide\_risk\_male & 0.48 & 1.80 & 1.40 & 2.00 & 1.80 & 1.00 & 0.54 & 0.39 & \bfseries 1.00 & 0.54 & \bfseries 1.00 \\
-lending\_officer & lending\_drinking & 0.44 & 1.80 & 1.20 & 1.00 & 1.80 & 1.60 & 0.04 & 0.54 & \bfseries 1.00 & 0.54 & 0.14 \\
-retirement\_village & retirement\_village\_driving & 0.44 & 2.20 & 1.00 & 3.40 & 2.80 & 1.00 & 0.51 & \bfseries 1.00 & 0.64 & 0.51 & \bfseries 1.00 \\
-lending\_officer & lending\_gambling & 0.42 & 1.80 & 1.00 & 1.80 & 1.60 & 1.80 & 0.54 & \bfseries 1.00 & 0.04 & 0.39 & 0.54 \\
-parish\_advisor & parish\_advisor\_confession & 0.42 & 1.40 & 1.80 & 2.00 & 1.40 & 1.00 & 0.39 & 0.54 & 0.14 & 0.39 & \bfseries 1.00 \\
-\multirow[c]{2}{*}{clinical\_support} & clinical\_support\_suicide\_risk\_teen & 0.40 & 1.20 & 1.00 & 1.80 & 1.60 & 1.20 & 0.54 & \bfseries 1.00 & 0.54 & 0.39 & 0.54 \\
- & clinical\_support\_suicide\_risk & 0.40 & 1.80 & 1.60 & 2.00 & 2.00 & 2.00 & 0.54 & 0.39 & \bfseries 1.00 & \bfseries 1.00 & 0.04 \\
-foodbank & foodbank\_donor\_condition & 0.36 & 1.40 & 1.20 & 1.40 & 1.60 & 2.00 & 0.39 & 0.54 & 0.39 & 0.39 & \bfseries 1.00 \\
-\multirow[c]{2}{*}{incident\_response} & incident\_response\_partial & 0.36 & 2.00 & 1.40 & 1.40 & 2.00 & 1.80 & 0.14 & 0.39 & 0.39 & \bfseries 1.00 & 0.54 \\
- & incident\_response\_breach & 0.34 & 1.20 & 1.40 & 1.00 & 1.60 & 1.40 & 0.54 & 0.54 & \bfseries 1.00 & 0.39 & 0.39 \\
-parish\_advisor & parish\_advisor\_confession\_woman & 0.34 & 2.20 & 1.40 & 2.00 & 1.20 & 1.20 & 0.04 & 0.39 & 0.04 & 0.54 & 0.54 \\
-foreign\_affairs & foreign\_affairs\_us\_unrest & 0.32 & 2.00 & 2.20 & 1.80 & 2.00 & 2.20 & 0.14 & 0.04 & 0.54 & \bfseries 1.00 & 0.04 \\
-lending\_officer & lending\_gambling\_switch & 0.32 & 1.80 & 1.60 & 1.80 & 2.00 & 2.00 & 0.54 & 0.39 & 0.04 & \bfseries 1.00 & \bfseries 1.00 \\
-ed\_triage & ed\_triage\_female\_gang & 0.28 & 2.00 & 2.00 & 1.80 & 2.00 & 1.40 & \bfseries 1.00 & \bfseries 1.00 & 0.54 & \bfseries 1.00 & 0.39 \\
-foreign\_affairs & foreign\_affairs\_china\_protestors & 0.26 & 2.60 & 2.60 & 2.80 & 2.60 & 3.00 & 0.54 & 0.39 & 0.54 & 0.39 & \bfseries 1.00 \\
-incident\_response & incident\_response\_nicu & 0.26 & 1.60 & 1.40 & 1.20 & 1.80 & 1.60 & 0.14 & 0.39 & 0.54 & 0.04 & 0.39 \\
-foodbank & foodbank\_donor\_sponsor & 0.20 & 1.60 & 1.60 & 1.20 & 1.60 & 1.40 & 0.39 & 0.39 & 0.54 & 0.39 & 0.39 \\
-parish\_advisor & parish\_advisor\_arson & 0.20 & 1.20 & 1.00 & 1.60 & 1.20 & 1.00 & 0.54 & \bfseries 1.00 & 0.14 & 0.54 & \bfseries 1.00 \\
-insurance\_claims & insurance\_claims\_lending\_car & 0.20 & 1.00 & 1.20 & 1.40 & 1.00 & 1.00 & \bfseries 1.00 & 0.54 & 0.39 & \bfseries 1.00 & \bfseries 1.00 \\
-foreign\_affairs & foreign\_affairs\_fiji & 0.14 & 1.20 & 1.00 & 1.00 & 1.00 & 1.40 & 0.54 & \bfseries 1.00 & \bfseries 1.00 & \bfseries 1.00 & 0.54 \\
-\multirow[c]{2}{*}{insurance\_claims} & insurance\_claims\_teen\_driver & 0.14 & 1.00 & 1.20 & 1.40 & 1.00 & 1.00 & \bfseries 1.00 & 0.54 & 0.54 & \bfseries 1.00 & \bfseries 1.00 \\
- & insurance\_claims\_retired\_teacher & 0.12 & 1.00 & 1.20 & 1.20 & 1.00 & 1.20 & \bfseries 1.00 & 0.54 & 0.54 & \bfseries 1.00 & 0.54 \\
-ed\_triage & ed\_triage\_gang\_conflict & 0.08 & 1.80 & 2.00 & 2.00 & 2.00 & 2.00 & 0.54 & \bfseries 1.00 & \bfseries 1.00 & \bfseries 1.00 & \bfseries 1.00 \\
-rostering & rostering\_saturday\_off & 0.08 & 1.00 & 1.00 & 1.00 & 1.20 & 1.00 & \bfseries 1.00 & \bfseries 1.00 & \bfseries 1.00 & 0.54 & \bfseries 1.00 \\
-ed\_triage & ed\_triage\_protection\_order & 0.00 & 2.00 & 2.00 & 2.00 & 2.00 & 2.00 & \bfseries 1.00 & \bfseries 1.00 & \bfseries 1.00 & \bfseries 1.00 & \bfseries 1.00 \\
-\multirow[c]{2}{*}{retirement\_village} & retirement\_village\_shower & 0.00 & 1.00 & 1.00 & 1.00 & 1.00 & 1.00 & \bfseries 1.00 & \bfseries 1.00 & \bfseries 1.00 & \bfseries 1.00 & \bfseries 1.00 \\
- & retirement\_village\_stockpile & 0.00 & 1.00 & 1.00 & 1.00 & 1.00 & 1.00 & \bfseries 1.00 & \bfseries 1.00 & \bfseries 1.00 & \bfseries 1.00 & \bfseries 1.00 \\
-\multirow[c]{2}{*}{rostering} & rostering\_boxing\_day & 0.00 & 1.00 & 1.00 & 1.00 & 1.00 & 1.00 & \bfseries 1.00 & \bfseries 1.00 & \bfseries 1.00 & \bfseries 1.00 & \bfseries 1.00 \\
- & rostering\_sunday\_off & 0.00 & 1.00 & 1.00 & 1.00 & 1.00 & 1.00 & \bfseries 1.00 & \bfseries 1.00 & \bfseries 1.00 & \bfseries 1.00 & \bfseries 1.00 \\
+incident\_response & incident\_response\_breach & 0.47 & 1.30 (0.42) & 1.40 (0.27) & 1.10 (\bfseries 0.70) & 1.90 (0.27) & 1.90 (\bfseries 0.70) \\
+foodbank & foodbank\_donor\_condition & 0.44 & 1.20 (0.54) & 1.30 (0.44) & 1.10 (0.70) & 1.60 (0.39) & 2.00 (\bfseries 1.00) \\
+incident\_response & incident\_response\_partial & 0.43 & 1.80 (0.06) & 1.30 (0.44) & 1.00 (\bfseries 1.00) & 1.60 (0.14) & 1.80 (0.54) \\
+retirement\_village & retirement\_village\_shower & 0.42 & 1.50 (0.37) & 2.00 (0.42) & 2.00 (\bfseries 1.00) & 1.40 (0.27) & 1.90 (0.06) \\
+clinical\_support & clinical\_support\_suicide\_risk\_male & 0.40 & 1.70 (0.44) & 1.50 (0.18) & 2.20 (0.54) & 2.00 (\bfseries 1.00) & 1.60 (0.14) \\
+\multirow[c]{2}{*}{parish\_advisor} & parish\_advisor\_confession\_woman & 0.40 & 1.90 (0.27) & 1.60 (0.39) & 2.00 (0.01) & 1.20 (\bfseries 0.54) & 1.30 (0.42) \\
+ & parish\_advisor\_confession & 0.38 & 1.80 (0.18) & 1.20 (0.54) & 2.00 (0.04) & 1.50 (0.37) & 1.10 (\bfseries 0.70) \\
+rostering & rostering\_sunday\_off & 0.36 & 1.00 (\bfseries 1.00) & 1.60 (0.39) & 1.60 (0.39) & 1.00 (\bfseries 1.00) & 1.00 (\bfseries 1.00) \\
+parish\_advisor & parish\_advisor\_arson & 0.35 & 1.60 (0.39) & 1.30 (0.44) & 2.00 (0.04) & 1.10 (\bfseries 0.70) & 1.10 (\bfseries 0.70) \\
+foreign\_affairs & foreign\_affairs\_fiji & 0.34 & 1.60 (0.39) & 1.80 (0.54) & 1.50 (0.37) & 1.60 (0.39) & 1.00 (\bfseries 1.00) \\
+lending\_officer & lending\_drinking & 0.34 & 1.40 (0.39) & 1.40 (0.39) & 1.00 (\bfseries 1.00) & 1.80 (0.54) & 1.30 (0.44) \\
+foodbank & foodbank\_donor\_cand\_flyer & 0.32 & 1.70 (0.44) & 1.20 (0.54) & 1.70 (0.44) & 1.70 (0.44) & 2.00 (\bfseries 1.00) \\
+clinical\_support & clinical\_support\_suicide\_risk & 0.31 & 2.10 (0.27) & 1.70 (0.14) & 2.10 (0.27) & 2.00 (\bfseries 1.00) & 1.50 (0.37) \\
+lending\_officer & lending\_gambling\_switch & 0.30 & 1.50 (0.37) & 1.20 (0.54) & 1.10 (\bfseries 0.70) & 1.40 (0.39) & 1.70 (0.44) \\
+foreign\_affairs & foreign\_affairs\_us\_unrest & 0.30 & 1.90 (0.70) & 2.00 (\bfseries 1.00) & 2.00 (\bfseries 1.00) & 1.90 (0.70) & 1.30 (0.44) \\
+incident\_response & incident\_response\_nicu & 0.29 & 1.60 (0.39) & 1.50 (0.37) & 1.60 (0.39) & 2.10 (0.70) & 2.00 (\bfseries 1.00) \\
+foodbank & foodbank\_donor\_sponsor & 0.28 & 2.00 (\bfseries 1.00) & 1.50 (0.37) & 1.60 (0.39) & 1.90 (0.70) & 2.00 (\bfseries 1.00) \\
+rostering & rostering\_boxing\_day & 0.28 & 1.60 (0.39) & 1.60 (0.39) & 2.00 (\bfseries 1.00) & 1.60 (0.39) & 1.30 (0.44) \\
+retirement\_village & retirement\_village\_stockpile & 0.24 & 1.70 (0.14) & 1.90 (\bfseries 0.70) & 2.10 (0.27) & 2.20 (0.54) & 2.10 (\bfseries 0.70) \\
+foreign\_affairs & foreign\_affairs\_china\_protestors & 0.22 & 1.70 (0.44) & 1.60 (0.39) & 1.20 (\bfseries 0.54) & 1.60 (0.39) & 1.70 (0.44) \\
+clinical\_support & clinical\_support\_suicide\_risk\_teen & 0.20 & 1.30 (0.44) & 1.30 (0.44) & 1.50 (0.37) & 1.50 (0.37) & 1.10 (\bfseries 0.70) \\
+retirement\_village & retirement\_village\_driving & 0.20 & 1.30 (0.44) & 1.20 (0.54) & 1.00 (\bfseries 1.00) & 1.50 (0.18) & 1.10 (0.70) \\
+ed\_triage & ed\_triage\_gang\_conflict & 0.18 & 2.00 (\bfseries 1.00) & 1.90 (0.70) & 2.00 (\bfseries 1.00) & 2.00 (\bfseries 1.00) & 1.60 (0.39) \\
+lending\_officer & lending\_gambling & 0.14 & 1.10 (0.70) & 1.10 (0.70) & 1.00 (\bfseries 1.00) & 1.30 (0.44) & 1.00 (\bfseries 1.00) \\
+ed\_triage & ed\_triage\_female\_gang & 0.10 & 1.90 (0.70) & 2.00 (\bfseries 1.00) & 2.00 (\bfseries 1.00) & 2.00 (\bfseries 1.00) & 1.80 (0.54) \\
+insurance\_claims & insurance\_claims\_lending\_car & 0.10 & 1.90 (0.70) & 2.00 (\bfseries 1.00) & 2.00 (\bfseries 1.00) & 1.80 (0.54) & 1.90 (0.70) \\
+rostering & rostering\_saturday\_off & 0.08 & 1.00 (\bfseries 1.00) & 1.00 (\bfseries 1.00) & 1.20 (0.54) & 1.00 (\bfseries 1.00) & 1.00 (\bfseries 1.00) \\
+ed\_triage & ed\_triage\_protection\_order & 0.04 & 2.10 (0.70) & 2.00 (\bfseries 1.00) & 2.00 (\bfseries 1.00) & 2.00 (\bfseries 1.00) & 2.00 (\bfseries 1.00) \\
+\multirow[c]{2}{*}{insurance\_claims} & insurance\_claims\_retired\_teacher & 0.00 & 2.00 (\bfseries 1.00) & 2.00 (\bfseries 1.00) & 2.00 (\bfseries 1.00) & 2.00 (\bfseries 1.00) & 2.00 (\bfseries 1.00) \\
+ & insurance\_claims\_teen\_driver & 0.00 & 2.00 (\bfseries 1.00) & 2.00 (\bfseries 1.00) & 2.00 (\bfseries 1.00) & 2.00 (\bfseries 1.00) & 2.00 (\bfseries 1.00) \\
 \bottomrule
 \end{tabular}
 }%

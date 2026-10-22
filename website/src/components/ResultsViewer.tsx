@@ -16,7 +16,7 @@ import {
  * for the runs the visitor actually selects - nothing is bundled at build time.
  */
 
-const MANIFEST_URL = manifestUrl(LOCAL_FT_BASE, 'ft/evals/index.json?v=4');
+const MANIFEST_URL = manifestUrl(LOCAL_FT_BASE, 'ft/evals/index.json?v=5');
 const MANIFEST_IS_LOCAL = isLocalSourceUrl(MANIFEST_URL);
 
 interface EvalResult {
@@ -34,7 +34,10 @@ interface RunConfig {
   aborted?: string | boolean | null;
 }
 interface ModelRun { run_name: string; config: RunConfig; path: string; }
-interface QuestionInventory { question_id: string; column_name: string; question: string; sub_question: string; in_training: boolean; in_eval: boolean; }
+interface QuestionInventory {
+  question_id: string; column_name: string; question: string; sub_question: string;
+  answer_options?: string[]; in_training: boolean; in_eval: boolean;
+}
 interface EvalData {
   schema: string; base_url: string; bucket: string; generated_at?: string;
   models: Record<string, ModelRun[]>; questions: QuestionInventory[];
@@ -116,6 +119,120 @@ async function loadRunResults(baseUrl: string, run: ModelRun): Promise<EvalResul
   return (parsed.data || [])
     .filter((r) => r.question_id)
     .map((r) => trimResult(r, run.run_name));
+}
+
+/* --- Fuzzy question search ---
+ *
+ * The question list should be searchable by the visible label, the full
+ * question text (matrix items only show their sub-item in the list), and the
+ * answer options. Matching is deliberately forgiving: exact/prefix/substring first,
+ * then subsequence and small typo distances. Every query token must match
+ * something, so adding a second word narrows the list.
+ */
+
+interface SearchField { weight: number; tokens: string[]; fuzzy?: boolean; }
+
+interface QuestionEntry {
+  qid: string;
+  colName: string;
+  label: string;
+  inTraining: boolean;
+  inEval: boolean;
+  subQuestion: string;
+  questionText: string;
+  options: string[];
+  fields: SearchField[];
+}
+
+interface QuestionMatch { entry: QuestionEntry; score: number; matchedOptions: string[]; }
+
+function normalizeSearch(value: string): string {
+  return value
+    .toLowerCase()
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim();
+}
+
+function tokenizeSearch(value: string): string[] {
+  return normalizeSearch(value).split(' ').filter(Boolean);
+}
+
+function isSubsequence(needle: string, haystack: string): boolean {
+  if (!needle) return true;
+  let index = 0;
+  for (const char of haystack) {
+    if (char === needle[index]) index += 1;
+    if (index === needle.length) return true;
+  }
+  return false;
+}
+
+function editDistance(a: string, b: string): number {
+  if (a === b) return 0;
+  if (!a.length) return b.length;
+  if (!b.length) return a.length;
+  let previous = Array.from({ length: b.length + 1 }, (_, index) => index);
+  for (let i = 1; i <= a.length; i += 1) {
+    const current = [i];
+    for (let j = 1; j <= b.length; j += 1) {
+      current[j] = Math.min(
+        previous[j] + 1,
+        current[j - 1] + 1,
+        previous[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1),
+      );
+    }
+    previous = current;
+  }
+  return previous[b.length];
+}
+
+function tokenMatchScore(query: string, candidate: string, allowFuzzy = true): number {
+  if (!query || !candidate) return 0;
+  if (candidate === query) return 1;
+  if (candidate.startsWith(query)) return 0.92;
+  if (candidate.includes(query)) return 0.8;
+  if (!allowFuzzy) return 0;
+  if (query.length >= 3 && isSubsequence(query, candidate)) return 0.55;
+  const maxDistance = query.length >= 8 ? 2 : query.length >= 4 ? 1 : 0;
+  if (maxDistance > 0) {
+    const distance = editDistance(query, candidate);
+    if (distance <= maxDistance) return 0.45 - distance * 0.1;
+  }
+  return 0;
+}
+
+function matchQuestion(entry: QuestionEntry, queryTokens: string[]): QuestionMatch | null {
+  if (!queryTokens.length) return { entry, score: 0, matchedOptions: [] };
+  let score = 0;
+  for (const token of queryTokens) {
+    let best = 0;
+    for (const field of entry.fields) {
+      for (const candidate of field.tokens) {
+        best = Math.max(
+          best,
+          tokenMatchScore(token, candidate, field.fuzzy !== false) * field.weight,
+        );
+      }
+    }
+    if (best === 0) return null;
+    score += best;
+  }
+
+  // Prefer whole-phrase matches ("honest elections") over scattered tokens.
+  const phrase = queryTokens.join(' ');
+  if (normalizeSearch(entry.questionText).includes(phrase)) score += 1.5;
+  if (normalizeSearch(entry.subQuestion).includes(phrase)) score += 2;
+  if (normalizeSearch(entry.colName).includes(phrase)) score += 2;
+  if (entry.options.some((option) => normalizeSearch(option).includes(phrase))) score += 1.2;
+
+  const matchedOptions = entry.options.filter((option) =>
+    queryTokens.some((token) =>
+      tokenizeSearch(option).some((word) => tokenMatchScore(token, word) > 0),
+    ),
+  );
+  return { entry, score, matchedOptions };
 }
 
 /* --- UI pieces --- */
@@ -482,18 +599,66 @@ export default function ResultsViewer() {
   const baseSummary = useMemo(() => baseResults.length ? summarizeResults(baseResults) : null, [baseResults]);
   const ftSummary = useMemo(() => ftResults.length ? summarizeResults(ftResults) : null, [ftResults]);
 
-  const questionIds = useMemo(() => {
-    const questions = data?.questions ?? [];
-    return questions.map((q) => ({
-      qid: q.question_id,
-      colName: q.column_name,
-      label: `${q.column_name}: ${q.sub_question || q.question.slice(0, 50)}`,
-      inTraining: q.in_training,
-      inEval: q.in_eval,
-      subQuestion: q.sub_question,
-      questionText: q.question,
-    }));
-  }, [data]);
+  // Answer options come from the manifest when it was generated with them,
+  // and otherwise from any loaded run's `categories` column. That keeps the
+  // search useful against older manifests and local result directories.
+  const answerOptionsByColumn = useMemo(() => {
+    const options = new Map<string, Set<string>>();
+    for (const q of data?.questions ?? []) {
+      if (!q.answer_options?.length) continue;
+      options.set(
+        q.column_name,
+        new Set(q.answer_options.filter((option) => option.trim())),
+      );
+    }
+    for (const row of [...baseResults, ...ftResults]) {
+      const categories = tryParseJSON(row.categories);
+      if (!Array.isArray(categories)) continue;
+      const entry = options.get(row.column_name) ?? new Set<string>();
+      for (const option of categories) {
+        if (typeof option === 'string' && option.trim()) entry.add(option);
+      }
+      options.set(row.column_name, entry);
+    }
+    return options;
+  }, [data, baseResults, ftResults]);
+
+  const questionEntries = useMemo<QuestionEntry[]>(() => {
+    return (data?.questions ?? []).map((q) => {
+      const subQuestion = q.sub_question || '';
+      const questionText = q.question || '';
+      const options = [...(answerOptionsByColumn.get(q.column_name) ?? [])];
+      return {
+        qid: q.question_id,
+        colName: q.column_name,
+        label: subQuestion
+          ? `${q.column_name}: ${subQuestion}`
+          : `${q.column_name}: ${questionText}`,
+        inTraining: q.in_training,
+        inEval: q.in_eval,
+        subQuestion,
+        questionText,
+        options,
+        fields: [
+          { weight: 1.6, tokens: tokenizeSearch(q.column_name), fuzzy: false },
+          { weight: 1.3, tokens: tokenizeSearch(subQuestion) },
+          { weight: 1.0, tokens: tokenizeSearch(questionText) },
+          { weight: 1.15, tokens: options.flatMap(tokenizeSearch) },
+        ],
+      };
+    });
+  }, [data, answerOptionsByColumn]);
+
+  const searchTokens = useMemo(() => tokenizeSearch(search), [search]);
+  const filteredQuestions = useMemo(() => {
+    return questionEntries
+      .map((entry, index) => {
+        const match = matchQuestion(entry, searchTokens);
+        return match ? { ...match, index } : null;
+      })
+      .filter((match): match is QuestionMatch & { index: number } => match !== null)
+      .sort((a, b) => b.score - a.score || a.index - b.index);
+  }, [questionEntries, searchTokens]);
 
   const currentQText = useMemo(() => {
     if (!selectedQId || !data?.questions) return '';
@@ -682,34 +847,59 @@ export default function ResultsViewer() {
           </div>
         )}
 
-        {questionIds.length > 0 ? (
+        {questionEntries.length > 0 ? (
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 3fr', gap: '2rem' }}>
             <div>
               <label style={label}>Question</label>
-              <input type="text" placeholder="Search questions..." value={search} onChange={(e) => setSearch(e.target.value)} style={{
+              <input type="search" placeholder="Search questions and answer options…" value={search} onChange={(e) => setSearch(e.target.value)} style={{
                 ...select, marginBottom: '0.5rem', width: '100%', boxSizing: 'border-box',
               }} />
+              {search && (
+                <p className="muted-text" style={{ margin: '0 0 0.5rem', fontSize: '0.72rem' }}>
+                  {filteredQuestions.length} matching question{filteredQuestions.length === 1 ? '' : 's'}
+                </p>
+              )}
               <div style={{ maxHeight: '55vh', overflowY: 'auto', border: '1px solid var(--color-border)', borderRadius: '0.5rem' }}>
-                {questionIds.filter(({ label }) => !search || label.toLowerCase().includes(search.toLowerCase())).map(({ qid, colName, label, inTraining, inEval }) => (
-                  <button key={`${qid}-${colName}`} onClick={() => setSelectedQId(colName)} style={{
-                    display: 'block', width: '100%', textAlign: 'left', padding: '0.75rem', border: 'none',
-                    borderBottom: '1px solid var(--color-border)',
-                    background: colName === selectedQId ? 'var(--color-primary)' : 'transparent',
-                    color: colName === selectedQId ? 'white' : 'var(--color-text)', cursor: 'pointer', fontSize: '0.8rem',
-                  }}>
-                    <strong>{label}</strong>
-                    <span style={{
-                      marginLeft: '0.5rem',
-                      fontSize: '0.65rem',
-                      padding: '0.1rem 0.4rem',
-                      borderRadius: '0.3rem',
-                      background: inTraining && inEval ? '#dcfce7' : inEval ? '#fef3c7' : '#e0e7ff',
-                      color: inTraining && inEval ? '#166534' : inEval ? '#92400e' : '#3730a3',
+                {filteredQuestions.length === 0 && (
+                  <p className="muted-text" style={{ padding: '0.75rem', fontSize: '0.8rem' }}>
+                    No questions match “{search}”.
+                  </p>
+                )}
+                {filteredQuestions.map(({ entry, matchedOptions }) => {
+                  const { qid, colName, label, inTraining, inEval, subQuestion, questionText } = entry;
+                  const selected = colName === selectedQId;
+                  return (
+                    <button key={`${qid}-${colName}`} onClick={() => setSelectedQId(colName)} title={`${colName}: ${questionText}${subQuestion ? ` — ${subQuestion}` : ''}`} style={{
+                      display: 'block', width: '100%', textAlign: 'left', padding: '0.75rem', border: 'none',
+                      borderBottom: '1px solid var(--color-border)',
+                      background: selected ? 'var(--color-primary)' : 'transparent',
+                      color: selected ? 'white' : 'var(--color-text)', cursor: 'pointer', fontSize: '0.8rem',
                     }}>
-                      {inTraining && inEval ? 'Train+Eval' : inEval ? 'Eval only' : 'Train only'}
-                    </span>
-                  </button>
-                ))}
+                      <strong>{label}</strong>
+                      <span style={{
+                        marginLeft: '0.5rem',
+                        fontSize: '0.65rem',
+                        padding: '0.1rem 0.4rem',
+                        borderRadius: '0.3rem',
+                        background: inTraining && inEval ? '#dcfce7' : inEval ? '#fef3c7' : '#e0e7ff',
+                        color: inTraining && inEval ? '#166534' : inEval ? '#92400e' : '#3730a3',
+                      }}>
+                        {inTraining && inEval ? 'Train+Eval' : inEval ? 'Eval only' : 'Train only'}
+                      </span>
+                      {matchedOptions.length > 0 && (
+                        <span style={{
+                          display: 'block',
+                          marginTop: '0.3rem',
+                          fontSize: '0.68rem',
+                          fontWeight: 400,
+                          color: selected ? 'rgba(255,255,255,0.85)' : 'var(--color-muted)',
+                        }}>
+                          Answer option: {matchedOptions.slice(0, 3).join(' · ')}{matchedOptions.length > 3 ? ` +${matchedOptions.length - 3}` : ''}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
               </div>
             </div>
 

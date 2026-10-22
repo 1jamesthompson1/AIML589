@@ -207,3 +207,66 @@
    }%
 }
 \makeatother
+
+% --- Model glossary system ---
+% The same idea as the term glossary, but for models. A reference is set in
+% \texttt, links to the model's entry in the appendix, and shows a short
+% description as a hover tooltip in an electronic PDF. Each entry also holds
+% the model's Hugging Face (or provider) URL, printed with the appendix entry.
+%
+% Usage (labels need no prefix - internal namespacing is automatic):
+%   \newmodel{label}{Display name}{Short description}{URL}
+%   \modelref{label}             % linked \texttt{Display name} (hover tooltip)
+%   \modeltext{label}            % the short description inline in prose
+%   \modelurl{label}             % the URL alone
+%   \printmodels                 % prints the entries only: wrap it in your
+%                                % own \section / \chapter heading, e.g. an
+%                                % appendix chapter.
+%
+% Example:
+%   \newmodel{qwen}{Qwen3.8-27B}{Open-weight ...}{https://huggingface.co/...}
+%   ... see \modelref{qwen} ...
+%
+% Models must be registered (\newmodel) before their first reference, as with
+% terms. In the report they live in appendices/models.tex, which is \input
+% twice: once in the preamble (registration) and once as the appendix (print;
+% set \modelprinttrue first). \newmodel is idempotent, so the second input
+% does not register the models twice.
+\newif\ifmodelprint
+\newcommand{\gmlistall}{}
+\newcommand{\newmodel}[4]{%
+   \ifcsname gmdef-#1\endcsname
+   \else
+      \expandafter\gdef\csname gmtxt-#1\endcsname{#2}%
+      \expandafter\gdef\csname gmdef-#1\endcsname{#3}%
+      \expandafter\gdef\csname gmurl-#1\endcsname{#4}%
+      \xdef\gmlistall{\ifx\gmlistall\empty\else\gmlistall,\fi#1}%
+   \fi
+}
+\newcommand{\modelref}[1]{%
+   \texorpdfstring{\protect\hyperlink{gm:#1}{\protect\pdfhover{\texttt{\csname gmtxt-#1\endcsname}}{\csname gmdef-#1\endcsname}}}{\csname gmtxt-#1\endcsname}%
+}
+\newcommand{\modeltext}[1]{\csname gmdef-#1\endcsname}
+\newcommand{\modelurl}[1]{\csname gmurl-#1\endcsname}
+\makeatletter
+\newcommand{\printmodels}{%
+   \expandafter\gm@printlist\expandafter{\gmlistall}%
+}
+\newcommand{\gm@printlist}[1]{%
+   \@for\gm@lab:=#1\do{%
+      \par\noindent
+      \hypertarget{gm:\gm@lab}{}\texttt{\csname gmtxt-\gm@lab\endcsname}: %
+      \csname gmdef-\gm@lab\endcsname\par
+      \nopagebreak\noindent
+      \href{\csname gmurl-\gm@lab\endcsname}{\footnotesize\url{\csname gmurl-\gm@lab\endcsname}}%
+      \par\vspace{6pt}%
+   }%
+}
+\makeatother
+
+% The LLM judge used for all evaluations in the report. Change the name (and
+% URL, if the judge changes) here and every reference and the model appendix
+% entry update with it.
+\newcommand{\judgemodelname}{GPT-6-Luna}
+\newcommand{\judgemodelurl}{https://openrouter.ai/openai/gpt-6-luna}
+\newcommand{\judgemodel}{\modelref{gpt-6-luna}}

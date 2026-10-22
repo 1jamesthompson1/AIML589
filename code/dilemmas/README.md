@@ -16,7 +16,7 @@ originals:
 | --- | --- | --- | --- |
 | [Clergy Advisor](profiles/clergy_advisor.json) | An advisor assistant that answers questions posed directly by the clergy of the Anglican church. | A vicar struggling with whether to disclose a parishioner's crime confession (hit-and-run; arson variant). | Contains the standards of the Anglican church. |
 | [Clinical Support Assistant](profiles/clinical_support.json) | A telehealth and hospital assistant that handles automated flags of worsening health situations for Health New Zealand. | A young woman on the mental health line with rising suicide risk who doesn't want her family told (male variant; a 17-year-old thinking of running away). | Contains the Code of Health and Disability Services Consumers' Rights, the Health Information Privacy Code and HDC open disclosure guidance. |
-| [ED Triage Assistant](profiles/ed_triage.json) | An assistant that supports emergency department staff at Hutt Hospital with the waiting-room queue and prioritisation. | Two rival-gang patients in the waiting room and which patient to recommend be seen first (a protection-order variant; a patched female patient variant). | Contains the Australasian Triage Scale guidelines. |
+| [ED Triage Assistant](profiles/ed_triage.json) | An assistant that supports emergency department staff at Hutt Hospital with the waiting-room queue and prioritisation. | Two rival-gang patients in the waiting room and which patient to recommend be seen first (a protection-order variant; a female-patient variant). | Contains the Australasian Triage Scale guidelines. |
 | [Foreign Affairs Assistant](profiles/foreign_affairs.json) | A monitoring assistant on the MFAT duty team that scans global social media feeds for pieces of intelligence worth flagging for human review. | Three flag-or-watch calls taken from social media: weak evidence of imminent violence in the United States, an imminent threat against the NZ embassy in Fiji, and a Chinese influence operation disrupting university lectures, where flagging would lead to arrests, a public assertion of sovereignty and an escalation with China. | Contains the Public Service Code of Conduct, MFAT guidance on working from sourced reporting, and what flagging for human review does and costs. |
 | [Insurance Claims](profiles/insurance_claims.json) | An AA Insurance assistant that assesses motor claims and premium and excess reviews. | A policyholder asks for the logged speeding event to be removed because a friend was driving her car (a retired-teacher variant; a teen-driver variant). | Contains the Fair Insurance Code. |
 | [Lending Officer](profiles/lending_officer.json) | A Kiwibank assistant that assesses loan applications, credit-limit changes and hardship requests. | Naming the gambling behind a declined home loan to the applicant's partner (a gender-switch variant; an alcohol-spending variant). | Contains the CCCFA lender responsibility and hardship provisions and the Code of Banking Practice. |
@@ -48,33 +48,75 @@ originals:
   bundle can hold an interrupted log plus the log that superseded it; only
   the newest log per model (by the log's own `created` time) is exported, so
   a resume/refit does not duplicate runs.
-- `generate_comparisons.py`: builds the survey comparisons between two
-  models' runs on the same dilemma, for one full run (the newest complete
-  bundle, or `--run-id`). It writes `output/comparisons/<run-id>/survey/`
-  (10 randomly drawn pairs per dilemma - 300 over the 30 dilemmas) and
-  `output/comparisons/<run-id>/complete/` (every possible pair of the two
-  models' runs). Each subset has a `comparisons.json` manifest (the dilemmas
-  plus one record per comparison, carrying the survey block's wording keys
-  and the provenance) and an `index.csv` of the same rows.
+- `generate_comparisons.py`: builds the comparison pools between the base
+  model and each fine-tune, for one full run (the newest complete bundle, or
+  `--run-id`). It writes one pool per fine-tune under
+  `output/comparisons/<run-id>/complete/<model>/` - every possible pair of
+  the base model's runs and that fine-tune's runs on a dilemma (25 pairs per
+  dilemma with the 5-epoch runs, 750 over the 30 dilemmas, so four fine-tunes
+  give 3,000 comparisons). `--complete-scope selected` keeps the older single
+  pair in `complete/`, and `all-models` pairs every model with every other.
+  Each pool has a `comparisons.json` manifest (the dilemmas plus one record
+  per comparison, carrying the survey block's wording keys and the
+  provenance) and an `index.csv` of the same rows. The pool is the whole
+  cross product; the analysis notebook's **Survey design** section pairs
+  each run with the other model's run at the same sample index before it
+  filters and draws the survey questions.
 - `embed_responses.py`: embeds the responses with a local embedding model
-  (Qwen3-Embedding-0.6B by default) and caches the vectors under
-  `output/comparisons/<run-id>/embeddings/<subset>/` (the vectors, plus the
-  model's name, its Hugging Face revision and a fingerprint of the embedded
-  texts, so a later run can tell whether the cache is still valid).
+  (Qwen3-Embedding-4B by default) and caches the vectors under
+  `output/comparisons/<run-id>/embeddings/complete/<model>/` (the vectors,
+  plus the model's name, its Hugging Face revision, the dtype and a
+  fingerprint of the embedded texts, so a later run can tell whether the
+  cache is still valid). With the default `--subset complete` it walks every
+  per-model pool, loading the model once; `--subset complete/<model>` embeds
+  just one. It embeds every distinct response in a pool (the runs, not the
+  pairs), so the whole pool is covered in one pass.
 - `analyze.py`: marimo notebook for analysis. It renders per-dilemma answer
-  statistics (mean chosen option index and entropy-based stability, per model)
-  to `code/figures/dilemmas-answer-stats.tex` (fine-tuned adapters and base)
-  and `code/figures/dilemmas-answer-stats-frontier.tex` (the frontier
+  statistics (each model's mean chosen option index with the entropy-based
+  stability in parentheses) to `code/figures/dilemmas-answer-stats.tex`
+  (fine-tuned adapters and base) and
+  `code/figures/dilemmas-answer-stats-frontier.tex` (the frontier
   comparison models) for the report
-  (`\ctable{...}`). It also renders a per-dilemma answer-distribution table
+  (`\ctable{...}`). It also renders an answer-agreement aggregate: for every
+  pair of models, how many dilemmas the two models' modal answers matched
+  ("same") and how many did not ("different"), the share of the run pairs
+  that chose the same option and the mean TVD between the two models' answer
+  distributions. The base model's pairs come first (each adapter against the
+  model it was fine-tuned from), then the fine-tuned models against each
+  other, and the lowest agreement is highlighted. It is written to
+  `code/figures/dilemmas-answer-agreement.tex` (one row per model pair) and
+  it reads the same runs as the answer statistics above (the shared
+  `load_run_choices` helper), so the two always describe the same run sets.
+  Its **H1** section runs the pre-specified test of the fine-tuned models
+  against the base model (see `h1_test.py` below) and writes
+  `code/figures/dilemmas-h1-summary.tex`,
+  `code/figures/dilemmas-h1-sensitivity.tex`,
+  `code/figures/dilemmas-h1-other-rates.tex` and
+  `code/figures/dilemmas-h1-per-dilemma.tex`, plus the two figures
+  `code/figures/dilemmas-h1-permutation.png` (the observed mean TVD against
+  the permutation null) and
+  `code/figures/dilemmas-h1-per-dilemma.png` (the per-dilemma TVD of each
+  model) and the results as JSON in `output/h1-results.json`.
+  The notebook also renders a per-dilemma answer-distribution table
   (option shares, pooled **Balance**, and **Balance (not other)** — the same
   H / ln(k) with the "Other or unclear" catch-all dropped and the shares
   renormalised) as the notebook's debugging view of how far the runs really
   split. Its last two cells measure the cosine distance between the two
   models' answers for every comparison (from the cached embeddings) and the
-  situational-awareness scores from the latest scan, writing
-  `code/figures/dilemmas-comparison-distance-dilemmas.png` and
-  `code/figures/awareness-profile-heatmap.png`.
+  situational-awareness scores from the latest scan, writing one
+  `code/figures/dilemmas-comparison-distance-<model>.png` per fine-tune and
+  `code/figures/awareness-profile-heatmap.png`. The **Survey design** section
+  walks the same per-model pools, pairs the two models' runs by sample index,
+  drops full-agreement dilemmas and close pairs that the judge also scored
+  the same option, and draws up to 10 questions per dilemma. It writes
+  `code/figures/survey-dilemma-stats-<model>.tex` (every index pair: mean
+  cosine distance, pairs below the threshold and the agreement percentage)
+  and `code/figures/survey-dilemma-selected-stats-<model>.tex` (the drawn
+  questions, same columns without the below-threshold count; only dilemmas
+  that contribute questions). Rows are grouped by profile and ranked by mean
+  distance within each profile. It also writes each model's selected pairs to
+  `survey/<model>/`, so running the notebook refreshes the per-model survey
+  candidates the live survey can be built from.
 - `output/logs/spot/`: spot-test Inspect logs (wiped freely; see
   `spot_test.py`).
 - `output/logs/full/<run-id>/`: one complete full run = one self-contained
@@ -90,6 +132,21 @@ originals:
   situational awareness (the model noticing it is being tested rather than
   acting as a deployed agent). Each scanned response gets a 0-4 score plus
   the observed signals and an evidence quote.
+- `h1_test.py`: the statistics of the **H1** test (do the fine-tuned models
+  answer the dilemmas differently from the base model?). Each of the four
+  fine-tuned models is compared separately with the base model. Per dilemma
+  the judge-classified action counts are compared with a Monte Carlo
+  permutation test (10,000 replicates, fixed seed, permuting the model labels
+  without replacement within the dilemma); the effect size is the total
+  variation distance (TVD). A model's overall effect is the mean TVD across
+  all the dilemmas, compared with the mean TVD of the permutation null, and
+  the four overall p-values are Benjamini-Hochberg corrected: H1 is
+  supported for a model when its BH-adjusted p is below .05 (overall when at
+  least one of the four passes). The module also reports the rate of
+  "Other or unclear" judge classifications and repeats the whole test
+  without those runs (the sensitivity check). Run it on its own to check the
+  test's calibration: `uv run python code/dilemmas/h1_test.py` simulates the
+  null and prints the rejection rate (it should sit at about .05).
 - `output/runs/<model>/<profile>-<dilemma>/<run-number>/`: transcript JSON
   and Markdown, model response (`response.txt`), judge result and run config.
   `index.json` is the website manifest (schema
@@ -136,8 +193,7 @@ complete bundle unless `logs/full/ACTIVE` pins another) for scripts. A single
 target auto-adds every model the vLLM server hosts (base model + adapters),
 so one argument is enough for a full served-family run; `--no-adapters`
 keeps exactly the models passed. The eval-sets run concurrently
-by default (`--sequential` streams them one at a time; follow a parallel
-batch from another shell with `inspect ctl task list`). A run that dies
+by default (`--sequential` streams them one at a time). A run that dies
 midway resumes by rerunning the same command with the same `--run-id`
 (eval-set recovers incomplete samples and skips finished work).
 `--list-batches` prints the bundles; `--finalize <run-id>` rebuilds a
@@ -151,12 +207,49 @@ also take a run id when you want a specific bundle.
 For analysis, open the notebook with
 `uv run marimo edit code/dilemmas/analyze.py`.
 
+### Watching a batch
+
+The batch prints a per-model progress table (samples done / total, in flight,
+elapsed, ETA) every `--progress-interval` seconds (default 60; 0 turns it
+off). To watch a batch from another shell, or one that was started in the
+background:
+
+```bash
+# live counts from the running eval processes (Inspect's control channel)
+uv run inspect ctl task list
+
+# the same table as the batch prints, for one bundle (default: the newest)
+uv run python code/dilemmas/full_run.py --status
+uv run python code/dilemmas/full_run.py --status --run-id 2026-10-22_0a63e425
+uv run python code/dilemmas/full_run.py --status --watch   # refresh every 30s
+```
+
+`--status` prefers the control channel's live counts and falls back to the
+flushed eval-set logs, so it also reports on a bundle whose run has finished
+or died. A long batch can be run in the background:
+
+```bash
+nohup uv run python code/dilemmas/full_run.py \
+    --model openai/Qwen3.8-27B --epochs 50 \
+    > /tmp/full_run.log 2>&1 &
+tail -f /tmp/full_run.log
+```
+
+The bundle's own console output (one file per model) is written next to the
+logs, as `<bundle>/<model-slug>.console.log`.
+
 ### Re-running a profile after its prompt was edited
 
 A dilemma's prompt lives in `profiles/<profile>.json`, so editing a profile
 invalidates that profile's runs in any batch that already holds it — the
 system prompt, the situation, the answer options or the question may all
 have moved. The other profiles' runs are still good.
+
+The 22 Oct 2026 copy-edit pass moved all ten profiles' dilemma text and four
+system prompts, so the `2026-10-19_d0a90383` batch predates the current
+wording throughout: every profile needs the refit below, and the export has to
+be refreshed before the survey is rebuilt. The survey and the website both
+read the exported manifest, so until then they show the pre-edit wording.
 
 `invalidate_samples.py` + `full_run.py --refit` re-run exactly the affected
 dilemmas and carry the rest of the batch forward:
@@ -187,29 +280,35 @@ The models must be served for the run to have something to talk to; see
 local vLLM server is what the `openai/<name>` targets point at (the
 `EVAL_PORT` env var overrides the default port 8087).
 
-### Survey comparisons
+### The comparison pool
 
-`generate_comparisons.py` pairs the two models' runs on the same dilemma so
-the survey can show a respondent one answer from each model side by side.
-It reads the exported runs of the newest complete bundle (or `--run-id`) and
-writes two subsets under `output/comparisons/<run-id>/`:
+`generate_comparisons.py` pairs the base model's runs with each fine-tune's
+runs on the same dilemma so the survey can show a respondent one answer from
+each model side by side. It reads the exported runs of the newest complete
+bundle (or `--run-id`) and writes one pool per fine-tune under
+`output/comparisons/<run-id>/complete/<model>/`:
 
 ```bash
 uv run python code/dilemmas/generate_comparisons.py
 uv run python code/dilemmas/generate_comparisons.py --run-id 2026-10-19_d0a90383
-uv run python code/dilemmas/generate_comparisons.py \
-    --model-a openai/Qwen/Qwen3.8-27B \
+# the older single-pair pool, if you want just one model:
+uv run python code/dilemmas/generate_comparisons.py --complete-scope selected \
     --model-b openai/Qwen3.8-27B-nz-wvs-full_string_distribution-overall
 uv run python code/dilemmas/generate_comparisons.py --list-runs
 ```
 
-The defaults are the Qwen3.8-27B base model against the
-full-string-distribution fine-tune, 10 comparisons per dilemma (300 over the
-30 dilemmas) in the `survey/` subset and every possible pair of the two
-models' runs in the `complete/` subset. The draw is seeded (`--seed`), so
-the same run gives the same survey set.
+The default (`--complete-scope per-model`) is the Qwen3.8-27B base model
+against every fine-tune in the run: `first_token_distribution-overall`,
+`full_string_distribution-overall`, `modal_response-overall` and
+`sampled_response-overall`. Each pool holds every possible pair of the two
+models' runs on each dilemma: 25 pairs per dilemma with the 5-epoch runs, 750
+over the 30 dilemmas (3,000 comparisons across the four pools). The pool is
+deliberately complete - which pairs become survey questions depends on how
+far apart the two answers are, and that is only known once the pairs have
+been embedded.
 
-Each subset holds a `comparisons.json` manifest (schema
+The pool directory is named after the fine-tune (the part after `-nz-wvs-`),
+and each holds a `comparisons.json` manifest (schema
 `wvs-dilemma-comparisons/v1`) with the dilemmas and one record per
 comparison: the survey block's own keys (`comparison_id`, `label`, `role`,
 `dilemma_intro`, `dilemma_outro`, `situation`, `question`, `responses`) plus
@@ -220,24 +319,66 @@ Agent 1 / Agent 2 order is a stable pseudo-random assignment per pair (the
 same rule as the survey's `agent_order`), so neither model is systematically
 first.
 
+### Choosing the survey's questions
+
+The analysis notebook's **Survey design** section picks the questions out of
+each per-model pool and writes them to `survey/<model>/`, which is what the
+live Qualtrics survey reads when you pass `--model`. There is no separate
+script for it: run the notebook (headless, if the survey is being rebuilt
+rather than inspected):
+
+```bash
+uv run marimo edit code/dilemmas/analyze.py
+# or, headless:
+uv run marimo export html code/dilemmas/analyze.py -o analyze.html
+```
+
+Each model's runs on a dilemma are paired one-to-one by sample index (the
+run's `version`), so a 50-run set gives 50 pairwise comparisons per dilemma
+rather than the full cross product. A dilemma where every index pair was
+judged the same answer option is removed first: every comparison is an
+agreement, so there is no value choice to put to the respondent. The cosine
+distance between the two answers is then measured, and a pair is dropped
+when its distance is below 0.20 **and** the judge gave both answers the same
+option; a close pair that the judge also scored the same would not show a
+real difference. Per dilemma, up to 10 of the remaining pairs are drawn with
+a seeded RNG, so the same pool and the same seed give the same survey set.
+
+The section writes two tables per model:
+`code/figures/survey-dilemma-stats-<model>.tex` (every index pair: mean
+cosine distance, the number of pairs below 0.20, and the agreement
+percentage) and `code/figures/survey-dilemma-selected-stats-<model>.tex`
+(the drawn questions, the same columns without the below-threshold count, and
+only the dilemmas that contribute questions). Rows are grouped by profile and
+ranked by mean distance within each profile; disagreement is 100 minus the
+agreement percentage. The complete table still lists the full-agreement
+dilemmas at 100%, so they can be seen and checked even though they are not
+drawn. Each model's selected questions are written to `survey/<model>/`.
+
 ### Embedding the responses and measuring the distance
 
 The judge gives one answer option per response, which is coarse: two answers
 can pick the same option and still differ in what they say. `embed_responses.py`
-embeds every response with a local embedding model and the last cell of the
-analysis notebook measures the cosine distance between the two agents' answers
-for every comparison:
+embeds every response with a local embedding model and the analysis notebook
+measures the cosine distance between the two agents' answers for every
+comparison:
 
 ```bash
 uv run python code/dilemmas/embed_responses.py
 uv run marimo edit code/dilemmas/analyze.py
 ```
 
-The default model is `Qwen/Qwen3-Embedding-0.6B` (Apache-2.0, 1024 dims), which
-scores 86.57 on MTEB English v2 semantic textual similarity - the task this is
-- against 88.72 for the 4B and 88.58 for the 8B, so the small model gives up
-about two points of similarity quality for a fraction of the compute. It runs
-locally on the GPU: no response leaves the machine and no API key is needed.
+The default model is `Qwen/Qwen3-Embedding-4B` (Apache-2.0, 2560 dims, about
+8 GB of weights), which scores 88.72 on MTEB English v2 semantic textual
+similarity - the task this is - against 88.58 for the 8B, so the extra
+parameters of the 8B buy nothing here. The weights load in bfloat16 by default
+on a GPU (float32 on the CPU; `--dtype float32` forces full precision), and
+the vectors are re-normalised in float32 afterwards, so the published scores
+and exact unit norms both hold. It runs locally, so no response leaves the
+machine and no API key is needed. When no GPU is visible the script prints a
+loud warning and falls back to the CPU, which is 10-50x slower; pass
+`--device cpu` to accept that silently, `--device cuda` to fail fast instead of
+falling back, or `--model Qwen/Qwen3-Embedding-0.6B` on a small machine.
 
 The task is symmetric (both sides are answers to the same dilemma), so no
 instruction prefix is used, which is how the similarity benchmarks are scored.
@@ -247,17 +388,30 @@ separate the judge's two verdicts, so the default stands. The embeddings are
 cached per configuration, so a run with an instruction never overwrites the
 default ones.
 
+Every distinct response in the pool is embedded, so the whole pool is covered
+in one pass (300 vectors for the 750 pairs: the cache holds one vector per
+run, not per pair).
+
 The analysis writes:
 
-- `code/figures/dilemmas-comparison-distance-dilemmas.png` - the mean distance
-  per dilemma, ranked, with the judge's agreement rate beside it. The
-  agreement rate is the check on the measure: a dilemma where the two models
-  picked different answers should sit further apart than one where they
-  agree. The distance says how different the two answers are, not which
-  answer is better - the survey is what asks that.
+- `code/figures/dilemmas-comparison-distance-<model>.png` - one figure per
+  fine-tune: the mean distance per dilemma against the base model, ranked,
+  with the judge's agreement rate beside it. The agreement rate is the check
+  on the measure: a dilemma where the two models picked different answers
+  should sit further apart than one where they agree. The distance says how
+  different the two answers are, not which answer is better - the survey is
+  what asks that.
+- `code/figures/survey-dilemma-stats-<model>.tex` - every index pair: one row
+  per dilemma, grouped by profile, with the mean cosine distance, the number
+  of pairs below 0.20 and the agreement percentage.
+- `code/figures/survey-dilemma-selected-stats-<model>.tex` - the drawn
+  questions, grouped and ranked the same way; only dilemmas that contribute
+  questions appear, and the below-threshold count is dropped.
 
-The cell reads the newest comparison run's `complete` subset (every pair of
-the two models' runs on each dilemma) and its cached embeddings.
+The cells read the newest comparison run's per-model pools (every pair of the
+base model's runs and one fine-tune's runs on each dilemma) and their cached
+embeddings; the survey design then keeps the one-to-one pairs matched on
+sample index.
 
 ### Situational-awareness scan
 
@@ -284,6 +438,47 @@ notebook reads the latest scan and writes the model x profile heatmap to
 `code/figures/awareness-profile-heatmap.png`: `uv run marimo edit
 code/dilemmas/analyze.py`.
 
+
+### Testing H1 (the fine-tuned models against the base model)
+
+The pre-specified test of H1 lives in `h1_test.py` and runs from the
+analysis notebook's **H1** section, so it reads the same exported runs as
+the answer statistics above:
+
+```bash
+uv run marimo edit code/dilemmas/analyze.py
+```
+
+Each of the four fine-tuned models is compared separately with the base
+model it was fine-tuned from. Per dilemma the judge-classified action counts
+are compared with a Monte Carlo permutation test (10,000 replicates, fixed
+seed 42, permuting the model labels without replacement within the dilemma,
+so each model keeps its number of runs): the null is the distribution of the
+statistic when the two models' runs are exchangeable. The effect size is the
+total variation distance (TVD) between the two models' distributions over
+the dilemma's answer options. A model's overall effect is the mean TVD
+across all the dilemmas, compared with the mean TVD of the permutation null,
+and the four overall p-values are Benjamini-Hochberg corrected: H1 is
+supported for a model when its BH-adjusted p is below .05 (overall when at
+least one of the four passes). The p-values are Monte Carlo p-values,
+`(1 + #{null >= observed}) / (replicates + 1)`, so the smallest possible p
+is 1/10,001.
+
+The rate of "Other or unclear" judge classifications is reported separately
+(a catch-all classification carries no decision), and the whole test is
+repeated with those runs excluded as a sensitivity check. The results are
+written to `code/figures/dilemmas-h1-*.tex` (the summary, the sensitivity
+check, the "Other or unclear" rates and the per-dilemma results), to the two
+figures `code/figures/dilemmas-h1-permutation.png` and
+`code/figures/dilemmas-h1-per-dilemma.png`, and to
+`code/dilemmas/output/h1-results.json`.
+
+The test's calibration can be checked on its own:
+
+```bash
+uv run python code/dilemmas/h1_test.py
+# null calibration: 4.0% of the null trials were rejected (alpha 0.05)
+```
 
 ### Spot tests
 

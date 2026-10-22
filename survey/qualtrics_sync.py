@@ -174,6 +174,24 @@ def slim(payload: dict) -> dict:
     }
 
 
+def display_logic_condition(question: dict) -> tuple | None:
+    """The question's display-logic condition, ignoring the API's own keys.
+
+    The API adds its own description markup back, so the whole structure
+    cannot be compared; the condition itself is what the definition owns.
+    """
+    logic = question.get("DisplayLogic")
+    if not logic:
+        return None
+    expression = logic.get("0", {}).get("0", {})
+    return (
+        expression.get("LogicType"),
+        expression.get("LeftOperand"),
+        expression.get("Operator"),
+        expression.get("RightOperand"),
+    )
+
+
 def question_differs(remote: dict, payload: dict) -> bool:
     # Configuration excluded: the API adds derived display keys back, so
     # comparing it would re-update every run.
@@ -189,7 +207,10 @@ def question_differs(remote: dict, payload: dict) -> bool:
         "DataVisibility",
         "Validation",
     )
-    return any(remote.get(f) != payload.get(f) for f in fields)
+    if any(remote.get(f) != payload.get(f) for f in fields):
+        return True
+    # the display logic is compared by its condition (see above)
+    return display_logic_condition(remote) != display_logic_condition(payload)
 
 
 def sync_questions(sv_id: str, wanted: dict[str, dict]) -> dict:
@@ -485,8 +506,16 @@ def main() -> None:
         help="parallel threads for --clear question deletes (Qualtrics has "
         "no bulk delete; N threads hide the per-call server latency)",
     )
+    parser.add_argument(
+        "--model",
+        default=None,
+        help="Which model's survey subset to build (survey/<model>/), e.g. "
+        "modal_response-overall. Required when several per-model subsets exist.",
+    )
     args = parser.parse_args()
 
+    if args.model:
+        os.environ[defn.COMPARISON_MODEL_ENV] = args.model
     definition, wanted_questions, wanted_blocks = flatten_definition()
 
     sv_id = args.survey_id or managed_survey_id()

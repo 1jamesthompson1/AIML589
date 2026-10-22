@@ -114,11 +114,57 @@ interface JudgeDoc {
   };
 }
 
+/* The run's own record (config.json): the dilemma it was given, exactly as
+ * it was sent. The manifest holds one text per dilemma, so the run's own
+ * copy is what proves the wording a particular run used. */
+interface RunConfig {
+  run_id?: string;
+  model?: string;
+  profile_id?: string;
+  situation_id?: string;
+  sample_id?: string;
+  epoch?: number;
+  version?: number;
+  created?: string;
+  dilemma?: {
+    id?: string;
+    situation?: string;
+    question?: string;
+    answer_options?: string[];
+  };
+}
+
+/* The run's transcript: the messages the model was sent. The system
+ * message is the profile's system prompt as the run used it, the user
+ * message is the situation and question joined by a blank line. */
+interface RunTranscript {
+  messages?: { role?: string; content?: unknown }[];
+}
+
 interface RunData {
   status: 'loading' | 'ready' | 'error';
   response?: string;
   judge?: JudgeDoc | null;
+  config?: RunConfig | null;
+  /** The prompt the run was sent, read from its transcript. */
+  prompt?: RunPrompt | null;
+  promptStatus?: 'idle' | 'loading' | 'ready' | 'error';
   error?: string;
+}
+
+/** The two messages a run was sent. */
+interface RunPrompt {
+  system?: string;
+  user?: string;
+}
+
+/** The wording one run was given: its situation, question and options. */
+interface RunWording {
+  situation: string;
+  question: string;
+  answerOptions: string[];
+  /** The models whose selected run used this wording. */
+  models: string[];
 }
 
 const label: React.CSSProperties = { display: 'block', fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--color-muted)', marginBottom: '0.25rem' };
@@ -148,6 +194,45 @@ function profileLabel(manifest: RunsManifest | null, id: string): string {
 function dilemmaLabel(dilemma: DilemmaInfo): string {
   const text = dilemma.question || dilemma.situation || dilemma.situation_id;
   return text.length > 90 ? `${text.slice(0, 89)}…` : text;
+}
+
+/* The text of one message. Content is a plain string for the system and
+ * user messages; other roles carry a list of content blocks, of which only
+ * the text blocks are the message proper. */
+function messageText(content: unknown): string {
+  if (typeof content === 'string') return content;
+  if (!Array.isArray(content)) return '';
+  const texts: string[] = [];
+  for (const block of content) {
+    if (!block || typeof block !== 'object') continue;
+    const { type, text } = block as { type?: string; text?: string };
+    if (type === 'text' && typeof text === 'string') texts.push(text);
+  }
+  return texts.join('\n');
+}
+
+/* The prompt a run was sent, read from that run's transcript. */
+function promptFromTranscript(transcript: RunTranscript | null | undefined): RunPrompt | null {
+  const messages = transcript?.messages;
+  if (!messages?.length) return null;
+  const system = messages.find((message) => message.role === 'system');
+  const user = messages.find((message) => message.role === 'user');
+  return {
+    system: system ? messageText(system.content) : undefined,
+    user: user ? messageText(user.content) : undefined,
+  };
+}
+
+/* The wording one run was given, from that run's own record. */
+function runWording(data: RunData | null | undefined): RunWording | null {
+  const dilemma = data?.config?.dilemma;
+  if (!dilemma || typeof dilemma.situation !== 'string') return null;
+  return {
+    situation: dilemma.situation,
+    question: dilemma.question ?? '',
+    answerOptions: dilemma.answer_options ?? [],
+    models: [],
+  };
 }
 
 /* Outcome distribution for one dilemma: the share of each model's exported
@@ -500,15 +585,35 @@ function JudgeNote({ judge }: { judge: JudgeDoc | null | undefined }) {
   );
 }
 
-function DilemmaStimulus({ dilemma, fallbackId, profileName, roleSummary, dilemmaIntro, dilemmaOutro, systemPrompt }: {
+function DilemmaStimulus({ dilemma, fallbackId, wording, versions, ownRecords, profileName, roleSummary, dilemmaIntro, dilemmaOutro }: {
   dilemma: DilemmaInfo | null;
+  /** The key of the selected dilemma, for manifests with no inventory. */
   fallbackId: string;
+  /** The wording the selected runs were given (from their own records). */
+  wording: RunWording | null;
+  /** Every wording the selected runs used (one per distinct text). */
+  versions: RunWording[];
+  /** Whether the runs' own records could be read at all. */
+  ownRecords: boolean;
   profileName: string;
   roleSummary?: string;
   dilemmaIntro?: string;
   dilemmaOutro?: string;
-  systemPrompt?: string;
 }) {
+  // The run's own copy wins; the manifest's text stands in until the run's
+  // record has loaded (it is the same text, exported from the same run).
+  const situation = wording?.situation ?? dilemma?.situation ?? '';
+  const question = wording?.question ?? dilemma?.question ?? '';
+  const answerOptions = wording?.answerOptions ?? dilemma?.answer_options ?? [];
+  const source = wording
+    ? versions.length > 1
+      ? `Read from the selected runs' own records. They used different wording for this dilemma (${versions
+        .map((version) => version.models.join(', '))
+        .join(' · ')}); the wording below is the first one's, and each model's card shows the wording its own run used.`
+      : "Read from the selected runs' own records: the exact situation and question those runs were given."
+    : ownRecords
+      ? 'Reading the selected runs’ own records…'
+      : 'These runs’ own records could not be read, so the text below is the batch manifest’s copy.';
   return (
     <section className="dilemma-stimulus" aria-label="Dilemma">
       <p className="dilemma-stimulus__meta">
@@ -520,27 +625,22 @@ function DilemmaStimulus({ dilemma, fallbackId, profileName, roleSummary, dilemm
       {dilemmaIntro && <p className="dilemma-stimulus__intro">{dilemmaIntro}</p>}
       {!dilemmaIntro && <p className="dilemma-stimulus__lead">{VIEWER_QUESTION_LEAD}</p>}
       <blockquote className="dilemma-stimulus__case">
-        {dilemma?.situation && (
-          <p className="dilemma-stimulus__situation">{dilemma.situation}</p>
+        {situation && (
+          <p className="dilemma-stimulus__situation">{situation}</p>
         )}
-        {dilemma?.question ? (
-          <p className="dilemma-stimulus__question">{dilemma.question}</p>
+        {question ? (
+          <p className="dilemma-stimulus__question">{question}</p>
         ) : (
           <p className="muted-text">Loading the dilemma text…</p>
         )}
       </blockquote>
+      <p className="dilemma-stimulus__source muted-text">{source}</p>
       {dilemmaOutro && <p className="dilemma-stimulus__intro">{dilemmaOutro}</p>}
-      {systemPrompt && (
-        <details className="dilemma-prompt">
-          <summary>System prompt given to the model ({profileName})</summary>
-          <pre className="simulation-preserve-text dilemma-prompt__text">{systemPrompt}</pre>
-        </details>
-      )}
-      {(dilemma?.answer_options?.length ?? 0) > 0 && (
+      {answerOptions.length > 0 && (
         <details className="dilemma-options">
-          <summary>Answer options the judge classifies against ({dilemma!.answer_options!.length})</summary>
+          <summary>Answer options the judge classifies against ({answerOptions.length})</summary>
           <ul>
-            {dilemma!.answer_options!.map((option) => <li key={option}>{option}</li>)}
+            {answerOptions.map((option) => <li key={option}>{option}</li>)}
           </ul>
         </details>
       )}
@@ -548,7 +648,45 @@ function DilemmaStimulus({ dilemma, fallbackId, profileName, roleSummary, dilemm
   );
 }
 
-function RunResponse({ data, onRetry, run }: { data: RunData | null; onRetry: () => void; run: RunRow | null }) {
+/* The prompt one run was sent, from that run's own transcript: the system
+ * message (the profile's system prompt as the run used it) and the user
+ * message (the situation and question). Fetched when the panel is opened,
+ * because a system prompt is tens of kilobytes. */
+function RunPromptPanel({ run, data, onLoad }: {
+  run: RunRow | null;
+  data: RunData | null;
+  onLoad: () => void;
+}) {
+  if (!run) return null;
+  const status = data?.promptStatus ?? 'idle';
+  return (
+    <details
+      className="dilemma-prompt"
+      onToggle={(event) => { if (event.currentTarget.open) onLoad(); }}
+    >
+      <summary>The exact prompt this run was given</summary>
+      {status === 'loading' && <p className="muted-text">Loading this run’s transcript…</p>}
+      {status === 'error' && (
+        <p className="muted-text">This run’s transcript could not be loaded, so its prompt is not shown here.</p>
+      )}
+      {status === 'ready' && (
+        <>
+          <p className="dilemma-prompt__label">System message</p>
+          <pre className="simulation-preserve-text dilemma-prompt__text">{data?.prompt?.system}</pre>
+          <p className="dilemma-prompt__label">User message</p>
+          <pre className="simulation-preserve-text dilemma-prompt__text">{data?.prompt?.user}</pre>
+        </>
+      )}
+    </details>
+  );
+}
+
+function RunResponse({ data, onRetry, run, onLoadPrompt }: {
+  data: RunData | null;
+  onRetry: () => void;
+  run: RunRow | null;
+  onLoadPrompt: () => void;
+}) {
   if (!data || data.status === 'loading') return <p className="muted-text">Loading response…</p>;
   if (data.status === 'error') {
     return (
@@ -565,6 +703,7 @@ function RunResponse({ data, onRetry, run }: { data: RunData | null; onRetry: ()
         : <p className="muted-text"><em>No response text stored for this run.</em></p>}
       <JudgeNote judge={data.judge} />
       {run && <p className="dilemma-provenance muted-text">Run {run.version} · {fmtDate(run.created)} · {run.run_id}</p>}
+      <RunPromptPanel run={run} data={data} onLoad={onLoadPrompt} />
     </>
   );
 }
@@ -716,19 +855,55 @@ export default function DilemmasViewer() {
     setRunDocs((previous) => ({ ...previous, [run.run_id]: loading }));
     try {
       const base = `${runsBase}${run.path}/`;
-      const [response, judge] = await Promise.all([
+      // config.json is the run's own record: the dilemma it was given. The
+      // manifest holds one text per dilemma, so this is what proves the
+      // wording this particular run used.
+      const [response, judge, config] = await Promise.all([
         cachedFetchText(`${base}response.txt`),
         cachedFetchJson<JudgeDoc>(`${base}judge.json`).catch(() => null),
+        cachedFetchJson<RunConfig>(`${base}config.json`).catch(() => null),
       ]);
       // An empty judge file ({} in runs with no score) means "no result",
       // not a judge panel with missing fields.
       const judged = judge && (judge.answer || judge.explanation || judge.metadata) ? judge : null;
-      runCache.current[run.run_id] = { status: 'ready', response: response.trim(), judge: judged };
+      // Keep any prompt already fetched for this run.
+      runCache.current[run.run_id] = {
+        ...runCache.current[run.run_id],
+        status: 'ready',
+        response: response.trim(),
+        judge: judged,
+        config,
+      };
     } catch (error) {
       console.error(`[DilemmasViewer] run load failed (${run.path}):`, error);
       runCache.current[run.run_id] = { status: 'error', error: String(error) };
     } finally {
       inFlight.current.delete(run.run_id);
+      setRunDocs((previous) => ({ ...previous, [run.run_id]: runCache.current[run.run_id] }));
+    }
+  }, [runsBase]);
+
+  /* The run's transcript: the messages the model was sent. It is fetched
+   * only when the reader opens that run's prompt panel, because a system
+   * prompt is tens of kilobytes. */
+  const ensurePrompt = useCallback(async (run: RunRow) => {
+    const cached = runCache.current[run.run_id];
+    if (cached?.prompt || cached?.promptStatus === 'error') return;
+    const key = `${run.run_id}#prompt`;
+    if (inFlight.current.has(key)) return;
+    inFlight.current.add(key);
+    const current = runCache.current[run.run_id] ?? { status: 'ready' as const };
+    runCache.current[run.run_id] = { ...current, promptStatus: 'loading' };
+    setRunDocs((previous) => ({ ...previous, [run.run_id]: runCache.current[run.run_id] }));
+    try {
+      const transcript = await cachedFetchJson<RunTranscript>(`${runsBase}${run.path}/transcript.json`);
+      const prompt = promptFromTranscript(transcript);
+      runCache.current[run.run_id] = { ...runCache.current[run.run_id], prompt, promptStatus: 'ready' };
+    } catch (error) {
+      console.error(`[DilemmasViewer] transcript load failed (${run.path}):`, error);
+      runCache.current[run.run_id] = { ...runCache.current[run.run_id], promptStatus: 'error' };
+    } finally {
+      inFlight.current.delete(key);
       setRunDocs((previous) => ({ ...previous, [run.run_id]: runCache.current[run.run_id] }));
     }
   }, [runsBase]);
@@ -772,6 +947,41 @@ export default function DilemmasViewer() {
   useEffect(() => {
     for (const run of selectedRuns) void ensureRun(run);
   }, [selectedRuns, ensureRun, retryTick]);
+
+  /* The wording each selected run was given, read from the runs' own
+   * records. The runs of one dilemma normally share a wording; a batch that
+   * mixes runs made before and after a profile edit does not, and the
+   * viewer says so rather than quietly showing one of them. */
+  const wordingVersions = useMemo(() => {
+    const versions: RunWording[] = [];
+    for (const run of selectedRuns) {
+      const data = runDocs[run.run_id] ?? runCache.current[run.run_id] ?? null;
+      const wording = runWording(data);
+      if (!wording) continue;
+      const key = `${wording.situation}\n\n${wording.question}`;
+      const existing = versions.find(
+        (version) => `${version.situation}\n\n${version.question}` === key);
+      if (existing) {
+        if (!existing.models.includes(run.model)) existing.models.push(run.model);
+      } else {
+        versions.push({ ...wording, models: [run.model] });
+      }
+    }
+    return versions;
+  }, [selectedRuns, runDocs]);
+
+  /* The wording the stimulus shows: the selected runs' own, in the order
+   * the models are listed. */
+  const stimulusWording = wordingVersions[0] ?? null;
+
+  /* Whether the runs' own records could be read: false once every selected
+   * run has loaded and none carried a dilemma copy. */
+  const ownRecords = useMemo(() => {
+    if (!selectedRuns.length) return true;
+    const data = selectedRuns.map((run) => runDocs[run.run_id] ?? runCache.current[run.run_id] ?? null);
+    if (data.some((entry) => !entry || entry.status === 'loading')) return true;
+    return data.some((entry) => !!entry?.config?.dilemma);
+  }, [selectedRuns, runDocs]);
 
   // Older manifests have no dilemma inventory; take the text from the first
   // run's config so the stimulus can still be rendered.
@@ -917,6 +1127,9 @@ export default function DilemmasViewer() {
       <DilemmaStimulus
         dilemma={stimulus}
         fallbackId={dilemmaKey}
+        wording={stimulusWording}
+        versions={wordingVersions}
+        ownRecords={ownRecords}
         profileName={stimulus ? profileLabel(manifest, stimulus.profile_id) : profileLabel(manifest, profileId)}
         roleSummary={
           manifest.profiles?.[stimulus?.profile_id ?? profileId]?.role_summary
@@ -924,7 +1137,6 @@ export default function DilemmasViewer() {
         }
         dilemmaIntro={manifest.profiles?.[stimulus?.profile_id ?? profileId]?.dilemma_intro}
         dilemmaOutro={manifest.profiles?.[stimulus?.profile_id ?? profileId]?.dilemma_outro}
-        systemPrompt={manifest.profiles?.[stimulus?.profile_id ?? profileId]?.system_prompt}
       />
 
       <OutcomeChart dilemma={stimulus} />
@@ -934,6 +1146,13 @@ export default function DilemmasViewer() {
           {modelsForDilemma.map((model) => {
             const list = runsForModel(model);
             const selected = selectedRuns.find((run) => run.model === model) ?? null;
+            // This run's own wording, against the wording the stimulus
+            // shows: the two differ when the batch mixes runs made before
+            // and after a profile edit, and the card then says so.
+            const own = runWording(runData(selected?.run_id));
+            const shown = stimulusWording;
+            const differs = !!own && !!shown
+              && (own.situation !== shown.situation || own.question !== shown.question);
             return (
               <article key={model} className="dilemma-panel">
                 <div className="dilemma-panel__head">
@@ -956,7 +1175,22 @@ export default function DilemmasViewer() {
                     </select>
                   </div>
                 </div>
-                <RunResponse data={runData(selected?.run_id)} onRetry={bumpRetry} run={selected} />
+                {differs && own && (
+                  <p className="dilemma-wording-note">
+                    This run was given different wording to the one shown above. Its own situation and
+                    question:
+                    <span className="dilemma-wording-note__text">
+                      {own.situation}
+                      {own.question ? ` ${own.question}` : ''}
+                    </span>
+                  </p>
+                )}
+                <RunResponse
+                  data={runData(selected?.run_id)}
+                  onRetry={bumpRetry}
+                  run={selected}
+                  onLoadPrompt={() => { if (selected) void ensurePrompt(selected); }}
+                />
               </article>
             );
           })}

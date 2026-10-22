@@ -1,48 +1,35 @@
-"""Build survey comparisons between two models' dilemma responses.
+"""Build the comparison pools between the models' dilemma responses.
 
 Reads the exported runs of one full-run bundle (``output/runs/full/<run-id>/``,
-written by ``export_results.py``) and pairs the two models' runs **on the same
-dilemma**. Two subsets are written per run:
+written by ``export_results.py``) and pairs runs **on the same dilemma**. The
+pools are written per fine-tune against the base model:
 
-- ``survey/``   - the survey set: ``--per-dilemma`` (default 10) randomly
-  chosen pairs per dilemma, i.e. 300 comparisons over the 30 dilemmas.
-- ``complete/`` - every possible pair of the two models' runs on a dilemma
-  (the full cross product), for the analysis that needs all of them.
+    output/comparisons/<run-id>/complete/<model>/comparisons.json
+                                                  /index.csv
 
-Both subsets land under ``output/comparisons/<run-id>/<subset>/``:
+where ``<model>`` is the fine-tune's short label (the part after ``-nz-wvs-``,
+e.g. ``modal_response-overall``). Each pool holds every possible pair of the
+base model's runs and that fine-tune's runs on a dilemma.
 
-    comparisons.json   the manifest: schema, the run, the two models, the
-                       dilemmas (situation, question, answer options, the
-                       profile's role summary and framing) and the list of
-                       comparisons - the file the survey code reads.
-    index.csv         the same comparisons as a flat table, for eyeballing.
+``--complete-scope selected`` keeps the older single-pool layout
+(``complete/comparisons.json`` for one ``--model-b``) and ``all-models``
+writes one ``complete/<model-a>__<model-b>/`` pool per pair of models.
 
-Each comparison record carries the keys the survey's block builder already
-uses (``comparison_id``, ``label``, ``role``, ``dilemma_intro``,
-``dilemma_outro``, ``situation``, ``question``, ``responses``) plus the
-provenance the analysis needs (both run ids, both models, each agent's judged
-answer option). Respondents never see the model names.
-
-Pairing: for every dilemma the two models' runs are the candidate pool (at
-most ``--samples-per-model`` runs each, taken in version order); the survey
-set draws ``--per-dilemma`` distinct pairs from that pool with a seeded RNG
-(one RNG per dilemma, so the draw does not depend on the dilemmas' order), the
-complete set takes every pair of every run of the two models. With the
-5-epoch runs that is 25 candidate pairs per dilemma - 10 drawn for the
-survey, all 25 in the complete set.
+Pairing: for every dilemma, every run of one model is paired with every run
+of the other.
 
 Which run plays Agent 1 and which Agent 2 is a stable pseudo-random
-assignment per pair (the same rule as the survey's ``agent_order``: a hash of
-the sorted run ids), so neither model is systematically first and repeated
+assignment per pair, so neither model is systematically first and repeated
 runs keep the same layout.
 
 Usage:
 
-    uv run python code/dilemmas/generate_comparisions.py
-    uv run python code/dilemmas/generate_comparisions.py --run-id 2026-10-19_d0a90383
+    uv run python code/dilemmas/generate_comparisons.py
+    uv run python code/dilemmas/generate_comparisons.py --run-id 2026-10-19_d0a90383
     uv run python code/dilemmas/generate_comparisons.py \\
+        --complete-scope selected \\
         --model-a openai/Qwen/Qwen3.8-27B \\
-        --model-b openai/Qwen3.8-27B-nz-wvs-full_string_distribution-overall
+        --model-b openai/Qwen3.8-27B-nz-wvs-first_token_distribution-overall
     uv run python code/dilemmas/generate_comparisons.py --list-runs
 """
 
@@ -52,7 +39,6 @@ import argparse
 import csv
 import hashlib
 import json
-import random
 import re
 import sys
 from collections import defaultdict
@@ -70,7 +56,7 @@ PROFILES_DIR = HERE / "profiles"
 # full-string-distribution fine-tune (the adapter trained on the model's full
 # answer distribution over the WVS answers).
 DEFAULT_MODEL_A = "openai/Qwen/Qwen3.8-27B"
-DEFAULT_MODEL_B = "openai/Qwen3.8-27B-nz-wvs-full_string_distribution-overall"
+DEFAULT_MODEL_B = "openai/Qwen3.8-27B-nz-wvs-modal_response-overall"
 
 # The comparison manifest schema tag. Bump when the layout changes so the
 # survey / analysis code can tell versions apart.
@@ -87,6 +73,20 @@ CSV_NAME = "index.csv"
 def slug(value: str) -> str:
     """Make a model id safe as a path component (the export's own rule)."""
     return re.sub(r"[^a-zA-Z0-9._-]+", "_", value).strip(".") or "unknown"
+
+
+def model_label(model_id: str) -> str:
+    """A short directory label for a model.
+
+    An adapter drops the base model and training prefix, so
+    ``openai/Qwen3.8-27B-nz-wvs-modal_response-overall`` becomes
+    ``modal_response-overall``. The base model keeps its own name, and a
+    comparison between two non-base models joins the two labels with ``__``.
+    """
+    name = model_id.rsplit("/", 1)[-1]
+    marker = "-nz-wvs-"
+    short = name.split(marker, 1)[1] if marker in name else name
+    return slug(short)
 
 
 def write_json(path: Path, value: object) -> None:
@@ -273,32 +273,12 @@ def candidate_pairs(
 
     At most ``samples_per_model`` runs of each model are used (taken in
     version order), so a dilemma with many repetitions does not drown the
-    others out. ``samples_per_model`` None uses every run - the complete
-    subset does that, so it holds all the pairs there are.
+    others out. ``samples_per_model`` None uses every run - the pool does
+    that, so it holds all the pairs there are.
     """
     a_runs = runs_a if samples_per_model is None else runs_a[:samples_per_model]
     b_runs = runs_b if samples_per_model is None else runs_b[:samples_per_model]
     return [(a, b) for a in a_runs for b in b_runs]
-
-
-def draw_pairs(
-    pool: list[tuple[dict, dict]], per_dilemma: int | None, rng: random.Random
-) -> list[tuple[dict, dict]]:
-    """``per_dilemma`` distinct pairs drawn from the pool (all of it when
-    ``per_dilemma`` is None)."""
-    if per_dilemma is None or len(pool) <= per_dilemma:
-        drawn = list(pool)
-    else:
-        drawn = rng.sample(pool, per_dilemma)
-    return sorted(
-        drawn,
-        key=lambda pair: (
-            pair[0].get("version", 0),
-            pair[1].get("version", 0),
-            pair[0]["run_id"],
-            pair[1]["run_id"],
-        ),
-    )
 
 
 # --- Records -----------------------------------------------------------------
@@ -392,15 +372,12 @@ def build_comparisons(
     export_dir: Path,
     grouped: dict[str, dict[str, list[dict]]],
     model_pairs: list[tuple[str, str]],
-    per_dilemma: int | None,
-    samples_per_model: int,
-    seed: int,
+    samples_per_model: int | None,
 ) -> list[dict]:
-    """The comparisons for the given model pairs, one RNG per dilemma.
+    """The comparisons for the given model pairs.
 
-    ``per_dilemma`` None takes every candidate pair (the complete set);
-    otherwise that many pairs per dilemma are drawn at random.
-    ``samples_per_model`` None uses every run of each model.
+    ``samples_per_model`` None uses every run of each model, which is the
+    pool's rule: every pair there is.
     """
     profile_files = load_profiles()
     records: list[dict] = []
@@ -413,10 +390,15 @@ def build_comparisons(
             if not runs_a or not runs_b:
                 continue
             pool = candidate_pairs(runs_a, runs_b, samples_per_model)
-            # One RNG per (dilemma, model pair): the draw does not depend on
-            # the order the dilemmas are walked in.
-            rng = random.Random(f"{seed}:{dilemma_id}:{model_a}|{model_b}")
-            for pair in draw_pairs(pool, per_dilemma, rng):
+            for pair in sorted(
+                pool,
+                key=lambda pair: (
+                    pair[0].get("version", 0),
+                    pair[1].get("version", 0),
+                    pair[0]["run_id"],
+                    pair[1]["run_id"],
+                ),
+            ):
                 record = build_record(pair, export_dir, meta)
                 if record is not None:
                     records.append(record)
@@ -502,44 +484,24 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     )
     parser.add_argument(
         "--model-b",
-        default=DEFAULT_MODEL_B,
-        help="The second model of the pair (default: the full-string-distribution "
-        "fine-tune).",
-    )
-    parser.add_argument(
-        "--per-dilemma",
-        type=int,
-        default=10,
-        help="Comparisons per dilemma in the survey subset (default: 10, i.e. "
-        "300 over the 30 dilemmas).",
-    )
-    parser.add_argument(
-        "--samples-per-model",
-        type=int,
-        default=10,
-        help="Most runs of each model used per dilemma in the survey subset "
-        "(the candidate pool). The complete subset always uses every run.",
-    )
-    parser.add_argument(
-        "--seed", type=int, default=0, help="Seed for the survey subset's draw."
+        default=None,
+        help="The second model of the pair for --complete-scope selected "
+        f"(default: {DEFAULT_MODEL_B}).",
     )
     parser.add_argument(
         "--output-dir",
         type=Path,
         default=COMPARISONS_DIR,
-        help="Directory the run's comparison subsets are written into.",
-    )
-    parser.add_argument(
-        "--no-complete",
-        action="store_true",
-        help="Skip the complete subset (every possible pair).",
+        help="Directory the run's comparison pools are written into.",
     )
     parser.add_argument(
         "--complete-scope",
-        choices=["selected", "all-models"],
-        default="selected",
-        help="Which pairs the complete subset holds: the two selected models "
-        "(default) or every model pair in the run.",
+        choices=["per-model", "selected", "all-models"],
+        default="per-model",
+        help="Which model pairs the pools hold: one pool per fine-tune "
+        "against the base model, under complete/<model>/ (default); the two "
+        "selected models in the single complete/ pool; or every model pair, "
+        "under complete/<model-a>__<model-b>/.",
     )
     parser.add_argument(
         "--list-runs",
@@ -580,100 +542,89 @@ def main() -> None:
         raise SystemExit(f"the run {run_id} has no models in its export")
 
     model_a = resolve_model(args.model_a, available)
-    model_b = resolve_model(args.model_b, available)
-    if model_a == model_b:
-        raise SystemExit("--model-a and --model-b must be two different models")
 
     grouped = group_runs(manifest)
     profile_files = load_profiles()
     out_root = args.output_dir / run_id
-
-    # The survey subset: a seeded draw of pairs per dilemma.
-    survey_records = build_comparisons(
-        manifest,
-        export_dir,
-        grouped,
-        [(model_a, model_b)],
-        args.per_dilemma,
-        args.samples_per_model,
-        args.seed,
-    )
-    meta = {
-        "run_id": run_id,
-        "models": {"model_a": model_a, "model_b": model_b},
-        "seed": args.seed,
-        "per_dilemma": args.per_dilemma,
-    }
     dilemmas = [
         dilemma_meta(manifest, dilemma_id, profile_files)
         for dilemma_id in sorted(grouped)
     ]
-    write_subset(
-        out_root / "survey",
-        "survey",
-        survey_records,
-        dilemmas,
-        meta,
-    )
-    per_dilemma_counts = defaultdict(int)
-    for record in survey_records:
-        per_dilemma_counts[record["dilemma_id"]] += 1
-    print(
-        f"survey:   {len(survey_records)} comparisons over "
-        f"{len(per_dilemma_counts)} dilemma(s) "
-        f"({args.per_dilemma} per dilemma requested)"
-    )
-    short = {
-        dilemma_id: count
-        for dilemma_id, count in per_dilemma_counts.items()
-        if count < args.per_dilemma
-    }
-    if short:
-        print(
-            f"          short of {args.per_dilemma} (fewer runs to pair): "
-            + ", ".join(f"{key} ({value})" for key, value in sorted(short.items()))
-        )
 
-    # The complete subset: every possible pair.
-    if not args.no_complete:
-        if args.complete_scope == "all-models":
-            model_pairs = [
-                (first, second)
-                for i, first in enumerate(sorted(available))
-                for second in sorted(available)[i + 1 :]
-            ]
-        else:
-            model_pairs = [(model_a, model_b)]
-        complete_records = build_comparisons(
+    # The pools to write: (directory name, the model pairs each holds). The
+    # base comparison layout is one pool per fine-tune, so the analysis can
+    # walk the models one at a time.
+    if args.complete_scope == "per-model":
+        others = [model for model in sorted(available) if model != model_a]
+        if not others:
+            raise SystemExit(f"the run {run_id} has no model other than {model_a}")
+        pools = [(model_label(model), [(model_a, model)]) for model in others]
+        nested = True
+    elif args.complete_scope == "all-models":
+        ordered = sorted(available)
+        pairs = [
+            (first, second)
+            for index, first in enumerate(ordered)
+            for second in ordered[index + 1 :]
+        ]
+        pools = [
+            (f"{model_label(first)}__{model_label(second)}", [(first, second)])
+            for first, second in pairs
+        ]
+        nested = True
+    else:  # selected: the legacy single pool for one model pair
+        model_b = resolve_model(args.model_b or DEFAULT_MODEL_B, available)
+        if model_a == model_b:
+            raise SystemExit("--model-a and --model-b must be two different models")
+        pools = [("complete", [(model_a, model_b)])]
+        nested = False
+
+    total = 0
+    written: list[str] = []
+    for name, model_pairs in pools:
+        records = build_comparisons(
             manifest,
             export_dir,
             grouped,
             model_pairs,
-            None,
             None,  # every run of every model: all the pairs there are
-            args.seed,
         )
+        if not records:
+            print(f"WARNING: no comparisons for {name}; pool not written")
+            continue
+        first_model, second_model = model_pairs[0]
+        out_dir = out_root / "complete" / name if nested else out_root / "complete"
         write_subset(
-            out_root / "complete",
-            "complete",
-            complete_records,
+            out_dir,
+            name,
+            records,
             dilemmas,
             {
-                **meta,
-                "per_dilemma": None,
+                "run_id": run_id,
+                "label": name,
                 "models": {
-                    "model_a": model_a,
-                    "model_b": model_b,
+                    "model_a": first_model,
+                    "model_b": second_model,
                     "pairs": [list(pair) for pair in model_pairs],
                 },
             },
         )
-        print(
-            f"complete: {len(complete_records)} comparisons over "
-            f"{len(model_pairs)} model pair(s)"
-        )
+        total += len(records)
+        written.append(name)
+        location = f"complete/{name}" if nested else "complete"
+        print(f"{location}: {len(records)} comparisons")
 
-    print(f"\nwritten to {out_root}/")
+    if not written:
+        raise SystemExit("no comparison pools were written")
+    print(
+        f"\n{total} comparisons over {len(written)} pool(s), "
+        f"{len(grouped)} dilemma(s), written to {out_root}/complete/"
+    )
+    print(
+        "\nNext: embed the pools (embed_responses.py, which walks every "
+        "complete/<model>/ by default), then run the analysis notebook "
+        "(analyze.py)."
+    )
 
 
 if __name__ == "__main__":

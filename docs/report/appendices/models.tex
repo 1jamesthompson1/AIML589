@@ -1,0 +1,31 @@
+% Appendix: glossary of models.
+%
+% This file is input TWICE from report.tex, so all model definitions live in
+% the one place:
+%   1. in the preamble   - registers the models (\gdef) so \modelref works
+%      anywhere in the document body before this appendix is printed;
+%   2. as the appendix   - prints the glossary (report.tex sets
+%      \modelprinttrue just before this second \input).
+% \newmodel is idempotent, so the second input does not duplicate entries.
+%
+%   \newmodel{label}{Display name}{Short description}{URL}
+%TC:ignore
+\newmodel{qwen3.8-27b}{Qwen3.8-27B}{Open-weight 27-billion-parameter Qwen model. The base model for every fine-tune in this report and a comparison model in the behavioural dilemmas.}{https://huggingface.co/Qwen/Qwen3.8-27B}
+
+\newmodel{ft-modal}{Modal response}{LoRA fine-tune of Qwen3.8-27B trained with supervised fine-tuning to reproduce the modal (most frequent) WVS response for each question.}{https://huggingface.co/1jamesthompson1/Qwen3.8-27B-nz-wvs-modal_response-overall}
+\newmodel{ft-sampled}{Sampled response}{LoRA fine-tune of Qwen3.8-27B trained with supervised fine-tuning on responses sampled from the WVS response distribution for each question.}{https://huggingface.co/1jamesthompson1/Qwen3.8-27B-nz-wvs-sampled_response-overall}
+\newmodel{ft-full-string}{Full string}{LoRA fine-tune of Qwen3.8-27B trained with a distributional cross-entropy objective over the full response-option strings to match the WVS response distribution.}{https://huggingface.co/1jamesthompson1/Qwen3.8-27B-nz-wvs-full_string_distribution-overall}
+\newmodel{ft-first-token}{First token}{LoRA fine-tune of Qwen3.8-27B trained with a distributional cross-entropy objective over the first-token distribution of the response options to match the WVS response distribution.}{https://huggingface.co/1jamesthompson1/Qwen3.8-27B-nz-wvs-first_token_distribution-overall}
+
+\newmodel{claude-haiku-5.5}{Claude Haiku 5.5}{Hosted Anthropic frontier model, accessed through OpenRouter, used as a comparison model in the behavioural dilemmas.}{https://openrouter.ai/anthropic/claude-haiku-5.5}
+\newmodel{deepseek-v4.1-flash}{DeepSeek V4.1 Flash}{Hosted DeepSeek frontier model, accessed through OpenRouter, used as a comparison model in the behavioural dilemmas.}{https://openrouter.ai/deepseek/deepseek-v4.1-flash}
+\newmodel{gpt-6-luna}{\judgemodelname}{Hosted OpenAI frontier model, accessed through OpenRouter, used as the LLM judge for the dilemma and simulation evaluations.}{\judgemodelurl}
+\newmodel{glm-5.3-flash}{GLM-5.3 Flash}{Hosted Z.ai frontier model, accessed through OpenRouter, used as a comparison model in the behavioural dilemmas.}{https://openrouter.ai/z-ai/glm-5.3-flash}
+
+\newmodel{qwen-embedding}{Qwen3 Embedding 4B}{Open-weight embedding model that embeds text into a 2560-dimensional vector space. Used to embed the model responses for distance comparisons.}{https://huggingface.co/Qwen/Qwen3-Embedding-4B}
+
+%TC:endignore
+
+\ifmodelprint
+\printmodels
+\fi

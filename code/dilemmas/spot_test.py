@@ -9,30 +9,7 @@ The iteration loop for hand-editing a dilemma in ``profiles/``:
 The scenario may be a sample id (``<profile>-<index>``) or a dilemma id. The
 script runs a fresh set of epochs (default 5) for each given model, then
 prints each model's picks, stability and cost read straight from the ``.eval``
-logs it wrote. Nothing is exported: the website keeps the previous export
-until ``export_results.py`` is run.
-
-Models run in parallel; by default their inspect output is captured to a
-temporary log file (tail shown on failure) so the console stays quiet. Pass
-``--verbose`` to stream it instead. After the runs, the inspect ``.eval`` logs
-the spot test wrote are listed per model.
-
-Only the models passed with ``--model`` (repeatable) are run; with no
-``--model`` the default set is used. The judge comes from ``--judge`` or
-``JUDGE_MODEL`` in ``.env``. Pass ``--base-url`` to run against a vLLM server
-(e.g. the fine-tuned Qwen3.8 adapters served from code/fine-tuning) with the
-model as ``openai/<served-model-name>``; the judge role keeps its own endpoint.
-
-Local models are opt-in: pass an ``openai/<name>`` target and it runs
-against ``--base-url`` (or the server probed on ``--vllm-port``, default
-8087) together with every other model that server serves (the base model and
-its adapters) — ``--no-adapters`` keeps exactly the models passed. Nothing
-local runs when no ``openai/`` target is given. For those adapters an extra
-**first-token probe** runs after the epochs: one plain chat request
-(``max_tokens=1``, top-20 logprobs, ``top_k`` and ``chat_template_kwargs``
-matching the fine-tuning eval) whose next-token distribution is printed raw
-per model — the "as a regular model" preference signal (the dilemma prompts do
-not number their options, so no option mapping is forced).
+logs it wrote.
 """
 
 from __future__ import annotations
