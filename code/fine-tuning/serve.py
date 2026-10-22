@@ -71,6 +71,13 @@ log = logging.getLogger(__name__)
 # refused" through the tunnel. Keep in sync with run_all.py.
 STARTUP_GRACE_S = 180
 
+# How long to wait for the server to answer the first health probe before
+# giving up and killing it. A cold instance also pays for FlashInfer JIT
+# compilation, torch.compile and CUDA-graph capture on top of the model
+# load, which does not fit in 600s (the old budget: the server was killed
+# mid-capture on a freshly rented box). Override with SERVE_STARTUP_TIMEOUT_S.
+STARTUP_TIMEOUT_S = int(os.environ.get("SERVE_STARTUP_TIMEOUT_S", "1800"))
+
 
 def discover_adapters_from_collection(
     collection_slug: str, model_slug: str, hf_token: str | None = None
@@ -608,7 +615,7 @@ def main():
     t.start()
 
     start_time = time.time()
-    while time.time() - start_time < 600:
+    while time.time() - start_time < STARTUP_TIMEOUT_S:
         try:
             with urllib.request.urlopen(url, timeout=2):
                 print("=" * 60)
@@ -618,7 +625,7 @@ def main():
             time.sleep(2)
     else:
         print("=" * 60)
-        print("\n[serve] server did not start in 600s, logs above")
+        print(f"\n[serve] server did not start in {STARTUP_TIMEOUT_S}s, logs above")
         proc.terminate()
         proc.wait()
         sys.exit(1)

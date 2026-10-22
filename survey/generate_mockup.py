@@ -16,6 +16,7 @@ writes ``survey/survey-mockup.tex``, which ``make`` compiles to
 import argparse
 import html as html_mod
 import json
+import os
 import re
 import sys
 from pathlib import Path
@@ -33,6 +34,7 @@ PREAMBLE = r"""\documentclass[11pt,a4paper]{article}
 \usepackage{graphicx}
 \usepackage[dvipsnames]{xcolor}
 \usepackage{enumitem}
+\usepackage{framed}
 \usepackage{parskip}
 \usepackage{url}
 \setlist{itemsep=0pt,topsep=3pt,parsep=0pt,partopsep=0pt}
@@ -73,6 +75,13 @@ SENT: dict[str, str] = {
     "\x0b": "\\par\\medskip\n",
     "\x0c": "\\vspace{0.7em}\n",
     "\x0d": r"\emph{",
+    # The quotation block (the dilemma): an indented, ruled paragraph.
+    "\x0e": "\n\\begin{leftbar}\n\\noindent ",
+    "\x0f": "\n\\end{leftbar}\\vspace{0.6em}\n",
+    # A body paragraph: the space below it that the live survey gives it.
+    "\x10": "\\vspace{0.45em}\n",
+    # A heading with a rule above it (the comparison block's agent labels).
+    "\x11": "\\par\\vspace{0.9em}\\hrule\\vspace{0.6em}\n",
 }
 
 
@@ -93,7 +102,19 @@ def html_to_latex(text: str) -> str:
     out = out.replace("<ul>", "\x06").replace("</ul>", "\x07")
     out = out.replace("<ol>", "\x08").replace("</ol>", "\x09")
     out = out.replace("<li>", "\x0a")
+    # The quotation block: one ruled, indented paragraph (the dilemma).
+    out = re.sub(
+        r'<p style="[^"]*border-left[^"]*">(.*?)</p>',
+        lambda m: "\x0e" + m.group(1) + "\x0f",
+        out,
+        flags=re.S,
+    )
+    # A heading with a rule above it (the comparison block's agent labels):
+    # the rule and the space around it.
+    out = re.sub(r'<p style="[^"]*border-top[^"]*">', "\x11", out)
     out = re.sub(r"<p[^>]*margin-top[^>]*>", "\x0b", out)
+    # A body paragraph: the space below it that the live survey gives it.
+    out = re.sub(r'<p style="margin:0 0 0\.7em 0;">', "\x04\x10", out)
     out = re.sub(r"<p(\s[^>]*)?>", "\x04", out)
     # A <br> at the very start or end of a paragraph has no line to end in
     # LaTeX: render a leading one as vertical space and drop a trailing one.
@@ -433,7 +454,16 @@ def main() -> None:
         action="store_true",
         help="also render the retired profiles (first dilemmas)",
     )
+    parser.add_argument(
+        "--model",
+        default=None,
+        help="Which model's survey subset to render (survey/<model>/), e.g. "
+        "modal_response-overall. Required when several per-model subsets exist.",
+    )
     args = parser.parse_args()
+
+    if args.model:
+        os.environ[sd.COMPARISON_MODEL_ENV] = args.model
 
     out_path = DIR / "survey-mockup.tex"
     out_path.write_text(render(include_retired=args.all))

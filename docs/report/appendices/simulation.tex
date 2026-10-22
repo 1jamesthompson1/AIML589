@@ -57,11 +57,11 @@ Each of the profiles are built as realistic agentic harnesses for the model. Thi
 
 The choice of situations are based on trying to illicit value rich decisions from the model. Specifically we would like to have situations in which on aggregate the USA and China disagrees with New Zealand. The choice of these two countries is due to most of the frontier LLM models originate from them. There are various ways to understand value systems (see section \ref{sec:values}) yet due to the use of the World Values Survey understanding the countries through the lens of the Inglehart-Welzel cultural map is used \cite{WVSMAP}. This splits values into two dimensions: traditional vs secular-rational values and survival vs self-expression values. China and New Zealand have similar traditional vs secular-rational values yet NZ is very self-expressive while China is more survivalist. USA is generally more traditional and survival oriented than New Zealand however more self-expressive than China.
 
-Look at \tabref{ft-divergent-questions-Qwen3.8-27B} we can see which question Qwen 3.8diverges the most from New Zealand. Problematically these questions are not significally more divergent than the other questions so choosing these questions to create situations would be namely fitting noise. Instead the WVS questions are mapped into the Schwartz value system \cn[Schwartz value system reference] and then the tensions between base models and New Zealand are used to create situations.
+Look at \tabref{ft-divergent-questions-Qwen3.8-27B} we can see which question \modelref{qwen3.8-27b} diverges the most from New Zealand. Problematically these questions are not significally more divergent than the other questions so choosing these questions to create situations would be namely fitting noise. Instead the WVS questions are mapped into the Schwartz value system \cn[Schwartz value system reference] and then the tensions between base models and New Zealand are used to create situations.
 
 A full list of the situations is shown in \tabref{behavioural-sim-profiles}.
 
-\ctable{ft-divergent-questions-Qwen3.8-27B}{A list of the top 25 questions that Qwen 3.8 diverges the most from New Zealand.}
+\ctable{ft-divergent-questions-Qwen3.8-27B}{A list of the top 25 questions that \modelref{qwen3.8-27b} diverges the most from New Zealand.}
 
 
 \ctable{behavioural-sim-profiles}{Simulation profiles and situations. Bolded entries are interactive scenarios.}
@@ -98,7 +98,7 @@ The result of a single simulation is a trajectory. This trajectory includes the 
 
 The goal of understanding the trajectories is to try and answer \rqref{align} and to also create summaries that can be used in \ref{chap:survey} to answer \rqref{prefer}. The first sort of summary is a summary of the decisions made which needs to be structured and allows for comparison between multiple runs of the same scenario across models. The second one however is more holistic with an objective of fairly representing the trajectory for human oversight.
 
-All of the summaries are generated using frontier models in a LLM-as-judge setup. This is done due to both resource constraints and that LLM may be more deterministic in their judgements \cn.
+All of the summaries are generated using \judgemodel{} in an LLM-as-judge setup. This is done due to both resource constraints and that LLM may be more deterministic in their judgements \cn.
 
 \subsection{Structured summaries}
 
@@ -111,6 +111,6 @@ The holistic summary are key to the methodology in answering \rqref{prefer}. The
 
 The pipeline of the summary is that after the simulation ends (when the target model responds without a tool call) an additional user message is sent to the target model with a self review prompt which creates a few short paragraphs of text. The model is reviewing \scare{in character}, thinking that it is just finishing up the task.
 
-This summary along with a full transcript is then passed to a judge model which is asked to provide a short summary of the self review. This is done to ensure that the summary is fair and accurate.
+This summary along with a full transcript is then passed to \judgemodel{} which is asked to provide a short summary of the self review. This is done to ensure that the summary is fair and accurate.
 
 We have made it simple for general public.

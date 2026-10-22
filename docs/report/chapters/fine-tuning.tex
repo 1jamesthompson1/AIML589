@@ -40,7 +40,7 @@ This is the cheapest method of alignment. It involves just prompting a model tha
 A simple prompt is used and appended to the system prompts of the model in the evaluations. "Respond as an average New Zealand person would".
 \ctable{ft-results-nopersona-Qwen3.8-27B}{The results of the base model, prompted model and fine tuned model on the world values survey evaluations when using only the \texttt{no-persona} system prompt.}
 
-As can be seen in both \tabref{ft-results-nopersona-Qwen3.8-27B} and \tabref{ft-results-Qwen3.8-27B} the prompted model does not perform as well as the fine-tuned model. It even performs worse on almost every measure. This demonstrates that the Qwen 3.8 27B model has insufficient knowledge of how a New Zealander would respond to the survey questions and that simple prompting alone is not sufficient. 
+As can be seen in both \tabref{ft-results-nopersona-Qwen3.8-27B} and \tabref{ft-results-Qwen3.8-27B} the prompted model does not perform as well as the fine-tuned model. It even performs worse on almost every measure. This demonstrates that the \modelref{qwen3.8-27b} model has insufficient knowledge of how a New Zealander would respond to the survey questions and that simple prompting alone is not sufficient.
 
 It is plausible that more complex prompting—namely few-shot or longer personas—could improve the prompted model's performance. This has not been tested.
 
@@ -54,7 +54,7 @@ Discuss the various methods of evaluating the efficacy of fine-tuning, including
 - Response distributions (how well the model's response distributions match the survey data)
 
 
-\ctable{ft-results-Qwen3.8-27B}{The results of fine-tuning Qwen-3.8-27B on the WVS data. The table shows the accuracy, cross-entropy and KL divergence for the base model and various fine-tuned models on the training, validation and overall datasets. This is calculated by running the model with reasoning off agasint the modal response dataset.}
+\ctable{ft-results-Qwen3.8-27B}{The results of fine-tuning \modelref{qwen3.8-27b} on the WVS data. The table shows the accuracy, cross-entropy and KL divergence for the base model and various fine-tuned models on the training, validation and overall datasets. This is calculated by running the model with reasoning off agasint the modal response dataset.}
 
 Also explore other concepts of:
 - Is fine-tuning robust to reasoning on and off?

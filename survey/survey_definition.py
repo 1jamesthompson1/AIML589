@@ -4,26 +4,30 @@ One survey serves both paid-panel and volunteer respondents. The remote
 flow branches on the ``distribution`` embedded field (set by the panel
 distribution/email link, read as RecipientType embedded data):
 
-- ``paid``      -> Introduction_paid   (information sheet, no raffle paragraph)
-- ``volunteer`` -> Introduction_volunteer (same sheet + prize-raffle
-  paragraph) and, at the end, the prize-draw question and its EndSurvey
-  redirect branch.
+- ``volunteer`` -> Introduction_volunteer (information sheet + the
+  prize-raffle paragraph) and, at the end, the prize-draw question and
+  its EndSurvey redirect branch.
+- anything else -> Introduction_paid (the same information sheet without
+  the raffle paragraph). The paid sheet is the default: the branch is on
+  ``distribution`` NOT being ``volunteer``, so a link that never set the
+  field (an open link, a panel link that lost its parameter) still shows
+  the sheet rather than skipping it.
 
 Both channels get Section A (demographics) before the comparison blocks.
 
 Survey structure:
 
 - EmbeddedData: read ``distribution`` from the recipient
-- Branch: distribution == paid    -> Introduction_paid block
+- Branch: distribution != volunteer -> Introduction_paid block (the default)
 - Branch: distribution == volunteer -> Introduction_volunteer block
 - Section A - About you (demographics first, for screening; every item
   skippable)
 - Section B - The comparison task (a two-sentence description of the
   context of the dilemma task)
-- One comparison block per version-matched pair of runs on the same
-  dilemma (3 questions each), grouped by profile: a first randomizer shows
-  N_PROFILES_SHOWN of the profiles, and each selected profile shows 1
-  randomly chosen dilemma block
+- One comparison block per comparison in the survey subset (3 questions
+  each), grouped by profile: a first randomizer shows N_PROFILES_SHOWN of
+  the profiles, and each selected profile shows 1 randomly chosen dilemma
+  block
 - Section C block (attitude and policy questions)
 - Branch: distribution == volunteer -> prize-draw block; ``yes`` ends the
   survey with an advanced redirect to the prize-draw/website URL
@@ -31,42 +35,46 @@ Survey structure:
 Intro wording comes from participant-information-sheet.md (the shared
 information sheet; the volunteer-only raffle paragraph is marked with an
 ``<!--volunteer ... -->`` block). Comparison content comes from
-code/dilemmas/output/runs: the exported runs manifest (index.json, schema
-wvs-dilemma-runs-index/v2) is paired into blocks, one per version-matched
-pair of runs from two different models answering the same dilemma. Each
-block shows the profile's role summary and framing (intro and outro, from
-the profile JSON), the dilemma question, and both responses
+code/dilemmas/output/comparisons: the survey subset of the newest
+comparison run (comparisons.json, schema wvs-dilemma-comparisons/v1) holds
+the pairs of runs that become the survey's comparison blocks, one per
+comparison. Each block shows the profile's role summary and framing (intro
+and outro, from the profile JSON), the dilemma question, and both responses
 side by side as Agent 1 / Agent 2. Question DataExportTags are the pair's
 ``<run_id>__<run_id>`` comparison id with a suffix (_0, _pref, _aiuse), so
 response columns join 1:1 with the two runs of the block (join the run ids
-back through the runs manifest to decode the models).
+back through the comparison manifest's ``agents`` to decode the models).
 """
 
 import hashlib
 import json
+import os
 import re
 from collections import defaultdict
 from pathlib import Path
 
 DIR = Path(__file__).resolve().parent
 REPO = DIR.parent
-RUNS_DIR = REPO / "code" / "dilemmas" / "output" / "runs"
+COMPARISONS_DIR = REPO / "code" / "dilemmas" / "output" / "comparisons"
 PROFILES_DIR = REPO / "code" / "dilemmas" / "profiles"
 
-# The survey compares one fine-tuned adapter against the untuned base model:
-# one block per repetition (version) both models have exported for a dilemma.
-FT_MODEL = "openai/Qwen3.8-27B-nz-wvs-first_token_distribution-overall"
-BASE_MODEL = "openai/Qwen/Qwen3.8-27B"
-PAIR_MODELS = (BASE_MODEL, FT_MODEL)
+# The comparison manifest the survey's blocks come from.
+COMPARISON_SCHEMA = "wvs-dilemma-comparisons/v1"
+
+# The env var the survey scripts set from --model to pick a per-model subset.
+COMPARISON_MODEL_ENV = "WVS_COMPARISON_MODEL"
 
 
 def agent_order(agents: list) -> list:
     """Stable pseudo-random Agent 1 / Agent 2 assignment.
 
-    A hash of the sorted run ids picks the order, so no model is
-    systematically first (sorted-name order would always put the base model
-    first) while repeated builds keep the same layout - the Qualtrics export
-    tags embed the order.
+    A hash of the sorted run ids decides whether the pair keeps its
+    model-A/model-B order or is swapped, so no model is systematically first
+    (sorted-name order would always put the base model first) while repeated
+    builds keep the same layout - the Qualtrics export tags embed the order.
+    ``generate_comparisons.py`` applies the same rule, so the order the
+    survey reads is the order the comparison was built with; this copy is
+    here to check the two agree.
     """
     key = hashlib.md5(
         "__".join(sorted(run["run_id"] for run in agents)).encode()
@@ -179,44 +187,50 @@ Z_AGE_OPTIONS = [
 ]
 Z_GENDER_TEXT = "Which gender do you identify with?"
 Z_GENDER_OPTIONS = [
-    "Man",
-    "Woman",
+    "Male",
+    "Female",
     "Non-binary or another gender identity",
     PREFER_NOT_TEXT,
 ]
-Z_ETHNICITY_TEXT = "Which ethnic group(s) do you belong to? (Select all that apply.)"
+# The ethnic groups are the 2023 Census categories (Stats NZ), not the WVS
+# ones: the released WVS NZ file has no ethnicity question at all (see
+# code/training-dataset/quota_analysis.py), so the census is the only source
+# these answers can be compared against. The census asks the same
+# multi-select question ("which ethnic groups do you identify with"), and
+# the six groups below are its top-level groups, so the answers read
+# straight off the census release (the shares carried in quota_analysis.py:
+# New Zealand European 67.8, Maori 17.8, Asian 17.3, Pacific 8.9, MELAA
+# 1.9 per cent of the population).
+Z_ETHNICITY_TEXT = (
+    "Which ethnic group(s) do you identify with? (Select all that apply.)"
+)
 Z_ETHNICITY_OPTIONS = [
     "New Zealand European / Pākehā",
     "Māori",
-    "Samoan",
-    "Cook Island Māori",
-    "Tongan",
-    "Niuean",
-    "Other Pacific peoples",
-    "Chinese",
-    "Indian",
-    "Other Asian",
+    "Pacific peoples",
+    "Asian",
     "Middle Eastern / Latin American / African",
-    "Other ethnicity",
+    "Other",
     PREFER_NOT_TEXT,
 ]
 # WVS NZ employment bands (Q279, as coded in code/training-dataset/
 # quota_analysis.py and used for the census labour-force comparison).
 # Self-employed is a full-time/full-share category (Q281 group 1);
 # "Other work/arrangement" is NOT a census or WVS category, it absorbs
-# the census "Not in the labour force - other" residual and stays open
-# for homemakers; a separate Homemaker option exists for the census
-# "Not in the labour force - unpaid domestic work" group. An explicit
-# "Casual" option is not included: Q279's part-time/full-time hours
-# split already captures the hours work pattern, and casualness (rolling
-# contract type) is orthogonal to hours.
+# the census "Not in the labour force - other" residual. "Stay at home
+# parent/guardian" covers the census "Not in the labour force - unpaid
+# domestic work" group, and the looking-after-family work that group
+# does not name. An explicit "Casual" option is not included: Q279's
+# part-time/full-time hours split already captures the hours work
+# pattern, and casualness (rolling contract type) is orthogonal to
+# hours.
 Z_EMPLOY_TEXT = "What is your current employment status?"
 Z_EMPLOY_OPTIONS = [
     "Full time (30+ hrs/wk)",
     "Part time (<30 hrs)",
     "Self employed",
     "Retired/pensioned",
-    "Homemaker",
+    "Stay at home parent/guardian",
     "Student",
     "Unemployed",
     "Other work/arrangement",
@@ -224,20 +238,31 @@ Z_EMPLOY_OPTIONS = [
 ]
 
 Z_REGION_TEXT = "Which region of New Zealand do you live in?"
+# The regions are the panel's own (Dynata): the option labels are the
+# panel's region values, so a panel-supplied value and a human answer are
+# the same string in the export (see PANEL_DEMOGRAPHICS). "Other" catches
+# the people the panel's list does not cover - the volunteer channel has no
+# panel value at all - and "I live overseas" keeps that case apart from it.
 Z_REGION_OPTIONS = [
-    "Northland",
     "Auckland",
-    "Waikato",
     "Bay of Plenty",
+    "Canterbury",
+    "Chatham Islands",
     "Gisborne",
     "Hawke's Bay",
-    "Taranaki",
-    "Manawatū-Whanganui",
-    "Wellington",
-    "Tasman / Nelson / Marlborough / West Coast",
-    "Canterbury",
+    "Manawatu-Wanganui",
+    "Marlborough",
+    "Nelson",
+    "Niue",
+    "Northland",
     "Otago",
     "Southland",
+    "Taranaki",
+    "Tasman",
+    "Waikato",
+    "Wellington",
+    "West Coast",
+    "Other",
     "I live overseas",
     PREFER_NOT_TEXT,
 ]
@@ -252,36 +277,84 @@ Z_INCOME_OPTIONS = [
     PREFER_NOT_TEXT,
 ]
 
+# --- Panel-supplied demographics ---------------------------------------------
+
+# A panel (Dynata) can append variables to the respondent's survey link;
+# Qualtrics reads a query parameter whose name matches an embedded data field
+# as that field's value. When one of these fields arrives, the value is
+# already known, so its question is not asked again (display logic hides it)
+# and the respondent's time goes to the comparisons instead.
+#
+# The panel should append the survey's own option labels - ``age=45-54``,
+# ``gender=Male``, ``region=Wellington`` - so a panel value and an answer to
+# the same question are the same string in the data and the quota.
+#
+#   (embedded data field, question tag, question text, answer options)
+PANEL_DEMOGRAPHICS = (
+    ("age", "Z1-1", Z_AGE_TEXT, Z_AGE_OPTIONS),
+    ("gender", "Z2-1", Z_GENDER_TEXT, Z_GENDER_OPTIONS),
+    ("region", "Z5-1", Z_REGION_TEXT, Z_REGION_OPTIONS),
+)
+
+# --- Timing ------------------------------------------------------------------
+
+# How long the respondent spent in the comparison task.
+#
+# Qualtrics times every page and every question itself and exports the
+# timings with the responses, so the survey needs no scripting for it (the
+# API does not accept a survey's JavaScript, and the per-question timings
+# are what the analysis needs). ``survey/timing.py`` turns the exported
+# timings into the time spent in each comparison and in the comparison
+# task as a whole.
+
 Z_OCCUPATION_TEXT = (
     "Which of these best describes your usual work? If you are retired "
     "or between jobs, what did you mostly work as?"
 )
 Z_OCCUPATION_OPTIONS = [
-    "Professional or technical work (e.g. doctor, teacher, engineer, "
-    "nurse, accountant)",
-    "High-level administrative work (e.g. banker, senior manager, "
-    "senior public servant)",
-    "Clerical work (e.g. secretary, clerk, office manager)",
-    "Sales work (e.g. shop owner or assistant, sales agent)",
-    "Service work (e.g. police officer, waiter, barber, caretaker)",
-    "Skilled worker (e.g. electrician, motor mechanic, printer, foreman)",
-    "Semi-skilled worker (e.g. bricklayer, bus driver, carpenter, assembler)",
-    "Unskilled work (e.g. labourer, porter, cleaner)",
+    "Professional or technical work (e.g. teacher, nurse, doctor, engineer, lawyer)",
+    (
+        "High-level administrative work (e.g. business owner, general "
+        "manager, team leader, senior public servant)"
+    ),
+    (
+        "Clerical work (e.g. receptionist, office administrator, payroll "
+        "officer, bank teller)"
+    ),
+    (
+        "Sales work (e.g. shop assistant, sales representative, real estate "
+        "agent, checkout supervisor)"
+    ),
+    (
+        "Service work (e.g. hospitality worker, hairdresser, police officer, "
+        "caregiver, childcare worker)"
+    ),
+    "Skilled worker (e.g. electrician, plumber, mechanic, builder, chef)",
+    (
+        "Semi-skilled worker (e.g. bus driver, carpenter, truck driver, "
+        "warehouse worker, assembler)"
+    ),
+    "Unskilled work (e.g. labourer, porter, cleaner, delivery driver, gardener)",
     "I have never had a job",
     PREFER_NOT_TEXT,
 ]
 
-# WVS NZ education bands (Q275A country-specific categories, as recoded in
-# code/training-dataset/cluster_respondents.py "education_respondent_cs").
+# The education bands are the WVS NZ ones (Q275A country-specific
+# categories, as recoded in code/training-dataset/cluster_respondents.py
+# "education_respondent_cs"), with the tertiary end split by how long the
+# study was: the WVS file lumps tertiary into "some tertiary" and
+# "completed a university or polytechnic degree", while the census
+# separates the qualification levels, so the finer bands let the answers
+# be compared with both.
 Z_EDU_TEXT = "What is the highest level of education you have completed?"
 Z_EDU_OPTIONS = [
     "No formal schooling",
-    "Primary school (including intermediate) or kura kaupapa",
-    "Secondary school for up to 3 years",
-    "Secondary school for 4 years or more",
-    "Some tertiary education (university, polytechnic, wananga, trades or "
-    "other training), up to a completed bachelor's degree",
-    "Completed a postgraduate degree (e.g. honours, master's or doctorate)",
+    "Primary school (including intermediate) or kura kaupapa (e.g. Years 1-8)",
+    "Secondary school for up to 3 years (e.g. NCEA Level 1 or less)",
+    "Secondary school for 4 years or more (e.g. NCEA Level 2 or 3)",
+    "Tertiary for less than 2 years (trade apprenticeship, certificates or diploma)",
+    "Tertiary for 3-4 years (a bachelor's or honours degree, e.g. BA or BSc)",
+    "Tertiary for more than 4 years (a master's or doctorate, e.g. MA or PhD)",
     PREFER_NOT_TEXT,
 ]
 
@@ -319,7 +392,7 @@ CENSUS_AGE_SHARES = {
     "65-74": 5.1 + 4.3,
     "75 or older": 3.3 + 2.2 + 1.2 + 0.7,
 }
-CENSUS_GENDER_SHARES = {"Man": 49.3, "Woman": 50.3}
+CENSUS_GENDER_SHARES = {"Male": 49.3, "Female": 50.3}
 
 # EndSurveyOptions for a hard quota; mirrors the remote default set.
 QUOTA_END_OPTIONS = {
@@ -372,11 +445,21 @@ def quota_payloads(qids_by_tag: dict) -> list[dict]:
     ``paid``, so volunteer respondents (open link) answer the
     demographic questions but never increment a quota nor get screened
     out by one.
+
+    A cell also matches when the *panel* supplied the value as embedded
+    data (the demographic question is then hidden, so the answer is
+    empty): "option selected OR age = <option>" - the panel has to
+    append the survey's own option labels for that to hold.
     """
     payloads = []
     for label, tag, text, options, shares in quota_definitions():
         qid = qids_by_tag[tag]
         assert set(shares) <= set(options), f"quota {label}: shares missing"
+        # the panel field for this question, if the panel can supply it
+        panel_field = next(
+            (field for field, ptag, _, _ in PANEL_DEMOGRAPHICS if ptag == tag),
+            None,
+        )
         # cells exist only for quota'd options, in survey order; the
         # unquota'd ones (non-binary etc.) absorb rounding slack
         pcts = _quota_pct_by_option(shares)
@@ -413,15 +496,36 @@ def quota_payloads(qids_by_tag: dict) -> list[dict]:
                 '<span class="RightOpDesc"> paid </span>',
                 "Conjuction": "100%",
             }
+            # the panel's value for this option (the question is hidden
+            # when the panel sent one, so the answer itself is empty)
+            panel_cond = None
+            if panel_field:
+                panel_cond = {
+                    "LogicType": "EmbeddedField",
+                    "LeftOperand": panel_field,
+                    "Operator": "EqualTo",
+                    "RightOperand": option,
+                    "Type": "Expression",
+                    "Description": '<span class="ConjDesc">Or</span> '
+                    f'<span class="LeftOpDesc">{panel_field}</span> '
+                    '<span class="OpDesc">Is Equal to</span> '
+                    f'<span class="RightOpDesc"> {option} </span>',
+                    "Conjuction": "100%",
+                }
+            cell_logic = {
+                "0": {"0": cond, "Type": "If"},
+                "Type": "BooleanExpression",
+            }
+            if panel_cond:
+                cell_logic["1"] = {"0": panel_cond, "Type": "OrIf"}
+                cell_logic["2"] = {"0": paid, "Type": "AndIf"}
+            else:
+                cell_logic["1"] = {"0": paid, "Type": "AndIf"}
             desc = cond["Description"] + " X " + paid["Description"]
             cells.append(
                 {
                     "Occurrences": n,
-                    "Logic": {
-                        "0": {"0": cond, "Type": "If"},
-                        "Type": "BooleanExpression",
-                        "1": {"0": paid, "Type": "AndIf"},
-                    },
+                    "Logic": cell_logic,
                     "Description": desc,
                     "ID": f"{i - 1}X0",
                     "Count": 0,
@@ -470,15 +574,36 @@ def truncate_desc(text: str, max_len: int = 100) -> str:
     return clean if len(clean) <= max_len else clean[: max_len - 3] + "..."
 
 
+# The style of a markdown block quote: an indented paragraph with a rule
+# down its left edge. The comparison block uses it for the dilemma, so the
+# case the agent faced reads as a block of its own - the reader can see
+# where the case ends and the agents' answers begin.
+QUOTE_STYLE = (
+    "margin-left:1.6em; margin-bottom:0.7em; padding-left:1em; "
+    "border-left:4px solid #d9d9d9;"
+)
+
+# Body paragraphs get a little space below them, so the information sheet's
+# paragraphs and the comparison block's parts read as separate blocks
+# rather than one wall of text.
+PARAGRAPH_STYLE = "margin:0 0 0.7em 0;"
+
+
 def md_to_html(text: str, heading_style: str = "") -> str:
     """Minimal markdown->HTML for Qualtrics QuestionText.
 
     Handles ATX headings (#, ##, ###+), unordered (- ) / ordered (1. )
-    lists, bold (**), italic (*), explicit ``<br>`` line breaks, and blank-line
-    paragraphs. Everything else is html-escaped first, so the inline markup
-    transforms and ``<br>`` are the only HTML injected. ``heading_style`` is
-    added as the inline style of heading paragraphs (the comparison block uses
-    it for spacing).
+    lists, bold (**), italic (*), block quotes (> ), explicit ``<br>`` line
+    breaks, and blank-line paragraphs. Everything else is html-escaped first,
+    so the inline markup transforms and ``<br>`` are the only HTML injected.
+    ``heading_style`` is added as the inline style of heading paragraphs (the
+    comparison block uses it for spacing).
+
+    A block quote becomes one indented, ruled paragraph (QUOTE_STYLE): the
+    lines inside it keep their own line breaks, and a blank quote line
+    starts a new paragraph inside the block. The comparison block uses it to
+    set the dilemma (the case the agent faced) apart from the framing
+    around it and from the agents' answers below it.
     """
     import html
 
@@ -490,13 +615,32 @@ def md_to_html(text: str, heading_style: str = "") -> str:
     spans: list[str] = []
     para: list[str] = []
     list_open: str | None = None
+    # The open quote block: a list of paragraphs, each a list of lines.
+    quote: list[list[str]] = []
+    # The heading style: the caller's own (the comparison block uses it to
+    # set the agent labels apart) plus space above and below, so a heading
+    # is separated from the text around it even where the caller sets no
+    # spacing of its own (the information sheet's headings).
+    head_style = heading_style
+    if "margin-top" not in head_style:
+        head_style = f"{head_style} margin-top:0.9em;".strip()
+    if "margin-bottom" not in head_style:
+        head_style = f"{head_style} margin-bottom:0.4em;".strip()
+
+    def render(line: str) -> str:
+        """One source line as HTML: escaped, with the inline markup applied."""
+        content = html.escape(br_re.sub("\x01", line.rstrip()))
+        content = content.replace("\x01", "<br />")
+        for pat, rep in inline:
+            content = pat.sub(rep, content)
+        return content
 
     def flush_para() -> None:
         if para:
             # Wrapped source lines are one paragraph: join with a space, not
             # a hard <br>, so the rendered text flows without mid-sentence
             # breaks; blank lines create the actual paragraph breaks.
-            spans.append("<p>" + " ".join(para))
+            spans.append(f'<p style="{PARAGRAPH_STYLE}">' + " ".join(para) + "</p>")
             para.clear()
 
     def close_list() -> None:
@@ -505,21 +649,51 @@ def md_to_html(text: str, heading_style: str = "") -> str:
             spans.append(f"</{list_open}>")
             list_open = None
 
+    def flush_quote() -> None:
+        """Close the open quote block as one ruled, indented paragraph."""
+        nonlocal quote
+        blocks = [b for b in quote if b]
+        quote = []
+        if not blocks:
+            return
+        content = "<br /><br />".join(
+            "<br />".join(render(line) for line in block) for block in blocks
+        )
+        spans.append(f'<p style="{QUOTE_STYLE}">{content}</p>')
+
     for line in text.split("\n"):
         stripped = line.strip()
         heading = re.match(r"^(#{1,4})\s+(.*)$", stripped)
         li_u = re.match(r"^[-*]\s+(.*)$", stripped)
         li_o = re.match(r"^(\d+)[.)]\s+(.*)$", stripped)
+        if stripped.startswith(">"):
+            # A quote line: the block continues until a blank line.
+            flush_para()
+            close_list()
+            content = stripped[1:]
+            if content.startswith(" "):
+                content = content[1:]
+            if content:
+                if not quote:
+                    quote.append([])
+                quote[-1].append(content)
+            else:
+                # A blank quote line: a paragraph break inside the block.
+                quote.append([])
+            continue
         if not stripped:
             flush_para()
             close_list()
+            flush_quote()
         elif heading:
             flush_para()
             close_list()
-            style = f' style="{heading_style}"' if heading_style else ""
+            flush_quote()
+            style = f' style="{head_style}"' if head_style else ""
             spans.append(f"<p{style}><b>" + heading.group(2) + "</b></p>")
         elif li_u or li_o:
             flush_para()
+            flush_quote()
             tag = "ul" if li_u else "ol"
             item = li_u.group(1) if li_u else li_o.group(2)
             content = item
@@ -533,13 +707,11 @@ def md_to_html(text: str, heading_style: str = "") -> str:
             spans.append("<li>" + content + "</li>")
         else:
             close_list()
-            content = html.escape(br_re.sub("\x01", line.rstrip()))
-            content = content.replace("\x01", "<br />")
-            for pat, rep in inline:
-                content = pat.sub(rep, content)
-            para.append(content)
+            flush_quote()
+            para.append(render(line))
     flush_para()
     close_list()
+    flush_quote()
     out = "".join(spans)
     return out
 
@@ -579,6 +751,33 @@ C_POLICY_OPTIONS = [(o["title"], o["description"]) for o in POLICY["options"]]
 # --- Question payload builders (shapes mirror a real Qualtrics export) ----
 
 
+def embedded_field_empty(field: str) -> dict:
+    """Display logic: show the question only when the panel sent no value.
+
+    Qualtrics hides the question (the page stays) when the condition fails,
+    so a respondent whose age, gender or region arrived as embedded data is
+    not asked it again. ``inPage: false`` keeps the rest of the page.
+    """
+    return {
+        "0": {
+            "0": {
+                "LogicType": "EmbeddedField",
+                "LeftOperand": field,
+                "Operator": "Empty",
+                "RightOperand": "",
+                "_HiddenExpression": False,
+                "Type": "Expression",
+                "Description": '<span class="ConjDesc">If</span> '
+                f'<span class="LeftOpDesc">{field}</span> '
+                '<span class="OpDesc">Is Empty</span> ',
+            },
+            "Type": "If",
+        },
+        "Type": "BooleanExpression",
+        "inPage": False,
+    }
+
+
 def db_payload(tag: str, text: str) -> dict:
     return {
         "QuestionText": text,
@@ -599,13 +798,17 @@ def db_payload(tag: str, text: str) -> dict:
 
 
 def mc_single_payload(
-    tag: str, text: str, options: list[str], force_response: bool = True
+    tag: str,
+    text: str,
+    options: list[str],
+    force_response: bool = True,
+    display_logic: dict | None = None,
 ) -> dict:
     settings = {"ForceResponse": "ON" if force_response else "OFF"}
     if force_response:
         settings["ForceResponseType"] = "ON"
     settings["Type"] = "None"
-    return {
+    payload = {
         "QuestionText": text,
         "DefaultChoices": False,
         "DataExportTag": tag,
@@ -622,6 +825,9 @@ def mc_single_payload(
         "NextChoiceId": len(options) + 1,
         "NextAnswerId": 1,
     }
+    if display_logic:
+        payload["DisplayLogic"] = display_logic
+    return payload
 
 
 def mc_sahr_payload(
@@ -766,27 +972,71 @@ def _load_template() -> str:
     return text.split("\n---\n", 1)[-1].strip()
 
 
-# Extra space above the comparison block's bold section labels, so the
-# situation, question and two answers read as separate parts.
-COMPARISON_HEADING_STYLE = "margin-top:1.6em; margin-bottom:0.2em;"
+# The comparison block's bold section labels (the two agent labels): a
+# thin rule above them and space around, so the situation, the question
+# and the two answers read as separate parts.
+COMPARISON_HEADING_STYLE = (
+    "margin-top:1.6em; margin-bottom:0.4em; padding-top:0.9em; "
+    "border-top:1px solid #d9d9d9;"
+)
+
+# Bridge from the dilemma to the answers, used when a profile has no
+# outro line of its own (older profiles).
+COMPARISON_OUTRO_FALLBACK = "Here are the two agents' responses to the question:"
+
+# The template's ``{?marker?}`` placeholders.
+MARKER_RE = re.compile(r"\{\?(\w+)\?\}")
+# A line of the template that sits inside a markdown block quote.
+QUOTE_LINE_RE = re.compile(r"^\s*>")
+
+
+def _fill_markers(text: str, values: dict[str, str]) -> str:
+    """Substitute the template's ``{?marker?}`` values.
+
+    A value substituted into a block-quote line keeps the quote prefix on
+    every one of its lines, so a multi-line case (an email) stays inside
+    the quotation block.
+    """
+    lines = []
+    for line in text.split("\n"):
+        in_quote = bool(QUOTE_LINE_RE.match(line))
+
+        def replace(match: re.Match) -> str:
+            name = match.group(1)
+            if name not in values:
+                raise ValueError(
+                    f"comparison-question.md uses unknown marker {{?{name}?}}"
+                )
+            value = values[name].rstrip()
+            if in_quote:
+                # The template line's own quote prefix covers the first
+                # line of the value; the rest need one of their own.
+                parts = value.split("\n")
+                return parts[0] + "".join("\n> " + part for part in parts[1:])
+            return value
+
+        lines.append(MARKER_RE.sub(replace, line))
+    return "\n".join(lines)
 
 
 def description_text(record: dict) -> str:
     """The comparison descriptive question: the template's ``{?...?}``
     markers filled from the block record. The profile's framing lines may be
-    absent (older profiles); an empty value is substituted as a blank
-    paragraph and drops out of the rendered HTML."""
+    absent (older profiles); an empty intro drops out of the rendered HTML
+    and an empty outro falls back to the generic bridge line."""
     text = _load_template()
-    for marker, value in (
-        ("role", record["role"]),
-        ("dilemma_intro", record["dilemma_intro"]),
-        ("situation", record["situation"]),
-        ("question", record["question"]),
-        ("dilemma_outro", record["dilemma_outro"]),
-        ("response1", record["responses"][0]),
-        ("response2", record["responses"][1]),
-    ):
-        text = text.replace("{?%s?}" % marker, value)
+    text = _fill_markers(
+        text,
+        {
+            "role": record["role"],
+            "dilemma_intro": record["dilemma_intro"],
+            "situation": record["situation"],
+            "question": record["question"],
+            "dilemma_outro": record["dilemma_outro"] or COMPARISON_OUTRO_FALLBACK,
+            "response1": record["responses"][0],
+            "response2": record["responses"][1],
+        },
+    )
     unknown = re.search(r"\{\?\w+\?\}", text)
     if unknown:
         raise ValueError(
@@ -795,19 +1045,82 @@ def description_text(record: dict) -> str:
     return md_to_html(text, heading_style=COMPARISON_HEADING_STYLE)
 
 
-# --- Blocks from the exported dilemma runs ----------------------------------
+# --- Blocks from the comparison survey subset --------------------------------
 
 
-def _response_text(run: dict) -> str:
-    """The run's exported response text, or '' when the file is missing."""
-    path = RUNS_DIR / run["path"] / "response.txt"
-    return path.read_text(encoding="utf-8").strip() if path.exists() else ""
+def survey_model_choices() -> list[tuple[str, Path]]:
+    """(model label, survey manifest path) for every available subset.
+
+    Newest run first. A legacy top-level ``survey/comparisons.json`` (from
+    before the per-model layout) is listed under the label ``complete`` so old
+    runs keep working.
+    """
+    choices = []
+    for directory in sorted(COMPARISONS_DIR.glob("*"), reverse=True):
+        survey_dir = directory / "survey"
+        if not survey_dir.is_dir():
+            continue
+        nested = [
+            (child.name, child / "comparisons.json")
+            for child in sorted(survey_dir.glob("*"))
+            if child.is_dir() and (child / "comparisons.json").exists()
+        ]
+        if nested:
+            choices.extend(nested)
+            continue
+        legacy = survey_dir / "comparisons.json"
+        if legacy.exists():
+            choices.append(("complete", legacy))
+    return choices
+
+
+def _comparison_manifest() -> tuple[Path, dict]:
+    """The selected model's survey subset manifest and its content.
+
+    The survey subset is the survey's own source of comparisons: one
+    comparison is one pair of runs (two models answering the same dilemma),
+    already ordered into Agent 1 / Agent 2 by ``generate_comparisons.py``.
+    ``WVS_COMPARISON_MODEL`` (set by the scripts' ``--model``) picks the
+    fine-tune; without it there must be exactly one subset, otherwise the
+    error lists the choices.
+    """
+    choices = survey_model_choices()
+    if not choices:
+        raise SystemExit(
+            f"No comparison survey subset under {COMPARISONS_DIR} - run "
+            "code/dilemmas/generate_comparisons.py first."
+        )
+    requested = os.environ.get(COMPARISON_MODEL_ENV, "").strip()
+    if requested:
+        matches = [path for name, path in choices if name == requested]
+        if not matches:
+            names = sorted({name for name, _ in choices})
+            raise SystemExit(
+                f"No survey subset for model {requested!r} under "
+                f"{COMPARISONS_DIR} (available: {names}). Run the analysis "
+                "notebook first, or pass --model with one of those names."
+            )
+        path = matches[0]
+    elif len(choices) > 1:
+        names = sorted({name for name, _ in choices})
+        raise SystemExit(
+            "Several model survey subsets exist; pass --model to choose one "
+            f"(available: {names})."
+        )
+    else:
+        path = choices[0][1]
+    manifest = json.loads(path.read_text(encoding="utf-8"))
+    if manifest.get("schema") != COMPARISON_SCHEMA:
+        raise SystemExit(
+            f"Unknown comparison schema {manifest.get('schema')!r} in {path}"
+        )
+    return path, manifest
 
 
 def _profile_sources() -> dict[str, dict]:
     """Profile JSONs keyed by profile id (the ``profile`` field), so the
     survey shows current role and framing wording rather than the copy
-    frozen into the runs manifest."""
+    frozen into the comparison manifest."""
     out: dict[str, dict] = {}
     for path in sorted(PROFILES_DIR.glob("*.json")):
         try:
@@ -821,89 +1134,78 @@ def _profile_sources() -> dict[str, dict]:
 
 
 def survey_records() -> list[dict]:
-    """One record per survey block, from the exported dilemma runs.
+    """One record per survey block, from the comparison survey subset.
 
-    Each block pairs the fine-tuned model with the untuned base model
-    (``PAIR_MODELS``): one block per repetition (version) that both models
-    have exported for the dilemma. Which model plays Agent 1 is a stable
-    pseudo-random assignment per run pair (``agent_order``), so neither
-    position is systematically tied to one model; with the current 5-epoch
-    run sets that gives 5 blocks per dilemma (fewer where a scenario's run
-    set was reset mid-test). The block tag carries both run ids in agent
-    order, so which model played which agent can be decoded afterwards.
+    The survey subset (``comparisons.json``, schema
+    ``wvs-dilemma-comparisons/v1``) holds the pairs of runs the survey shows
+    respondents: one comparison is one pair of runs from two different
+    models answering the same dilemma, already ordered into Agent 1 / Agent 2
+    by ``generate_comparisons.py`` with a stable pseudo-random assignment
+    (a hash of the sorted run ids), so neither position is systematically
+    tied to one model. The block tag carries both run ids in agent order, so
+    which model played which agent can be decoded afterwards.
 
     Role and framing read live from ``code/dilemmas/profiles/<profile>.json``
     (the source of truth for what the agent is), so wording edits show up in
-    the survey without re-exporting runs; the manifest's exported copy is the
-    fallback when a profile file is gone.
+    the survey without regenerating the comparisons; the manifest's exported
+    copy is the fallback when a profile file is gone.
     """
-    manifest_path = RUNS_DIR / "index.json"
-    if not manifest_path.exists():
-        raise SystemExit(
-            f"No dilemma runs manifest at {manifest_path} - run "
-            "code/dilemmas/export_results.py first."
-        )
-    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-    if manifest.get("schema") != "wvs-dilemma-runs-index/v2":
-        raise SystemExit(
-            f"Unknown runs manifest schema {manifest.get('schema')!r} in {manifest_path}"
-        )
-    profiles = manifest["profiles"]
-    dilemmas = {(d["profile_id"], d["situation_id"]): d for d in manifest["dilemmas"]}
+    manifest_path, manifest = _comparison_manifest()
     profile_files = _profile_sources()
-    # (profile, dilemma) -> model -> version -> run
-    runs: dict[tuple[str, str], dict[str, dict[int, dict]]] = defaultdict(
-        lambda: defaultdict(dict)
-    )
-    for run in manifest["runs"]:
-        by_model = runs[(run["profile_id"], run["situation_id"])]
-        by_model[run["model"]][run["version"]] = run
-
+    models = manifest.get("models") or {}
+    model_a = models.get("model_a")
+    model_b = models.get("model_b")
     records = []
-    for key in sorted(runs):
-        by_model = runs[key]
-        if BASE_MODEL not in by_model or FT_MODEL not in by_model:
-            print(
-                f"SKIPPED {key}: base/fine-tuned pair has no runs "
-                f"({', '.join(m.rsplit('/', 1)[-1] for m in PAIR_MODELS if m in by_model) or 'none present'})"
-            )
+    for comparison in manifest.get("comparisons", []):
+        profile_id = comparison.get("profile_id") or ""
+        responses = comparison.get("responses") or []
+        if len(responses) != 2 or not all(responses):
+            print(f"SKIPPED {comparison.get('comparison_id')}: a response is empty")
             continue
-        dilemma = dilemmas[key]
-        profile = profile_files.get(key[0]) or profiles.get(key[0], {})
-        shared = sorted(set(by_model[BASE_MODEL]) & set(by_model[FT_MODEL]))
-        if not shared:
-            print(f"SKIPPED {key}: base/fine-tuned share no exported repetition")
-            continue
-        for version in shared:
-            agents = agent_order(
-                [by_model[BASE_MODEL][version], by_model[FT_MODEL][version]]
-            )
-            responses = [_response_text(run) for run in agents]
-            if not all(responses):
-                print(f"SKIPPED {key} v{version}: an exported response is empty")
-                continue
-            records.append(
-                {
-                    "comparison_id": (f"{agents[0]['run_id']}__{agents[1]['run_id']}"),
-                    "label": f"{key[0]} - {key[1]} v{version}",
-                    "profile": key[0],
-                    "role": profile.get("role_summary")
-                    or profile.get("name")
-                    or key[0],
-                    # Survey framing from the profile JSON (read live,
-                    # with the manifest's exported copy as fallback);
-                    # "" for profiles that do not define it.
-                    "dilemma_intro": profile.get("dilemma_intro", ""),
-                    "dilemma_outro": profile.get("dilemma_outro", ""),
-                    "situation": dilemma["situation"],
-                    "question": dilemma["question"],
-                    "responses": responses,
-                }
-            )
+        profile = profile_files.get(profile_id, {})
+        agents = comparison.get("agents") or {}
+        agent1 = agents.get("Agent 1") or {}
+        agent2 = agents.get("Agent 2") or {}
+        run_ids = [
+            str(agent1.get("run_id", "")),
+            str(agent2.get("run_id", "")),
+        ]
+        if all(run_ids) and model_a and model_b:
+            # agent_order keeps the model-A/model-B order or swaps it, so
+            # Agent 1 is the model-A run exactly when the hash is even.
+            key = hashlib.md5("__".join(sorted(run_ids)).encode()).digest()
+            expected_first = model_a if key[0] % 2 == 0 else model_b
+            if agent1.get("model") != expected_first:
+                # The tag decodes the agent order, so a mismatch would
+                # mislabel which model played which agent in the responses.
+                print(
+                    f"WARNING {comparison['comparison_id']}: agent order differs "
+                    "from the survey's agent_order rule"
+                )
+        records.append(
+            {
+                "comparison_id": comparison["comparison_id"],
+                "label": comparison.get("label", comparison["comparison_id"]),
+                "profile": profile_id,
+                "role": profile.get("role_summary")
+                or comparison.get("role")
+                or profile_id,
+                # Survey framing from the profile JSON (read live, with the
+                # manifest's exported copy as fallback); "" for profiles that
+                # do not define it.
+                "dilemma_intro": profile.get("dilemma_intro")
+                or comparison.get("dilemma_intro", ""),
+                "dilemma_outro": profile.get("dilemma_outro")
+                or comparison.get("dilemma_outro", ""),
+                "situation": comparison.get("situation", ""),
+                "question": comparison.get("question", ""),
+                "responses": responses,
+            }
+        )
     if not records:
         raise SystemExit(
-            f"No version-matched run pairs in {manifest_path} - the survey needs "
-            "at least two models with runs on the same dilemma."
+            f"No comparisons in {manifest_path} - the survey needs at least one "
+            "pair of runs answering the same dilemma."
         )
     return records
 
@@ -952,15 +1254,33 @@ def build() -> dict:
             db_payload("D_intro_volunteer", md_to_html(sheet_for_channel("volunteer")))
         ],
     }
+    # The three demographics a panel can supply (age, gender, region) are
+    # hidden when the panel already sent them: display logic keeps the
+    # question off the page and the embedded value stands in its place.
+    panel_logic = {
+        tag: embedded_field_empty(field) for field, tag, _, _ in PANEL_DEMOGRAPHICS
+    }
     section_a = {
         "description": "Section A - About you",
         "collapsed": True,
         "questions": [
-            mc_single_payload("Z1-1", Z_AGE_TEXT, Z_AGE_OPTIONS),
-            mc_single_payload("Z2-1", Z_GENDER_TEXT, Z_GENDER_OPTIONS),
+            mc_single_payload(
+                "Z1-1", Z_AGE_TEXT, Z_AGE_OPTIONS, display_logic=panel_logic["Z1-1"]
+            ),
+            mc_single_payload(
+                "Z2-1",
+                Z_GENDER_TEXT,
+                Z_GENDER_OPTIONS,
+                display_logic=panel_logic["Z2-1"],
+            ),
             mc_multi_payload("Z3-1", Z_ETHNICITY_TEXT, Z_ETHNICITY_OPTIONS),
             mc_single_payload("Z4-1", Z_EMPLOY_TEXT, Z_EMPLOY_OPTIONS),
-            mc_single_payload("Z5-1", Z_REGION_TEXT, Z_REGION_OPTIONS),
+            mc_single_payload(
+                "Z5-1",
+                Z_REGION_TEXT,
+                Z_REGION_OPTIONS,
+                display_logic=panel_logic["Z5-1"],
+            ),
             mc_single_payload("Z6-1", Z_INCOME_TEXT, Z_INCOME_OPTIONS),
             mc_single_payload("Z7-1", Z_OCCUPATION_TEXT, Z_OCCUPATION_OPTIONS),
             mc_single_payload("Z8-1", Z_EDU_TEXT, Z_EDU_OPTIONS),
@@ -1053,20 +1373,36 @@ def branch(logic: dict, flow: list, flow_id: str) -> dict:
     }
 
 
-def distribution_check(value: str) -> dict:
-    """BranchLogic: distribution embedded field equals ``value``."""
+# Qualtrics branch-logic operators for the embedded-field comparison, and
+# the wording the Qualtrics UI shows for each of them.
+DISTRIBUTION_OPERATORS = {
+    "EqualTo": "Is Equal to",
+    "NotEqualTo": "Is Not Equal to",
+}
+
+
+def distribution_check(value: str, operator: str = "EqualTo") -> dict:
+    """BranchLogic: the ``distribution`` embedded field compared to ``value``.
+
+    ``operator`` is the Qualtrics comparison operator: "EqualTo" (the
+    default) or "NotEqualTo". The paid introduction branches on "is not
+    volunteer", so Qualtrics shows it to every respondent whose link did
+    not set ``distribution`` to ``volunteer`` - the information sheet is
+    the default, not something a missing parameter can skip.
+    """
+    op_text = DISTRIBUTION_OPERATORS[operator]
     return {
         "0": {
             "0": {
                 "LogicType": "EmbeddedField",
                 "LeftOperand": "distribution",
-                "Operator": "EqualTo",
+                "Operator": operator,
                 "RightOperand": value,
                 "_HiddenExpression": False,
                 "Type": "Expression",
                 "Description": '<span class="ConjDesc">If</span> '
                 '<span class="LeftOpDesc">distribution'
-                '</span> <span class="OpDesc">Is Equal to'
+                f'</span> <span class="OpDesc">{op_text}'
                 '</span> <span class="RightOpDesc"> '
                 f"{value} </span>",
             },
@@ -1087,9 +1423,10 @@ def flow(name_to_id: dict[str, str], qids_by_tag: dict[str, str]) -> dict:
     ``name_to_id`` maps block description -> remote Block id (already
     synced); ``qids_by_tag`` maps question tag -> QuestionID (the prize
     branch locates choices on Q85). Structure mirrors the hand-built live
-    flow: distribution branches for the two intros, then demographics for
-    everyone, the two-stage comparison sampler, Section C, and the volunteer
-    prize-draw ending.
+    flow: the two distribution branches for the intros (the paid sheet
+    first, as the default for anyone who is not a volunteer), then
+    demographics for everyone, the two-stage comparison sampler,
+    Section C, and the volunteer prize-draw ending.
 
     Comparison sampling is stratified by profile: the outer randomizer draws
     ``profiles_shown`` of the per-profile randomizers (in random order), and
@@ -1124,23 +1461,44 @@ def flow(name_to_id: dict[str, str], qids_by_tag: dict[str, str]) -> dict:
             }
         )
     q85 = qids_by_tag[PRIZE_DRAW_TAG]
+    # The embedded data fields: the channel, and the demographics a panel
+    # can append to the survey link. The panel fields have no value here -
+    # Qualtrics fills them from the link's query string ("Value will be set
+    # from Panel or URL").
+    embedded_fields = [
+        {
+            "Description": "distribution",
+            "Type": "Recipient",
+            "Field": "distribution",
+            "VariableType": "String",
+            "DataVisibility": [],
+            "AnalyzeText": False,
+        }
+    ]
+    embedded_fields += [
+        {
+            "Description": field,
+            # "Recipient" is the API's only embedded-data type: the value
+            # is set from the panel or the survey link's query string.
+            "Type": "Recipient",
+            "Field": field,
+            "VariableType": "String",
+            "DataVisibility": [],
+            "AnalyzeText": False,
+        }
+        for field, _, _, _ in PANEL_DEMOGRAPHICS
+    ]
     flow_items = [
         {
             "Type": "EmbeddedData",
             "FlowID": "FL_60",
-            "EmbeddedData": [
-                {
-                    "Description": "distribution",
-                    "Type": "Recipient",
-                    "Field": "distribution",
-                    "VariableType": "String",
-                    "DataVisibility": [],
-                    "AnalyzeText": False,
-                },
-            ],
+            "EmbeddedData": embedded_fields,
         },
         branch(
-            distribution_check("paid"),
+            # The paid information sheet is the default: it is shown
+            # whenever ``distribution`` is not ``volunteer``, so a link
+            # that never set the field still gets the sheet.
+            distribution_check("volunteer", operator="NotEqualTo"),
             [
                 {
                     "Type": "Standard",

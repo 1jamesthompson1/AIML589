@@ -88,6 +88,12 @@ SUBPOPS = ["cluster_0", "cluster_1", "overall"]
 # (model + LoRA loading takes minutes). Keep in sync with serve.py.
 STARTUP_GRACE_S = 180
 
+# How long to wait for the server to come up before aborting. A cold instance
+# also pays for FlashInfer JIT compilation, torch.compile and CUDA-graph
+# capture, which does not fit in 600s (the old budget: the server was killed
+# mid-capture on a freshly rented box). Keep in sync with serve.py.
+STARTUP_TIMEOUT_S = int(os.environ.get("SERVE_STARTUP_TIMEOUT_S", "1800"))
+
 # finetune.py-only flags: extra args are forwarded to serve.py too, but vLLM
 # rejects them. Flags whose values could be mistaken for a new flag are not
 # in this list (serve.py must never receive them).
@@ -714,7 +720,7 @@ def main(argv=None):
                 )
                 time.sleep(STARTUP_GRACE_S)
             print(f"Waiting for server on localhost:{port}...", flush=True)
-            deadline = time.monotonic() + 600
+            deadline = time.monotonic() + STARTUP_TIMEOUT_S
             while time.monotonic() < deadline:
                 if server_is_up(url):
                     break
@@ -727,7 +733,10 @@ def main(argv=None):
                     sys.exit(1)
                 time.sleep(2)
             if not server_is_up(url):
-                print("[error] server did not start within 600s — aborting")
+                print(
+                    f"[error] server did not start within {STARTUP_TIMEOUT_S}s "
+                    "— aborting"
+                )
                 sys.exit(1)
             print("Server ready.")
 

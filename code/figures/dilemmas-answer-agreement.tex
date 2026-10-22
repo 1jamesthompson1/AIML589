@@ -1,0 +1,19 @@
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{lrrrrrr}
+\toprule
+ & Dilemmas & \multicolumn{3}{l}{Same} & Different & Distance \\
+ & compared & modal & modal \% & run pairs \% & modal & mean TVD \\
+\midrule
+first-token vs Qwen3.8-27B base & 30 & 21 & 70.0 & 65.4 & 9 & 0.26 \\
+modal vs Qwen3.8-27B base & 30 & 19 & 63.3 & \bfseries 55.9 & 11 & \bfseries 0.40 \\
+full-string vs Qwen3.8-27B base & 30 & \bfseries 17 & \bfseries 56.7 & 59.0 & \bfseries 13 & 0.29 \\
+sampled vs Qwen3.8-27B base & 30 & \bfseries 17 & \bfseries 56.7 & 58.2 & \bfseries 13 & 0.31 \\
+full-string vs first-token & 30 & 24 & 80.0 & 63.5 & 6 & 0.19 \\
+sampled vs modal & 30 & 24 & 80.0 & 66.2 & 6 & 0.21 \\
+full-string vs modal & 30 & 24 & 80.0 & 63.6 & 6 & 0.23 \\
+full-string vs sampled & 30 & 22 & 73.3 & 62.1 & 8 & 0.20 \\
+modal vs first-token & 30 & 22 & 73.3 & 60.6 & 8 & 0.30 \\
+sampled vs first-token & 30 & 20 & 66.7 & 60.7 & 10 & 0.26 \\
+\bottomrule
+\end{tabular}
+}%

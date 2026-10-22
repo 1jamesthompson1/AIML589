@@ -36,6 +36,31 @@ Related serving fixes in `serve.py`:
   their names then 404 at eval time).
 - Duplicate adapter names (collection + `--adapter` overlap) no longer crash
   vLLM at startup.
+- The startup budget is `SERVE_STARTUP_TIMEOUT_S` (default 1800s). A cold
+  instance also pays for FlashInfer JIT compilation, `torch.compile` and
+  CUDA-graph capture on top of the model load, so the old 600s budget killed
+  the server mid-capture — and the remote watchdog then destroyed the box as
+  idle. `run_all.py` uses the same budget.
+
+### Stale local port ("local port 8087 already in use")
+
+`run.sh serve` fails fast if the local tunnel port is taken. The usual cause is
+a tunnel left over from an earlier run: the `ssh -L` process only notices the
+remote is gone when it reads the socket, so if its output pipe (the terminal)
+stalls it sits in `CLOSE_WAIT` and keeps the port bound.
+
+```bash
+lsof -i :8087 -P -n          # who holds the port
+ss -ltnp | grep 8087         # same, from the kernel side
+ps -o pid=,comm=,args= -p <pid>
+```
+
+`SIGTERM`/`SIGINT` are swallowed while the `ssh` is blocked writing to a full
+pty — use `kill -9 <pid>` for the tunnel, the `ssh -t` server session and the
+`run.sh` process. A stalled terminal (e.g. a VS Code terminal whose client is
+not draining the pty) also blocks the new run at its first write, so check the
+buffer is not full (`timeout 3 bash -c 'exec 3>/dev/pts/N; printf "x\n" >&3'`)
+or launch detached with the output going to a log file instead of the tty.
 
 Re-run all fine-tuned evals (base-model evals are unaffected). When
 interpreting the new results, note that modal-response SFT makes the traced

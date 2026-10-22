@@ -1216,7 +1216,8 @@ def _(EVALS_ROOT, Path, csv, datetime, json, pd, timezone):
     The website fetches this at runtime so nothing is bundled at build time.
     It lists every model/run (with config + bucket-relative path) plus a
     question inventory keyed by (question_id, column_name) — the 251 distinct
-    survey sub-items, each with in_training / in_eval flags.
+    survey sub-items, each with in_training / in_eval flags and the answer
+    options used by the viewer's fuzzy question/answer search.
     """
     TRAIN_PARQUET = (
         Path(__file__).resolve().parents[1]
@@ -1257,6 +1258,27 @@ def _(EVALS_ROOT, Path, csv, datetime, json, pd, timezone):
             if entry.get("question_type") != "value survey":
                 continue
             out[str(entry["id"])] = entry.get("question", "")
+        return out
+
+    def _load_question_options(path: Path) -> dict[str, list[str]]:
+        """column_name -> answer options from the canonical mapping.
+
+        The viewer searches these alongside the question text, so a query
+        like "honest" also finds the survey items whose answer scale contains
+        that word.
+        """
+        mapping = json.loads(path.read_text())
+        out: dict[str, list[str]] = {}
+        for entry in mapping:
+            if entry.get("question_type") != "value survey":
+                continue
+            options = [
+                str(option)
+                for option in (entry.get("word_response_types") or [])
+                if str(option).strip()
+            ]
+            for column_name in entry.get("column_names", []):
+                out[str(column_name)] = options
         return out
 
     def build_webapp_manifest() -> dict:
@@ -1313,6 +1335,11 @@ def _(EVALS_ROOT, Path, csv, datetime, json, pd, timezone):
             if QUESTION_MAPPING.exists()
             else {}
         )
+        q_options = (
+            _load_question_options(QUESTION_MAPPING)
+            if QUESTION_MAPPING.exists()
+            else {}
+        )
 
         # Build a lookup for sub_question text from the validation parquet.
         val_df = (
@@ -1342,6 +1369,7 @@ def _(EVALS_ROOT, Path, csv, datetime, json, pd, timezone):
                     "column_name": col_name,
                     "question": q_text.get(qid, ""),
                     "sub_question": sub_q_map.get((qid, col_name), ""),
+                    "answer_options": q_options.get(col_name, []),
                     "in_training": (qid, col_name) in train_qcols,
                     "in_eval": (qid, col_name) in eval_qcols,
                 }

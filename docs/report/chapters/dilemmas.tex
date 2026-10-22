@@ -4,11 +4,31 @@ The structure of the chapter is as follows:
 
 \section{The difference between base and fine-tuned models}
 
-This is the results section which goes first.
+The difference between the base and fine-tuned models is shown in \tabref{dilemmas-h1-summary}. There were 4 different fine tuning methods tested, with \modelref{ft-modal} having the highest divergence from the base model.
+
+\fixme{expand on the method for generating these results}
+
+\ctable{dilemmas-h1-summary}{The average divergence between the base and fine-tuned models across the dilemmas.}
+
+\subsection{Choosing the fine-tuned model for the survey}
+
+In \ref{chap:survey} I will use the \scare{best} fine tuned model to run a survey with the public. The best fine-tuned model is supposed to be the model that is most aligned to the New Zealand public.
+
+By looking at \tabref{ft-results-Qwen3.8-27B} we can see that the \modelref{ft-first-token} model has the best validation accuracy and smallest divergence in distribution from the base model. Therefore from a training perspective this is the strongest model. However by training it t o fit a distribution the nudge given is less strong. This can be seen \tabref{dilemmas-h1-summary} where the \modelref{ft-first-token} model has the least divergence from the base model. Therefore it is not clear which model is the best to use for the survey. It may be that \modelref{qwen3.8-27b} is nearly aligned to the NZ public and so the \modelref{ft-first-token} model is just a small tweak towards optimal. Then the other models are overfitting or just going of in the wrong direction.
+
+Alternatively it may be that the fine tuning of \modelref{ft-first-token} model is just not strong enough to move the needle. Therefore the \modelref{ft-modal} model might be the most aligned to the NZ public as it is the most divergent from the base model.
+
+With limited resources it is not possible to run a survey with more than one fine-tuned model. Therefore I will use the model that has the largest divergence from the base model, which is \modelref{ft-modal}. This is because it is the most different from the base model and so easiest to detect if it is aligned.
 
 \subsection{Situational awareness of dilemmas}
 
 Models are shown to know that they are in a simulation \cite{laineMeMyselfAI2024,phuongEvaluatingFrontierModels2025,needhamLargeLanguageModels2025}. Smaller models areless self aware \cite{chaudharyEvaluationAwarenessScales2025}
+
+
+This was done by using \judgemodel{} to read the transcript of a dilemma sample (including the model reasoning) and then provide a ordinal score from 0-4 where 0 is no awareness and 4 is full awareness. The results are shown in \figref{awareness-profile-heatmap}. \fixme{Fix up problem where Claude and GPT don't have reasoning as it is encrypted so the scoring is not valid.}
+
+\cfigure{awareness-profile-heatmap}{The average awareness score for each dilemma across the models for the frontier models.}
+\fixme{Add in the table of fine tuned model awareness scores}
 
 \section{Creating a small Dilemma dataset by hand}
 
@@ -20,26 +40,53 @@ The dilemmas were constructed by hand with three objectives in in mind. These ob
     \item Each of the decisions that could be made must be defensible under some commonsense moral or ethical framework.
 \end{enumerate}
 
-Notably the value tensions that are tested is not a comprehensive list of all value tensisons and instead is a best-effort coverage of various value tensions.
+
 
 
 \subsection{Writing of the dilemmas}
-It was an interactive design process in which initially 10 dilemmas were constructed. 
-Then these ten dilemmas were given two variations each which target a similar trade off.
+It was an interactive design process in which initially 10 dilemmas were constructed. Then these 10 dilemmas were given two variations each which target a similar trade off. This resulted in 30 dilemmas across 10 different profiles.
 
-Iterativing with teesting with a ensemble of frontier models to test fo balance, divergence and stabilty
 
-\section{Dilemmas as single response agents}
-The goal of the Dilemmas was to test the models responses in an out of distriubtion setting.
+\fixmeinline{Add in a complete list of the dilemma profiles and situation summary along with documents available in the system prompt}
+
+The dilemmas were initially drafted by AI in a process of exploration to find suitable everyday trade offs. Then a process of hand curating and iteration was done to tweak the scenarios for readability and decisiveness. Research judgement about which ones are the most grounded and \scare{interesting} was used.
+
+Decisiveness was important for this as we needed model to diverge. Each dilemma was \scare{spot tested} by running 5 sample across 5 different frontier model labs(Cohere, OpenAI, Anthropic, Mistral, DeepSeek, Z.ai). Once the results shows that some models would give consistently different answers from each other the dilemma was considered 'complete'.
+
+\subsection{Dilemmas as single response agents}
+The goal of the Dilemmas was to test the models responses in an out of distributions setting.
 
 This mean that maintaining some realism is required to invoke the model to respond 'as if' it were in deployment.
 
-The way to do this was the framing of the system prompt in which each model was given a systme pormt htat both told them they were the first step in an agentic process as well as giving them a large amount of relevant documents to reference (e.g Code of Conducts). These reference documents were real public documents where relevant.
+The way to do this was the framing of the system prompt in which each model was given a system prompt that both told them they were the first step in an agentic process as well as giving them a large amount of relevant documents to reference (e.g Code of Conducts). These reference documents were real public documents where relevant.
 
-\section{How the dilemmas were graded}
 
-They were graded using LLM as Judge. Wuith the judge being asked two things. To decide which of a defined set of options were taken and then to provide a deciion of which value it prioritised.
+Each model was instructed to answer in no more than 40 words with this appearing in each prompt:
+
+\begin{quote}
+You will be given a situation and asked what you would do. Answer in no more than two short sentences (about 40 words). Use plain language a member of the public can follow: no jargon and no acronyms - write any abbreviation out in full. Say what you would do and what you are putting first - the value, duty or person that decides it. Do not describe procedures, steps or policy. You cannot take actions, ask questions, or look anything up.
+\end{quote}
+
+\section{Comparing the model responses with Judges and embeddings}
+
+Understanding the model behaviour was done in two ways. Firstly was a LLM as judge that put the response into one of two categories and the seocnld was embedding the response text.
+
+\subsection{Classifying the model responses with a judge model}
+
+A LLM-as-Judge model (\judgemodel{}) was used to classify the model responses into one of two categories. The judge model was given the dilemma the models reasoning and the model response and then asked to classify the response into one of two categories. The categories were chosen to be the two options to the crafted binary choice given. Structured output was used to ensure that the output was in a consistent format. 
 
 \ctable{dilemmas-answer-stats}{The answer and stability satistics for the dilemmas. The mean answer is the average of the model responses across the latest run set, and the stabilty is the entropy of the model responses. The bolded values indicate the highest stability for each dilemma.}
 
-\ctable{dilemmas-answer-stats-frontier}{The same answer and stability statistics for the frontier comparison models the dilemmas were also run on (openrouter; the presenter and judge were unchanged).}
+\ctable{dilemmas-answer-stats-frontier}{The same answer and stability statistics for the frontier comparison models the dilemmas were also run on (OpenRouter; the presenter and \judgemodel{} were unchanged).}
+
+\subsection{Embedding the model responses and measuring the distance between them}
+
+The model responses were embedded using the \modelref{qwen-embedding} model \footnote{This happens to be a similar model as the base model yet this is not suspected to make any difference and is by coincidence only. The model was selected based on its MTEB \cite{enevoldsenMMTEBMassiveMultilingual2025}}. Each response was embedded and that gave a cosine distance between the two responses.
+
+IN \figref{dilemmas-comparison-distance-modal_response-overall} we can see the average cosine distance between the base and fine-tuned model responses. Specifically we can see that some dilemmas have almost twice the distance between responses and also that embedding distance is roughly correlated with judged outcome.
+
+\fixme{Add in more rigorous analysis of correlation}
+
+\cfigure{dilemmas-comparison-distance-modal_response-overall}{The average cosine distance between the base and fine-tuned model responses across the dilemmas. The distance is calculated by embedding the model responses and then calculating the cosine distance between them.}
+
+\cfigure{dilemmas-comparison-distance-histogram}{The distribution of the cosine distances between the base and each fine-tuned model's responses across the dilemmas. Colours distinguish the four fine-tunes; the dotted line marks each model's mean.}

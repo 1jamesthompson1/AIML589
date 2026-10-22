@@ -92,9 +92,11 @@ into `artifacts/`; the website dev server does not call it.
 inventory). Each selected run's `per_question_results.csv` is fetched lazily
 and parsed in the browser. The viewer exposes all manifest models, selected
 runs, prompt variants, subpopulations, question-level distributions, and
-aggregate row/accuracy/KL/CE/TVD summaries. Run metadata includes elapsed
-runtime when it is present in `config.json`; fine-tuning evaluations do not
-currently record provider token usage or cost.
+aggregate row/accuracy/KL/CE/TVD summaries. The question search is fuzzy and
+matches the full question text, sub-item, column name, and answer options, so
+typing `honest` finds items whose question or response scale contains it. Run
+metadata includes elapsed runtime when it is present in `config.json`;
+fine-tuning evaluations do not currently record provider token usage or cost.
 
 ### Behavioural simulation runs
 
@@ -183,7 +185,6 @@ no merged/live view, and spot runs are not shown in it.
 
 An older runs index without the dilemma inventory still works: the viewer
 falls back to a selected run's `config.json` for the dilemma text.
-
 ## Deployment
 
 Pushing to `main` triggers a GitHub Action that builds and deploys to GitHub
