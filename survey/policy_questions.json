@@ -1,44 +1,44 @@
 {
   "question": "How do you think New Zealand Should Respond to AI as a Society?",
-  "intro": "Our research team has identified policy responses that we think could help ensure a positive future for AI in New Zealand. Please choose your top three preferred policies.",
+  "intro": "Our research team has identified policy responses to AI that we believe will help build a positive future for all Kiwis. Please choose your three favourite policies from the list.",
   "min_choices": 3,
   "max_choices": 3,
   "options": [
     {
       "title": "Fund an Office for AI",
-      "description": "Building national expertise in AI, the office will study the risks and opportunities AI poses so that it can make independent recommendations to the government. It will also collaborate with other countries on AI risks."
+      "description": "The office will study the risks and opportunities AI poses, so that it can make independent recommendations to the government. The office will also build national expertise in AI, and allow us to collaborate internationally on AI risks."
     },
     {
-      "title": "Require AI companies to provide reliable AI detectors",
-      "description": "Make AI companies provide Kiwis with a free tool that lets us easily check if something was generated with their AI. This is already the case in the European Union."
+      "title": "Require AI Companies to Provide Reliable AI Detectors",
+      "description": "Make AI companies provide Kiwis with a free tool that lets us check if content was generated with their AI. The European Union has a similar law."
     },
     {
       "title": "Harden Our Infrastructure against Catastrophic AI Misuse",
-      "description": "Through the direction of the central Office for AI, increase funding for biosecurity (to protect us from AI bioweapons) and cyber defense (to protect us from AI hacking)."
+      "description": "Through the direction of the Office for AI, increase funding for biosecurity (to protect us from AI bioweapons) and cyber defense (to protect us from AI hacking)."
     },
     {
-      "title": "Jobseeker 2.0 To Help People Who Lose Their Jobs Because of AI",
+      "title": "Jobseeker 2.0",
       "description": "Expand jobseeker to have targeted retraining packages for people in sectors of the economy disrupted by AI automation"
     },
     {
-      "title": "Tax AI Work like Human Work to Slow Job Losses and Maintain Government Revenue",
-      "description": "Shift taxation away from human labour, and towards AI consumption. Do this by adding a tax on companies' AI services (i.e ChatGPT, Claude). This would not apply to Kiwi-owned AI services."
+      "title": "Tax AI Usage to Slow Job Losses and Maintain Government Revenue",
+      "description": "Shift taxation away from human labour, and towards AI service consumption. Do this by adding a tax on workplace AI bills."
     },
     {
-      "title": "Invest in AI Infrastructure as a Public Good",
-      "description": "New Zealand should invest in publicly owned AI computers. This preserves control and privacy and ensures AI is built and deployed in line with our values."
+      "title": "Invest in Publicly Owned AI Infrastructure",
+      "description": "New Zealand should invest in publicly owned AI hardware. This preserves control and privacy and ensures AI is built and deployed in line with our values."
     },
     {
-      "title": "Mandate Human Control Over all Critical Societal Functions",
-      "description": "Pass a law legally mandating human oversight in all domains that are critical to the functioning of society (such as policymaking, medicine, law, engineering, teaching, etc)."
+      "title": "Retain Human Control Over All Critical Societal Functions",
+      "description": "Pass a 'human in the loop' law ensuring humans will always stay in control of all areas that are critical to the functioning of society, even if AI becomes superhuman."
     },
     {
       "title": "Protect our Children From AI Companies",
-      "description": "Similar to the social media ban, all AI chatbots, agents, and companions should be banned for children under 16. From 16 to 18, AI usage would be introduced only in educational contexts."
+      "description": "Similar to the proposed social media ban, all AI chatbots, agents, and companions should be banned for children under 16."
     },
     {
-      "title": "Allow Companies to Build AI Computers here in exchange for Access and Infrastructure Upgrades",
-      "description": "We get priority access, both to the best AI they host, and the ability to train and host our own AI. They must also pay for local infrastructure upgrades to avoid disrupting residents."
+      "title": "Allow Companies to Build AI Hardware here in Exchange for Access and Infrastructure Upgrades",
+      "description": "We get priority access to the AI they run on the hardware, and the hardware itself. They must also pay for local infrastructure upgrades to avoid disrupting residents."
     }
   ]
 }
