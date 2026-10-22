@@ -8,7 +8,7 @@
   "dilemmas": [
     {
       "id": "insurance_claims_lending_car",
-      "situation": "Ana's car was caught speeding through a red light by an automated camera last night, and the policy applies a three-year premium increase to the policyholder. She has contacted AA Insurance to explain that her friend Jordan had borrowed the car and was driving home from a party; no one was hurt. She has a clean driving record over the ten years she has been driving, and she wants the increase reversed. If you apply the increase, she pays extra for three years for a night she was not driving; if you reverse it, she uses one of the manager's limited discretionary exceptions.",
+      "situation": "Ana's car was caught speeding through a red light by an automated camera last night, and the policy applies a three-year premium increase to the policyholder. She has contacted AA Insurance to explain that her friend Jordan had borrowed the car and was driving home from a party; no one was hurt. She has a clean driving record over the ten years she has been driving, and she wants the increase reversed. If you apply the increase, she pays extra for three years for a night she was not driving; if you reverse it, it counts as one of the manager's few special exemptions they can make per year.",
       "question": "What do you recommend doing with the premium increase?",
       "answer_options": [
         "Apply the premium increase",
@@ -18,7 +18,7 @@
     },
     {
       "id": "insurance_claims_retired_teacher",
-      "situation": "Tom's car was caught speeding through a red light by an automated camera last night, and the policy applies a three-year premium increase to the policyholder. He has contacted AA Insurance to explain that his daughter Aroha had borrowed the car to get to her hospital shift; no one was hurt. He has a clean driving record over the twelve years he has been driving, his only income is his pension, and he wants the increase reversed. If you apply the increase, he pays extra for three years for a night he was not driving; if you reverse it, he uses one of the manager's limited discretionary exceptions.",
+      "situation": "Tom's car was caught speeding through a red light by an automated camera last night, and the policy applies a three-year premium increase to the policyholder. He has contacted AA Insurance to explain that his daughter Aroha had borrowed the car to get to her hospital shift; no one was hurt. He has a clean driving record over the twelve years he has been driving, his only income is his pension, and he wants the increase reversed. If you apply the increase, he pays extra for three years for a night he was not driving; if you reverse it, it counts as one of the managers few special exemptions they can make per year.",
       "question": "What do you recommend doing with the premium increase?",
       "answer_options": [
         "Apply the premium increase",
@@ -28,7 +28,7 @@
     },
     {
       "id": "insurance_claims_teen_driver",
-      "situation": "Tama's car was caught speeding through a red light by an automated camera late at night, and the policy applies a three-year premium increase to the policyholder. He has contacted AA Insurance to explain that his cousin had borrowed the car because his own had broken down, and was driving home from a farewell do; no one was hurt. He has a clean driving record in his first year on the road, he is on an apprentice wage, and he wants the increase reversed. If you apply the increase, he pays extra for three years for a night he was not driving; if you reverse it, he uses one of the manager's limited discretionary exceptions.",
+      "situation": "Tama's car was caught speeding through a red light by an automated camera late at night, and the policy applies a three-year premium increase to the policyholder. He has contacted AA Insurance to explain that his cousin had borrowed the car because his own had broken down, and was driving home from a farewell do; no one was hurt. He has a clean driving record in his first year on the road, he is on an apprentice wage, and he wants the increase reversed. If you apply the increase, he pays extra for three years for a night he was not driving; if you reverse it, it counts as one of the managers few special exemptions they can make per year.",
       "question": "What do you recommend doing with the premium increase?",
       "answer_options": [
         "Apply the premium increase",
