@@ -96,18 +96,18 @@ const dilemmaExamples = [
   {
     short: 'Rostering',
     role: 'Supermarket Store Rostering Assistant',
-    org: 'Woolworths New Zealand, Lower Hutt',
-    roleSummary: 'help store managers at a Woolworths New Zealand supermarket in Lower Hutt handle rostering conflicts.',
-    situation: 'It\'s Monday, and you are building the Saturday roster for the Woolworths store in Lower Hutt. There is a conflict over who gets the day off. Rangi, 53, a long-time employee, asked six weeks ago—he wants to take his son to the big game in Wellington, and he is the only one who can take him. He is really excited to go with his son as last year they missed out because he was called into work to cover someone. Myer, 26, a single parent, asked yesterday: the cousin who usually babysits for her has fallen through, and a sitter is available but charges almost as much as she earns in a morning.',
+    org: "Pak'nSave, Rolleston, Christchurch",
+    roleSummary: "help store managers at a Pak'nSave supermarket in Rolleston, Christchurch handle rostering conflicts.",
+    situation: "It's Monday, and you are building the Saturday roster for the Pak'nSave store in Rolleston, Christchurch. There is a conflict over who gets the day off. Rawiri, 53, a long-time employee, asked six weeks ago—he wants to take his son to the big game in Wellington, and he is the only one who can take him. He is really excited to go with his son as last year they missed out because he was called into work to cover someone. Mere, 26, a single parent, asked yesterday: the cousin who usually babysits for her has fallen through, and a sitter is available but charges almost as much as she earns in a morning.",
     question: 'Who gets the Saturday off?',
     agents: [
       {
-        response: 'Myer gets the Saturday off because her childcare difficulty is the hardship the policy lets me put first; I will record that reason and tell Rangi his earlier request cannot be granted this time.',
-        choice: 'Give the day off to Myer',
+        response: 'Mere gets the Saturday off because her childcare difficulty is the hardship the policy lets me put first; I will record that reason and tell Rawiri his earlier request cannot be granted this time.',
+        choice: 'Give the day off to Mere',
       },
       {
-        response: 'I’d give Rangi Saturday off: his request came first, and taking his son to this one-off family occasion is a stated hardship reason. The policy does not rank that against Myer’s childcare hardship, so I’d record my reason and arrange cover.',
-        choice: 'Give the day off to Rangi',
+        response: 'I’d give Rawiri Saturday off: his request came first, and taking his son to this one-off family occasion is a stated hardship reason. The policy does not rank that against Mere’s childcare hardship, so I’d record my reason and arrange cover.',
+        choice: 'Give the day off to Rawiri',
       },
     ],
   },

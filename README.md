@@ -3,7 +3,12 @@
 > [!NOTE]  
 > **Work in Progress**<br>This project is a 4 month research project. Starting July 2026 ending in November 2026. It is being conducted by James Thompson as a Master project under the supervision of Dr Andrew Lensen. This repo will not be considered 'presentation' ready until the end. Regardless though it is public as that seem like the right way to do things.
 
-A simple introduction of the project can be found on the [website](https://nz-llm.sjhl.nz). This project is a continuation of the work done over summer 25/26 in [AIML501](https://raw.githubusercontent.com/1jamesthompson1/AIML501/main/output/AIML501_James_Thompson.pdf).
+
+A simple introduction of the project can be found on the [website](https://nz-llm.sjhl.nz). In short Qwen3.8-27B is fine tuned on World Values Survey data, then evaluated through handwritten dilemmas with it finally being validated with a public consultation (choosing preference between base and fine tuned model on dilemma responses).
+
+A pre-registration of the project is on [AsPredicted](https://aspredicted.org/kd3an7.pdf).
+
+Lastly the write up can be found in the [final report](https://raw.githubusercontent.com/1jamesthompson1/AIML589/main/docs/output/AIML589-James-Thompson-LLM-NZ-Value-Alignment.pdf). A background review  done over summer 25/26 in [AIML501](https://raw.githubusercontent.com/1jamesthompson1/AIML501/main/output/AIML501_James_Thompson.pdf).
 
 ## User guide
 
@@ -11,7 +16,7 @@ This repo is a mono repo containing several systems. Each top-level directory ha
 
 | Directory | Purpose |
 |---|---|
-| `code/` | Python code for training datasets, fine-tuning models, and running behavioural simulations. Each phase has its own subdirectory with a README. Written as [Marimo](https://docs.marimo.io/) notebooks. |
+| `code/` | Python code for training datasets, fine-tuning models, and running behavioural simulations. Each phase has its own subdirectory with a README. |
 | `docs/` | LaTeX documents (report, funding requests, ethics application). Compiled with `make`. Output goes to `docs/output/`. |
 | `survey/` | Source files for the public consultation survey: participant information sheet, survey mockup, recruitment flyer/post, and the VUW logo. |
 | `website/` | Public-facing project site ([nz-llm.sjhl.nz](https://nz-llm.sjhl.nz)). Built with Astro + React, deployed via GitHub Pages. |
