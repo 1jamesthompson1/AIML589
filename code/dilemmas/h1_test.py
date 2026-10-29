@@ -47,14 +47,11 @@ class H1Results:
     - other_rates: the "Other or unclear" rate of every model, from the runs
       as they were handed in (so the sensitivity run still reports the rates
       of the full run set).
-    - null_overall: the permutation null distribution of the overall mean TVD,
-      one array per fine-tuned model (for the figure).
     """
 
     summary: pd.DataFrame
     per_dilemma: pd.DataFrame
     other_rates: pd.DataFrame
-    null_overall: dict[str, np.ndarray]
 
 
 def other_option_index(options: list[str]) -> int | None:
@@ -215,12 +212,11 @@ def run_h1(
     and is tested against it separately.
 
     Returns the summary (one row per fine-tuned model), the per-dilemma
-    results, the "Other or unclear" rates and the permutation null
-    distributions of the overall effect.
+    results and the "Other or unclear" rates.
     """
     if runs.empty:
         # Nothing to test yet: the notebook still runs on a fresh checkout.
-        return H1Results(pd.DataFrame(), pd.DataFrame(), pd.DataFrame(), {})
+        return H1Results(pd.DataFrame(), pd.DataFrame(), pd.DataFrame())
     labels = list(runs["Model"].unique())
     if base_label not in labels:
         raise ValueError(f"the base model {base_label!r} is not in the runs")
@@ -232,7 +228,6 @@ def run_h1(
 
     summary_rows: list[dict] = []
     per_dilemma_rows: list[dict] = []
-    null_overall: dict[str, np.ndarray] = {}
     for model in fine_tuned:
         rng = np.random.default_rng(_model_seed(seed, model))
         # The dilemmas both models answered: a dilemma one of them missed
@@ -259,7 +254,6 @@ def run_h1(
             else np.nan
         )
         p_dilemma = (1 + (null >= observed).sum(axis=0)) / (replicates + 1)
-        null_overall[model] = null_mean
         for position, dilemma in enumerate(shared):
             per_dilemma_rows.append(
                 {
@@ -300,7 +294,6 @@ def run_h1(
         summary=summary,
         per_dilemma=pd.DataFrame(per_dilemma_rows),
         other_rates=other_rates(runs, options),
-        null_overall=null_overall,
     )
 
 

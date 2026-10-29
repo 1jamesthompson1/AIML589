@@ -317,12 +317,18 @@ the extra ``Prize draw' paragraph, shown boxed below it.}""")
     # --- Section A (top, for screening) -------------------------------------
     out.append(r"""\section*{Section A - About you}
 \note{Shown to all respondents at the top of the survey, for screening.
-Every item is skippable via its ``Prefer not to say' option.}""")
+Every demographic item is skippable via its ``Prefer not to say' option.}""")
     for q in d["section_a"]["questions"]:
+        if q["QuestionType"] == "Timing":
+            continue  # hidden page timer (no respondent-facing wording)
         multi = q["Selector"] == "MAVR"
         mark = r"\checkbox" if multi else r"\radio"
         body = radio_options([c["Display"] for c in q["Choices"].values()], mark)
         out.append(question(q["QuestionText"], body))
+    out.append(
+        r"\note{Plus a hidden timing question (page time, first/last click, "
+        r"click count) on the same page.}"
+    )
 
     # --- Section B: task description + one comparison per profile -----------
     situations = one_per_profile(d["comparison_blocks"], include_retired)
@@ -347,12 +353,22 @@ Every item is skippable via its ``Prefer not to say' option.}""")
         + r""" in the pool, and one dilemma (one pair of model answers) is drawn
 from each selected profile. The dilemmas are public on the project website:
 \url{https://nz-llm.sjhl.nz/results-viewer/?tab=dilemmas}. Each block contains
-three questions: the role and dilemma with both answers, the Agent 1 vs Agent 2
-preference, and whether they agree with an AI agent being used in that
-situation at all.}"""
+three visible questions: the role and dilemma with both answers, the Agent 1 vs
+Agent 2 preference, and whether they agree with an AI agent being used in that
+situation at all - plus a hidden timing question on the same page. The
+description is shown in a random order per dilemma: half of respondents see the
+fine-tune first and half the base model first; the mockup shows the
+fine-tune-first variant.}"""
     )
-    desc_b = d["section_b"]["questions"][0]
-    out.append(question(desc_b["QuestionText"], ""))
+    for q in d["section_b"]["questions"]:
+        if q["QuestionType"] == "Timing":
+            continue
+        body = (
+            horizontal_scale([c["Display"] for c in q["Choices"].values()])
+            if q["Selector"] == "SAHR"
+            else ""
+        )
+        out.append(question(q["QuestionText"], body))
     pref_q = next(
         q
         for b in d["comparison_blocks"]
@@ -383,6 +399,8 @@ situation at all.}"""
     # --- Section C -----------------------------------------------------------
     out.append(r"\section*{Section C - Your thoughts}")
     for q in d["section_c"]["questions"]:
+        if q["QuestionType"] == "Timing":
+            continue  # hidden page timer (no respondent-facing wording)
         if q["QuestionType"] == "Matrix":
             body = matrix_table(
                 [c["Display"] for c in q["Choices"].values()],
@@ -425,6 +443,10 @@ situation at all.}"""
         else:
             body = radio_options([c["Display"] for c in q["Choices"].values()])
         out.append(question(q["QuestionText"], body))
+    out.append(
+        r"\note{Plus a hidden timing question (page time, first/last click, "
+        r"click count) on the same page.}"
+    )
 
     # --- Prize draw ----------------------------------------------------------
     out.append(r"""\section*{End of survey - Prize draw entry (volunteer only)}

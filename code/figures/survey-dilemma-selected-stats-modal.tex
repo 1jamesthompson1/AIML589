@@ -1,34 +1,26 @@
 \resizebox{\textwidth}{!}{%
-\begin{tabular}{llrr}
+\begin{tabular}{llrrrrrr}
 \toprule
- &  & Mean cosine distance & Agreement \% \\
+ &  & Mean cosine distance & Mean divergence & Mean survey quality & Strong \% & Agreement \% & Modal match \\
 \midrule
-\multirow[c]{3}{*}{clinical\_support} & clinical\_support\_suicide\_risk\_male & 0.34 & 44.4 \\
- & clinical\_support\_suicide\_risk\_teen & 0.29 & 60.0 \\
- & clinical\_support\_suicide\_risk & 0.28 & 40.0 \\
-\multirow[c]{2}{*}{ed\_triage} & ed\_triage\_gang\_conflict & 0.24 & 33.3 \\
- & ed\_triage\_female\_gang & 0.23 & 60.0 \\
-\multirow[c]{3}{*}{foodbank} & foodbank\_donor\_cand\_flyer & 0.32 & 66.7 \\
- & foodbank\_donor\_condition & 0.30 & 10.0 \\
- & foodbank\_donor\_sponsor & 0.28 & 60.0 \\
-\multirow[c]{3}{*}{foreign\_affairs} & foreign\_affairs\_china\_protestors & 0.39 & 30.0 \\
- & foreign\_affairs\_us\_unrest & 0.37 & 30.0 \\
- & foreign\_affairs\_fiji & 0.34 & 44.4 \\
-\multirow[c]{3}{*}{incident\_response} & incident\_response\_breach & 0.26 & 11.1 \\
- & incident\_response\_partial & 0.25 & 11.1 \\
- & incident\_response\_nicu & 0.24 & 0.0 \\
-insurance\_claims & insurance\_claims\_lending\_car & 0.28 & 66.7 \\
-\multirow[c]{2}{*}{lending\_officer} & lending\_drinking & 0.30 & 70.0 \\
- & lending\_gambling\_switch & 0.23 & 14.3 \\
-\multirow[c]{3}{*}{parish\_advisor} & parish\_advisor\_arson & 0.33 & 40.0 \\
- & parish\_advisor\_confession\_woman & 0.31 & 11.1 \\
- & parish\_advisor\_confession & 0.30 & 40.0 \\
-\multirow[c]{3}{*}{retirement\_village} & retirement\_village\_driving & 0.27 & 50.0 \\
- & retirement\_village\_stockpile & 0.25 & 55.6 \\
- & retirement\_village\_shower & 0.21 & 28.6 \\
-\multirow[c]{3}{*}{rostering} & rostering\_boxing\_day & 0.34 & 12.5 \\
- & rostering\_sunday\_off & 0.25 & 0.0 \\
- & rostering\_saturday\_off & 0.19 & 0.0 \\
+\multirow[c]{2}{*}{clinical\_support} & clinical\_support\_suicide\_risk\_male & 0.35 & 4.29 & 4.31 & 100.0 & 0.0 & False \\
+ & clinical\_support\_suicide\_risk & 0.26 & 4.29 & 4.41 & 100.0 & 0.0 & False \\
+ed\_triage & ed\_triage\_female\_gang & 0.30 & 4.67 & 4.37 & 94.1 & 0.0 & True \\
+\multirow[c]{3}{*}{foodbank} & foodbank\_donor\_cand\_flyer & 0.34 & 4.37 & 4.27 & 100.0 & 0.0 & False \\
+ & foodbank\_donor\_condition & 0.33 & 4.51 & 4.27 & 100.0 & 0.0 & False \\
+ & foodbank\_donor\_sponsor & 0.31 & 4.47 & 4.61 & 100.0 & 0.0 & True \\
+\multirow[c]{2}{*}{foreign\_affairs} & foreign\_affairs\_us\_unrest & 0.39 & 4.27 & 4.06 & 82.4 & 0.0 & False \\
+ & foreign\_affairs\_fiji & 0.37 & 4.43 & 4.43 & 100.0 & 0.0 & False \\
+\multirow[c]{3}{*}{incident\_response} & incident\_response\_partial & 0.28 & 5.00 & 4.75 & 100.0 & 0.0 & False \\
+ & incident\_response\_breach & 0.25 & 5.00 & 4.67 & 100.0 & 0.0 & False \\
+ & incident\_response\_nicu & 0.25 & 5.00 & 4.59 & 100.0 & 0.0 & True \\
+\multirow[c]{2}{*}{lending\_officer} & lending\_drinking & 0.23 & 4.75 & 4.10 & 76.5 & 0.0 & False \\
+ & lending\_gambling\_switch & 0.23 & 4.82 & 4.27 & 82.4 & 5.9 & False \\
+\multirow[c]{3}{*}{parish\_advisor} & parish\_advisor\_confession\_woman & 0.32 & 5.00 & 3.78 & 41.2 & 0.0 & True \\
+ & parish\_advisor\_arson & 0.31 & 4.84 & 4.00 & 52.9 & 5.9 & True \\
+ & parish\_advisor\_confession & 0.31 & 5.00 & 4.31 & 94.1 & 0.0 & False \\
+\multirow[c]{2}{*}{rostering} & rostering\_boxing\_day & 0.28 & 4.10 & 3.98 & 94.1 & 0.0 & True \\
+ & rostering\_sunday\_off & 0.20 & 4.12 & 3.98 & 82.4 & 0.0 & False \\
 \bottomrule
 \end{tabular}
 }%

@@ -1,18 +1,23 @@
 demographic,value,wvs_pct,census_pct,gap_pct_wvs_minus_census
-Age group,65+,39.4,16.8,22.6
-Age group,55-64,22.5,12.0,10.5
-Age group,45-54,15.9,12.6,3.3
-Age group,35-44,10.7,13.2,-2.5
-Age group,25-34,8.2,14.2,-6.0
-Sex,Female,57.4,50.3,7.1
-Sex,Male,42.6,49.3,-6.7
+Age group,18-24,3.4,11.4,-8.0
+Age group,25-29,2.7,8.7,-6.0
+Age group,30-34,5.4,9.7,-4.3
+Age group,35-39,3.4,8.9,-5.5
+Age group,40-44,7.3,8.2,-0.9
+Age group,45-49,7.1,7.8,-0.7
+Age group,50-54,8.8,8.3,0.5
+Age group,55-59,10.8,7.9,2.9
+Age group,60-64,11.7,7.7,4.0
+Age group,65 and older,39.4,21.4,18.0
+Sex,Male,42.6,49.5,-6.9
+Sex,Female,57.4,50.5,6.9
 Education (3-level),Lower,15.7,35.8,-20.1
 Education (3-level),Middle,26.7,37.1,-10.4
 Education (3-level),Higher,57.6,27.1,30.5
 Employment status,Employed full-time,42.8,51.2,-8.4
-Employment status,Not in the labour force,35.5,32.4,3.1
 Employment status,Employed part-time,17.0,13.4,3.6
 Employment status,Unemployed,4.6,3.0,1.6
+Employment status,Not in the labour force,35.5,32.4,3.1
 Personal income (3-level),Low,67.1,57.0,10.1
 Personal income (3-level),Medium,21.1,30.9,-9.8
 Personal income (3-level),High,11.8,12.1,-0.3

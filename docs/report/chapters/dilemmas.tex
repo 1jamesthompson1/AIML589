@@ -2,6 +2,8 @@ In this chapter I test whether the models fine tuned on the survey data respond 
 
 The structure of the chapter is as follows:
 
+The results of the 
+
 \section{The difference between base and fine-tuned models}
 
 The difference between the base and fine-tuned models is shown in \tabref{dilemmas-h1-summary}. There were 4 different fine tuning methods tested, with \modelref{ft-modal} having the highest divergence from the base model.
@@ -9,6 +11,8 @@ The difference between the base and fine-tuned models is shown in \tabref{dilemm
 \fixme{expand on the method for generating these results}
 
 \ctable{dilemmas-h1-summary}{The average divergence between the base and fine-tuned models across the dilemmas.}
+
+\ctable{dilemmas-h1-per-dilemma}{The divergence between the base and fine-tuned models for each dilemma. The bolded values indicate the highest divergence for each dilemma.}
 
 \subsection{Choosing the fine-tuned model for the survey}
 
@@ -67,9 +71,9 @@ Each model was instructed to answer in no more than 40 words with this appearing
 You will be given a situation and asked what you would do. Answer in no more than two short sentences (about 40 words). Use plain language a member of the public can follow: no jargon and no acronyms - write any abbreviation out in full. Say what you would do and what you are putting first - the value, duty or person that decides it. Do not describe procedures, steps or policy. You cannot take actions, ask questions, or look anything up.
 \end{quote}
 
-\section{Comparing the model responses with Judges and embeddings}
+\section{UNderstanding the models responses to dilemmas}
 
-Understanding the model behaviour was done in two ways. Firstly was a LLM as judge that put the response into one of two categories and the seocnld was embedding the response text.
+Understanding the model behaviour was done in a few different ways. Firstly was a LLM as judge that put the response into one of two categories and the second was embedding the responses and measuring distance, lastly was using an LLM-as-Judge to read each of the potential comparisons (index matched samples between base and \modelref{ft-modal}) to provide scores of quality.
 
 \subsection{Classifying the model responses with a judge model}
 
@@ -90,3 +94,13 @@ IN \figref{dilemmas-comparison-distance-modal_response-overall} we can see the a
 \cfigure{dilemmas-comparison-distance-modal_response-overall}{The average cosine distance between the base and fine-tuned model responses across the dilemmas. The distance is calculated by embedding the model responses and then calculating the cosine distance between them.}
 
 \cfigure{dilemmas-comparison-distance-histogram}{The distribution of the cosine distances between the base and each fine-tuned model's responses across the dilemmas. Colours distinguish the four fine-tunes; the dotted line marks each model's mean.}
+
+\subsection{LLM-as-Judge scoring of the potential comparisons}
+
+The model was given a prompt that included the dilemma, the base model response and the fine-tuned model response. It was then asked to score a few different things. Namely, on scales of 1-5 what was the value divergence, quality as a survey question and the interest to the NZ public.
+
+As per the prompt \fixme{Add in the prompt to the appendix} the survey quality score is the most direct. It would be that anything higher than a 3 would be sufficient for the survey.
+
+\ctable{dilemmas-modal-quality}{The average quality score for each dilemma across the modal and base model responses. Comparing only the index matched samples with 50 samples per dilemma per model.}
+
+\ctable{"dilemmas-modal-quality-significance"}{The effect of whether the two models are statistically significantly different in their responses to the dilemmas.}

@@ -121,19 +121,23 @@ def _(INPUT, csv, np, pd):
     }
 
     def age_band(years):
-        """Band the WVS age in years into the survey age bands."""
+        """Band the WVS age in years into the survey's five-year bands.
+
+        The bands match the survey age question (Z1-1) and the 2023 Census
+        release: "18-24" is the only non-five-year band (the WVS sample is
+        18+) and "65 and older" is open-ended.
+        """
         if years is None or np.isnan(years):
             return np.nan
-        for cut, label in [
-            (25, "16-24"),
-            (35, "25-34"),
-            (45, "35-44"),
-            (55, "45-54"),
-            (65, "55-64"),
-        ]:
-            if int(years) < cut:
-                return label
-        return "65+"
+        years = int(years)
+        if years < 18:
+            return np.nan
+        if years < 25:
+            return "18-24"
+        if years >= 65:
+            return "65 and older"
+        low = 25 + 5 * ((years - 25) // 5)
+        return f"{low}-{low + 4}"
 
     def income_band(code):
         """Band the WVS NZ income bands (Q288 codes 1-10) into the three
@@ -292,28 +296,42 @@ def _(OUT, demo, pd):
 @app.cell
 def _(mo):
     mo.md(r"""
-    ## 2. Top-5 values vs the 2023 NZ Census
+    ## 2. Census bands vs the 2023 NZ Census
 
-    The most common value of each available demographic, WVS share vs the
-    hard-coded 2023 Census share. Writes
-    `output/quota_analysis/top5_vs_census.csv`.
+    Every census band of each available demographic: WVS share vs the 2023
+    Census share (both percentages of the adult population, so a block sums
+    to 100). Writes `output/quota_analysis/wvs_vs_census.csv`.
     """)
     return
 
 
 @app.cell
 def _(OUT, demo, pd):
-    # --- 2023 NZ Census hard-coded reference values ------------------------
-    # All figures: 2023 Census of the usually resident population,
-    # retrieved 2026-09-18. One source link per variable, in line:
-    # Personal income (2023 Census personal income, % of people 15+ where
-    # information available; source: Figure.NZ, Stats NZ 2023 Census)
+    # --- 2023 NZ Census reference values -----------------------------------
+    # Shares are percentages of the adult population, so each block sums to
+    # 100 and is directly comparable with the WVS sample (18+).
+    # Age, five-year groups: https://figure.nz/chart/vm0qVHNtsrA3zFnr
+    # 18-24 = the 20-24 band + 2/5 of the 15-19 band (18-19); 65+ is the
+    # published 65 and over total.
+    age_census = {
+        "18-24": 11.4,
+        "25-29": 8.7,
+        "30-34": 9.7,
+        "35-39": 8.9,
+        "40-44": 8.2,
+        "45-49": 7.8,
+        "50-54": 8.3,
+        "55-59": 7.9,
+        "60-64": 7.7,
+        "65 and older": 21.4,
+    }
+    # Gender, male/female renormalised to 100 (another gender is 0.4%):
+    # https://www.stats.govt.nz/information-releases/2023-census-population-dwelling-and-housing-highlights
+    gender_census = {"Male": 49.5, "Female": 50.5}
+
+    # Personal income, % of people 15+ where stated:
     # https://figure.nz/chart/qzNrLY6yWSlzl1aF
-    # Bands: under $50k / $50,001-$100,000 / over $100k, computed from the
-    # raw census bands below.
-    # WVS Q288 dollar bands banded into three census bands (see
-    # income_band): Low = under $50k, Medium = $50,001-$100,000,
-    # High = over $100k.
+    # WVS Q288 bands are grouped to the same $50k/$100k cuts (income_band).
     income_census = {
         "Low": (
             0.4788764259272
@@ -330,88 +348,56 @@ def _(OUT, demo, pd):
         "Medium": (9.021611914167 + 8.101639802416 + 13.77193001913),
         "High": (7.542396126994 + 2.43149745553 + 2.103300380543),
     }
-    # Education: the WVS 3-level recode (Lower/Middle/Higher) is compared
-    # against census qualification bands grouped the same way - not a
-    # precise 1:1; the postal-mode WVS sample leans towards higher
-    # education. Stats NZ 2023 Census highest-qualification table (15+,
-    # % of total stated), via
+    # Highest qualification, % of people 15+ where stated:
     # https://regions.infometrics.co.nz/new-zealand/census/indicator/highest-qualification
-    # NZ structure: Level 1 certificate = some secondary school; no
-    # qualification covers the two lower WVS bands.
     education_census = {
         "Lower": 15.7 + 10.3 + 9.8,  # no qualification + L1 + L2
         "Middle": 12.7 + 8.8 + 5.1 + 4.7 + 5.8,  # L3-L6 + overseas second.
         "Higher": 15.5 + 6.2 + 4.4 + 1.0,  # Bachelor/L7 + post-grad etc.
     }
     CENSUS = {
-        # https://regions.infometrics.co.nz/new-zealand/census/indicator/five-year-age-group
-        # 16-24 approximates 18-24 in the census (2/5 of the 15-19 band);
-        # 65+ is the sum of the six 65+ bands.
-        "Age group": {
-            "16-24": 6.2 + 0.4 * 6.4,
-            "25-34": 6.7 + 7.5,
-            "35-44": 6.9 + 6.3,
-            "45-54": 6.1 + 6.5,
-            "55-64": 6.1 + 5.9,
-            "65+": 5.1 + 4.3 + 3.3 + 2.2 + 1.2 + 0.7,
-        },
-        # https://regions.infometrics.co.nz/new-zealand/census/indicator/gender
-        "Sex": {"Female": 50.3, "Male": 49.3},
+        "Age group": age_census,
+        "Sex": gender_census,
         "Education (3-level)": education_census,
-        # Labour force status (2023 Census, % of people 15+ where stated;
-        # source: https://regions.infometrics.co.nz/new-zealand/census/
-        # indicator/labour-force-status). WVS Q279 is bucketed into the
-        # census categories (see the loader).
+        # Labour force status, % of people 15+ where stated:
+        # https://regions.infometrics.co.nz/new-zealand/census/indicator/labour-force-status
         "Employment status": {
             "Employed full-time": 51.2,
             "Employed part-time": 13.4,
             "Unemployed": 3.0,
             "Not in the labour force": 32.4,
         },
-        # Personal income (3-level): % of people 15+ where income
-        # information is available (Figure.NZ / Stats NZ 2023 Census,
-        # link above). WVS deciles are banded to the same $50k/$100k
-        # thresholds (see income_band).
         "Personal income (3-level)": income_census,
-        # Ethnicity is NOT asked in the released WVS NZ file; census
-        # multi-select shares for quota design (European 67.8, Maori 17.8,
-        # Asian 17.3, Pacific 8.9, MELAA 1.9) come from the Stats NZ release
-        # https://www.stats.govt.nz/information-releases/
-        # 2023-census-population-counts-by-ethnic-group-age-and-maori-descent-
-        # and-dwelling-counts/
+        # Ethnicity is not asked in the released WVS NZ file:
+        # https://www.stats.govt.nz/information-releases/2023-census-population-counts-by-ethnic-group-age-and-maori-descent-and-dwelling-counts
+        # Region is not compared: the WVS N_REGION_ISO recode is unlabelled.
     }
 
-    def save_top5():
-        top5 = []
+    def save_table():
+        """One row per census band: WVS share vs the 2023 Census share.
+
+        Every value of each census block is written (all ten age bands, not
+        just the most common), so the five-year bands are complete.
+        """
+        rows = []
         for demographic, census_share in CENSUS.items():
             share = demo[demographic].value_counts(normalize=True, dropna=True) * 100
-            order = {}
-            if demographic.startswith("Personal income"):
-                order = {"Low": 0, "Medium": 1, "High": 2}
-            elif demographic.startswith("Education"):
-                order = {"Lower": 0, "Middle": 1, "Higher": 2}
-            if order:
-                share = share.reindex(
-                    sorted(share.index, key=lambda v: order.get(v, 999))
-                )
-            for value, pct in share.head(5).items():
-                census = census_share.get(value)
-                top5.append(
+            for value, census in census_share.items():
+                wvs = float(share.get(value, 0.0))
+                rows.append(
                     {
                         "demographic": demographic,
                         "value": value,
-                        "wvs_pct": round(pct, 1),
-                        "census_pct": round(census, 1) if census is not None else None,
-                        "gap_pct_wvs_minus_census": round(pct - census, 1)
-                        if census is not None
-                        else None,
+                        "wvs_pct": round(wvs, 1),
+                        "census_pct": round(census, 1),
+                        "gap_pct_wvs_minus_census": round(wvs - census, 1),
                     }
                 )
-        return pd.DataFrame(top5)
+        return pd.DataFrame(rows)
 
-    top5 = save_top5()
-    top5.to_csv(OUT / "top5_vs_census.csv", index=False)
-    return (top5,)
+    census_table = save_table()
+    census_table.to_csv(OUT / "wvs_vs_census.csv", index=False)
+    return (census_table,)
 
 
 @app.cell
@@ -427,41 +413,20 @@ def _(mo):
 
 
 @app.cell
-def _(FIGURE_DIR, np, plt, top5):
+def _(FIGURE_DIR, plt, census_table):
     # The four demographics the quota design targets (education is not
-    # used as a quota question).
+    # used as a quota question). Rows follow the census block's order:
+    # age bands ascending, then sex, employment and income.
     FOCUS = ["Age group", "Sex", "Employment status", "Personal income (3-level)"]
-    # Display order of values within each group (others: as in top5,
-    # i.e. by WVS share descending).
-    VALUE_ORDER = {
-        "Employment status": [
-            "Employed full-time",
-            "Employed part-time",
-            "Unemployed",
-            "Not in the labour force",
-        ],
-    }
 
     def make_figure() -> None:
-        # Group the rows by demographic, in display order.
         groups = {name: [] for name in FOCUS}
-        for _, row in top5.iterrows():
-            if row["demographic"] not in FOCUS:
-                continue
-            if row["census_pct"] is None or (
-                isinstance(row["census_pct"], float) and np.isnan(row["census_pct"])
-            ):
-                continue
-            groups[row["demographic"]].append(
-                (row["value"], row["wvs_pct"], row["census_pct"])
-            )
-        ordered = []
-        for name in FOCUS:
-            rows = groups[name]
-            if name in VALUE_ORDER:
-                order = {v: i for i, v in enumerate(VALUE_ORDER[name])}
-                rows = sorted(rows, key=lambda r: order.get(r[0], 999))
-            ordered.append((name, rows))
+        for _, row in census_table.iterrows():
+            if row["demographic"] in FOCUS:
+                groups[row["demographic"]].append(
+                    (row["value"], row["wvs_pct"], row["census_pct"])
+                )
+        ordered = [(name, groups[name]) for name in FOCUS if groups[name]]
 
         # Lay out rows top-down: heading slot per group, one slot per
         # value pair, and a separator in the gap between groups.
@@ -477,7 +442,7 @@ def _(FIGURE_DIR, np, plt, top5):
                 bars.append((y, value, w, c))
                 y -= 1.0
 
-        fig, ax = plt.subplots(figsize=(10, 8))
+        fig, ax = plt.subplots(figsize=(10.5, 11))
         ypos = [b[0] for b in bars]
         wvs_vals = [b[2] for b in bars]
         census_vals = [b[3] for b in bars]
@@ -516,7 +481,7 @@ def _(FIGURE_DIR, np, plt, top5):
         ax.tick_params(axis="y", length=0)
         ax.set_xlabel("Percent of population / respondents")
         ax.set_title(
-            "Most common demographic values: WVS vs 2023 Census\n"
+            "Demographics: WVS vs 2023 Census\n"
             "(broadly representative, but the WVS sample skews old)"
         )
         ax.legend(fontsize=9, loc="lower right")

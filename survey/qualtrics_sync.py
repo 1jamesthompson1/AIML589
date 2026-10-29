@@ -6,9 +6,9 @@ Sync keys, verified stable and idempotent:
 
 - questions: keyed by ``DataExportTag``
 - blocks:    keyed by ``Description``
-- quotas:    keyed by ``Name`` (census age/gender caps; stale ones deleted)
 - flow:      replaced wholesale (Root: distribution branches -> intro
-  blocks, Section A, comparison randomizer, Section C, prize-draw branch)
+  blocks, Section A, comparison order draws, profile -> dilemma -> pair
+  randomizer, Section C, paid panel exit, volunteer prize-draw branch)
 
 Endpoints used on this datacenter (X-API-TOKEN auth):
 
@@ -42,7 +42,10 @@ a QSF. After seeding (either way) the sync clears remote content and rebuilds.
 import argparse
 import json
 import os
+import random
+import re
 import sys
+import time
 import urllib.error
 import urllib.request
 from pathlib import Path
@@ -67,10 +70,17 @@ HOST = "vuw.yul1.qualtrics.com"
 # ---------------------------------------------------------------------------
 
 
-def request(method: str, path: str, body: dict | None = None) -> dict:
-    """One JSON API call; raises RuntimeError carrying the error payload."""
+def request(
+    method: str, path: str, body: dict | None = None, attempts: int = 4
+) -> dict:
+    """One JSON API call; retries transient errors with backoff.
+
+    ``path`` may be an API path or an absolute ``nextPage`` URL returned by a
+    paginated collection endpoint.
+    """
+    url = path if path.startswith(("http://", "https://")) else f"https://{HOST}{path}"
     req = urllib.request.Request(
-        f"https://{HOST}{path}",
+        url,
         data=json.dumps(body).encode() if body is not None else None,
         method=method,
         headers={
@@ -79,11 +89,22 @@ def request(method: str, path: str, body: dict | None = None) -> dict:
             "Content-Type": "application/json",
         },
     )
-    try:
-        with urllib.request.urlopen(req, timeout=90) as resp:
-            return json.load(resp)
-    except urllib.error.HTTPError as e:
-        raise RuntimeError(f"{method} {path}: {e.read().decode()[:400]}") from e
+    for attempt in range(1, attempts + 1):
+        try:
+            with urllib.request.urlopen(req, timeout=90) as resp:
+                return json.load(resp)
+        except urllib.error.HTTPError as e:
+            payload = e.read().decode()[:400]
+            if e.code in (429, 500, 502, 503, 504) and attempt < attempts:
+                time.sleep(2**attempt + random.random())
+                continue
+            raise RuntimeError(f"{method} {path}: {payload}") from e
+        except urllib.error.URLError as e:
+            if attempt < attempts:
+                time.sleep(2**attempt + random.random())
+                continue
+            raise RuntimeError(f"{method} {path}: {e}") from e
+    raise RuntimeError(f"{method} {path}: exhausted {attempts} attempts")
 
 
 def bootstrap_create(name: str) -> str:
@@ -136,16 +157,24 @@ def bootstrap_copy(name: str) -> None:
 
 
 def all_questions(sv_id: str) -> dict:
-    """Remote questions keyed by ``DataExportTag`` (page-aware)."""
+    """Remote questions keyed by ``DataExportTag`` (page-aware).
+
+    Collection endpoints return a ``nextPage`` URL; follow it until empty and
+    fail rather than loop if the same URL repeats.
+    """
     by_tag = {}
-    while True:
-        d = request("GET", f"/API/v3/survey-definitions/{sv_id}/questions")
-        for q in d["result"]["elements"]:
+    path = f"/API/v3/survey-definitions/{sv_id}/questions"
+    seen = set()
+    while path:
+        if path in seen:
+            raise RuntimeError(f"question pagination loop at {path!r}")
+        seen.add(path)
+        d = request("GET", path)
+        for q in d["result"].get("elements") or []:
             tag = q.get("DataExportTag")
             if tag:
                 by_tag[tag] = q
-        if not d["result"].get("nextPage"):
-            break
+        path = d["result"].get("nextPage")
     return by_tag
 
 
@@ -213,133 +242,156 @@ def question_differs(remote: dict, payload: dict) -> bool:
     return display_logic_condition(remote) != display_logic_condition(payload)
 
 
-def sync_questions(sv_id: str, wanted: dict[str, dict]) -> dict:
-    """Create/update/delete remote questions by DataExportTag."""
+def manual_question_warning(tag: str, payload: dict) -> None:
+    """Print the exact UI steps for a question the API cannot create."""
+    text = re.sub(r"<[^>]+>", " ", payload.get("QuestionText", ""))
+    text = " ".join(text.split())
+    print(
+        f"WARNING: manual question {tag!r} is not in the remote survey.",
+        flush=True,
+    )
+    print("  Add it once in Qualtrics:", flush=True)
+    print("    - Question type: Rank Order (drag and drop)", flush=True)
+    print(f"    - Data export tag: {tag}", flush=True)
+    print(f"    - Question text: {text}", flush=True)
+    print(
+        "    - Choices: Carry Forward -> Selected Choices -> C4-3",
+        flush=True,
+    )
+    print("    - Force response: ON", flush=True)
+    print(
+        "  The sync will continue without it; rerun after adding it.",
+        flush=True,
+    )
+
+
+def sync_questions(
+    sv_id: str,
+    wanted: dict[str, dict],
+    workers: int = 1,
+    manual_tags: set[str] | None = None,
+) -> dict:
+    """Create/update/delete remote questions by DataExportTag.
+
+    Qualtrics has no bulk question endpoint, so every question is one HTTP
+    call. ``workers`` threads hide the per-call latency; the sync remains
+    idempotent, so an interrupted batch can simply be rerun.
+
+    ``manual_tags`` are UI-only questions (carry-forward choices): they are
+    never created, updated or deleted. If one is missing, a warning prints
+    the exact settings to add; the rest of the sync continues.
+    """
+    manual_tags = set(manual_tags or ())
     remote = all_questions(sv_id)
     wanted_ids = {}
-    created = updated = deleted = 0
+    tasks = []
     for tag, payload in wanted.items():
+        if tag in manual_tags:
+            if tag in remote:
+                wanted_ids[tag] = remote[tag]["QuestionID"]
+                print(f"manual question {tag} present", flush=True)
+            else:
+                manual_question_warning(tag, payload)
+            continue
         if tag in remote:
             entry = remote[tag]
             if question_differs(entry, slim(payload)):
-                request(
-                    "PUT",
-                    f"/API/v3/survey-definitions/{sv_id}/questions/"
-                    f"{entry['QuestionID']}",
-                    slim(payload),
-                )
-                updated += 1
-            wanted_ids[tag] = entry["QuestionID"]
+                tasks.append(("update", tag, entry["QuestionID"], slim(payload)))
+            else:
+                wanted_ids[tag] = entry["QuestionID"]
         else:
-            r = request(
-                "POST", f"/API/v3/survey-definitions/{sv_id}/questions", slim(payload)
-            )
-            wanted_ids[tag] = r["result"]["QuestionID"]
-            created += 1
-    for tag, q in remote.items():
-        if tag not in wanted:
+            tasks.append(("create", tag, None, slim(payload)))
+    stale = [
+        q["QuestionID"]
+        for tag, q in remote.items()
+        if tag not in wanted and tag not in manual_tags
+    ]
+
+    created = updated = deleted = 0
+
+    def apply(task):
+        action, tag, qid, payload = task
+        if action == "update":
             request(
-                "DELETE",
-                f"/API/v3/survey-definitions/{sv_id}/questions/{q['QuestionID']}",
+                "PUT",
+                f"/API/v3/survey-definitions/{sv_id}/questions/{qid}",
+                payload,
             )
+            return action, tag, qid
+        response = request(
+            "POST", f"/API/v3/survey-definitions/{sv_id}/questions", payload
+        )
+        return action, tag, response["result"]["QuestionID"]
+
+    def delete(qid):
+        request(
+            "DELETE",
+            f"/API/v3/survey-definitions/{sv_id}/questions/{qid}",
+        )
+
+    if workers <= 1:
+        for task in tasks:
+            action, tag, qid = apply(task)
+            wanted_ids[tag] = qid
+            if action == "update":
+                updated += 1
+            else:
+                created += 1
+        for qid in stale:
+            delete(qid)
             deleted += 1
+    else:
+        from concurrent.futures import ThreadPoolExecutor, as_completed
+
+        with ThreadPoolExecutor(max_workers=workers) as pool:
+            futures = [pool.submit(apply, task) for task in tasks]
+            for done, future in enumerate(as_completed(futures), start=1):
+                action, tag, qid = future.result()
+                wanted_ids[tag] = qid
+                if action == "update":
+                    updated += 1
+                else:
+                    created += 1
+                if done % 250 == 0 or done == len(tasks):
+                    print(
+                        f"  questions {done}/{len(tasks)} "
+                        f"(+{created} updated {updated})",
+                        flush=True,
+                    )
+            delete_futures = [pool.submit(delete, qid) for qid in stale]
+            for done, future in enumerate(as_completed(delete_futures), start=1):
+                future.result()
+                deleted += 1
+                if done % 250 == 0 or done == len(stale):
+                    print(
+                        f"  question deletes {done}/{len(stale)}",
+                        flush=True,
+                    )
     print(f"questions: +{created} updated {updated} deleted {deleted}")
     return wanted_ids
 
 
-def quota_fingerprint(node) -> list:
-    """Canonical form of a quota's logic conditions for comparison
-    (the Expressions tree arrives in list or dict form, wrapped or
-    unwrapped; collect each question or embedded-data condition in
-    document order)."""
-    fingerprint = []
-    if isinstance(node, dict):
-        if node.get("LogicType", "").startswith("Embedded"):
-            fingerprint.append(
-                (
-                    "ED",
-                    node.get("LeftOperand"),
-                    node.get("Operator"),
-                    node.get("RightOperand"),
-                )
-            )
-        elif "QuestionID" in node:
-            fingerprint.append(
-                (
-                    node.get("QuestionID"),
-                    node.get("ChoiceLocator"),
-                    node.get("Operator"),
-                )
-            )
-        else:
-            for value in node.values():
-                fingerprint.extend(quota_fingerprint(value))
-    elif isinstance(node, list):
-        for item in node:
-            fingerprint.extend(quota_fingerprint(item))
-    return fingerprint
+# The census quotas the survey used to carry. Dynata fills the sample and
+# enforces the agreed quotas, so the survey has none of its own; the sync
+# removes the ones it created earlier.
+RETIRED_QUOTA_NAMES = {"Age quota", "Gender quota", "Region quota"}
 
 
-def cross_fingerprint(cells) -> list:
-    """Comparable form of a Cross quota's CrossLogicDef: (occurrences,
-    logic fingerprint) per cell in order."""
-    return [
-        (cell.get("Occurrences"), quota_fingerprint(cell.get("Logic")))
-        for cell in cells or []
+def remove_quotas(sv_id: str) -> None:
+    """Delete the survey's retired census quotas (Dynata owns the quotas)."""
+    remote = request("GET", f"/API/v3/survey-definitions/{sv_id}/quotas")["result"][
+        "elements"
     ]
-
-
-def sync_quotas(sv_id: str, wanted: list[dict]) -> None:
-    """Create/update/delete remote survey quotas by Name.
-
-    Census-matched independent quotas (see defn.quota_payloads); stale
-    quotas the definition no longer names are deleted, which is what
-    replaces the manually half-built "New Quota" the survey shipped
-    with.
-    """
-    remote = {
-        q["Name"]: q
-        for q in request("GET", f"/API/v3/survey-definitions/{sv_id}/quotas")["result"][
-            "elements"
-        ]
-    }
-    wanted_names = set()
-    created = updated = deleted = 0
-    diff_end = ("ResponseFlag", "SurveyTermination")
-    for payload in wanted:
-        name = payload["Name"]
-        wanted_names.add(name)
-        if name in remote:
-            cur = remote[name]
-            if payload["LogicType"] == "Cross":
-                differs = cur.get("Occurrences") != payload[
-                    "Occurrences"
-                ] or cross_fingerprint(cur.get("CrossLogicDef")) != cross_fingerprint(
-                    payload["CrossLogicDef"]
-                )
-            else:
-                differs = (
-                    cur.get("Occurrences") != payload["Occurrences"]
-                    or quota_fingerprint(cur["Logic"])
-                    != quota_fingerprint(payload["Logic"])
-                    or {k: cur.get("EndSurveyOptions", {}).get(k) for k in diff_end}
-                    != {k: payload["EndSurveyOptions"][k] for k in diff_end}
-                )
-            if differs:
-                request(
-                    "PUT",
-                    f"/API/v3/survey-definitions/{sv_id}/quotas/{cur['ID']}",
-                    payload,
-                )
-                updated += 1
-        else:
-            request("POST", f"/API/v3/survey-definitions/{sv_id}/quotas", payload)
-            created += 1
-    for name, q in remote.items():
-        if name not in wanted_names:
-            request("DELETE", f"/API/v3/survey-definitions/{sv_id}/quotas/{q['ID']}")
-            deleted += 1
-    print(f"quotas: +{created} updated {updated} deleted {deleted}")
+    removed = 0
+    for quota in remote:
+        if quota.get("Name") in RETIRED_QUOTA_NAMES:
+            request(
+                "DELETE",
+                f"/API/v3/survey-definitions/{sv_id}/quotas/{quota['ID']}",
+            )
+            removed += 1
+    if removed:
+        print(f"quotas: removed {removed} (Dynata manages quotas)")
 
 
 def block_elements_equal(current: list[dict], wanted: list[str]) -> bool:
@@ -352,51 +404,116 @@ def block_elements_equal(current: list[dict], wanted: list[str]) -> bool:
     )
 
 
-def sync_blocks(sv_id: str, wanted_blocks: list[dict]) -> dict[str, str]:
+def sync_blocks(
+    sv_id: str, wanted_blocks: list[dict], workers: int = 1
+) -> dict[str, str]:
     """Create missing blocks, PUT exact BlockElements per block.
 
     The API cannot move questions directly into a block, so element lists
     are written through the block payload (``PUT .../blocks/{id}``).
+    ``workers`` threads hide the per-call latency; the operations are
+    independent per block.
     """
     name_to_id = remote_blocks(sv_id)
     original = dict(name_to_id)
     created = updated = 0
-    for b in wanted_blocks:
+
+    def create(b):
         desc = b["description"]
-        if desc not in name_to_id:
-            r = request(
-                "POST",
-                f"/API/v3/survey-definitions/{sv_id}/blocks",
-                {"Description": desc, "Type": "Standard", "BlockElements": []},
-            )
-            name_to_id[desc] = r["result"]["BlockID"]
-            created += 1
+        response = request(
+            "POST",
+            f"/API/v3/survey-definitions/{sv_id}/blocks",
+            {"Description": desc, "Type": "Standard", "BlockElements": []},
+        )
+        return desc, response["result"]["BlockID"]
+
+    def sync_one(b):
+        desc = b["description"]
         block_id = name_to_id[desc]
         current = (
-            request("GET", f"/API/v3/survey-definitions/{sv_id}/blocks/{block_id}")[
-                "result"
-            ].get("BlockElements")
+            request(
+                "GET",
+                f"/API/v3/survey-definitions/{sv_id}/blocks/{block_id}",
+            )["result"].get("BlockElements")
             or []
         )
         wanted_qids = b["qids"]
-        if not block_elements_equal(current, wanted_qids):
-            request(
-                "PUT",
-                f"/API/v3/survey-definitions/{sv_id}/blocks/{block_id}",
-                {
-                    "Type": "Standard",
-                    "Description": desc,
-                    "BlockElements": [
-                        {"Type": "Question", "QuestionID": q} for q in wanted_qids
-                    ],
-                },
-            )
-            updated += 1
-    # stale blocks the definition no longer contains (Trash stays)
-    wanted_descs = {b["description"] for b in wanted_blocks}
-    for desc, bid in original.items():
-        if desc not in wanted_descs and not desc.startswith("Trash"):
-            request("DELETE", f"/API/v3/survey-definitions/{sv_id}/blocks/{bid}")
+        if block_elements_equal(current, wanted_qids):
+            return False
+        request(
+            "PUT",
+            f"/API/v3/survey-definitions/{sv_id}/blocks/{block_id}",
+            {
+                "Type": "Standard",
+                "Description": desc,
+                "BlockElements": [
+                    {"Type": "Question", "QuestionID": q} for q in wanted_qids
+                ],
+            },
+        )
+        return True
+
+    missing = [b for b in wanted_blocks if b["description"] not in name_to_id]
+    if workers <= 1:
+        for b in missing:
+            desc, block_id = create(b)
+            name_to_id[desc] = block_id
+            created += 1
+        for b in wanted_blocks:
+            if sync_one(b):
+                updated += 1
+        wanted_descs = {b["description"] for b in wanted_blocks}
+        for desc, bid in original.items():
+            if desc not in wanted_descs and not desc.startswith("Trash"):
+                request(
+                    "DELETE",
+                    f"/API/v3/survey-definitions/{sv_id}/blocks/{bid}",
+                )
+    else:
+        from concurrent.futures import ThreadPoolExecutor, as_completed
+
+        with ThreadPoolExecutor(max_workers=workers) as pool:
+            if missing:
+                futures = [pool.submit(create, b) for b in missing]
+                for done, future in enumerate(as_completed(futures), start=1):
+                    desc, block_id = future.result()
+                    name_to_id[desc] = block_id
+                    created += 1
+                    if done % 50 == 0 or done == len(missing):
+                        print(
+                            f"  blocks created {done}/{len(missing)}",
+                            flush=True,
+                        )
+            futures = [pool.submit(sync_one, b) for b in wanted_blocks]
+            for done, future in enumerate(as_completed(futures), start=1):
+                updated += bool(future.result())
+                if done % 50 == 0 or done == len(wanted_blocks):
+                    print(
+                        f"  blocks synced {done}/{len(wanted_blocks)}",
+                        flush=True,
+                    )
+            # stale blocks the definition no longer contains (Trash stays)
+            wanted_descs = {b["description"] for b in wanted_blocks}
+            stale = [
+                bid
+                for desc, bid in original.items()
+                if desc not in wanted_descs and not desc.startswith("Trash")
+            ]
+            futures = [
+                pool.submit(
+                    request,
+                    "DELETE",
+                    f"/API/v3/survey-definitions/{sv_id}/blocks/{bid}",
+                )
+                for bid in stale
+            ]
+            for done, future in enumerate(as_completed(futures), start=1):
+                future.result()
+                if done % 50 == 0 or done == len(stale):
+                    print(
+                        f"  block deletes {done}/{len(stale)}",
+                        flush=True,
+                    )
     print(f"blocks: created {created} updated {updated}")
 
     return name_to_id
@@ -458,11 +575,40 @@ def clear(sv_id: str, workers: int = 1) -> None:
         if remaining and deleted:
             print(f"retry pass for {len(remaining)} leftovers", flush=True)
             return clear(sv_id, workers)  # finish failed/skipped deletes
-    for bid in list(remote_blocks(sv_id).values()):
-        try:
-            request("DELETE", f"/API/v3/survey-definitions/{sv_id}/blocks/{bid}")
-        except RuntimeError as e:
-            print(f"  (skip clear/delete block {bid}: {e})")
+    block_ids = list(remote_blocks(sv_id).values())
+    if workers <= 1:
+        for bid in block_ids:
+            try:
+                request(
+                    "DELETE",
+                    f"/API/v3/survey-definitions/{sv_id}/blocks/{bid}",
+                )
+            except RuntimeError as e:
+                print(f"  (skip clear/delete block {bid}: {e})")
+    else:
+        from concurrent.futures import ThreadPoolExecutor, as_completed
+
+        def delete_block(bid: str):
+            try:
+                request(
+                    "DELETE",
+                    f"/API/v3/survey-definitions/{sv_id}/blocks/{bid}",
+                )
+                return bid, None
+            except RuntimeError as exc:
+                return bid, exc
+
+        with ThreadPoolExecutor(max_workers=workers) as pool:
+            futures = [pool.submit(delete_block, bid) for bid in block_ids]
+            for done, future in enumerate(as_completed(futures), start=1):
+                bid, error = future.result()
+                if error is not None:
+                    print(f"  (skip clear/delete block {bid}: {error})")
+                if done % 50 == 0 or done == len(block_ids):
+                    print(
+                        f"  blocks {done}/{len(block_ids)} handled",
+                        flush=True,
+                    )
 
 
 def flatten_definition() -> tuple[dict, dict, list[dict]]:
@@ -487,6 +633,53 @@ def managed_survey_id() -> str:
     return os.environ.get(MANAGED_ENV, "")
 
 
+def check_meta_description(sv_id: str) -> None:
+    """Warn when the live survey description differs from the definition.
+
+    The description is a survey option (``SurveyMetaDescription``), and the
+    options payload also holds the skin and other fielding settings, so the
+    sync does not rewrite it; a drift is reported for a manual fix in
+    Qualtrics (Survey options -> Description).
+    """
+    options = request("GET", f"/API/v3/survey-definitions/{sv_id}/options")["result"]
+    live = (options.get("SurveyMetaDescription") or "").strip()
+    if live != defn.SURVEY_META_DESCRIPTION:
+        print(
+            f"WARNING: survey description is {live!r}, expected "
+            f"{defn.SURVEY_META_DESCRIPTION!r} - update it in Qualtrics "
+            "(Survey options -> Description)"
+        )
+
+
+def attach_block_qids(
+    wanted_blocks: list[dict],
+    qids_by_tag: dict[str, str],
+    manual_tags: set[str],
+) -> set[str]:
+    """Attach the remote QuestionIDs to each block.
+
+    A missing manual question is skipped (its warning has already printed);
+    a missing normal question is a hard error because ``sync_questions``
+    should have created it.
+    """
+    missing_manual = set()
+    for block in wanted_blocks:
+        qids = []
+        for question in block["questions"]:
+            tag = question["DataExportTag"]
+            qid = qids_by_tag.get(tag)
+            if qid is None:
+                if tag in manual_tags:
+                    missing_manual.add(tag)
+                    continue
+                raise RuntimeError(
+                    f"question {tag!r} was not created; cannot build its block"
+                )
+            qids.append(qid)
+        block["qids"] = qids
+    return missing_manual
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("survey_id", nargs="?", default=None)
@@ -503,8 +696,9 @@ def main() -> None:
         type=int,
         default=1,
         metavar="N",
-        help="parallel threads for --clear question deletes (Qualtrics has "
-        "no bulk delete; N threads hide the per-call server latency)",
+        help="parallel threads for the clear, question and block sync "
+        "(Qualtrics has no bulk endpoint; N threads hide the per-call "
+        "server latency). Start with 8; the calls are idempotent.",
     )
     parser.add_argument(
         "--model",
@@ -513,6 +707,7 @@ def main() -> None:
         "modal_response-overall. Required when several per-model subsets exist.",
     )
     args = parser.parse_args()
+    manual_tags = set(getattr(defn, "MANUAL_QUESTION_TAGS", set()))
 
     if args.model:
         os.environ[defn.COMPARISON_MODEL_ENV] = args.model
@@ -536,17 +731,30 @@ def main() -> None:
             )
 
     print(f"managing {sv_id}")
+    check_meta_description(sv_id)
     if args.clear:
+        if manual_tags:
+            print(
+                "WARNING: --clear deletes every remote question, including "
+                f"the manual {', '.join(sorted(manual_tags))}; re-add it "
+                "after the sync.",
+                flush=True,
+            )
         print(f"clearing {sv_id} before sync")
         clear(sv_id, max(args.workers, 1))
         print(f"cleared {sv_id}")
-    qids_by_tag = sync_questions(sv_id, wanted_questions)
-    for b in wanted_blocks:
-        b["qids"] = [qids_by_tag[q["DataExportTag"]] for q in b["questions"]]
-    name_to_id = sync_blocks(sv_id, wanted_blocks)
+    qids_by_tag = sync_questions(sv_id, wanted_questions, args.workers, manual_tags)
+    missing_manual = attach_block_qids(wanted_blocks, qids_by_tag, manual_tags)
+    if missing_manual:
+        print(
+            f"note: {', '.join(sorted(missing_manual))} is not in the "
+            "remote survey, so its block will omit it until it is added.",
+            flush=True,
+        )
+    name_to_id = sync_blocks(sv_id, wanted_blocks, args.workers)
     flow = defn.flow(name_to_id, qids_by_tag)
     request("PUT", f"/API/v3/survey-definitions/{sv_id}/flow", flow)
-    sync_quotas(sv_id, defn.quota_payloads(qids_by_tag))
+    remove_quotas(sv_id)
 
     profiles = {b["profile"] for b in definition["comparison_blocks"]}
     print(

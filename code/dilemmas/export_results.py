@@ -374,6 +374,7 @@ async def export(
                         "profile_id",
                         "situation_id",
                         "version",
+                        "epoch",
                         "created",
                     )
                 }
@@ -412,6 +413,7 @@ async def export(
                 "profile_id",
                 "situation_id",
                 "version",
+                "epoch",
                 "created",
                 "path",
             ],
@@ -580,6 +582,7 @@ def write_active_index(all_bundles: bool = False) -> int:
                 "profile_id",
                 "situation_id",
                 "version",
+                "epoch",
                 "created",
                 "path",
             ],

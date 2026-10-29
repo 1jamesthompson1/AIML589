@@ -20,69 +20,143 @@ Survey structure:
 - EmbeddedData: read ``distribution`` from the recipient
 - Branch: distribution != volunteer -> Introduction_paid block (the default)
 - Branch: distribution == volunteer -> Introduction_volunteer block
-- Section A - About you (demographics first, for screening; every item
-  skippable)
+- Section A - About you (demographics first, for screening; every
+  demographic item skippable), closing with attention check A and a hidden
+  page timer
 - Section B - The comparison task (a two-sentence description of the
-  context of the dilemma task)
-- One comparison block per comparison in the survey subset (3 questions
-  each), grouped by profile: a first randomizer shows N_PROFILES_SHOWN of
-  the profiles, and each selected profile shows 1 randomly chosen dilemma
-  block
-- Section C block (attitude and policy questions)
+  context of the dilemma task) plus attention check B
+- One comparison block per comparison (3 visible questions + a hidden page
+  timer), grouped by profile -> dilemma -> pair: an outer randomizer shows
+  N_PROFILES_SHOWN of the profiles, each selected profile draws 1 of its
+  dilemmas, and each drawn dilemma draws 1 of its pairs
+- Per-dilemma agent-order draw: the block carries the description in both
+  orders (fine-tune first / base first) with display logic on an embedded
+  ``ord_<dilemma>`` field, so each respondent sees one order and the draw
+  is in the export
+- Section C block (attitude and policy questions), closing with attention
+  check C and a hidden page timer
+- Branch: a paid respondent who fails two of the three attention checks
+  ends through the panel's quality end link (volunteers are never sent to
+  the panel)
+- Branch: distribution != volunteer -> advanced end-of-survey redirect to
+  the panel's "completed" end link (Dynata)
 - Branch: distribution == volunteer -> prize-draw block; ``yes`` ends the
-  survey with an advanced redirect to the prize-draw/website URL
+  survey with an advanced redirect to the prize-draw survey URL, ``no``
+  falls through to the default end-of-survey message
+
+The panel's end links (completed, terminated, quality, over quota) live in
+the repo-root ``.env`` (``PANEL_EXIT_*_URL``, see ``.env.example``) because
+they are fielding configuration; the panelist id ``psid`` is read from the
+entry link and piped back into the redirect. The quality link is set on the
+attention gate; the over-quota link is there for Dynata's own quota screen
+and the terminated link is reserved for a screenout gate (there is no
+screenout in the instrument yet). Every end-of-survey element carries a
+response flag (Complete / PoorQuality / Screened / QuotaMet) and the flow
+declares ``Q_TerminateFlag`` so the flag exports.
 
 Intro wording comes from participant-information-sheet.md (the shared
 information sheet; the volunteer-only raffle paragraph is marked with an
 ``<!--volunteer ... -->`` block). Comparison content comes from
 code/dilemmas/output/comparisons: the survey subset of the newest
-comparison run (comparisons.json, schema wvs-dilemma-comparisons/v1) holds
+comparison run (comparisons.json, schema wvs-dilemma-comparisons/v2) holds
 the pairs of runs that become the survey's comparison blocks, one per
 comparison. Each block shows the profile's role summary and framing (intro
 and outro, from the profile JSON), the dilemma question, and both responses
-side by side as Agent 1 / Agent 2. Question DataExportTags are the pair's
-``<run_id>__<run_id>`` comparison id with a suffix (_0, _pref, _aiuse), so
-response columns join 1:1 with the two runs of the block (join the run ids
-back through the comparison manifest's ``agents`` to decode the models).
+side by side as Agent 1 / Agent 2, and a hidden timing question. Each
+comparison's description is rendered twice (``_0_ft``: fine-tune first,
+``_0_base``: base first); display logic on the dilemma's ``ord_<n>`` field
+shows one, and that field's value is the agent order the response uses.
+Question DataExportTags are the pair's ``<run_id>__<run_id>`` comparison id
+with a suffix (_0_ft, _0_base, _pref, _aiuse, _timing), so response columns
+join 1:1 with the two runs of the block (join the run ids back through the
+comparison manifest's ``agents`` to decode the models).
 """
 
-import hashlib
 import json
 import os
 import re
 from collections import defaultdict
 from pathlib import Path
 
+from dotenv import load_dotenv
+
 DIR = Path(__file__).resolve().parent
 REPO = DIR.parent
+# Fielding config (panel exit links, panel id) lives in the repo-root .env;
+# loading it here keeps a direct `import survey_definition` working too.
+load_dotenv(REPO / ".env")
 COMPARISONS_DIR = REPO / "code" / "dilemmas" / "output" / "comparisons"
 PROFILES_DIR = REPO / "code" / "dilemmas" / "profiles"
 
 # The comparison manifest the survey's blocks come from.
-COMPARISON_SCHEMA = "wvs-dilemma-comparisons/v1"
+COMPARISON_SCHEMA = "wvs-dilemma-comparisons/v2"
+
+# The fine-tune id marker used by the served adapters.
+FT_MARKER = "-nz-wvs-"
+
+
+def is_fine_tune_model(model_id: str) -> bool:
+    """Whether a served model id is a ``-nz-wvs-`` fine-tune adapter."""
+    return FT_MARKER in (model_id or "").rsplit("/", 1)[-1]
+
+
+def validate_comparison_roles(comparison: dict, declared: dict) -> None:
+    """Fail when a comparison's base/ft roles do not match the models.
+
+    The base side must be the non-adapter model and the fine-tune side must
+    carry the adapter marker. The subset's top-level ``models`` declaration is
+    checked too, so a manifest built in the wrong role order cannot silently
+    put the adapter in the base column in the live survey.
+    """
+    comparison_id = comparison.get("comparison_id", "<unknown>")
+    agents = comparison.get("agents") or {}
+    base = agents.get("base") or {}
+    ft = agents.get("ft") or {}
+    if not base or not ft:
+        raise SystemExit(
+            f"{comparison_id}: comparison must contain agents.base and agents.ft"
+        )
+    base_model = base.get("model") or ""
+    ft_model = ft.get("model") or ""
+    if not base_model or not ft_model:
+        raise SystemExit(f"{comparison_id}: base/ft model id is missing")
+    if is_fine_tune_model(base_model):
+        raise SystemExit(
+            f"{comparison_id}: base side is a fine-tune ({base_model!r}); "
+            "the manifest was built with the roles reversed"
+        )
+    if not is_fine_tune_model(ft_model):
+        raise SystemExit(
+            f"{comparison_id}: ft side is not a fine-tune ({ft_model!r}); "
+            "the manifest was built with the roles reversed"
+        )
+    declared_base = declared.get("base") or declared.get("model_a")
+    declared_ft = declared.get("ft") or declared.get("model_b")
+    if declared_base and declared_base != base_model:
+        raise SystemExit(
+            f"{comparison_id}: base model {base_model!r} does not match the "
+            f"subset's declared base {declared_base!r}"
+        )
+    if declared_ft and declared_ft != ft_model:
+        raise SystemExit(
+            f"{comparison_id}: ft model {ft_model!r} does not match the "
+            f"subset's declared ft {declared_ft!r}"
+        )
+
 
 # The env var the survey scripts set from --model to pick a per-model subset.
 COMPARISON_MODEL_ENV = "WVS_COMPARISON_MODEL"
 
 
-def agent_order(agents: list) -> list:
-    """Stable pseudo-random Agent 1 / Agent 2 assignment.
-
-    A hash of the sorted run ids decides whether the pair keeps its
-    model-A/model-B order or is swapped, so no model is systematically first
-    (sorted-name order would always put the base model first) while repeated
-    builds keep the same layout - the Qualtrics export tags embed the order.
-    ``generate_comparisons.py`` applies the same rule, so the order the
-    survey reads is the order the comparison was built with; this copy is
-    here to check the two agree.
-    """
-    key = hashlib.md5(
-        "__".join(sorted(run["run_id"] for run in agents)).encode()
-    ).digest()
-    return agents if key[0] % 2 == 0 else agents[::-1]
-
-
 N_PROFILES_SHOWN = 5
+
+# The survey's description, as shown in the Qualtrics project list and used
+# as the page meta description. Qualtrics stores it in the survey options
+# (``SurveyMetaDescription``), not in the flow, so ``qualtrics_sync.py``
+# checks it against this value and warns when it drifts.
+SURVEY_META_DESCRIPTION = (
+    "Evaluate and judge AI behavior to see if it thinks and acts like you do."
+)
 
 # Comparison block question wording lives in comparison-question.md.
 TEMPLATE_PATH = DIR / "comparison-question.md"
@@ -117,9 +191,7 @@ OUTLOOK5 = [
     "Somewhat positive",
     "Very positive",
 ]
-AIUSE_TEXT = (
-    "How much do you agree with an AI agent being used in this work situation at all?"
-)
+AIUSE_TEXT = "How much do you agree with an AI agent being used in this work situation?"
 AIUSE_SCALE = [
     "Strongly disagree",
     "Disagree",
@@ -160,11 +232,11 @@ PREF_TEXT = (
     "All things considered, which agent's response is more in line with your values?"
 )
 PREF_SCALE = [
-    "Strongly Agent 1",
-    "Somewhat Agent 1",
+    "Strongly prefer Agent 1",
+    "Somewhat prefer Agent 1",
     "About the same",
-    "Somewhat Agent 2",
-    "Strongly Agent 2",
+    "Somewhat prefer Agent 2",
+    "Strongly prefer Agent 2",
 ]
 
 BLOCK_ID_CHARS = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
@@ -175,14 +247,20 @@ PREFER_NOT_TEXT = "Prefer not to say"
 # skippable via a "Prefer not to say" option
 
 Z_AGE_TEXT = "Which age group do you belong to?"
+# Five-year bands: "18-24" is the only non-five-year band (the panel's
+# minimum age is 18) and "65 and older" is open-ended, matching the 2023
+# Census five-year age release.
 Z_AGE_OPTIONS = [
     "18-24",
-    "25-34",
-    "35-44",
-    "45-54",
-    "55-64",
-    "65-74",
-    "75 or older",
+    "25-29",
+    "30-34",
+    "35-39",
+    "40-44",
+    "45-49",
+    "50-54",
+    "55-59",
+    "60-64",
+    "65 and older",
     PREFER_NOT_TEXT,
 ]
 Z_GENDER_TEXT = "Which gender do you identify with?"
@@ -285,9 +363,9 @@ Z_INCOME_OPTIONS = [
 # already known, so its question is not asked again (display logic hides it)
 # and the respondent's time goes to the comparisons instead.
 #
-# The panel should append the survey's own option labels - ``age=45-54``,
+# The panel should append the survey's own option labels - ``age=45-49``,
 # ``gender=Male``, ``region=Wellington`` - so a panel value and an answer to
-# the same question are the same string in the data and the quota.
+# the same question are the same string in the export.
 #
 #   (embedded data field, question tag, question text, answer options)
 PANEL_DEMOGRAPHICS = (
@@ -296,45 +374,129 @@ PANEL_DEMOGRAPHICS = (
     ("region", "Z5-1", Z_REGION_TEXT, Z_REGION_OPTIONS),
 )
 
+# --- Panel exit redirects ----------------------------------------------------
+#
+# Dynata returns every respondent to its own end link. The link's ``rst``
+# says how the survey finished (1 completed, 2 terminated, 3 over quota) and
+# ``qflag=1`` marks a quality termination; ``psid`` is the panelist id from
+# the entry link, echoed back so the panel can match the response. The links
+# are fielding configuration, not survey content, so they live in the repo
+# root `.env` (`.env.example` carries the defaults). ``{psid}`` in the
+# configured URL becomes the Qualtrics pipe for the embedded field.
+PANEL_ID_FIELD = "psid"
+PANEL_EXIT_ENV = {
+    "completed": "PANEL_EXIT_COMPLETED_URL",
+    "terminated": "PANEL_EXIT_TERMINATED_URL",
+    "quality": "PANEL_EXIT_QUALITY_URL",
+    "overquota": "PANEL_EXIT_OVERQUOTA_URL",
+}
+# The Qualtrics "flag response as" value for each exit. Survey Check requires
+# every EndSurvey element to carry one; Q_TerminateFlag (declared in the flow)
+# is what puts it in the export.
+PANEL_EXIT_FLAGS = {
+    "completed": "Complete",
+    "terminated": "Screened",
+    "quality": "PoorQuality",
+    "overquota": "QuotaMet",
+}
+
+
+def panel_exit_url(status: str) -> str:
+    """The Dynata end link for ``status`` with the panelist id piped in.
+
+    Fail fast: a missing link would send the panelist to a dead end with no
+    status, so the build stops rather than publishing an unusable exit.
+    """
+    env = PANEL_EXIT_ENV[status]
+    url = os.environ.get(env, "")
+    if not url:
+        raise RuntimeError(
+            f"{env} is not set; add the Dynata {status} end link to .env "
+            "(see .env.example)"
+        )
+    return url.replace("{psid}", f"${{e://Field/{PANEL_ID_FIELD}}}")
+
+
+def panel_exit_element(status: str, flow_id: str) -> dict:
+    """An EndSurvey flow element that redirects to the panel's end link."""
+    return {
+        "Type": "EndSurvey",
+        "FlowID": flow_id,
+        "EndingType": "Advanced",
+        "Options": {
+            "Advanced": "true",
+            "SurveyTermination": "Redirect",
+            "ResponseFlag": PANEL_EXIT_FLAGS[status],
+            "EOSRedirectURL": panel_exit_url(status),
+        },
+    }
+
+
+def embedded_data_element(field: str, value: str, flow_id: str) -> dict:
+    """A flow element that sets one embedded field to ``value``.
+
+    ``Type: "Custom"`` with a ``Value`` is the platform's own serialization
+    for a static embedded-data assignment (a ``Recipient`` field with no
+    value is the panel/URL-populated form).
+    """
+    return {
+        "Type": "EmbeddedData",
+        "FlowID": flow_id,
+        "EmbeddedData": [
+            {
+                "Description": field,
+                "Type": "Custom",
+                "Field": field,
+                "VariableType": "String",
+                "DataVisibility": [],
+                "AnalyzeText": False,
+                "Value": value,
+            }
+        ],
+    }
+
+
 # --- Timing ------------------------------------------------------------------
 
 # How long the respondent spent in the comparison task.
 #
 # Qualtrics times every page and every question itself and exports the
 # timings with the responses, so the survey needs no scripting for it (the
-# API does not accept a survey's JavaScript, and the per-question timings
-# are what the analysis needs). ``survey/timing.py`` turns the exported
-# timings into the time spent in each comparison and in the comparison
-# task as a whole.
+# API does not accept a survey's JavaScript). The per-question timings are
+# in the export, so the analysis reads them directly.
 
+# The eight ANZSCO major groups (level 1 of the Australian and New Zealand
+# Standard Classification of Occupations, 2022 update). The two extra
+# options are the survey's own: a respondent who has never worked, and the
+# usual skip.
 Z_OCCUPATION_TEXT = (
     "Which of these best describes your usual work? If you are retired "
     "or between jobs, what did you mostly work as?"
 )
 Z_OCCUPATION_OPTIONS = [
-    "Professional or technical work (e.g. teacher, nurse, doctor, engineer, lawyer)",
     (
-        "High-level administrative work (e.g. business owner, general "
-        "manager, team leader, senior public servant)"
+        "Managers (e.g. business owners, chief executives, general managers, "
+        "department managers)"
+    ),
+    "Professionals (e.g. doctors, teachers, engineers, lawyers, scientists, accountants)",
+    (
+        "Technicians and Trades Workers (e.g. electricians, plumbers, "
+        "mechanics, engineering technicians)"
     ),
     (
-        "Clerical work (e.g. receptionist, office administrator, payroll "
-        "officer, bank teller)"
+        "Community and Personal Service Workers (e.g. caregivers, police "
+        "officers, childcare workers, fitness instructors)"
     ),
     (
-        "Sales work (e.g. shop assistant, sales representative, real estate "
-        "agent, checkout supervisor)"
+        "Clerical and Administrative Workers (e.g. receptionists, office "
+        "administrators, payroll clerks, bank tellers)"
     ),
+    "Sales Workers (e.g. retail sales assistants, real estate agents, sales representatives)",
     (
-        "Service work (e.g. hospitality worker, hairdresser, police officer, "
-        "caregiver, childcare worker)"
+        "Machinery Operators and Drivers (e.g. truck drivers, bus drivers, "
+        "forklift operators, production machinery operators)"
     ),
-    "Skilled worker (e.g. electrician, plumber, mechanic, builder, chef)",
-    (
-        "Semi-skilled worker (e.g. bus driver, carpenter, truck driver, "
-        "warehouse worker, assembler)"
-    ),
-    "Unskilled work (e.g. labourer, porter, cleaner, delivery driver, gardener)",
+    "Labourers (e.g. construction labourers, cleaners, farm labourers, fruit pickers)",
     "I have never had a job",
     PREFER_NOT_TEXT,
 ]
@@ -365,204 +527,8 @@ PRIZE_DRAW_TEXT = (
     "another survey"
 )
 PRIZE_DRAW_OPTIONS = ["yes", "no"]
-PRIZE_DRAW_END_URL = "https://nz-llm.sjhl.nz"
+PRIZE_DRAW_END_URL = "https://vuw.qualtrics.com/jfe/form/SV_brM6NleXCL5Cwsu"
 PRIZE_DRAW_TAG = "Q85"
-
-
-# --- Census-matched quotas ---------------------------------------------------
-#
-# Independent hard quotas (EndCurrentSurvey when full) on the Section A
-# age (Z1-1) and gender (Z2-1) questions, filled in proportion to the
-# 2023 Census shares documented in
-# code/training-dataset/quota_analysis.py (the CENSUS dict there).
-# Census 5-year bands are regrouped onto the survey's options: "18-24"
-# is the notebook's 16-24 approximation (6.2 + 0.4 * 6.4); "65+" splits
-# into "65-74" (65-69: 5.1 + 70-74: 4.3) and "75 or older" (75-79: 3.3
-# + 80-84: 2.2 + 85+: 1.2 + 0.7). "Non-binary or another gender
-# identity" and "Prefer not to say" have no census share and are left
-# unquota'd (they absorb rounding slack).
-QUOTA_N = 400
-
-CENSUS_AGE_SHARES = {
-    "18-24": 6.2 + 0.4 * 6.4,  # 8.76
-    "25-34": 6.7 + 7.5,  # 14.2
-    "35-44": 6.9 + 6.3,  # 13.2
-    "45-54": 6.1 + 6.5,  # 12.6
-    "55-64": 6.1 + 5.9,  # 12.0
-    "65-74": 5.1 + 4.3,
-    "75 or older": 3.3 + 2.2 + 1.2 + 0.7,
-}
-CENSUS_GENDER_SHARES = {"Male": 49.3, "Female": 50.3}
-
-# EndSurveyOptions for a hard quota; mirrors the remote default set.
-QUOTA_END_OPTIONS = {
-    "EndingType": "Default",
-    "ResponseFlag": "QuotaMet",
-    "SurveyTermination": "DefaultMessage",
-    "EmailThankYou": "false",
-    "ResponseSummary": "No",
-    "ConfirmResponseSummary": "",
-    "CountQuotas": "Yes",
-    "Screenout": "No",
-    "AnonymizeResponse": "No",
-    "IgnoreResponse": "No",
-}
-
-
-def quota_definitions() -> list[dict]:
-    """Census-matched quota specs: label, question tag and its options,
-    per-option census shares."""
-    return [
-        ("Age", "Z1-1", Z_AGE_TEXT, Z_AGE_OPTIONS, CENSUS_AGE_SHARES),
-        ("Gender", "Z2-1", Z_GENDER_TEXT, Z_GENDER_OPTIONS, CENSUS_GENDER_SHARES),
-    ]
-
-
-def _quota_pct_by_option(shares: dict[str, float]) -> dict[str, int]:
-    """Percent of QUOTA_N per quota'd option, proportional to the shares
-    (largest-remainder rounding so the weights sum to 100). These feed
-    the Cross-logic quota's Conjuction weights; Qualtrics derives each
-    cell's occurrence count from its weight (pct * QUOTA_N / 100, so
-    the 1%-grain cost is QUOTA_N / 100 respondents per point)."""
-    denom = sum(shares.values())
-    raw = {o: 100 * s / denom for o, s in shares.items()}
-    pcts = {o: int(v) for o, v in raw.items()}
-    remainder = 100 - sum(pcts.values())
-    for o, _ in sorted(raw.items(), key=lambda kv: -(kv[1] % 1))[:remainder]:
-        pcts[o] += 1
-    return pcts
-
-
-def quota_payloads(qids_by_tag: dict) -> list[dict]:
-    """One hard Qualtrics Cross-logic quota per quota'd Section A
-    question (age, gender), referencing the synced question id for its
-    tag. Cross quotas keep the quota panel to just two entries: each
-    quota is a single ``CrossLogicDef`` with a cell per answer option
-    ("option selected AND distribution = paid", census-matched
-    ``Occurrences``), like the manually built "Example quota".
-
-    Each cell requires the ``distribution`` embedded field to be
-    ``paid``, so volunteer respondents (open link) answer the
-    demographic questions but never increment a quota nor get screened
-    out by one.
-
-    A cell also matches when the *panel* supplied the value as embedded
-    data (the demographic question is then hidden, so the answer is
-    empty): "option selected OR age = <option>" - the panel has to
-    append the survey's own option labels for that to hold.
-    """
-    payloads = []
-    for label, tag, text, options, shares in quota_definitions():
-        qid = qids_by_tag[tag]
-        assert set(shares) <= set(options), f"quota {label}: shares missing"
-        # the panel field for this question, if the panel can supply it
-        panel_field = next(
-            (field for field, ptag, _, _ in PANEL_DEMOGRAPHICS if ptag == tag),
-            None,
-        )
-        # cells exist only for quota'd options, in survey order; the
-        # unquota'd ones (non-binary etc.) absorb rounding slack
-        pcts = _quota_pct_by_option(shares)
-        cells = []
-        for i, option in enumerate(options, start=1):
-            if option not in shares:
-                continue
-            n = pcts[option] * QUOTA_N // 100
-            cond = {
-                "LogicType": "Question",
-                "QuestionID": qid,
-                "QuestionIsInLoop": "no",
-                "ChoiceLocator": f"q://{qid}/SelectableChoice/{i}",
-                "Operator": "Selected",
-                "QuestionIDFromLocator": qid,
-                "LeftOperand": f"q://{qid}/SelectableChoice/{i}",
-                "Type": "Expression",
-                "Description": '<span class="ConjDesc">And</span> '
-                '<span class="QuestionDesc">'
-                f"{truncate_desc(text, 60)}</span> "
-                f'<span class="LeftOpDesc">{truncate_desc(option, 30)}'
-                '</span> <span class="OpDesc">Is Selected</span> ',
-                "Conjuction": f"{pcts[option]}%",
-            }
-            paid = {
-                "LogicType": "EmbeddedField",
-                "LeftOperand": "distribution",
-                "Operator": "EqualTo",
-                "RightOperand": "paid",
-                "Type": "Expression",
-                "Description": '<span class="ConjDesc">And</span> '
-                '<span class="LeftOpDesc">distribution</span> '
-                '<span class="OpDesc">Is Equal to</span> '
-                '<span class="RightOpDesc"> paid </span>',
-                "Conjuction": "100%",
-            }
-            # the panel's value for this option (the question is hidden
-            # when the panel sent one, so the answer itself is empty)
-            panel_cond = None
-            if panel_field:
-                panel_cond = {
-                    "LogicType": "EmbeddedField",
-                    "LeftOperand": panel_field,
-                    "Operator": "EqualTo",
-                    "RightOperand": option,
-                    "Type": "Expression",
-                    "Description": '<span class="ConjDesc">Or</span> '
-                    f'<span class="LeftOpDesc">{panel_field}</span> '
-                    '<span class="OpDesc">Is Equal to</span> '
-                    f'<span class="RightOpDesc"> {option} </span>',
-                    "Conjuction": "100%",
-                }
-            cell_logic = {
-                "0": {"0": cond, "Type": "If"},
-                "Type": "BooleanExpression",
-            }
-            if panel_cond:
-                cell_logic["1"] = {"0": panel_cond, "Type": "OrIf"}
-                cell_logic["2"] = {"0": paid, "Type": "AndIf"}
-            else:
-                cell_logic["1"] = {"0": paid, "Type": "AndIf"}
-            desc = cond["Description"] + " X " + paid["Description"]
-            cells.append(
-                {
-                    "Occurrences": n,
-                    "Logic": cell_logic,
-                    "Description": desc,
-                    "ID": f"{i - 1}X0",
-                    "Count": 0,
-                }
-            )
-        # the quota-level ``Logic`` mirrors what the GET returns for a
-        # Cross quota: all the cells' weighted question conditions in
-        # one If group, then the distribution condition (paid only)
-        qconds = {str(j): cell["Logic"]["0"]["0"] for j, cell in enumerate(cells)}
-        payloads.append(
-            {
-                "Name": f"{label} quota"[:40],
-                "LogicType": "Cross",
-                "Logic": [
-                    {"0": dict(qconds, Type="If"), "Type": "BooleanExpression"},
-                    {"0": {"0": paid, "Type": "If"}, "Type": "BooleanExpression"},
-                ],
-                "Occurrences": QUOTA_N,
-                "QuotaAction": "EndCurrentSurvey",
-                "OverQuotaAction": None,
-                "QuotaRealm": "Survey",
-                "ActionInfo": {
-                    "0": {
-                        "0": {
-                            "ActionType": "EndCurrentSurvey",
-                            "LogicType": "QuotaAction",
-                            "Type": "Expression",
-                        },
-                        "Type": "If",
-                    },
-                    "Type": "BooleanExpression",
-                },
-                "EndSurveyOptions": dict(QUOTA_END_OPTIONS),
-                "CrossLogicDef": cells,
-            }
-        )
-    return payloads
 
 
 _def_cache: dict = {}
@@ -588,16 +554,22 @@ QUOTE_STYLE = (
 # rather than one wall of text.
 PARAGRAPH_STYLE = "margin:0 0 0.7em 0;"
 
+# The University logo on the information sheet: centred, never wider than the
+# sheet's text column, and scaled to the column on a narrow screen.
+IMAGE_STYLE = "display:block; max-width:320px; width:100%; height:auto; margin:0 auto;"
+
 
 def md_to_html(text: str, heading_style: str = "") -> str:
     """Minimal markdown->HTML for Qualtrics QuestionText.
 
     Handles ATX headings (#, ##, ###+), unordered (- ) / ordered (1. )
-    lists, bold (**), italic (*), block quotes (> ), explicit ``<br>`` line
-    breaks, and blank-line paragraphs. Everything else is html-escaped first,
-    so the inline markup transforms and ``<br>`` are the only HTML injected.
-    ``heading_style`` is added as the inline style of heading paragraphs (the
-    comparison block uses it for spacing).
+    lists, bold (**), italic (*), block quotes (> ), a standalone image
+    (``![alt](src)``, used for the University logo on the information sheet),
+    explicit ``<br>`` line breaks, and blank-line paragraphs. Everything else
+    is html-escaped first, so the inline markup transforms, the image tag and
+    ``<br>`` are the only HTML injected. ``heading_style`` is added as the
+    inline style of heading paragraphs (the comparison block uses it for
+    spacing).
 
     A block quote becomes one indented, ruled paragraph (QUOTE_STYLE): the
     lines inside it keep their own line breaks, and a blank quote line
@@ -661,9 +633,12 @@ def md_to_html(text: str, heading_style: str = "") -> str:
         )
         spans.append(f'<p style="{QUOTE_STYLE}">{content}</p>')
 
+    image_re = re.compile(r"^!\[([^\]]*)\]\(([^)\s]+)(?:\s+\"[^\"]*\")?\)$")
+
     for line in text.split("\n"):
         stripped = line.strip()
         heading = re.match(r"^(#{1,4})\s+(.*)$", stripped)
+        image = image_re.match(stripped)
         li_u = re.match(r"^[-*]\s+(.*)$", stripped)
         li_o = re.match(r"^(\d+)[.)]\s+(.*)$", stripped)
         if stripped.startswith(">"):
@@ -691,6 +666,16 @@ def md_to_html(text: str, heading_style: str = "") -> str:
             flush_quote()
             style = f' style="{head_style}"' if head_style else ""
             spans.append(f"<p{style}><b>" + heading.group(2) + "</b></p>")
+        elif image:
+            flush_para()
+            close_list()
+            flush_quote()
+            alt = html.escape(image.group(1), quote=True)
+            src = html.escape(image.group(2), quote=True)
+            spans.append(
+                f'<p style="{PARAGRAPH_STYLE}"><img src="{src}" alt="{alt}" '
+                f'style="{IMAGE_STYLE}" /></p>'
+            )
         elif li_u or li_o:
             flush_para()
             flush_quote()
@@ -747,6 +732,45 @@ C_POLICY_MIN = int(POLICY["min_choices"])
 C_POLICY_MAX = int(POLICY.get("max_choices") or len(POLICY["options"]))
 C_POLICY_OPTIONS = [(o["title"], o["description"]) for o in POLICY["options"]]
 
+# The follow-up rank question. Qualtrics' carry-forward choices are a UI
+# feature that the question API does not expose, so this question is marked
+# manual: the sync warns when it is missing and never creates, updates or
+# deletes it. The choices below are only placeholders for the PDF mockup.
+C4_RANK_TEXT = md_to_html(
+    f"**{POLICY.get('rank_question', 'Now rank the three policies you selected')}**"
+    f"\n\n{POLICY.get('rank_intro', 'Rank the three policies you selected above.')}"
+)
+MANUAL_QUESTION_TAGS = {"C4-4"}
+
+
+# --- Attention checks --------------------------------------------------------
+#
+# Three directed-choice checks spread across the survey. The pre-registration
+# excludes a respondent who fails two of the three ("failing 2 of the 3
+# attention checks"); the flow also ends them through the panel's quality end
+# link as soon as the second failure is known. Each item says which option to
+# choose, so a wrong answer is unambiguous.
+ATTENTION_SCALE = [
+    "Strongly agree",
+    "Somewhat agree",
+    "Neither agree nor disagree",
+    "Somewhat disagree",
+    "Strongly disagree",
+]
+# (DataExportTag, question text, 1-based index of the correct option)
+ATTENTION_CHECKS = (
+    ("A_attention", "Attention check: please select 'Somewhat disagree'.", 4),
+    (
+        "B_attention",
+        (
+            "To show you are reading carefully, please select "
+            "'Neither agree nor disagree'."
+        ),
+        3,
+    ),
+    ("C_attention", "Please select 'Strongly agree' for this question.", 1),
+)
+
 
 # --- Question payload builders (shapes mirror a real Qualtrics export) ----
 
@@ -778,8 +802,79 @@ def embedded_field_empty(field: str) -> dict:
     }
 
 
-def db_payload(tag: str, text: str) -> dict:
+def embedded_field_equals(field: str, value: str) -> dict:
+    """Display logic: show the question only when ``field == value``.
+
+    Used for the two agent-order variants of a comparison description: the
+    per-dilemma order draw sets the field before the comparison blocks, and
+    exactly one variant's display logic passes.
+    """
     return {
+        "0": {
+            "0": {
+                "LogicType": "EmbeddedField",
+                "LeftOperand": field,
+                "Operator": "EqualTo",
+                "RightOperand": value,
+                "_HiddenExpression": False,
+                "Type": "Expression",
+                "Description": '<span class="ConjDesc">If</span> '
+                f'<span class="LeftOpDesc">{field}</span> '
+                '<span class="OpDesc">Is Equal to</span> '
+                f'<span class="RightOpDesc"> {value} </span>',
+            },
+            "Type": "If",
+        },
+        "Type": "BooleanExpression",
+        "inPage": False,
+    }
+
+
+def attention_payload(check: tuple) -> dict:
+    """The question payload for one attention check (see ATTENTION_CHECKS)."""
+    tag, text, _ = check
+    return mc_sahr_payload(tag, text, ATTENTION_SCALE)
+
+
+def timing_payload(tag: str) -> dict:
+    """A hidden Timing question (Qualtrics ``Timing`` / ``PageTimer``).
+
+    It records First Click, Last Click, Page Submit (seconds) and Click
+    Count for the block's page, so the responses export carries the time
+    next to the answers instead of only in the separate timing file. It is
+    invisible to respondents, so it has no wording and is skipped by the
+    PDF mockup. The tag names the block whose page is timed.
+    """
+    return {
+        "QuestionText": "Timing",
+        "DefaultChoices": False,
+        "DataExportTag": tag,
+        "QuestionType": "Timing",
+        "Selector": "PageTimer",
+        "Configuration": {
+            "QuestionDescriptionOption": "UseText",
+            "MinSeconds": 0,
+            "MaxSeconds": "0",
+        },
+        "QuestionDescription": "Timing",
+        "Choices": {
+            "1": {"Display": "First Click"},
+            "2": {"Display": "Last Click"},
+            "3": {"Display": "Page Submit"},
+            "4": {"Display": "Click Count"},
+        },
+        "ChoiceOrder": ["1", "2", "3", "4"],
+        "Validation": {"Settings": {"Type": "None"}},
+        "GradingData": [],
+        "Language": [],
+        "NextChoiceId": 5,
+        "NextAnswerId": 1,
+        "DataVisibility": {"Private": False, "Hidden": False},
+    }
+
+
+def db_payload(tag: str, text: str, display_logic: dict | None = None) -> dict:
+    payload = {
         "QuestionText": text,
         "DefaultChoices": False,
         "DataExportTag": tag,
@@ -795,6 +890,9 @@ def db_payload(tag: str, text: str) -> dict:
         "NextChoiceId": 4,
         "NextAnswerId": 1,
     }
+    if display_logic:
+        payload["DisplayLogic"] = display_logic
+    return payload
 
 
 def mc_single_payload(
@@ -894,6 +992,44 @@ def ro_rank_payload(tag: str, text: str, options: list[str]) -> dict:
         "Language": [],
         "NextChoiceId": len(options) + 1,
         "NextAnswerId": 1,
+    }
+
+
+def manual_rank_payload(tag: str, text: str) -> dict:
+    """Manual Rank Order question with UI carry-forward choices.
+
+    Qualtrics' question API has no carry-forward field, so ``qualtrics_sync``
+    never sends this payload. It exists for the PDF mockup and the block/flow
+    definition; the real question is added once in the Qualtrics UI with
+    choices carried forward from C4-3. The three placeholder choices below
+    stand in for the respondent's selected policies in the mockup.
+    """
+    labels = [
+        "First selected policy (carried forward from C4-3)",
+        "Second selected policy (carried forward from C4-3)",
+        "Third selected policy (carried forward from C4-3)",
+    ]
+    return {
+        "QuestionText": text,
+        "DefaultChoices": False,
+        "DataExportTag": tag,
+        "QuestionType": "RO",
+        "Selector": "DND",
+        "SubSelector": "TX",
+        "DataVisibility": {"Private": False, "Hidden": False},
+        "Configuration": {"QuestionDescriptionOption": "UseText"},
+        "QuestionDescription": truncate_desc(text),
+        "Choices": {
+            str(index): {"Display": label}
+            for index, label in enumerate(labels, start=1)
+        },
+        "ChoiceOrder": ["1", "2", "3"],
+        "Validation": {"Settings": {"ForceResponse": "ON", "Type": "None"}},
+        "GradingData": [],
+        "Language": [],
+        "NextChoiceId": 4,
+        "NextAnswerId": 1,
+        "Manual": True,
     }
 
 
@@ -1019,11 +1155,14 @@ def _fill_markers(text: str, values: dict[str, str]) -> str:
     return "\n".join(lines)
 
 
-def description_text(record: dict) -> str:
+def description_text(record: dict, responses: list | None = None) -> str:
     """The comparison descriptive question: the template's ``{?...?}``
-    markers filled from the block record. The profile's framing lines may be
-    absent (older profiles); an empty intro drops out of the rendered HTML
-    and an empty outro falls back to the generic bridge line."""
+    markers filled from the block record. ``responses`` is the presentation
+    order to render ([Agent 1, Agent 2]; default: base then fine-tune). The
+    profile's framing lines may be absent (older profiles); an empty intro
+    drops out of the rendered HTML and an empty outro falls back to the
+    generic bridge line."""
+    pair = record["responses"] if responses is None else responses
     text = _load_template()
     text = _fill_markers(
         text,
@@ -1033,8 +1172,8 @@ def description_text(record: dict) -> str:
             "situation": record["situation"],
             "question": record["question"],
             "dilemma_outro": record["dilemma_outro"] or COMPARISON_OUTRO_FALLBACK,
-            "response1": record["responses"][0],
-            "response2": record["responses"][1],
+            "response1": pair[0],
+            "response2": pair[1],
         },
     )
     unknown = re.search(r"\{\?\w+\?\}", text)
@@ -1079,7 +1218,7 @@ def _comparison_manifest() -> tuple[Path, dict]:
 
     The survey subset is the survey's own source of comparisons: one
     comparison is one pair of runs (two models answering the same dilemma),
-    already ordered into Agent 1 / Agent 2 by ``generate_comparisons.py``.
+    keyed by role (``base`` / ``ft``) rather than Agent 1 / Agent 2.
     ``WVS_COMPARISON_MODEL`` (set by the scripts' ``--model``) picks the
     fine-tune; without it there must be exactly one subset, otherwise the
     error lists the choices.
@@ -1137,56 +1276,43 @@ def survey_records() -> list[dict]:
     """One record per survey block, from the comparison survey subset.
 
     The survey subset (``comparisons.json``, schema
-    ``wvs-dilemma-comparisons/v1``) holds the pairs of runs the survey shows
+    ``wvs-dilemma-comparisons/v2``) holds the pairs of runs the survey shows
     respondents: one comparison is one pair of runs from two different
-    models answering the same dilemma, already ordered into Agent 1 / Agent 2
-    by ``generate_comparisons.py`` with a stable pseudo-random assignment
-    (a hash of the sorted run ids), so neither position is systematically
-    tied to one model. The block tag carries both run ids in agent order, so
-    which model played which agent can be decoded afterwards.
+    models answering the same dilemma. Each record keys its two sides by
+    role - ``base`` and ``ft`` - not by Agent 1 / Agent 2; the survey's
+    per-dilemma order draw decides which side is shown as Agent 1.
 
-    Role and framing read live from ``code/dilemmas/profiles/<profile>.json``
-    (the source of truth for what the agent is), so wording edits show up in
-    the survey without regenerating the comparisons; the manifest's exported
-    copy is the fallback when a profile file is gone.
+    Each block carries two description variants (fine-tune first and base
+    first) and a per-dilemma random draw picks which one a respondent sees
+    (see ``flow()``). ``base_response`` / ``ft_response`` are the two
+    responses keyed by role, so either order can be rendered; ``order_field``
+    is the embedded field that records the draw for that dilemma.
     """
     manifest_path, manifest = _comparison_manifest()
     profile_files = _profile_sources()
-    models = manifest.get("models") or {}
-    model_a = models.get("model_a")
-    model_b = models.get("model_b")
+    declared_models = manifest.get("models") or {}
     records = []
     for comparison in manifest.get("comparisons", []):
+        validate_comparison_roles(comparison, declared_models)
         profile_id = comparison.get("profile_id") or ""
-        responses = comparison.get("responses") or []
-        if len(responses) != 2 or not all(responses):
-            print(f"SKIPPED {comparison.get('comparison_id')}: a response is empty")
-            continue
-        profile = profile_files.get(profile_id, {})
         agents = comparison.get("agents") or {}
-        agent1 = agents.get("Agent 1") or {}
-        agent2 = agents.get("Agent 2") or {}
-        run_ids = [
-            str(agent1.get("run_id", "")),
-            str(agent2.get("run_id", "")),
-        ]
-        if all(run_ids) and model_a and model_b:
-            # agent_order keeps the model-A/model-B order or swaps it, so
-            # Agent 1 is the model-A run exactly when the hash is even.
-            key = hashlib.md5("__".join(sorted(run_ids)).encode()).digest()
-            expected_first = model_a if key[0] % 2 == 0 else model_b
-            if agent1.get("model") != expected_first:
-                # The tag decodes the agent order, so a mismatch would
-                # mislabel which model played which agent in the responses.
-                print(
-                    f"WARNING {comparison['comparison_id']}: agent order differs "
-                    "from the survey's agent_order rule"
-                )
+        base = agents.get("base") or {}
+        ft = agents.get("ft") or {}
+        responses = comparison.get("responses") or {}
+        base_response = base.get("response") or responses.get("base")
+        ft_response = ft.get("response") or responses.get("ft")
+        if not base_response or not ft_response:
+            raise SystemExit(
+                f"{comparison.get('comparison_id')}: a response is empty; "
+                "the survey subset is incomplete"
+            )
+        profile = profile_files.get(profile_id, {})
         records.append(
             {
                 "comparison_id": comparison["comparison_id"],
                 "label": comparison.get("label", comparison["comparison_id"]),
                 "profile": profile_id,
+                "dilemma": comparison.get("dilemma_id", ""),
                 "role": profile.get("role_summary")
                 or comparison.get("role")
                 or profile_id,
@@ -1199,7 +1325,9 @@ def survey_records() -> list[dict]:
                 or comparison.get("dilemma_outro", ""),
                 "situation": comparison.get("situation", ""),
                 "question": comparison.get("question", ""),
-                "responses": responses,
+                "responses": [base_response, ft_response],
+                "base_response": base_response,
+                "ft_response": ft_response,
             }
         )
     if not records:
@@ -1207,6 +1335,15 @@ def survey_records() -> list[dict]:
             f"No comparisons in {manifest_path} - the survey needs at least one "
             "pair of runs answering the same dilemma."
         )
+    # One order draw per dilemma (a respondent sees at most one comparison
+    # from it), named by a stable sorted index so the analysis can decode it.
+    dilemma_index = {
+        dilemma: i
+        for i, dilemma in enumerate(sorted({r["dilemma"] for r in records}), 1)
+    }
+    for record in records:
+        record["dilemma_index"] = dilemma_index[record["dilemma"]]
+        record["order_field"] = f"ord_{record['dilemma_index']}"
     return records
 
 
@@ -1223,9 +1360,26 @@ def build() -> dict:
             "description": f"Comparison: {record['comparison_id']}",
             "label": record["label"],
             "profile": record["profile"],
+            "dilemma": record["dilemma"],
+            "order_field": record["order_field"],
             "collapsed": False,
             "questions": [
-                db_payload(record["comparison_id"] + "_0", description_text(record)),
+                # The same comparison in both agent orders; the per-dilemma
+                # order draw (flow()) shows exactly one of the two.
+                db_payload(
+                    record["comparison_id"] + "_0_ft",
+                    description_text(
+                        record, [record["ft_response"], record["base_response"]]
+                    ),
+                    display_logic=embedded_field_equals(record["order_field"], "ft"),
+                ),
+                db_payload(
+                    record["comparison_id"] + "_0_base",
+                    description_text(
+                        record, [record["base_response"], record["ft_response"]]
+                    ),
+                    display_logic=embedded_field_equals(record["order_field"], "base"),
+                ),
                 mc_sahr_payload(
                     record["comparison_id"] + "_pref",
                     PREF_TEXT,
@@ -1235,6 +1389,7 @@ def build() -> dict:
                 mc_single_payload(
                     record["comparison_id"] + "_aiuse", AIUSE_TEXT, AIUSE_SCALE
                 ),
+                timing_payload(record["comparison_id"] + "_timing"),
             ],
         }
         for record in survey_records()
@@ -1284,6 +1439,8 @@ def build() -> dict:
             mc_single_payload("Z6-1", Z_INCOME_TEXT, Z_INCOME_OPTIONS),
             mc_single_payload("Z7-1", Z_OCCUPATION_TEXT, Z_OCCUPATION_OPTIONS),
             mc_single_payload("Z8-1", Z_EDU_TEXT, Z_EDU_OPTIONS),
+            attention_payload(ATTENTION_CHECKS[0]),
+            timing_payload("Z_timing"),
         ],
     }
     section_b = {
@@ -1294,14 +1451,15 @@ def build() -> dict:
                 "D_taskB",
                 md_to_html(
                     "In the next part of the survey, you will read short "
-                    "situations in which an AI agent was asked what it would do in it. "
-                    "You will be asked to compare the two responses and provide your "
+                    "situations in which an AI agent handled some dilemma. "
+                    "You will be asked to compare between two different responses and provide your "
                     "opinion on which one you prefer. "
                     "\n\nAll situations are "
                     "completely fictional and do not represent any real "
-                    "person, company or situation."
+                    "person or situation."
                 ),
-            )
+            ),
+            attention_payload(ATTENTION_CHECKS[1]),
         ],
     }
     section_c = {
@@ -1328,6 +1486,9 @@ def build() -> dict:
                 C_POLICY_MIN,
                 C_POLICY_MAX,
             ),
+            manual_rank_payload("C4-4", C4_RANK_TEXT),
+            attention_payload(ATTENTION_CHECKS[2]),
+            timing_payload("C_timing"),
         ],
     }
     prize_draw = {
@@ -1349,6 +1510,7 @@ def build() -> dict:
     ]
     definition = {
         "survey_name": "AI Behaviour comparison survey",
+        "survey_description": SURVEY_META_DESCRIPTION,
         "intro_paid": intro_paid,
         "intro_volunteer": intro_volunteer,
         "section_a": section_a,
@@ -1373,12 +1535,72 @@ def branch(logic: dict, flow: list, flow_id: str) -> dict:
     }
 
 
+def wrong_choice(qid: str, choice: int) -> dict:
+    """The attention-check condition: the correct MC option was not selected."""
+    locator = f"q://{qid}/SelectableChoice/{choice}"
+    return {
+        "LogicType": "Question",
+        "QuestionID": qid,
+        "QuestionIsInLoop": "no",
+        "ChoiceLocator": locator,
+        "Operator": "NotSelected",
+        "QuestionIDFromLocator": qid,
+        "LeftOperand": locator,
+        "Type": "Expression",
+    }
+
+
+def all_of(*conditions: dict) -> dict:
+    """BranchLogic holding when every condition holds (If + AndIf chain)."""
+    logic = {"Type": "BooleanExpression"}
+    for i, condition in enumerate(conditions):
+        logic[str(i)] = {"0": condition, "Type": "If" if i == 0 else "AndIf"}
+    return logic
+
+
+def attention_failure(checks: tuple, qids_by_tag: dict) -> dict:
+    """BranchLogic: a paid respondent failed every named attention check.
+
+    The paid condition keeps volunteers out of the panel's quality exit -
+    they have no panel id to echo, so the branch is scoped to paid
+    respondents.
+    """
+    return all_of(
+        distribution_condition("volunteer", operator="NotEqualTo"),
+        *(
+            wrong_choice(
+                qids_by_tag[ATTENTION_CHECKS[index][0]],
+                ATTENTION_CHECKS[index][2],
+            )
+            for index in checks
+        ),
+    )
+
+
 # Qualtrics branch-logic operators for the embedded-field comparison, and
 # the wording the Qualtrics UI shows for each of them.
 DISTRIBUTION_OPERATORS = {
     "EqualTo": "Is Equal to",
     "NotEqualTo": "Is Not Equal to",
 }
+
+
+def distribution_condition(value: str, operator: str = "EqualTo") -> dict:
+    """Expression: the ``distribution`` embedded field compared to ``value``."""
+    op_text = DISTRIBUTION_OPERATORS[operator]
+    return {
+        "LogicType": "EmbeddedField",
+        "LeftOperand": "distribution",
+        "Operator": operator,
+        "RightOperand": value,
+        "_HiddenExpression": False,
+        "Type": "Expression",
+        "Description": '<span class="ConjDesc">If</span> '
+        '<span class="LeftOpDesc">distribution'
+        f'</span> <span class="OpDesc">{op_text}'
+        '</span> <span class="RightOpDesc"> '
+        f"{value} </span>",
+    }
 
 
 def distribution_check(value: str, operator: str = "EqualTo") -> dict:
@@ -1390,24 +1612,8 @@ def distribution_check(value: str, operator: str = "EqualTo") -> dict:
     not set ``distribution`` to ``volunteer`` - the information sheet is
     the default, not something a missing parameter can skip.
     """
-    op_text = DISTRIBUTION_OPERATORS[operator]
     return {
-        "0": {
-            "0": {
-                "LogicType": "EmbeddedField",
-                "LeftOperand": "distribution",
-                "Operator": operator,
-                "RightOperand": value,
-                "_HiddenExpression": False,
-                "Type": "Expression",
-                "Description": '<span class="ConjDesc">If</span> '
-                '<span class="LeftOpDesc">distribution'
-                f'</span> <span class="OpDesc">{op_text}'
-                '</span> <span class="RightOpDesc"> '
-                f"{value} </span>",
-            },
-            "Type": "If",
-        },
+        "0": {"0": distribution_condition(value, operator), "Type": "If"},
         "Type": "BooleanExpression",
     }
 
@@ -1422,20 +1628,27 @@ def flow(name_to_id: dict[str, str], qids_by_tag: dict[str, str]) -> dict:
 
     ``name_to_id`` maps block description -> remote Block id (already
     synced); ``qids_by_tag`` maps question tag -> QuestionID (the prize
-    branch locates choices on Q85). Structure mirrors the hand-built live
-    flow: the two distribution branches for the intros (the paid sheet
-    first, as the default for anyone who is not a volunteer), then
-    demographics for everyone, the two-stage comparison sampler,
-    Section C, and the volunteer prize-draw ending.
+    and attention branches locate choices on their questions). Structure
+    mirrors the hand-built live flow: the two distribution branches for the
+    intros (the paid sheet first, as the default for anyone who is not a
+    volunteer), demographics for everyone, the two-stage comparison
+    sampler, Section C, the attention gates, the paid panel exit, and the
+    volunteer prize-draw ending.
 
     Comparison sampling is stratified by profile: the outer randomizer draws
-    ``profiles_shown`` of the per-profile randomizers (in random order), and
-    each of those draws one of that profile's dilemma blocks.
+    ``profiles_shown`` of the per-profile randomizers (in random order);
+    each selected profile's randomizer draws one of its dilemmas, and each
+    drawn dilemma's randomizer draws one of its comparison pairs. One order
+    randomizer per dilemma (before the comparison blocks) sets the embedded
+    ``ord_<n>`` field to ``ft`` or ``base``, which selects the matching
+    description variant in the drawn block.
     """
-    by_profile: dict[str, list[str]] = defaultdict(list)
+    by_profile: dict[str, dict[str, list[str]]] = defaultdict(lambda: defaultdict(list))
+    order_fields = {}
     for b in build()["comparison_blocks"]:
         if b["description"] in name_to_id:
-            by_profile[b["profile"]].append(name_to_id[b["description"]])
+            by_profile[b["profile"]][b["dilemma"]].append(name_to_id[b["description"]])
+            order_fields[b["dilemma"]] = b["order_field"]
     profiles = sorted(by_profile)
     # SubSet larger than the pool breaks the respondent flow - sync may run
     # while a runs export is still landing blocks.
@@ -1444,11 +1657,28 @@ def flow(name_to_id: dict[str, str], qids_by_tag: dict[str, str]) -> dict:
     next_id = 100
     profile_randomizers = []
     for profile in profiles:
-        blocks = []
-        for bid in by_profile[profile]:
+        dilemma_randomizers = []
+        for dilemma in sorted(by_profile[profile]):
+            pairs = []
+            for bid in by_profile[profile][dilemma]:
+                next_id += 1
+                pairs.append(
+                    {
+                        "Type": "Block",
+                        "ID": bid,
+                        "FlowID": f"FL_{next_id}",
+                        "Autofill": [],
+                    }
+                )
             next_id += 1
-            blocks.append(
-                {"Type": "Block", "ID": bid, "FlowID": f"FL_{next_id}", "Autofill": []}
+            dilemma_randomizers.append(
+                {
+                    "Type": "BlockRandomizer",
+                    "FlowID": f"FL_{next_id}",
+                    "SubSet": 1,
+                    "EvenPresentation": True,
+                    "Flow": pairs,
+                }
             )
         next_id += 1
         profile_randomizers.append(
@@ -1457,14 +1687,38 @@ def flow(name_to_id: dict[str, str], qids_by_tag: dict[str, str]) -> dict:
                 "FlowID": f"FL_{next_id}",
                 "SubSet": 1,
                 "EvenPresentation": True,
-                "Flow": blocks,
+                "Flow": dilemma_randomizers,
+            }
+        )
+    # One agent-order draw per dilemma: the respondent sees at most one pair
+    # from a dilemma, so a per-dilemma coin is a per-comparison coin. The
+    # draw sets the field the two description variants' display logic reads.
+    order_randomizers = []
+    for dilemma in sorted(order_fields):
+        field = order_fields[dilemma]
+        next_id += 1
+        ft_flow_id = f"FL_{next_id}"
+        next_id += 1
+        base_flow_id = f"FL_{next_id}"
+        next_id += 1
+        order_randomizers.append(
+            {
+                "Type": "BlockRandomizer",
+                "FlowID": f"FL_{next_id}",
+                "SubSet": 1,
+                "EvenPresentation": True,
+                "Flow": [
+                    embedded_data_element(field, "ft", ft_flow_id),
+                    embedded_data_element(field, "base", base_flow_id),
+                ],
             }
         )
     q85 = qids_by_tag[PRIZE_DRAW_TAG]
-    # The embedded data fields: the channel, and the demographics a panel
-    # can append to the survey link. The panel fields have no value here -
-    # Qualtrics fills them from the link's query string ("Value will be set
-    # from Panel or URL").
+    # The embedded data fields: the channel, the demographics a panel
+    # can append to the survey link, and the panelist id the link carries
+    # (echoed on the panel exit redirect). The panel fields have no value
+    # here - Qualtrics fills them from the link's query string ("Value will
+    # be set from Panel or URL").
     embedded_fields = [
         {
             "Description": "distribution",
@@ -1473,8 +1727,28 @@ def flow(name_to_id: dict[str, str], qids_by_tag: dict[str, str]) -> dict:
             "VariableType": "String",
             "DataVisibility": [],
             "AnalyzeText": False,
-        }
+        },
+        {
+            "Description": PANEL_ID_FIELD,
+            "Type": "Recipient",
+            "Field": PANEL_ID_FIELD,
+            "VariableType": "String",
+            "DataVisibility": [],
+            "AnalyzeText": False,
+        },
+        {
+            # EndSurvey flags write this column (Complete, Screened,
+            # PoorQuality, QuotaMet); it is empty for a normal completion
+            # that never hit an EndSurvey element.
+            "Description": "Q_TerminateFlag",
+            "Type": "Recipient",
+            "Field": "Q_TerminateFlag",
+            "VariableType": "String",
+            "DataVisibility": [],
+            "AnalyzeText": False,
+        },
     ]
+
     embedded_fields += [
         {
             "Description": field,
@@ -1533,6 +1807,15 @@ def flow(name_to_id: dict[str, str], qids_by_tag: dict[str, str]) -> dict:
             "FlowID": "FL_9",
             "Autofill": [],
         },
+        # A second failed attention check ends the survey through the panel's
+        # quality link: A+B fails here, before the comparisons; A+C and B+C
+        # fail after Section C (below).
+        branch(
+            attention_failure((0, 1), qids_by_tag),
+            [panel_exit_element("quality", "FL_74")],
+            "FL_75",
+        ),
+        *order_randomizers,
         {
             "Type": "BlockRandomizer",
             "FlowID": "FL_34",
@@ -1546,6 +1829,24 @@ def flow(name_to_id: dict[str, str], qids_by_tag: dict[str, str]) -> dict:
             "FlowID": "FL_32",
             "Autofill": [],
         },
+        branch(
+            attention_failure((0, 2), qids_by_tag),
+            [panel_exit_element("quality", "FL_76")],
+            "FL_77",
+        ),
+        branch(
+            attention_failure((1, 2), qids_by_tag),
+            [panel_exit_element("quality", "FL_78")],
+            "FL_79",
+        ),
+        # Paid respondents are returned to the panel as completed; the
+        # volunteer branch below keeps its own prize-draw ending (and falls
+        # through to the default end-of-survey message).
+        branch(
+            distribution_check("volunteer", operator="NotEqualTo"),
+            [panel_exit_element("completed", "FL_72")],
+            "FL_73",
+        ),
         branch(
             distribution_check("volunteer"),
             [
@@ -1580,6 +1881,7 @@ def flow(name_to_id: dict[str, str], qids_by_tag: dict[str, str]) -> dict:
                             "Options": {
                                 "Advanced": "true",
                                 "SurveyTermination": "Redirect",
+                                "ResponseFlag": "Complete",
                                 "EOSRedirectURL": PRIZE_DRAW_END_URL,
                             },
                         }

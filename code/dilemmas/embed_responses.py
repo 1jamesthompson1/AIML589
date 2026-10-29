@@ -12,11 +12,13 @@ The default ``--subset complete`` walks every per-model pool under
 (``--subset complete/<model>`` embeds just one). The model is loaded once for
 the whole run.
 
-Embedding the whole pool is what makes the survey design possible: the
-distance between two answers is only known once both have been embedded, and
-the analysis notebook filters the pool on that distance afterwards. The cache
-holds one vector per distinct response (the runs), not one per comparison (the
-pairs), so a 750-comparison base-vs-model pool needs 300 vectors.
+Embedding the whole pool is what makes the comparison-distance analysis
+possible: the distance between two answers is only known once both have been
+embedded, and the analysis notebook reports that distance alongside the judge
+scores. The survey selection itself ranks pairs by the LLM judge's
+``value_divergence``. The cache holds one vector per distinct response (the
+runs), not one per comparison (the pairs), so a 750-comparison base-vs-model
+pool needs 300 vectors.
 
 The cached metadata records the model, its Hugging Face revision, the
 instruction used and a fingerprint of the embedded texts, so a later run can

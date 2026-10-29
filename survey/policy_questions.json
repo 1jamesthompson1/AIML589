@@ -3,6 +3,8 @@
   "intro": "Our research team has identified policy responses to AI that we believe will help build a positive future for all Kiwis. Please choose your three favourite policies from the list.",
   "min_choices": 3,
   "max_choices": 3,
+  "rank_question": "Now rank the three policies you selected",
+  "rank_intro": "Drag and drop the three policies you chose above into order, with your most preferred policy first and your least preferred last.",
   "options": [
     {
       "title": "Fund an Office for AI",
@@ -14,7 +16,7 @@
     },
     {
       "title": "Harden Our Infrastructure against Catastrophic AI Misuse",
-      "description": "Through the direction of the Office for AI, increase funding for biosecurity (to protect us from AI bioweapons) and cyber defense (to protect us from AI hacking)."
+      "description": "Increase funding for biosecurity (to protect us from AI bioweapons) and cyber defense (to protect us from AI hacking)."
     },
     {
       "title": "Jobseeker 2.0",

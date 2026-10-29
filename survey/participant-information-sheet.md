@@ -1,3 +1,5 @@
+![Te Herenga Waka — Victoria University of Wellington](https://www.wgtn.ac.nz/__data/assets/git_bridge/0005/1778018/dist/images/new/v2/logo-green-full.svg?v=2)
+
 # Aligning AI to New Zealand Public Values — Information for Anonymous Survey Respondents
 
 Kia ora / Hello. This work is part of a research project at the School of
@@ -6,7 +8,7 @@ Wellington. We are a team of researchers trying to make Artificial
 Intelligence systems more aligned with New Zealand public values. This
 research project is part of James Thompson's work towards his degree.
 
-## What is the aim of the project?
+## He aha te whāinga mō tēnei rangahau / What is the aim of the project?
 
 Artificial Intelligence systems like the technology behind tools like ChatGPT
 are increasingly making decisions that affect people's lives. However, the
@@ -17,15 +19,15 @@ participation will help us understand whether the public prefers the
 behaviour of AI agents that have been aligned to public values compared to
 unaligned models.
 
-## How can you help?
+## Ka pēhea tō āwhina mai / How can you help?
 
-You are being invited to participate because you are a member of the New
-Zealand public and we want to know your views on AI. If you agree to take
-part, you will complete an anonymous online survey. The survey will present
-you with short scenarios describing how an AI system behaved in a particular
-situation. For each scenario, you will compare different AI agents' behaviour
-on simple scales and answer a few questions about your own views of AI. The
-survey takes approximately 15 minutes.
+You are being invited to participate because you are one of the people aged
+18+ living in Aotearoa New Zealand, and we want to know your views on AI. If
+you agree to take part, you will complete an anonymous online survey. The
+survey will present you with short scenarios describing how an AI system
+behaved in a particular situation. For each scenario, you will compare
+different AI agents' behaviour on simple scales and answer a few questions
+about your own views of AI. The survey takes approximately 15 minutes.
 
 <!--volunteer
 At the completion of the survey, you will have the option to enter a prize
@@ -36,7 +38,7 @@ responses and will only be used for the purpose of contacting the winners of
 the prize draw, after which it will be deleted.
 -->
 
-## What will happen to the information you give?
+## Ka ahatia ngā kōrero ka tukuna mai / What will happen to the information you give?
 
 This research is anonymous: nobody, including the researchers, will be aware
 of your identity. By answering the survey you consent to your anonymised
@@ -52,10 +54,12 @@ responses and ethnicity variable removed to protect your privacy.
 Raw data will be stored securely on the university's servers until the end of
 2027, then deleted.
 
-## Who can you contact (research team)?
+## Mehemea ngā pātai, he raruraru rānei, me whakapā ki a wai / If you have any questions or problems, who can you contact?
 
 - Student researcher: James Thompson — thompsjame1@myvuw.ac.nz
 - Supervisor: Dr Andrew Lensen — andrew.lensen@vuw.ac.nz
+
+## He kōrero whakamārama mō HEC / Human Ethics Committee information
 
 This research has been approved by the Te Herenga Waka — Victoria University of
 Wellington Human Ethics Committee (Hōkai application number 2026/HE040446). If

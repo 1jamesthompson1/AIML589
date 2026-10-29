@@ -15,14 +15,42 @@ def _(mo):
     Open it with `uv run marimo edit code/dilemmas/analyze.py`, or run it
     headless with `uv run marimo export html code/dilemmas/analyze.py -o
     analyze.html`.
+
+    ## The runs the analysis reads
+
+    The run ids are set in the cell below, and every other cell reads its
+    data through them, so pointing the analysis at another run is a one-line
+    change:
+
+    - **MAIN_RUN_ID** - the headline run. The modal adapter and the base
+      model both have 50 runs per dilemma, so the main H1 test, the
+      per-dilemma results and the survey design come from here.
+    - **PREVIOUS_RUN_ID** - the run before it, which holds all four
+      fine-tuned adapters at 10 runs per dilemma, so the four-model H1 test
+      and the answer-statistics and agreement tables come from here.
+    - **FRONTIER_RUN_ID** - the only run holding the frontier comparison
+      models.
     """)
     return
 
 
 @app.cell
 def _():
+    # The exported runs the analysis reads. Every cell takes its data from
+    # these ids, so changing the analysis to another run is a one-line edit.
+    MAIN_RUN_ID = (
+        "2026-10-23_dc41eb9e"  # headline run (base + modal at 50 runs per dilemma)
+    )
+    PREVIOUS_RUN_ID = (
+        "2026-10-22_0a63e425"  # the run holding all four adapters (10 runs per dilemma)
+    )
+    FRONTIER_RUN_ID = "2026-10-16_initial-full-runs"  # the frontier comparison models
+    return FRONTIER_RUN_ID, MAIN_RUN_ID, PREVIOUS_RUN_ID
+
+
+@app.cell
+def _():
     import json
-    import random
     import sys
     from pathlib import Path
 
@@ -39,14 +67,12 @@ def _():
     HERE = Path(__file__).resolve().parent
     return (
         HERE,
-        Path,
         escape_header,
         json,
         mo,
         np,
         pd,
         plt,
-        random,
         scan_results_df,
         sys,
         write_latex_table,
@@ -58,10 +84,10 @@ def _(mo):
     mo.md(r"""
     ## Shared helpers
 
-    The two analyses at the end of this notebook both look for the newest data
-    directory under the artifacts tree, read a JSON file, pivot a model x
-    category table and write a figure to `code/figures/`, so those four steps
-    live here.
+    The two analyses at the end of this notebook both read one exported run,
+    read a JSON file, pivot a model x category table and write a figure to
+    `code/figures/`, so those four steps live here. The run each analysis
+    reads is named at the top of the notebook.
     """)
     return
 
@@ -123,7 +149,10 @@ def _(mo):
     ## Per-dilemma answer statistics
 
     The per-dilemma answer statistics from the exported runs, ranked by how far
-    the models diverge on the dilemma.
+    the models diverge on the dilemma. The runs come from the run named for
+    the model set at the top of the notebook (the study set uses the run
+    holding all five models, the frontier set the run holding the frontier
+    models).
 
     **Mean answer** is the mean chosen option index (1 = the first option, up
     to and including "Other or unclear"), which locates where the answers sit.
@@ -156,15 +185,39 @@ def _(mo):
 
 
 @app.cell
-def _(HERE, Path, json, np, pd, write_latex_table):
-    def load_run_choices(model_labels: dict[str, str]) -> tuple[pd.DataFrame, dict]:
-        """The exported runs of the requested models, one row per run.
+def _(FRONTIER_RUN_ID, HERE, PREVIOUS_RUN_ID, json, np, pd, write_latex_table):
+    def load_manifest(run_id: str):
+        """The manifest of one exported run, and the directory its files sit in.
 
-        The bundle is picked the way the answer statistics pick it: the
-        export holding the most of the requested models, and inside it the
-        most recent run set per (profile, dilemma, model), so superseded
-        runs are not counted twice. Both the answer statistics and the
-        aggregate below read their data from here, so the two always
+        A run's manifest lives under `output/runs/full/<run-id>/index.json`,
+        with the run paths relative to that directory. The active export
+        (`output/runs/index.json`) holds the same manifest for the active
+        run, with the paths relative to `output/runs/`, and is used when it
+        is the run asked for and the bundle's own manifest is missing.
+
+        Returns (manifest, base, path); manifest is None when the run has
+        not been exported.
+        """
+        runs_dir = HERE / "output" / "runs"
+        bundle = runs_dir / "full" / run_id / "index.json"
+        if bundle.exists():
+            return json.loads(bundle.read_text(encoding="utf-8")), bundle.parent, bundle
+        active = runs_dir / "index.json"
+        if active.exists():
+            manifest = json.loads(active.read_text(encoding="utf-8"))
+            if manifest.get("active_run_id") == run_id:
+                return manifest, runs_dir, active
+        return None, None, None
+
+    def load_run_choices(
+        model_labels: dict[str, str], run_id: str
+    ) -> tuple[pd.DataFrame, dict]:
+        """The exported runs of one run, one row per run.
+
+        The run is the one asked for (the ids at the top of the notebook),
+        and inside it the most recent run set per (profile, dilemma, model),
+        so superseded runs are not counted twice. Both the answer statistics
+        and the aggregate below read their data from here, so the two always
         describe the same runs.
 
         Returns (runs, options):
@@ -174,47 +227,27 @@ def _(HERE, Path, json, np, pd, write_latex_table):
           dropped.
         - options: dilemma id -> the dilemma's answer options.
         """
-        # The model set is passed in: see the two sets defined below the
-        # function (the fine-tuned adapters and the frontier comparison
-        # models). The two sets live in different bundles, so the bundle
-        # holding the set is looked up rather than the active export alone
-        # (which holds the active batch only, so a set the active batch does
-        # not carry would find nothing).
-        runs_dir = HERE / "output" / "runs"
-
-        def candidates() -> list[tuple[Path, Path]]:
-            """(manifest, base dir) pairs, active export first."""
-            found = [(runs_dir / "index.json", runs_dir)]
-            bundles = sorted(
-                (p for p in (runs_dir / "full").glob("*/index.json")),
-                key=lambda p: p.stat().st_mtime,
-                reverse=True,
-            )
-            found += [(p, p.parent) for p in bundles]
-            return found
-
-        def load(manifest_path: Path, base: Path):
-            if not manifest_path.exists():
-                return None
-            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-            present = sum(1 for run in manifest["runs"] if run["model"] in model_labels)
-            return (present, manifest, base)
-
-        chosen = None
-        for manifest_path, base in candidates():
-            loaded = load(manifest_path, base)
-            if loaded is None:
-                continue
-            if loaded[0] and (chosen is None or loaded[0] > chosen[0]):
-                chosen = loaded
-        if chosen is None:
+        manifest, base, manifest_path = load_manifest(run_id)
+        if manifest is None:
             print(
-                f"No exported runs yet: {runs_dir / 'index.json'} is missing or "
-                f"holds none of the models. Run `uv run python "
+                f"No exported runs for run {run_id!r} under "
+                f"{HERE / 'output' / 'runs'}. Run `uv run python "
                 f"code/dilemmas/export_results.py` first."
             )
             return pd.DataFrame(), {}
-        _, manifest, base = chosen
+        # The models the run does not hold: the tables are built from the
+        # ones it has, and the missing ones are named so the gap is visible.
+        missing = [
+            f"{model_labels[model]} ({model})"
+            for model in model_labels
+            if model not in {run["model"] for run in manifest["runs"]}
+        ]
+        if missing:
+            print(
+                f"note: run {run_id} does not hold {len(missing)} of the "
+                f"{len(model_labels)} requested models, so they are left out of "
+                f"the tables: {', '.join(missing)}"
+            )
         options = {d["situation_id"]: d["answer_options"] for d in manifest["dilemmas"]}
         rows = []
         for run in manifest["runs"]:
@@ -247,9 +280,9 @@ def _(HERE, Path, json, np, pd, write_latex_table):
         return runs, options
 
     def answer_stats(
-        model_labels: dict[str, str], model_order: list[str]
+        model_labels: dict[str, str], model_order: list[str], run_id: str
     ) -> pd.DataFrame:
-        runs, options = load_run_choices(model_labels)
+        runs, options = load_run_choices(model_labels, run_id)
         if runs.empty:
             return pd.DataFrame()
         keys = ["Profile", "Dilemma", "Model"]
@@ -329,9 +362,10 @@ def _(HERE, Path, json, np, pd, write_latex_table):
     MODEL_SETS = {
         # The study set: all four fine-tuned Qwen3.8-27B adapter variants
         # ("overall" adapters served from the local vLLM server) plus their
-        # base model.
+        # base model. The run is the one that holds all five models.
         "dilemmas-answer-stats": {
             "description": "fine-tuned Qwen3.8-27B adapters and base",
+            "run": PREVIOUS_RUN_ID,
             # The base model the adapters were fine-tuned from. Its pairs
             # come first in the aggregate table.
             "base": "Qwen3.8-27B base",
@@ -355,9 +389,10 @@ def _(HERE, Path, json, np, pd, write_latex_table):
             ],
         },
         # For curiosity: the frontier comparison models the same dilemmas
-        # were also run on.
+        # were also run on. Only this run holds them.
         "dilemmas-answer-stats-frontier": {
             "description": "frontier comparison models",
+            "run": FRONTIER_RUN_ID,
             "labels": {
                 "openrouter/qwen/qwen3.8-27b": "Qwen3.8-27b",
                 "openrouter/deepseek/deepseek-v4.1-flash": "deepseek-v4.1-flash",
@@ -397,7 +432,7 @@ def _(HERE, Path, json, np, pd, write_latex_table):
 
     result: dict[str, pd.DataFrame] = {}
     for filename, spec in MODEL_SETS.items():
-        df = answer_stats(spec["labels"], spec["order"])
+        df = answer_stats(spec["labels"], spec["order"], spec["run"])
         if df.empty:
             result[spec["description"]] = df
             continue
@@ -406,7 +441,7 @@ def _(HERE, Path, json, np, pd, write_latex_table):
     answer_stats_df = result["fine-tuned Qwen3.8-27B adapters and base"]
 
     answer_stats_df
-    return MODEL_SETS, load_run_choices
+    return MODEL_SETS, load_manifest, load_run_choices
 
 
 @app.cell(hide_code=True)
@@ -447,13 +482,15 @@ def _(mo):
 
 
 @app.cell
-def _(MODEL_SETS, load_run_choices, mo, np, pd, write_latex_table):
+def _(mo):
+    mo.md(r"""
     def answer_agreement(
         model_labels: dict[str, str],
         model_order: list[str],
         base: str | None = None,
+        run_id: str = "\",
     ) -> pd.DataFrame:
-        """The same/different counts for every pair of models.
+        "\"\"The same/different counts for every pair of models.
 
         One row per model pair: the number of dilemmas compared, how many
         the two models' modal answers matched ("Same") and how many did not
@@ -464,11 +501,25 @@ def _(MODEL_SETS, load_run_choices, mo, np, pd, write_latex_table):
         the model it was fine-tuned from), then the fine-tuned models
         against each other; within each group the most alike pair is
         first.
-        """
-        runs, _ = load_run_choices(model_labels)
+        "\"\"
+        runs, _ = load_run_choices(model_labels, run_id)
         if runs.empty:
             return pd.DataFrame()
         keys = ["Profile", "Dilemma", "Model"]
+        # The models the export holds: a model that is missing is left out
+        # of the aggregate (and named), so a partial export still produces a
+        # table of the pairs it can compare.
+        available = set(runs["Model"].unique())
+        missing = [model for model in model_order if model not in available]
+        if missing:
+            print(
+                f"note: {len(missing)} of the {len(model_order)} models are not "
+                f"in the export, so their pairs are left out of the agreement "
+                f"table: {', '.join(missing)}"
+            )
+        model_order = [model for model in model_order if model in available]
+        if len(model_order) < 2:
+            return pd.DataFrame()
         # How many runs each model chose each answer option.
         counts = runs.groupby(keys + ["Index"]).size().rename("Runs").reset_index()
         # The modal answer per model per dilemma: the option with the most
@@ -480,15 +531,8 @@ def _(MODEL_SETS, load_run_choices, mo, np, pd, write_latex_table):
             .pivot(index=["Profile", "Dilemma"], columns="Model", values="Index")
             .reindex(columns=model_order)
         )
-        # The same counts as a wide table: one column per (model, option).
-        wide = counts.pivot_table(
-            index=["Profile", "Dilemma"],
-            columns=["Model", "Index"],
-            values="Runs",
-            aggfunc="sum",
-            fill_value=0,
-        )
-        options = sorted({option for _, option in wide.columns})
+        # The answer options the runs chose between.
+        options = sorted(counts["Index"].unique())
         rows = []
         for position, left in enumerate(model_order):
             for right in model_order[position + 1 :]:
@@ -500,9 +544,19 @@ def _(MODEL_SETS, load_run_choices, mo, np, pd, write_latex_table):
                 run_same = 0.0
                 run_total = 0.0
                 tvds = []
-                for _, dilemma_row in wide.iterrows():
-                    left_counts = dilemma_row[left].reindex(options).fillna(0.0)
-                    right_counts = dilemma_row[right].reindex(options).fillna(0.0)
+                for _, dilemma_row in counts.groupby(["Profile", "Dilemma"]):
+                    left_counts = (
+                        dilemma_row[dilemma_row["Model"] == left]
+                        .set_index("Index")["Runs"]
+                        .reindex(options)
+                        .fillna(0.0)
+                    )
+                    right_counts = (
+                        dilemma_row[dilemma_row["Model"] == right]
+                        .set_index("Index")["Runs"]
+                        .reindex(options)
+                        .fillna(0.0)
+                    )
                     n_left, n_right = left_counts.sum(), right_counts.sum()
                     if not n_left or not n_right:
                         continue
@@ -552,7 +606,7 @@ def _(MODEL_SETS, load_run_choices, mo, np, pd, write_latex_table):
         ].round(2)
 
     def write_agreement_table(pairs: pd.DataFrame) -> None:
-        """The LaTeX table the report can import with \\ctable{...}."""
+        "\"\"The LaTeX table the report can import with \\ctable{...}."\"\"
         # The pair table keeps a two-level header (the top row groups the
         # measures, the second row holds the measure) and the stub column
         # is unnamed so the index names do not add a header row of their own.
@@ -598,12 +652,15 @@ def _(MODEL_SETS, load_run_choices, mo, np, pd, write_latex_table):
             "dilemmas-answer-agreement.tex",
             senses={"Same": "min", "Different": "max", "Distance": "max"},
             column_format="l" + "r" * pairs_tex_df.shape[1],
-            stub_label="",
+            stub_label="\",
         )
 
     study_set = MODEL_SETS["dilemmas-answer-stats"]
     agreement_pairs_df = answer_agreement(
-        study_set["labels"], study_set["order"], study_set.get("base")
+        study_set["labels"],
+        study_set["order"],
+        study_set.get("base"),
+        study_set["run"],
     )
     if not agreement_pairs_df.empty:
         write_agreement_table(agreement_pairs_df)
@@ -620,7 +677,8 @@ def _(MODEL_SETS, load_run_choices, mo, np, pd, write_latex_table):
         )
     else:
         least_note = mo.md("No exported runs to compare yet.")
-    return least_note
+    """)
+    return
 
 
 @app.cell
@@ -629,7 +687,17 @@ def _(mo):
     ## H1: do the fine-tuned models answer differently from the base model?
 
     The pre-specified test of H1. Each of the four fine-tuned models is
-    compared separately with the base model it was fine-tuned from.
+    compared separately with the base model it was fine-tuned from. The
+    section runs the test twice, on the two runs named at the top of the
+    notebook:
+
+    - the **four-model test** on the run that holds all four fine-tuned
+      adapters (10 runs per dilemma): the overall effect and the p-value of
+      each adapter against the base model;
+    - the **main test** on the main run, where the modal adapter was re-run
+      at 50 runs per dilemma: the headline result for the modal adapter, and
+      the per-dilemma results (the per-dilemma table and figure are written
+      from this run only).
 
     **Per dilemma** the judge-classified action counts of the two models are
     compared with a Monte Carlo permutation test: 10,000 replicates with a
@@ -662,10 +730,11 @@ def _(mo):
 @app.cell
 def _(
     HERE,
+    MAIN_RUN_ID,
     MODEL_SETS,
+    PREVIOUS_RUN_ID,
     json,
     load_run_choices,
-    mo,
     pd,
     sys,
     write_latex_table,
@@ -675,27 +744,56 @@ def _(
     import h1_test
 
     h1_set = MODEL_SETS["dilemmas-answer-stats"]
-    h1_runs, h1_options = load_run_choices(h1_set["labels"])
-    # The fine-tuned models, in the study set's order.
-    h1_order = [label for label in h1_set["order"] if label != h1_set["base"]]
-    # The test, and the sensitivity check: the same test with the "Other or
-    # unclear" runs dropped, so only the runs the judge could place on one
-    # of the dilemma's substantive options count.
-    h1_results = h1_test.run_h1(
-        h1_runs,
-        h1_options,
-        base_label=h1_set["base"],
-        model_order=h1_order,
-        replicates=h1_test.REPLICATES,
-        seed=h1_test.SEED,
+
+    def h1_run_test(runs, options, model_order):
+        """The test and its sensitivity check on one run's runs."""
+        if runs.empty or h1_set["base"] not in set(runs["Model"].unique()):
+            print(
+                f"note: the base model {h1_set['base']!r} is not in the run, "
+                f"so the H1 test is skipped."
+            )
+            empty = h1_test.H1Results(pd.DataFrame(), pd.DataFrame(), pd.DataFrame())
+            return empty, empty
+        results = h1_test.run_h1(
+            runs,
+            options,
+            base_label=h1_set["base"],
+            model_order=model_order,
+            replicates=h1_test.REPLICATES,
+            seed=h1_test.SEED,
+        )
+        # The sensitivity check: the same test with the "Other or unclear"
+        # runs dropped, so only the runs the judge could place on one of the
+        # dilemma's substantive options count.
+        sensitivity = h1_test.run_h1(
+            h1_test.drop_unclear(runs, options),
+            options,
+            base_label=h1_set["base"],
+            model_order=model_order,
+            replicates=h1_test.REPLICATES,
+            seed=h1_test.SEED,
+        )
+        return results, sensitivity
+
+    # The four-model test: every fine-tuned adapter against the base model,
+    # from the run that holds all five models.
+    previous_runs, previous_options = load_run_choices(
+        h1_set["labels"], PREVIOUS_RUN_ID
     )
-    h1_sensitivity = h1_test.run_h1(
-        h1_test.drop_unclear(h1_runs, h1_options),
-        h1_options,
-        base_label=h1_set["base"],
-        model_order=h1_order,
-        replicates=h1_test.REPLICATES,
-        seed=h1_test.SEED,
+    h1_order = [label for label in h1_set["order"] if label != h1_set["base"]]
+    h1_results, h1_sensitivity = h1_run_test(previous_runs, previous_options, h1_order)
+
+    # The main test: the modal adapter against the base model from the main
+    # run (50 runs per dilemma). Only the models that run holds are tested.
+    main_runs, main_options = load_run_choices(h1_set["labels"], MAIN_RUN_ID)
+    main_available = set(main_runs["Model"].unique()) if not main_runs.empty else set()
+    main_order = [
+        label
+        for label in h1_set["order"]
+        if label != h1_set["base"] and label in main_available
+    ]
+    h1_main_results, h1_main_sensitivity = h1_run_test(
+        main_runs, main_options, main_order
     )
 
     def h1_summary_frame(results):
@@ -730,12 +828,12 @@ def _(
             stub_label="Model",
         )
 
-    def h1_dilemma_frame(results):
+    def h1_dilemma_frame(results, model_order):
         """The per-dilemma results: the TVD and its p-value per model."""
         if results.per_dilemma.empty:
             return pd.DataFrame()
         frame = pd.DataFrame(index=sorted(results.per_dilemma["Dilemma"].unique()))
-        for model in h1_order:
+        for model in model_order:
             subset = results.per_dilemma[
                 results.per_dilemma["Model"] == model
             ].set_index("Dilemma")
@@ -746,7 +844,9 @@ def _(
 
     h1_summary_df = h1_summary_frame(h1_results)
     h1_sensitivity_df = h1_summary_frame(h1_sensitivity)
-    h1_dilemma_df = h1_dilemma_frame(h1_results)
+    # The per-dilemma results come from the main run only.
+    h1_dilemma_df = h1_dilemma_frame(h1_main_results, main_order)
+    h1_main_summary_df = h1_summary_frame(h1_main_results)
     # The base model first, then the fine-tuned models in the study set's
     # order, so the table reads like the rest of the notebook.
     h1_other_df = (
@@ -766,6 +866,9 @@ def _(
             column_format="lrr",
             stub_label="Model",
         )
+    if not h1_main_summary_df.empty:
+        # The main test: the modal adapter on the main run.
+        h1_write_summary(h1_main_summary_df, "dilemmas-h1-summary-main.tex")
         # The per-dilemma table: the largest TVD and the smallest p per
         # column are highlighted.
         h1_senses = {
@@ -794,6 +897,9 @@ def _(
             "alpha": h1_test.ALPHA,
             "base_model": h1_set["base"],
             "models": h1_order,
+            "four_model_run": PREVIOUS_RUN_ID,
+            "main_run": MAIN_RUN_ID,
+            "main_models": main_order,
         },
         "summary": json.loads(h1_results.summary.to_json(orient="records")),
         "per_dilemma": json.loads(h1_results.per_dilemma.to_json(orient="records")),
@@ -804,95 +910,58 @@ def _(
                 h1_sensitivity.per_dilemma.to_json(orient="records")
             ),
         },
+        "main": {
+            "summary": json.loads(h1_main_results.summary.to_json(orient="records")),
+            "per_dilemma": json.loads(
+                h1_main_results.per_dilemma.to_json(orient="records")
+            ),
+            "other_rates": json.loads(
+                h1_main_results.other_rates.to_json(orient="records")
+            ),
+            "sensitivity": {
+                "summary": json.loads(
+                    h1_main_sensitivity.summary.to_json(orient="records")
+                ),
+                "per_dilemma": json.loads(
+                    h1_main_sensitivity.per_dilemma.to_json(orient="records")
+                ),
+            },
+        },
     }
     h1_output = HERE / "output" / "h1-results.json"
     h1_output.parent.mkdir(parents=True, exist_ok=True)
     h1_output.write_text(json.dumps(h1_payload, indent=2) + "\n", encoding="utf-8")
-
-    h1_supported = (
-        h1_results.summary.loc[h1_results.summary["Supported"], "Model"].tolist()
-        if not h1_results.summary.empty
-        else []
-    )
-    if h1_summary_df.empty:
-        h1_note = mo.md("No exported runs to test yet.")
-    else:
-        h1_note = mo.md(
-            f"H1 is supported for **{len(h1_supported)} of "
-            f"{len(h1_summary_df)}** fine-tuned models: "
-            + (
-                ", ".join(f"**{model}**" for model in h1_supported)
-                if h1_supported
-                else "none"
-            )
-            + ". The overall test is the mean TVD across the "
-            f"{int(h1_results.summary['Dilemmas'].iloc[0])} dilemmas against the "
-            f"permutation null (10,000 replicates, seed {h1_test.SEED}), "
-            f"Benjamini-Hochberg corrected across the four models, so H1 is "
-            f"supported overall (at least one model passes). The sensitivity "
-            f"check (excluding the 'Other or unclear' runs) supports "
-            f"{int(h1_sensitivity.summary['Supported'].sum())} of "
-            f"{len(h1_sensitivity.summary)} models."
-        )
-    h1_note
-    return h1_order, h1_results
+    return h1_main_results, main_order
 
 
 @app.cell
-def _(HERE, h1_order, h1_results, plt, save_figure):
+def _(HERE, h1_main_results, main_order, plt, save_figure):
     h1_fig_dir = HERE.parent / "figures"
 
-    if h1_results.per_dilemma.empty:
+    if h1_main_results.per_dilemma.empty:
         print("no exported runs to plot yet")
     else:
-        # The permutation null of each model's overall effect: the observed
-        # mean TVD against the 10,000 permuted ones.
-        figure, axes = plt.subplots(2, 2, figsize=(11, 7), sharex=True)
-        summary = h1_results.summary.set_index("Model")
-        for axis, model in zip(axes.ravel(), h1_order):
-            null = h1_results.null_overall[model]
-            observed = float(summary.loc[model, "Mean TVD"])
-            axis.hist(null, bins=40, color="#c9c9c9", edgecolor="white")
-            axis.axvline(
-                null.mean(),
-                color="#555555",
-                linestyle="--",
-                linewidth=1.2,
-                label="null mean",
-            )
-            axis.axvline(observed, color="#d1642f", linewidth=2, label="observed")
-            axis.set_title(
-                f"{model}: observed {observed:.3f}, "
-                f"BH p = {summary.loc[model, 'p (BH)']:.4f}",
-                fontsize=9,
-            )
-            axis.set_xlabel("mean TVD across the dilemmas")
-            axis.legend(fontsize=8)
-        figure.suptitle(
-            "H1: the observed mean TVD against the permutation null", fontsize=11
-        )
-        figure.tight_layout()
-        h1_null_figure = save_figure(figure, h1_fig_dir / "dilemmas-h1-permutation.png")
-
-        # The per-dilemma TVD of each model: where the differences sit.
-        tvds = h1_results.per_dilemma.pivot(
+        # The per-dilemma TVD of each model: where the differences sit. The
+        # per-dilemma figure is written from the main run only.
+        models = main_order or sorted(h1_main_results.per_dilemma["Model"].unique())
+        tvds = h1_main_results.per_dilemma.pivot(
             index="Dilemma", columns="Model", values="TVD"
-        )[h1_order]
-        ps = h1_results.per_dilemma.pivot(index="Dilemma", columns="Model", values="p")[
-            h1_order
-        ]
+        )[models]
+        ps = h1_main_results.per_dilemma.pivot(
+            index="Dilemma", columns="Model", values="p"
+        )[models]
         order = tvds.mean(axis=1).sort_values(ascending=False).index
         tvds, ps = tvds.loc[order], ps.loc[order]
         grid = tvds.to_numpy(dtype=float)
         figure, axis = plt.subplots(figsize=(7, 10))
         image = axis.imshow(grid, cmap="YlOrRd", vmin=0, vmax=1, aspect="auto")
         figure.colorbar(image, ax=axis, label="TVD between the two models")
-        axis.set_xticks(range(len(h1_order)))
-        axis.set_xticklabels(h1_order, fontsize=9)
+        axis.set_xticks(range(len(models)))
+        axis.set_xticklabels(models, fontsize=9)
         axis.set_yticks(range(len(tvds)))
         axis.set_yticklabels(tvds.index, fontsize=6)
         for row in range(len(tvds)):
-            for column in range(len(h1_order)):
+            for column in range(len(models)):
                 significant = ps.iloc[row, column] < 0.05
                 axis.text(
                     column,
@@ -913,7 +982,7 @@ def _(HERE, h1_order, h1_results, plt, save_figure):
         h1_dilemma_figure = save_figure(
             figure, h1_fig_dir / "dilemmas-h1-per-dilemma.png"
         )
-        print(f"Figures written to {h1_null_figure} and {h1_dilemma_figure}")
+        print(f"Figures written to {h1_dilemma_figure}")
     return
 
 
@@ -941,10 +1010,12 @@ def _(mo):
 
 
 @app.cell
-def _(HERE, json, np, pd):
-    def answer_distribution() -> pd.DataFrame:
-        runs_dir = HERE / "output" / "runs"
-        manifest = json.loads((runs_dir / "index.json").read_text(encoding="utf-8"))
+def _(HERE, PREVIOUS_RUN_ID, json, load_manifest, np, pd):
+    def answer_distribution(run_id: str) -> pd.DataFrame:
+        manifest, base, _ = load_manifest(run_id)
+        if manifest is None:
+            print(f"no exported runs for run {run_id!r}")
+            return pd.DataFrame()
         current = {}
         for profile_path in sorted((HERE / "profiles").glob("*.json")):
             profile = json.loads(profile_path.read_text(encoding="utf-8"))
@@ -966,7 +1037,7 @@ def _(HERE, json, np, pd):
                 continue
             newest = max(run["created"] for run in runs)
             for run in (r for r in runs if r["created"] == newest):
-                run_dir = runs_dir / run["path"]
+                run_dir = base / run["path"]
                 try:
                     config = json.loads(
                         (run_dir / "config.json").read_text(encoding="utf-8")
@@ -1056,7 +1127,7 @@ def _(HERE, json, np, pd):
         table = pd.DataFrame(rows)
         return table.sort_values(["Balance", "Profile", "Dilemma"], kind="stable")
 
-    answer_distribution_df = answer_distribution()
+    answer_distribution_df = answer_distribution(PREVIOUS_RUN_ID)
     answer_distribution_df
     return
 
@@ -1075,29 +1146,30 @@ def _(mo):
     the two agents' answers for every comparison: `1 - cos(a, b)`, where 0
     means the two answers say the same thing and 1 means they are unrelated.
 
-    The data is the newest comparison run's per-model pools: one pool per
-    fine-tune against the base model, each holding every pair of the two
-    models' runs on each dilemma. Each pool gets its own figure, named after
-    the fine-tune, so the four models can be compared side by side.
+    The data is the main run's per-model pools (the run id at the top of the
+    notebook): one pool per fine-tune against the base model, each holding
+    every pair of the two models' runs on each dilemma. Each pool gets its
+    own figure, named after the fine-tune, so the four models can be
+    compared side by side.
     """)
     return
 
 
 @app.cell
-def _(HERE, np, pd, read_json):
+def _(HERE, MAIN_RUN_ID, json, np, pd, read_json):
     def pair_rows(manifest, vectors, run_ids):
         """One row per comparison: the distance and the judge's verdict."""
         index = {run_id: position for position, run_id in enumerate(run_ids)}
         rows = []
         for record in manifest.get("comparisons", []):
-            agent1 = record["agents"]["Agent 1"]
-            agent2 = record["agents"]["Agent 2"]
-            if agent1["run_id"] not in index or agent2["run_id"] not in index:
+            base = record["agents"]["base"]
+            ft = record["agents"]["ft"]
+            if base["run_id"] not in index or ft["run_id"] not in index:
                 continue
             similarity = float(
-                vectors[index[agent1["run_id"]]] @ vectors[index[agent2["run_id"]]]
+                vectors[index[base["run_id"]]] @ vectors[index[ft["run_id"]]]
             )
-            choice1, choice2 = agent1.get("choice", ""), agent2.get("choice", "")
+            choice1, choice2 = base.get("choice", ""), ft.get("choice", "")
             if not (choice1 and choice2):
                 agreement = "unjudged"
             else:
@@ -1149,65 +1221,110 @@ def _(HERE, np, pd, read_json):
             )
         return pools
 
-    def load_pools(comparisons_dir):
-        """Every embedded comparison pool of the newest per-model run.
+    def load_quality(directory, name):
+        """The judge-quality scores for one pool's index pairs, if present.
+
+        ``judge_quality.py`` writes the single-judge ``scores.json`` when it
+        finishes and the multi-judge ``ensemble/scores.json`` beside it. Prefer
+        the ensemble when it exists, and use the ensemble's mean metric as the
+        ranking/display value (the median and per-judge scores stay in the
+        frame for audit). Otherwise use the single-judge compiled file, then
+        the JSONL cache with the latest prompt version per comparison. An empty
+        frame means the pool has no judge scores yet.
+        """
+        quality_dir = directory / "quality" / "index" / name
+        ensemble = quality_dir / "ensemble" / "scores.json"
+        if ensemble.exists():
+            frame = pd.DataFrame(read_json(ensemble).get("scores", []))
+            for metric in ("value_divergence", "survey_quality", "interest"):
+                mean_column = f"{metric}_mean"
+                if mean_column not in frame.columns:
+                    raise ValueError(
+                        f"{ensemble} has no {mean_column!r}; the survey ranks "
+                        "by the ensemble mean, so this file is not usable"
+                    )
+                frame[f"{metric}_median"] = frame[metric]
+                frame[metric] = frame[mean_column]
+            return frame
+        compiled = quality_dir / "scores.json"
+        if compiled.exists():
+            return pd.DataFrame(read_json(compiled).get("scores", []))
+        cache = quality_dir / "scores.jsonl"
+        if not cache.exists():
+            return pd.DataFrame()
+        rows = [
+            json.loads(line)
+            for line in cache.read_text(encoding="utf-8").splitlines()
+            if line.strip()
+        ]
+        if not rows:
+            return pd.DataFrame()
+        frame = pd.DataFrame(rows)
+        if "prompt_version" in frame.columns and len(frame):
+            frame = frame[frame["prompt_version"] == frame["prompt_version"].iloc[-1]]
+        frame = frame.drop_duplicates("comparison_id", keep="last")
+        return frame
+
+    def load_pools(comparisons_dir, run_id):
+        """Every embedded comparison pool of the run named at the top.
 
         Each entry is the pool manifest, its embeddings path, the pair
         distances and the model label. The figure, the agreement correlation
         and the survey design all walk this one list, so they always describe
-        the same data. A run with per-model pools wins over a newer legacy
-        single-pool run, so a scratch single-pool test does not hide the main
-        comparison run; the legacy pool is still the fallback when no
-        per-model run has embeddings.
-        """
-        run_dirs = (
-            sorted(
-                (path for path in comparisons_dir.iterdir() if path.is_dir()),
-                key=lambda path: path.name,
-                reverse=True,
-            )
-            if comparisons_dir.is_dir()
-            else []
-        )
-        legacy_fallback = None
-        for directory in run_dirs:
-            pools = []
-            for name, manifest_path, embeddings_dir in pool_paths(directory):
-                vectors_path = embeddings_dir / "vectors.npz"
-                if not vectors_path.exists():
-                    continue
-                manifest = read_json(manifest_path)
-                cache = np.load(vectors_path)
-                rows = pair_rows(
-                    manifest,
-                    cache["vectors"],
-                    [str(value) for value in cache["run_ids"]],
-                )
-                pools.append(
-                    {
-                        "name": name,
-                        "label": model_label(manifest),
-                        "directory": directory,
-                        "manifest": manifest,
-                        "vectors_path": vectors_path,
-                        "rows": rows,
-                    }
-                )
-            if not pools:
-                continue
-            if any(pool["name"] != "complete" for pool in pools):
-                return pools
-            if legacy_fallback is None:
-                legacy_fallback = pools
-        if legacy_fallback is not None:
-            return legacy_fallback
-        print(
-            f"no embedded comparison pools under {comparisons_dir} - run "
-            "generate_comparisons.py and embed_responses.py first"
-        )
-        return []
+        the same data.
 
-    pools = load_pools(HERE / "output" / "comparisons")
+        Only the pinned run is read. A missing run, a missing pool, or a pool
+        without ``vectors.npz`` is a hard error: silently reading another
+        run's pools can make the figures and the live survey describe a
+        different run from the one named in the notebook.
+        """
+        directory = comparisons_dir / run_id
+        if not directory.is_dir():
+            raise RuntimeError(
+                f"no comparison run {run_id!r} under {comparisons_dir}; "
+                "set MAIN_RUN_ID or run generate_comparisons.py first"
+            )
+        pool_specs = pool_paths(directory)
+        if not pool_specs:
+            raise RuntimeError(
+                f"run {run_id!r} has no comparison pools under {directory}; "
+                "run generate_comparisons.py first"
+            )
+        missing = [
+            name
+            for name, _manifest_path, embeddings_dir in pool_specs
+            if not (embeddings_dir / "vectors.npz").exists()
+        ]
+        if missing:
+            raise RuntimeError(
+                f"run {run_id!r} is missing embeddings for pool(s) "
+                f"{missing}; run embed_responses.py for this run, or fix "
+                "MAIN_RUN_ID. Refusing to use another run's pools."
+            )
+        pools = []
+        for name, manifest_path, embeddings_dir in pool_specs:
+            vectors_path = embeddings_dir / "vectors.npz"
+            manifest = read_json(manifest_path)
+            cache = np.load(vectors_path)
+            rows = pair_rows(
+                manifest,
+                cache["vectors"],
+                [str(value) for value in cache["run_ids"]],
+            )
+            pools.append(
+                {
+                    "name": name,
+                    "label": model_label(manifest),
+                    "directory": directory,
+                    "manifest": manifest,
+                    "vectors_path": vectors_path,
+                    "rows": rows,
+                    "quality": load_quality(directory, name),
+                }
+            )
+        return pools
+
+    pools = load_pools(HERE / "output" / "comparisons", MAIN_RUN_ID)
 
     pd.DataFrame(
         [
@@ -1215,6 +1332,7 @@ def _(HERE, np, pd, read_json):
                 "pool": pool["name"],
                 "model": pool["label"],
                 "comparisons": len(pool["rows"]),
+                "quality scores": len(pool["quality"]),
             }
             for pool in pools
         ]
@@ -1457,6 +1575,231 @@ def _(mo, pd, pools):
     return
 
 
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    ## Judge quality
+
+    Using a LLM-as-Judge to evaluate the quality of the comparisons
+    """)
+    return
+
+
+@app.cell
+def _(h1_main_results):
+    main_per_dilemma = h1_main_results.per_dilemma
+    model_rows = main_per_dilemma[
+        main_per_dilemma["Model"].str.lower().str.contains("modal")
+    ]
+    significance = dict(zip(model_rows["Dilemma"], model_rows["p"] < 0.05))
+    significance
+    return
+
+
+@app.cell
+def _(h1_main_results, pd, pools, write_latex_table):
+    # Table of each dilemmas survey quality, interest and difference scores, one row per dilemma with mean and variance of each value (variance in braces). Just for the modal model in mainline run. A column has a true and false for if the model is statistically significant in divergence from the base model.
+
+    def quality_dilemma_table(pools, model_marker="modal"):
+        """Mean (variance) judge scores plus H1 significance per dilemma."""
+        modal_pools = [pool for pool in pools if model_marker in pool["label"].lower()]
+        if not modal_pools:
+            print("No modal-model comparison pool found.")
+            return pd.DataFrame()
+
+        quality = modal_pools[0]["quality"].copy()
+        if quality.empty:
+            print("No judge-quality scores found for the modal model.")
+            return pd.DataFrame()
+
+        significance = {}
+        per_dilemma = h1_main_results.per_dilemma
+        if not per_dilemma.empty:
+            model_rows = per_dilemma[
+                per_dilemma["Model"].str.lower().str.contains(model_marker)
+            ]
+            significance = dict(zip(model_rows["Dilemma"], model_rows["p"] < 0.05))
+
+        score_columns = {
+            "Survey quality": "survey_quality",
+            "Interest": "interest",
+            "Difference": "value_divergence",
+        }
+        rows = []
+        for dilemma, group in quality.groupby("dilemma_id", sort=True):
+            row = {"Dilemma": dilemma}
+            for label, column in score_columns.items():
+                values = pd.to_numeric(group[column], errors="coerce").dropna()
+                row[label] = (
+                    f"{values.mean():.2f} ({values.var(ddof=1):.2f})"
+                    if len(values) > 1
+                    else "--"
+                )
+            row["H1 significant"] = significance.get(dilemma.split("-")[1], "error")
+            rows.append(row)
+
+        return pd.DataFrame(rows).set_index("Dilemma")
+
+    modal_quality_table = quality_dilemma_table(pools)
+
+    write_latex_table(
+        modal_quality_table,
+        {col: "{}" for col in modal_quality_table.columns},
+        len(modal_quality_table.columns),
+        "dilemmas-modal-quality.tex",
+        senses={col: "max" for col in modal_quality_table.columns},
+        column_format="l" + "r" * len(modal_quality_table.columns),
+        stub_label="Dilemma",
+    )
+
+    significance_effect = modal_quality_table.groupby("H1 significant").agg(
+        count=("H1 significant", "count"),
+        mean_survey_quality=(
+            "Survey quality",
+            lambda x: x.str.extract(r"([\d.]+)").astype(float).mean(),
+        ),
+        mean_interest=(
+            "Interest",
+            lambda x: x.str.extract(r"([\d.]+)").astype(float).mean(),
+        ),
+        mean_difference=(
+            "Difference",
+            lambda x: x.str.extract(r"([\d.]+)").astype(float).mean(),
+        ),
+    )
+    write_latex_table(
+        significance_effect,
+        {col: "{}" for col in significance_effect.columns},
+        len(significance_effect.columns),
+        "dilemmas-modal-quality-significance.tex",
+        senses={col: "max" for col in significance_effect.columns},
+        column_format="l" + "r" * len(significance_effect.columns),
+        stub_label="H1 significant",
+    )
+
+    modal_quality_table
+    return
+
+
+@app.cell
+def _(HERE, MAIN_RUN_ID, np, pd, plt, save_figure, survey_designs):
+    # One figure per dilemma: the judge's value-divergence and survey-quality
+    # scores for the complete index pool and for the pairs selected into the
+    # survey. The survey pairs are a subset of the complete pool, so the two
+    # histograms share the same 1-5 bins. Written under
+    # code/dilemmas/output/quality/<run-id>/<pool>/<dilemma>.png.
+    def quality_histogram_rows(records, quality):
+        rows = []
+        for record in records:
+            score = quality.get(record["comparison_id"])
+            if not score:
+                continue
+            divergence = pd.to_numeric(score.get("value_divergence"), errors="coerce")
+            survey_quality = pd.to_numeric(score.get("survey_quality"), errors="coerce")
+            if pd.isna(divergence) or pd.isna(survey_quality):
+                continue
+            rows.append(
+                {
+                    "dilemma_id": record["situation_id"],
+                    "value_divergence": float(divergence),
+                    "survey_quality": float(survey_quality),
+                }
+            )
+        return pd.DataFrame(
+            rows, columns=["dilemma_id", "value_divergence", "survey_quality"]
+        )
+
+    def write_quality_histograms(survey_designs, fig_dir):
+        """Write one complete-vs-survey quality figure per dilemma."""
+        bins = np.arange(0.5, 6.5, 1.0)
+        paths = []
+        for design in survey_designs:
+            quality = design["quality"]
+            complete = quality_histogram_rows(design["pool_records"], quality)
+            survey = quality_histogram_rows(design["records"], quality)
+            if complete.empty and survey.empty:
+                print(
+                    f"{design['pool']['label']}: no scored pairs, so no "
+                    "quality histograms were written"
+                )
+                continue
+            model_dir = fig_dir / design["pool"]["name"]
+            for dilemma_id in sorted(
+                set(complete["dilemma_id"]) | set(survey["dilemma_id"])
+            ):
+                complete_rows = complete[complete["dilemma_id"] == dilemma_id]
+                survey_rows = survey[survey["dilemma_id"] == dilemma_id]
+                figure, axes = plt.subplots(1, 2, figsize=(10, 4))
+                for axis, column, title in (
+                    (axes[0], "value_divergence", "Value divergence"),
+                    (axes[1], "survey_quality", "Survey quality"),
+                ):
+                    complete_values = complete_rows[column].to_numpy()
+                    survey_values = survey_rows[column].to_numpy()
+                    if len(complete_values):
+                        axis.hist(
+                            complete_values,
+                            bins=bins - 0.2,
+                            width=0.38,
+                            color="#3b7dd8",
+                            label=(
+                                f"complete index pool (n={len(complete_values)}, "
+                                f"mean {complete_values.mean():.2f})"
+                            ),
+                        )
+                    if len(survey_values):
+                        axis.hist(
+                            survey_values,
+                            bins=bins + 0.2,
+                            width=0.38,
+                            color="#d1642f",
+                            label=(
+                                f"survey selection (n={len(survey_values)}, "
+                                f"mean {survey_values.mean():.2f})"
+                            ),
+                        )
+                    else:
+                        axis.text(
+                            0.5,
+                            0.5,
+                            "no scored survey pairs",
+                            transform=axis.transAxes,
+                            ha="center",
+                            va="center",
+                            color="grey",
+                            fontsize=9,
+                        )
+                    axis.set_xlim(0.4, 5.6)
+                    axis.set_xticks([1, 2, 3, 4, 5])
+                    axis.set_xlabel("judge score (1-5)")
+                    axis.set_ylabel("pairs")
+                    axis.set_title(title, fontsize=10)
+                    axis.grid(axis="y", alpha=0.2)
+                    if len(complete_values) or len(survey_values):
+                        axis.legend(fontsize=7, loc="upper right")
+                figure.suptitle(
+                    f"{dilemma_id} · {design['pool']['label']}", fontsize=11
+                )
+                figure.tight_layout()
+                out_path = model_dir / f"{dilemma_id}.png"
+                save_figure(figure, out_path)
+                paths.append(out_path)
+        return paths
+
+    quality_histogram_dir = HERE / "output" / "quality" / MAIN_RUN_ID
+    quality_histogram_paths = write_quality_histograms(
+        survey_designs, quality_histogram_dir
+    )
+    print(
+        f"wrote {len(quality_histogram_paths)} quality histograms to "
+        f"{quality_histogram_dir}"
+    )
+    pd.DataFrame(
+        {"figure": [str(path.relative_to(HERE)) for path in quality_histogram_paths]}
+    )
+    return
+
+
 @app.cell
 def _(mo):
     mo.md(r"""
@@ -1464,30 +1807,25 @@ def _(mo):
 
     The survey's questions are drawn from the comparison pool like this:
 
-    1. Each model's runs on a dilemma are paired one-to-one by sample index
-       (the run's `version`), so a 50-run set gives 50 pairwise comparisons
-       per dilemma rather than the full cross product. This is the comparison
-       a respondent sees: the same dilemma answered at the same time by two
-       different agents.
-    2. A dilemma where every index pair was judged the same answer option is
-       removed: every comparison is an agreement, so there is no value choice
-       to put to the respondent.
-    3. Each pair's cosine distance is measured from the two answers'
-       embeddings. A pair is dropped when its distance is below 0.20 **and**
-       the judge gave both answers the same option; a close pair that the
-       judge also scored the same would not show a real difference.
-    4. Per dilemma, a seeded random draw takes up to 10 of the remaining
-       pairs as the survey's questions.
+        \item Pair each run of one model with the run of the other model at the same sample index. This gives one pairwise comparison per sample index, so a 50-run set gives 50 pairwise comparisons for each dilemma (1,500 across the 30 dilemmas when both models have 50 runs).
+        \item Remove any dilemma where the two models' response distributions do not differ significantly. Significance is the H1 test's per-dilemma permutation p-value from the main run (p < .05).
+        \item For each remaining dilemma, keep the 17 pairwise comparisons the judge rated most divergent (highest `value_divergence`). When the high-reasoning ensemble is available, its mean `value_divergence` is the ranking score; otherwise the single-judge score is used.
 
-    The tables are grouped by profile and ranked by mean cosine distance
-    within each profile. **Agreement %** is the share of pairs the judge gave
-    the same answer option; disagreement is the remainder. The complete table
-    still lists the full-agreement dilemmas (at 100%); the selected table
-    only lists dilemmas that contribute questions.
+    The selection deliberately favours the pairs whose value judgements differ
+    most, so it is not a random sample of the dilemma's pairs. Ties are broken
+    by the judge's survey quality, then interest, then the comparison id. A
+    dilemma with fewer than 17 scored pairs aborts the build instead of being
+    filled with an unranked pair, so every live question is genuinely in the
+    top 17 by the judge/ensemble score. The judge's scores are also reported: **Mean
+    divergence** and **Mean survey quality** are the judge/ensemble means, and
+    **Strong %** is the share meeting divergence >= 4, survey quality >= 4 and
+    both competent. **Agreement %** is the share of pairs the judge gave the
+    same answer option; the complete table still lists non-significant
+    dilemmas so they can be checked even though they are not drawn.
 
-    The cells below write two tables per model - `survey-dilemma-stats-<model>.tex`
-    (every index pair) and `survey-dilemma-selected-stats-<model>.tex` (the
-    drawn questions) - and write each model's selected pairs as its own
+    The cells below write five tables per model: the two survey-dilemma
+    tables, the filtering-stage summary and the per-dilemma and per-profile
+    survivor matrices. They also write each model's selected pairs as its own
     `survey/<model>/` subset. The live Qualtrics survey reads the subset
     chosen with `--model` (`survey/survey_definition.py`).
     """)
@@ -1495,97 +1833,367 @@ def _(mo):
 
 
 @app.cell
-def _(HERE, pools, random, sys):
+def _(HERE, h1_main_results, pd, pools, sys):
     if str(HERE) not in sys.path:
         sys.path.insert(0, str(HERE))
-    from generate_comparisons import write_subset
+    from generate_comparisons import validate_comparison_roles, write_subset
 
     # --- The survey design -----------------------------------------------------
     # Each pool holds every cross pair of the base model's runs and one
     # fine-tune's runs on a dilemma. The survey pairs each run of one model
-    # with the run of the other at the same sample index (the run's
-    # `version`), so the comparisons are one-to-one rather than the full cross
-    # product. The selection then:
-    #   1. drops a dilemma where every index pair was judged the same option
-    #      (every pair is an agreement, so there is no value choice to ask);
-    #   2. drops a pair when the cosine distance between the two answers is
-    #      below the threshold and the judge gave both answers the same
-    #      option;
-    #   3. per dilemma, draws up to the per-dilemma cap with a seeded RNG (one
-    #      RNG per dilemma, so the draw does not depend on the order the
-    #      dilemmas are walked in).
-    DISTANCE_THRESHOLD = 0.20
-    PER_DILEMMA = 10
-    SEED = 0
+    # with the run of the other at the same sample index (the run's inspect
+    # `epoch`, falling back to `version` for older manifests), so the
+    # comparisons are one-to-one rather than the full cross product. The
+    # selection then:
+    #   1. keeps only the dilemmas where the fine-tune's response distribution
+    #      differs significantly from the base model's (the H1 per-dilemma
+    #      permutation test, p < P_THRESHOLD);
+    #   2. keeps the PER_DILEMMA pairs per dilemma with the highest LLM judge
+    #      value divergence, so the survey asks about the sharpest value
+    #      disagreements.
+    PER_DILEMMA = 17
+    P_THRESHOLD = 0.05
+    # The judge's value_divergence ranks the selection; "strong" is the
+    # judge's own summary of a pair (divergence >= 4 and survey quality >= 4).
+    STRONG_QUALITY = 4
+
+    def run_index_key(agent):
+        """The run's pairing key: inspect ``epoch``, else export ``version``.
+
+        ``epoch`` is the original sample index. Older exports only carry
+        ``version`` (the chronological export number), so keep that as a
+        compatibility fallback; mixing the two would pair different runs.
+        """
+        epoch = agent.get("epoch")
+        if epoch is not None:
+            return ("epoch", epoch)
+        version = agent.get("version")
+        return ("version", version) if version is not None else (None, None)
 
     def index_pairs(records):
-        """One pair per sample index: the runs with the same ``version``.
+        """One pair per sample index: runs with the same ``epoch`` (or version).
 
-        The complete pool holds every cross pair, so the same-version pairs
-        are the one-to-one pairing the survey uses.
+        The complete pool holds every cross pair, so the same-index pairs are
+        the one-to-one pairing the survey uses. A record whose two sides use
+        different key spaces (one epoch, one version) is not a pair.
         """
-        return [
-            record
-            for record in records
-            if record["agents"]["Agent 1"].get("version")
-            == record["agents"]["Agent 2"].get("version")
+        pairs = []
+        for record in records:
+            base_key = run_index_key(record["agents"]["base"])
+            ft_key = run_index_key(record["agents"]["ft"])
+            if base_key[0] is not None and base_key == ft_key:
+                pairs.append(record)
+        return pairs
+
+    def h1_model_label(pool_label):
+        """The H1 model label for a pool label.
+
+        The pools are named after the adapter
+        (``modal_response-overall``) and the H1 test labels the models by
+        their short name (``modal``), so the pool label is reduced to that
+        name.
+        """
+        short = (
+            pool_label.replace("_response", "")
+            .replace("_distribution", "")
+            .replace("_", "-")
+        )
+        return short.removesuffix("-overall")
+
+    def significant_dilemmas(h1_results, pool_label):
+        """The situation ids where the pool's fine-tune differs from the base.
+
+        The test is the H1 per-dilemma permutation test from the main run:
+        a dilemma is kept when its p-value is below ``P_THRESHOLD``. None is
+        returned when the run has no H1 result for the model, so the caller
+        can say so instead of silently keeping every dilemma.
+        """
+        if h1_results is None or h1_results.per_dilemma.empty:
+            return None
+        model = h1_model_label(pool_label)
+        rows = h1_results.per_dilemma[
+            h1_results.per_dilemma["Model"].str.lower() == model.lower()
         ]
+        if rows.empty:
+            return None
+        return set(rows.loc[rows["p"] < P_THRESHOLD, "Dilemma"])
 
-    def full_agreement_dilemmas(records):
-        """Dilemma ids where every index pair was judged the same option."""
-        by_dilemma = {}
-        for record in records:
-            by_dilemma.setdefault(record["dilemma_id"], []).append(record)
-        return {
-            dilemma_id
-            for dilemma_id, group in by_dilemma.items()
-            if all(record.get("same_choice") for record in group)
+    def modal_answers(manifest):
+        """The modal judged answer per model per dilemma.
+
+        Each run of a model is counted once (the pool holds every cross pair,
+        so a run shows up in many records), and the option with the most
+        runs wins. A tie goes to the option that comes first in the
+        dilemma's answer options - the same rule the answer-agreement
+        table uses - so the pick is deterministic.
+        """
+        options = {
+            f"{d['profile_id']}-{d['situation_id']}": d.get("answer_options", [])
+            for d in manifest.get("dilemmas", [])
         }
+        # (dilemma, model, run) -> the judged option.
+        choices = {}
+        for record in manifest.get("comparisons", []):
+            for agent in record.get("agents", {}).values():
+                choice = agent.get("choice")
+                if not choice:
+                    continue
+                key = (record["dilemma_id"], agent.get("model", ""), agent["run_id"])
+                choices[key] = choice
+        counts = {}
+        for (dilemma_id, model, _), choice in choices.items():
+            counts.setdefault(dilemma_id, {}).setdefault(model, {})
+            counts[dilemma_id][model][choice] = (
+                counts[dilemma_id][model].get(choice, 0) + 1
+            )
+        modal = {}
+        for dilemma_id, by_model in counts.items():
+            order = {
+                option: position
+                for position, option in enumerate(options.get(dilemma_id, []))
+            }
+            modal[dilemma_id] = {}
+            for model, counter in by_model.items():
+                modal[dilemma_id][model] = max(
+                    counter.items(),
+                    key=lambda item: (
+                        item[1],
+                        -order.get(item[0], len(order)),
+                    ),
+                )[0]
+        return modal
 
-    def select_comparisons(records, distances, threshold, per_dilemma, seed, pair):
-        """The survey's questions: drop close same-judged pairs, then draw."""
+    def modal_match(modal, dilemma_id):
+        """Whether the pool's models share a modal answer on the dilemma.
+
+        True when every model's modal answer is the same, False when they
+        differ, and None when the dilemma has fewer than two models (so the
+        table shows ``--`` rather than a meaningless match).
+        """
+        answers = list(modal.get(dilemma_id, {}).values())
+        if len(answers) < 2:
+            return None
+        return len(set(answers)) == 1
+
+    def quality_map(frame):
+        """comparison_id -> the judge's quality row as a plain dict."""
+        if frame is None or frame.empty:
+            return {}
+        return frame.set_index("comparison_id").to_dict("index")
+
+    def divergence_rank(record, quality):
+        """The within-dilemma order: highest LLM value divergence first.
+
+        Ties are broken by the judge's survey quality, then its interest
+        score, then the comparison id, so the pick is deterministic.
+        """
+        row = quality.get(record["comparison_id"]) or {}
+        return (
+            float(row.get("value_divergence") or 0),
+            float(row.get("survey_quality") or 0),
+            float(row.get("interest") or 0),
+            record["comparison_id"],
+        )
+
+    def top_divergence_records(records, quality, per_dilemma, pair):
+        """Keep the ``per_dilemma`` highest-divergence questions per dilemma.
+
+        The rank is the LLM judge's/ensemble's ``value_divergence`` score.
+        Every selected slot must be a real score: if a dilemma has fewer than
+        ``per_dilemma`` scored pairs, the build fails loudly instead of
+        filling slots with an unranked random pair (which would silently stop
+        the live survey being "top N by divergence").
+        """
         by_dilemma = {}
         for record in records:
-            distance = distances.get(record["comparison_id"])
-            if distance is None:
-                continue
-            if distance < threshold and record.get("same_choice"):
-                continue
             by_dilemma.setdefault(record["dilemma_id"], []).append(record)
         chosen = set()
         for dilemma_id in sorted(by_dilemma):
             candidates = by_dilemma[dilemma_id]
-            rng = random.Random(f"{seed}:{pair}:{dilemma_id}")
-            picked = rng.sample(candidates, min(per_dilemma, len(candidates)))
+
+            def has_divergence(record):
+                value = (quality.get(record["comparison_id"]) or {}).get(
+                    "value_divergence"
+                )
+                return value is not None and not pd.isna(value)
+
+            scored = [record for record in candidates if has_divergence(record)]
+            if len(scored) < per_dilemma:
+                raise ValueError(
+                    f"{pair}: only {len(scored)} scored comparison(s) for "
+                    f"{dilemma_id}; {per_dilemma} are required for the survey. "
+                    "Run judge_quality.py for this pool (and make sure every "
+                    "judge succeeded) before rebuilding the survey subset."
+                )
+            picked = sorted(
+                scored,
+                key=lambda record: divergence_rank(record, quality),
+                reverse=True,
+            )[:per_dilemma]
             chosen.update(record["comparison_id"] for record in picked)
         return [record for record in records if record["comparison_id"] in chosen]
 
-    def build_survey_designs(pools):
+    def stage_counts(records, key):
+        counts = {}
+        for record in records:
+            value = record[key]
+            counts[value] = counts.get(value, 0) + 1
+        return counts
+
+    def filter_stages(pool_records, significant, quality, pair):
+        """Counts and per-dilemma/profile survivors at every filtering stage.
+
+        The stage order matches ``top_divergence_records``: the significance
+        filter, then the top-divergence selection.
+        """
+        stages = []
+        current = list(pool_records)
+
+        def add_stage(name, before, after):
+            before_dilemmas = stage_counts(before, "dilemma_id")
+            after_dilemmas = stage_counts(after, "dilemma_id")
+            before_profiles = stage_counts(before, "profile_id")
+            after_profiles = stage_counts(after, "profile_id")
+            dropped_dilemmas = [
+                (dilemma_id, count)
+                for dilemma_id, count in before_dilemmas.items()
+                if dilemma_id not in after_dilemmas
+            ]
+            dropped_profiles = [
+                (profile, count)
+                for profile, count in before_profiles.items()
+                if profile not in after_profiles
+            ]
+            affected_dilemmas = [
+                dilemma_id
+                for dilemma_id, count in before_dilemmas.items()
+                if after_dilemmas.get(dilemma_id, 0) < count
+            ]
+            affected_profiles = [
+                profile
+                for profile, count in before_profiles.items()
+                if after_profiles.get(profile, 0) < count
+            ]
+            stages.append(
+                {
+                    "Stage": name,
+                    "Start": len(before),
+                    "Removed": len(before) - len(after),
+                    "Remaining": len(after),
+                    "Dilemmas": len(after_dilemmas),
+                    "Profiles": len(after_profiles),
+                    "Dilemmas affected": len(affected_dilemmas),
+                    "Profiles affected": len(affected_profiles),
+                    "Dropped dilemmas": ", ".join(
+                        f"{dilemma_id} ({count})"
+                        for dilemma_id, count in sorted(dropped_dilemmas)
+                    )
+                    or "--",
+                    "Dropped profiles": ", ".join(
+                        f"{profile} ({count})"
+                        for profile, count in sorted(dropped_profiles)
+                    )
+                    or "--",
+                    "dilemma_counts": after_dilemmas,
+                    "profile_counts": after_profiles,
+                }
+            )
+
+        add_stage("Index pairs", current, current)
+
+        before = current
+        current = [
+            record for record in current if record["situation_id"] in significant
+        ]
+        add_stage(f"Not significant (p >= {P_THRESHOLD})", before, current)
+
+        before = current
+        current = top_divergence_records(current, quality, PER_DILEMMA, pair)
+        add_stage(f"Top {PER_DILEMMA} by divergence", before, current)
+        return stages
+
+    def stage_matrices(stages, pool_records):
+        """Survivors per dilemma/profile at each stage, with zeros visible."""
+        stage_names = [stage["Stage"] for stage in stages]
+        dilemma_index = {}
+        for record in pool_records:
+            dilemma_index[record["dilemma_id"]] = (
+                record["profile_id"],
+                record["situation_id"],
+            )
+        dilemma_rows = [
+            [stage["dilemma_counts"].get(dilemma_id, 0) for stage in stages]
+            for dilemma_id in sorted(dilemma_index)
+        ]
+        dilemma_matrix = pd.DataFrame(
+            dilemma_rows,
+            index=pd.MultiIndex.from_tuples(
+                [dilemma_index[dilemma_id] for dilemma_id in sorted(dilemma_index)],
+                names=["Profile", "Dilemma"],
+            ),
+            columns=stage_names,
+        )
+        profiles = sorted({record["profile_id"] for record in pool_records})
+        profile_matrix = pd.DataFrame(
+            [
+                [stage["profile_counts"].get(profile, 0) for stage in stages]
+                for profile in profiles
+            ],
+            index=pd.Index(profiles, name="Profile"),
+            columns=stage_names,
+        )
+        return dilemma_matrix, profile_matrix
+
+    def build_survey_designs(pools, h1_results):
         """The survey selection for every model-vs-base pool."""
         designs = []
         for pool in pools:
             manifest = pool["manifest"]
-            distances = dict(
-                zip(
-                    pool["rows"]["comparison_id"],
-                    pool["rows"]["distance"],
-                    strict=False,
+            rows = pool["rows"]
+            distances = (
+                dict(
+                    zip(
+                        rows["comparison_id"],
+                        rows["distance"],
+                        strict=False,
+                    )
                 )
+                if {"comparison_id", "distance"} <= set(rows.columns)
+                else {}
             )
+            quality = quality_map(pool.get("quality"))
             # The complete dataset: one pair per sample index.
             pool_records = index_pairs(manifest.get("comparisons", []))
-            # A full-agreement dilemma is left out of the draw entirely.
-            full_agreement = full_agreement_dilemmas(pool_records)
-            eligible = [
-                record
-                for record in pool_records
-                if record["dilemma_id"] not in full_agreement
-            ]
+            # The dilemmas where the fine-tune differs from the base. A
+            # missing H1 result selects nothing, so the gap is visible in the
+            # stage table instead of being filled with every dilemma.
+            significant = significant_dilemmas(h1_results, pool["label"])
+            if significant is None:
+                print(
+                    f"{pool['label']}: no H1 per-dilemma result for this model "
+                    "in the main run, so no questions are selected."
+                )
+                significant = set()
             models = manifest.get("models") or {}
             pair = f"{models.get('model_a')}|{models.get('model_b')}"
-            # The draw: the questions the survey actually asks.
-            records = select_comparisons(
-                eligible, distances, DISTANCE_THRESHOLD, PER_DILEMMA, SEED, pair
+            records = top_divergence_records(
+                [
+                    record
+                    for record in pool_records
+                    if record["situation_id"] in significant
+                ],
+                quality,
+                PER_DILEMMA,
+                pair,
+            )
+            stages = filter_stages(pool_records, significant, quality, pair)
+            dilemma_matrix, profile_matrix = stage_matrices(stages, pool_records)
+            selection_mode = (
+                "top-divergence-ensemble"
+                if pool.get("quality") is not None
+                and not pool["quality"].empty
+                and "value_divergence_mean" in pool["quality"].columns
+                else "top-divergence"
             )
             designs.append(
                 {
@@ -1593,42 +2201,62 @@ def _(HERE, pools, random, sys):
                     "records": records,
                     "pool_records": pool_records,
                     "distances": distances,
-                    "full_agreement": full_agreement,
+                    "quality": quality,
+                    "selection_mode": selection_mode,
+                    "significant": significant,
+                    "stages": stages,
+                    "dilemma_matrix": dilemma_matrix,
+                    "profile_matrix": profile_matrix,
+                    "modal": modal_answers(manifest),
                 }
             )
+            dilemmas = {record["situation_id"] for record in pool_records}
             print(
-                f"{pool['label']}: excluded {len(full_agreement)} "
-                f"full-agreement dilemmas, selected {len(records)} of "
-                f"{len(pool_records)} index pairs"
+                f"{pool['label']}: {selection_mode} selection, kept "
+                f"{len(significant)} of {len(dilemmas)} significant dilemmas, "
+                f"selected {len(records)} of {len(pool_records)} index pairs"
             )
         return designs
 
-    survey_designs = build_survey_designs(pools)
+    survey_designs = build_survey_designs(pools, h1_main_results)
 
     len(survey_designs)
-    return DISTANCE_THRESHOLD, PER_DILEMMA, SEED, survey_designs, write_subset
+    return (
+        PER_DILEMMA,
+        P_THRESHOLD,
+        STRONG_QUALITY,
+        modal_match,
+        survey_designs,
+        validate_comparison_roles,
+        write_subset,
+    )
 
 
 @app.cell
 def _(
-    DISTANCE_THRESHOLD,
     PER_DILEMMA,
-    SEED,
+    P_THRESHOLD,
+    STRONG_QUALITY,
     escape_header,
     mo,
+    modal_match,
     np,
     pd,
     survey_designs,
     write_latex_table,
 ):
     def format_columns(frame):
-        """Distances to two decimals, percentages to one, counts plain."""
+        """Distances/divergence to two decimals, percentages to one, counts plain."""
         fmt = {}
         for column in frame.columns:
             label = escape_header(str(column))
-            if column == "Mean cosine distance":
+            if column in (
+                "Mean cosine distance",
+                "Mean divergence",
+                "Mean survey quality",
+            ):
                 fmt[label] = "{:.2f}"
-            elif column == "Agreement %":
+            elif column in ("Agreement %", "Strong %"):
                 fmt[label] = "{:.1f}"
             elif frame[column].dtype.kind in "iu":
                 fmt[label] = "{:d}"
@@ -1636,40 +2264,90 @@ def _(
                 fmt[label] = "{}"
         return fmt
 
-    def survey_dilemma_stats(records, distances, with_below):
-        """One row per dilemma: mean distance and the judge's split.
+    def survey_dilemma_stats(records, distances, quality, modal):
+        """One row per dilemma: distance, judge divergence and agreement.
 
-        ``with_below`` adds the number of pairs below the distance threshold,
-        which is only meaningful for the complete dataset (the selected
-        subset has already dropped some of those pairs).
+        ``quality`` is the comparison_id -> judge-score mapping. The means
+        are blank when the pool has no judge scores. ``Strong %`` is the
+        share of pairs with divergence >= 4, survey quality >= 4 and both
+        answers competent.
         """
         rows = []
         for dilemma_id in sorted({record["dilemma_id"] for record in records}):
             group = [record for record in records if record["dilemma_id"] == dilemma_id]
-            values = np.array([distances[record["comparison_id"]] for record in group])
+            values = np.array(
+                [distances.get(record["comparison_id"], np.nan) for record in group],
+                dtype=float,
+            )
             agreement = sum(1 for record in group if record.get("same_choice"))
+            scored = [
+                quality.get(record["comparison_id"])
+                for record in group
+                if quality.get(record["comparison_id"])
+            ]
+            divergences = [
+                float(row["value_divergence"])
+                for row in scored
+                if pd.notna(row.get("value_divergence"))
+            ]
+            survey_values = [
+                float(row["survey_quality"])
+                for row in scored
+                if pd.notna(row.get("survey_quality"))
+            ]
+            strong = sum(
+                1
+                for row in scored
+                if row.get("both_competent")
+                and float(row.get("value_divergence") or 0) >= 4
+                and float(row.get("survey_quality") or 0) >= STRONG_QUALITY
+            )
             row = {
                 "Profile": group[0]["profile_id"],
                 "Dilemma": group[0]["situation_id"],
-                "Mean cosine distance": float(values.mean()),
+                "Mean cosine distance": (
+                    float(np.nanmean(values)) if np.isfinite(values).any() else np.nan
+                ),
+                "Mean divergence": float(np.mean(divergences))
+                if divergences
+                else np.nan,
+                "Mean survey quality": float(np.mean(survey_values))
+                if survey_values
+                else np.nan,
+                "Strong %": 100.0 * strong / len(scored) if scored else np.nan,
                 "Agreement %": 100.0 * agreement / len(group) if group else np.nan,
             }
-            if with_below:
-                row[f"Below {DISTANCE_THRESHOLD:.2f}"] = int(
-                    (values < DISTANCE_THRESHOLD).sum()
-                )
+            # Whether the models' modal answers on this dilemma match.
+            match = modal_match(modal, dilemma_id)
+            row["Modal match"] = pd.NA if match is None else match
             rows.append(row)
-        columns = ["Profile", "Dilemma", "Mean cosine distance"]
-        if with_below:
-            columns.append(f"Below {DISTANCE_THRESHOLD:.2f}")
-        columns.append("Agreement %")
-        return pd.DataFrame(rows, columns=columns).round({"Mean cosine distance": 2})
+        columns = [
+            "Profile",
+            "Dilemma",
+            "Mean cosine distance",
+            "Mean divergence",
+            "Mean survey quality",
+            "Strong %",
+            "Agreement %",
+            "Modal match",
+        ]
+        frame = pd.DataFrame(rows, columns=columns)
+        # The match column holds True/False with a missing value, so it
+        # stays an object column (the table shows `--` for the missing one).
+        frame["Modal match"] = frame["Modal match"].astype(object)
+        return frame.round(
+            {
+                "Mean cosine distance": 2,
+                "Mean divergence": 2,
+                "Mean survey quality": 2,
+            }
+        )
 
-    def ranked_table(records, distances, with_below):
+    def ranked_table(records, distances, quality, modal):
         """Group by profile, then rank the dilemmas within a profile by mean
         distance. The profile/dilemma pair is the table's two-level stub."""
         return (
-            survey_dilemma_stats(records, distances, with_below)
+            survey_dilemma_stats(records, distances, quality, modal)
             .sort_values(
                 ["Profile", "Mean cosine distance"],
                 ascending=[True, False],
@@ -1694,13 +2372,19 @@ def _(
         for design in survey_designs:
             pool = design["pool"]
             complete_table = ranked_table(
-                design["pool_records"], design["distances"], with_below=True
+                design["pool_records"],
+                design["distances"],
+                design["quality"],
+                design["modal"],
             )
             # Only dilemmas that actually contribute questions appear in the
-            # selected table (full-agreement dilemmas are excluded before the
+            # selected table (non-significant dilemmas are excluded before the
             # draw).
             selected_table = ranked_table(
-                design["records"], design["distances"], with_below=False
+                design["records"],
+                design["distances"],
+                design["quality"],
+                design["modal"],
             )
             for frame, stem in (
                 (complete_table, "survey-dilemma-stats"),
@@ -1719,28 +2403,106 @@ def _(
                     stub_label="",
                 )
                 print(f"wrote code/figures/{filename}")
+
+            # The stage summary: how many comparisons survive each filter.
+            stage_table = pd.DataFrame(
+                [
+                    {
+                        key: value
+                        for key, value in stage.items()
+                        if key not in ("dilemma_counts", "profile_counts")
+                    }
+                    for stage in design["stages"]
+                ]
+            ).set_index("Stage")
+            stage_table.index.name = None
+            stage_tex = stage_table.copy()
+            for column in ("Dropped dilemmas", "Dropped profiles"):
+                stage_tex[column] = stage_tex[column].map(escape_header)
+            stage_name = f"survey-filter-stages-{file_label(pool['label'])}.tex"
+            write_latex_table(
+                stage_tex,
+                format_columns(stage_tex),
+                stage_tex.shape[1],
+                stage_name,
+                senses={},
+                column_format="l" + "r" * 7 + "p{4.2cm}p{4.2cm}",
+                stub_label="",
+            )
+            print(f"wrote code/figures/{stage_name}")
+
+            # The same numbers per dilemma and per profile, with zeros for
+            # the stage that drops them.
+            dilemma_matrix = design["dilemma_matrix"].copy()
+            dilemma_matrix.index = dilemma_matrix.index.set_names([None, None])
+            dilemma_name = f"survey-filter-dilemmas-{file_label(pool['label'])}.tex"
+            write_latex_table(
+                dilemma_matrix,
+                {escape_header(str(c)): "{:d}" for c in dilemma_matrix.columns},
+                dilemma_matrix.shape[1],
+                dilemma_name,
+                senses={},
+                column_format="ll" + "r" * dilemma_matrix.shape[1],
+                stub_label="",
+            )
+            print(f"wrote code/figures/{dilemma_name}")
+
+            profile_matrix = design["profile_matrix"].copy()
+            profile_matrix.index.name = None
+            profile_name = f"survey-filter-profiles-{file_label(pool['label'])}.tex"
+            write_latex_table(
+                profile_matrix,
+                {escape_header(str(c)): "{:d}" for c in profile_matrix.columns},
+                profile_matrix.shape[1],
+                profile_name,
+                senses={},
+                column_format="l" + "r" * profile_matrix.shape[1],
+                stub_label="",
+            )
+            print(f"wrote code/figures/{profile_name}")
+
             rendered_tables.extend(
                 [
                     mo.md(f"**{pool['label']}**"),
+                    mo.md(
+                        f"Selection mode: **{design['selection_mode']}** "
+                        f"(judge quality coverage: "
+                        f"{len(design['quality'])}/{len(design['pool_records'])} index pairs)"
+                    ),
                     mo.md("Complete dataset (one pair per sample index)"),
                     complete_table,
                     mo.md("Selected subset"),
                     selected_table,
+                    mo.md("Filtering stages"),
+                    stage_table,
                 ]
             )
         return rendered_tables
 
     print(
-        f"design: one pair per sample index; drop distance < "
-        f"{DISTANCE_THRESHOLD:.2f} judged the same; up to {PER_DILEMMA} per "
-        f"dilemma (seed {SEED})"
+        "design: one pair per sample index; keep only dilemmas whose H1 "
+        f"per-dilemma permutation p is below {P_THRESHOLD}, then keep the top "
+        f"{PER_DILEMMA} pairs per dilemma by the judge/ensemble mean "
+        "value_divergence"
     )
     mo.vstack(write_survey_tables(survey_designs))
     return
 
 
 @app.cell
-def _(DISTANCE_THRESHOLD, PER_DILEMMA, SEED, survey_designs, write_subset):
+def _():
+    # Give examples of the different levels of divergence.
+    return
+
+
+@app.cell
+def _(
+    PER_DILEMMA,
+    P_THRESHOLD,
+    survey_designs,
+    validate_comparison_roles,
+    write_subset,
+):
 
     # --- The survey's questions ------------------------------------------------
     # Each model's selected comparisons become its own `survey/<model>/`
@@ -1752,6 +2514,8 @@ def _(DISTANCE_THRESHOLD, PER_DILEMMA, SEED, survey_designs, write_subset):
             pool = design["pool"]
             manifest = pool["manifest"]
             models = manifest.get("models") or {}
+            for record in design["records"]:
+                validate_comparison_roles(record)
             write_subset(
                 pool["directory"] / "survey" / pool["name"],
                 pool["name"],
@@ -1761,19 +2525,37 @@ def _(DISTANCE_THRESHOLD, PER_DILEMMA, SEED, survey_designs, write_subset):
                     "run_id": manifest.get("run_id", pool["directory"].name),
                     "label": pool["label"],
                     "models": {
+                        # Role names the survey reads; model_a/model_b keep
+                        # the raw pool provenance.
+                        "base": models.get("base") or models.get("model_a"),
+                        "ft": models.get("ft") or models.get("model_b"),
                         "model_a": models.get("model_a"),
                         "model_b": models.get("model_b"),
                     },
                     "selection": {
                         "rule": (
-                            "one pair per sample index; remove full-agreement "
-                            "dilemmas; drop pairs below the distance threshold "
-                            "judged the same; then a seeded random draw per "
-                            "dilemma"
+                            "one pair per sample index; keep only dilemmas "
+                            "where the H1 per-dilemma permutation p is below "
+                            f"{P_THRESHOLD}; then keep the top {PER_DILEMMA} "
+                            "pairs per dilemma by the "
+                            + (
+                                "3-judge high-reasoning ensemble mean value_divergence"
+                                if design["selection_mode"].endswith("ensemble")
+                                else "LLM judge's value_divergence"
+                            )
                         ),
-                        "distance_threshold": DISTANCE_THRESHOLD,
+                        "selection_mode": design["selection_mode"],
+                        "p_threshold": P_THRESHOLD,
+                        "divergence_field": (
+                            "value_divergence_mean"
+                            if design["selection_mode"].endswith("ensemble")
+                            else "value_divergence"
+                        ),
+                        "significant_dilemmas": len(design["significant"]),
+                        "judge_quality_scores": len(design["quality"]),
                         "per_dilemma": PER_DILEMMA,
-                        "seed": SEED,
+                        "unscored_fallback": "none: a dilemma with fewer than "
+                        "per_dilemma scored pairs aborts the survey build",
                         "pool": "complete (one pair per sample index)",
                         "pool_size": len(design["pool_records"]),
                         "selected": len(design["records"]),

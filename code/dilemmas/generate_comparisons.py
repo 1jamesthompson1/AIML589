@@ -13,14 +13,13 @@ base model's runs and that fine-tune's runs on a dilemma.
 
 ``--complete-scope selected`` keeps the older single-pool layout
 (``complete/comparisons.json`` for one ``--model-b``) and ``all-models``
-writes one ``complete/<model-a>__<model-b>/`` pool per pair of models.
+writes one ``complete/<model-a>__<model-b>/`` pool per base/fine-tune pair.
 
 Pairing: for every dilemma, every run of one model is paired with every run
-of the other.
-
-Which run plays Agent 1 and which Agent 2 is a stable pseudo-random
-assignment per pair, so neither model is systematically first and repeated
-runs keep the same layout.
+of the other. The pair is stored by role - ``base`` is the non-adapter model
+and ``ft`` is the ``-nz-wvs-`` fine-tune - not as Agent 1/Agent 2. The roles
+are validated before a record is written; the survey assigns the two agents
+to the roles per respondent with a flow randomizer.
 
 Usage:
 
@@ -37,7 +36,6 @@ from __future__ import annotations
 
 import argparse
 import csv
-import hashlib
 import json
 import re
 import sys
@@ -52,15 +50,17 @@ FULL_RUNS_DIR = OUTPUT_DIR / "runs" / "full"
 COMPARISONS_DIR = OUTPUT_DIR / "comparisons"
 PROFILES_DIR = HERE / "profiles"
 
-# The default pair: the untuned Qwen3.8-27B base model against the
-# full-string-distribution fine-tune (the adapter trained on the model's full
-# answer distribution over the WVS answers).
+# The default pair: the untuned Qwen3.8-27B base model against the modal
+# response fine-tune (the adapter the survey currently uses).
 DEFAULT_MODEL_A = "openai/Qwen/Qwen3.8-27B"
 DEFAULT_MODEL_B = "openai/Qwen3.8-27B-nz-wvs-modal_response-overall"
 
+# The fine-tune id marker used by the served adapters.
+FT_MARKER = "-nz-wvs-"
+
 # The comparison manifest schema tag. Bump when the layout changes so the
 # survey / analysis code can tell versions apart.
-COMPARISON_SCHEMA = "wvs-dilemma-comparisons/v1"
+COMPARISON_SCHEMA = "wvs-dilemma-comparisons/v2"
 
 # One JSON manifest per subset, plus a flat CSV of the same rows.
 MANIFEST_NAME = "comparisons.json"
@@ -84,9 +84,92 @@ def model_label(model_id: str) -> str:
     comparison between two non-base models joins the two labels with ``__``.
     """
     name = model_id.rsplit("/", 1)[-1]
-    marker = "-nz-wvs-"
-    short = name.split(marker, 1)[1] if marker in name else name
+    short = name.split(FT_MARKER, 1)[1] if FT_MARKER in name else name
     return slug(short)
+
+
+def is_fine_tune_model(model_id: str) -> bool:
+    """Whether a served model id is a ``-nz-wvs-`` fine-tune adapter."""
+    return FT_MARKER in (model_id or "").rsplit("/", 1)[-1]
+
+
+def base_ft_pair(first: str, second: str) -> tuple[str, str] | None:
+    """Orient a pair as ``(base, fine-tune)``, or None when it is not one.
+
+    The base model is the served model without the adapter marker. A pair
+    with two base models or two fine-tunes has no base/fine-tune roles, so it
+    must not be written as a survey comparison.
+    """
+    first_is_base = not is_fine_tune_model(first)
+    second_is_base = not is_fine_tune_model(second)
+    if first_is_base == second_is_base:
+        return None
+    return (first, second) if first_is_base else (second, first)
+
+
+def require_base_ft_pair(first: str, second: str) -> tuple[str, str]:
+    """Orient a pair as ``(base, fine-tune)`` or fail with a clear message."""
+    pair = base_ft_pair(first, second)
+    if pair is None:
+        raise SystemExit(
+            "base/ft roles are undefined for "
+            f"{first!r} and {second!r}: exactly one side must be the "
+            f"non-adapter base model (ids with {FT_MARKER!r} are fine-tunes)"
+        )
+    return pair
+
+
+def validate_comparison_roles(record: dict) -> None:
+    """Fail when a comparison's ``base``/``ft`` roles are not model-correct.
+
+    ``base`` must be the non-adapter model and ``ft`` must be a
+    ``-nz-wvs-`` adapter. This catches manifests whose pair was built in the
+    wrong order (which would otherwise put an adapter in the base column in
+    every downstream table and in the survey).
+    """
+    comparison_id = record.get("comparison_id", "<unknown>")
+    agents = record.get("agents") or {}
+    base = agents.get("base") or {}
+    ft = agents.get("ft") or {}
+    if not base or not ft:
+        raise ValueError(f"{comparison_id}: agents must contain base and ft")
+    base_model = base.get("model") or ""
+    ft_model = ft.get("model") or ""
+    if not base_model or not ft_model:
+        raise ValueError(f"{comparison_id}: base/ft model id is missing")
+    if is_fine_tune_model(base_model):
+        raise ValueError(f"{comparison_id}: base side is a fine-tune ({base_model!r})")
+    if not is_fine_tune_model(ft_model):
+        raise ValueError(f"{comparison_id}: ft side is not a fine-tune ({ft_model!r})")
+
+
+def annotate_epochs(manifest: dict, export_dir: Path) -> None:
+    """Add the run's inspect ``epoch`` to every manifest row when missing.
+
+    ``version`` is the export's chronological run number and is kept for
+    display/path compatibility, but pairing uses ``epoch``. Older exports do
+    not carry ``epoch`` in ``index.json``, so read it back from each run's
+    ``config.json`` once.
+    """
+    missing = 0
+    for run in manifest.get("runs") or []:
+        if run.get("epoch") is not None:
+            continue
+        config_path = export_dir / str(run.get("path", "")) / "config.json"
+        try:
+            config = json.loads(config_path.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            missing += 1
+            continue
+        if config.get("epoch") is not None:
+            run["epoch"] = config["epoch"]
+        else:
+            missing += 1
+    if missing:
+        print(
+            f"WARNING: {missing} run(s) have no epoch in index.json or "
+            "config.json; pairing will fall back to the export version"
+        )
 
 
 def write_json(path: Path, value: object) -> None:
@@ -95,20 +178,6 @@ def write_json(path: Path, value: object) -> None:
     path.write_text(
         json.dumps(value, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
     )
-
-
-def agent_order(agents: list[dict]) -> list[dict]:
-    """Stable pseudo-random Agent 1 / Agent 2 assignment.
-
-    A hash of the sorted run ids picks the order, so no model is
-    systematically first (sorted-name order would always put the base model
-    first) while repeated builds keep the same layout. The survey code uses
-    the same rule, so an agent order can be decoded from the run ids alone.
-    """
-    key = hashlib.md5(
-        "__".join(sorted(agent["run_id"] for agent in agents)).encode()
-    ).digest()
-    return agents if key[0] % 2 == 0 else agents[::-1]
 
 
 # --- The run to compare ------------------------------------------------------
@@ -318,19 +387,25 @@ def build_record(
     export_dir: Path,
     dilemma: dict,
 ) -> dict | None:
-    """One comparison: the two runs as Agent 1 and Agent 2.
+    """One comparison: the pair's runs in fixed base/ft role order.
+
+    ``pair`` is ``(base_run, ft_run)`` - the pool's ``model_a`` run first,
+    the fine-tune second - so the record keys the two sides by role. No
+    Agent 1 / Agent 2 assignment happens here; the survey draws that per
+    respondent.
 
     The record holds the survey block's keys (``comparison_id``, ``label``,
     ``role``, ``dilemma_intro``, ``dilemma_outro``, ``situation``,
     ``question``, ``responses``) plus the provenance (run ids, models, the
     judged answer options).
     """
-    agents = agent_order(list(pair))
-    responses = [run_response(export_dir, run) for run in agents]
+    roles = ("base", "ft")
+    runs = list(pair)
+    responses = [run_response(export_dir, run) for run in runs]
     if not all(responses):
         return None  # nothing to show a respondent
-    choices = [run_choice(export_dir, run) for run in agents]
-    versions = [run.get("version", 0) for run in agents]
+    choices = [run_choice(export_dir, run) for run in runs]
+    versions = [run.get("version", 0) for run in runs]
     if versions[0] == versions[1]:
         label = f"{dilemma['profile_id']} - {dilemma['situation_id']} v{versions[0]}"
     else:
@@ -338,8 +413,8 @@ def build_record(
             f"{dilemma['profile_id']} - {dilemma['situation_id']} "
             f"v{versions[0]}/{versions[1]}"
         )
-    return {
-        "comparison_id": f"{agents[0]['run_id']}__{agents[1]['run_id']}",
+    record = {
+        "comparison_id": f"{runs[0]['run_id']}__{runs[1]['run_id']}",
         "label": label,
         "dilemma_id": dilemma["dilemma_id"],
         "profile_id": dilemma["profile_id"],
@@ -350,21 +425,24 @@ def build_record(
         "dilemma_outro": dilemma["dilemma_outro"],
         "situation": dilemma["situation"],
         "question": dilemma["question"],
-        "responses": responses,
-        # Provenance: which run (and model) played which agent.
+        "responses": {"base": responses[0], "ft": responses[1]},
+        # Provenance: which run (and model) is the base / fine-tune side.
         "agents": {
-            f"Agent {index + 1}": {
+            role: {
                 "run_id": run["run_id"],
                 "model": run["model"],
                 "choice": choices[index],
                 "response": responses[index],
                 "version": versions[index],
+                "epoch": run.get("epoch"),
                 "run_path": run["path"],
             }
-            for index, run in enumerate(agents)
+            for index, (role, run) in enumerate(zip(roles, runs))
         },
         "same_choice": bool(choices[0]) and choices[0] == choices[1],
     }
+    validate_comparison_roles(record)
+    return record
 
 
 def build_comparisons(
@@ -433,20 +511,22 @@ def write_subset(
         "profile_id",
         "situation_id",
         "label",
-        "agent1_run_id",
-        "agent1_model",
-        "agent1_choice",
-        "agent2_run_id",
-        "agent2_model",
-        "agent2_choice",
+        "base_run_id",
+        "base_model",
+        "base_epoch",
+        "base_choice",
+        "ft_run_id",
+        "ft_model",
+        "ft_epoch",
+        "ft_choice",
         "same_choice",
     ]
     with (out_dir / CSV_NAME).open("w", newline="", encoding="utf-8") as stream:
         writer = csv.DictWriter(stream, fieldnames=fields)
         writer.writeheader()
         for record in records:
-            agent1 = record["agents"]["Agent 1"]
-            agent2 = record["agents"]["Agent 2"]
+            base = record["agents"]["base"]
+            ft = record["agents"]["ft"]
             writer.writerow(
                 {
                     "comparison_id": record["comparison_id"],
@@ -454,12 +534,14 @@ def write_subset(
                     "profile_id": record["profile_id"],
                     "situation_id": record["situation_id"],
                     "label": record["label"],
-                    "agent1_run_id": agent1["run_id"],
-                    "agent1_model": agent1["model"],
-                    "agent1_choice": agent1["choice"],
-                    "agent2_run_id": agent2["run_id"],
-                    "agent2_model": agent2["model"],
-                    "agent2_choice": agent2["choice"],
+                    "base_run_id": base["run_id"],
+                    "base_model": base["model"],
+                    "base_epoch": base.get("epoch"),
+                    "base_choice": base["choice"],
+                    "ft_run_id": ft["run_id"],
+                    "ft_model": ft["model"],
+                    "ft_epoch": ft.get("epoch"),
+                    "ft_choice": ft["choice"],
                     "same_choice": record["same_choice"],
                 }
             )
@@ -500,8 +582,8 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         default="per-model",
         help="Which model pairs the pools hold: one pool per fine-tune "
         "against the base model, under complete/<model>/ (default); the two "
-        "selected models in the single complete/ pool; or every model pair, "
-        "under complete/<model-a>__<model-b>/.",
+        "selected models in the single complete/ pool; or every base-vs-"
+        "fine-tune pair, under complete/<model-a>__<model-b>/.",
     )
     parser.add_argument(
         "--list-runs",
@@ -540,8 +622,16 @@ def main() -> None:
     available = list(manifest.get("models", []))
     if not available:
         raise SystemExit(f"the run {run_id} has no models in its export")
+    annotate_epochs(manifest, export_dir)
 
     model_a = resolve_model(args.model_a, available)
+    base_models = [model for model in available if not is_fine_tune_model(model)]
+    if model_a not in base_models:
+        raise SystemExit(
+            f"--model-a {model_a!r} is not the base model; base model(s) in "
+            f"this run: {base_models or 'none'}. Fine-tune ids carry "
+            f"{FT_MARKER!r}."
+        )
 
     grouped = group_runs(manifest)
     profile_files = load_profiles()
@@ -555,18 +645,39 @@ def main() -> None:
     # base comparison layout is one pool per fine-tune, so the analysis can
     # walk the models one at a time.
     if args.complete_scope == "per-model":
-        others = [model for model in sorted(available) if model != model_a]
+        others = [
+            model
+            for model in sorted(available)
+            if is_fine_tune_model(model) and model != model_a
+        ]
         if not others:
-            raise SystemExit(f"the run {run_id} has no model other than {model_a}")
+            raise SystemExit(
+                f"the run {run_id} has no fine-tune model other than {model_a}"
+            )
         pools = [(model_label(model), [(model_a, model)]) for model in others]
         nested = True
     elif args.complete_scope == "all-models":
         ordered = sorted(available)
-        pairs = [
-            (first, second)
-            for index, first in enumerate(ordered)
-            for second in ordered[index + 1 :]
-        ]
+        pairs = []
+        skipped = []
+        for index, first in enumerate(ordered):
+            for second in ordered[index + 1 :]:
+                pair = base_ft_pair(first, second)
+                if pair is None:
+                    skipped.append((first, second))
+                else:
+                    pairs.append(pair)
+        if not pairs:
+            raise SystemExit(
+                "all-models found no base-vs-fine-tune pair; "
+                "check the model ids and the fine-tune marker"
+            )
+        if skipped:
+            print(
+                f"all-models: skipped {len(skipped)} pair(s) without exactly "
+                f"one base and one fine-tune (e.g. {skipped[0][0]!r} vs "
+                f"{skipped[0][1]!r})"
+            )
         pools = [
             (f"{model_label(first)}__{model_label(second)}", [(first, second)])
             for first, second in pairs
@@ -576,6 +687,7 @@ def main() -> None:
         model_b = resolve_model(args.model_b or DEFAULT_MODEL_B, available)
         if model_a == model_b:
             raise SystemExit("--model-a and --model-b must be two different models")
+        model_a, model_b = require_base_ft_pair(model_a, model_b)
         pools = [("complete", [(model_a, model_b)])]
         nested = False
 
@@ -603,6 +715,10 @@ def main() -> None:
                 "run_id": run_id,
                 "label": name,
                 "models": {
+                    # Role names the records use (base = first model of
+                    # the pool, ft = second), plus the raw pair.
+                    "base": first_model,
+                    "ft": second_model,
                     "model_a": first_model,
                     "model_b": second_model,
                     "pairs": [list(pair) for pair in model_pairs],
