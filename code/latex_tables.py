@@ -105,6 +105,7 @@ def write_latex_table(
     column_format: str | None = None,
     stub_label: str = "Model",
     figs_dir: Path | None = None,
+    highlight: bool = True,
 ) -> Path:
     """Style, format, and write a DataFrame to a resizebox-wrapped booktabs
     tabular in code/figures. Styler does not escape labels, so index values and
@@ -114,7 +115,9 @@ def write_latex_table(
     header (pass "" to leave the corner blank).
 
     ``senses`` keys match the *unescaped* labels; they are escaped with the
-    labels so highlighting keeps working (e.g. ``{"TVD (%)": "min"}``)."""
+    labels so highlighting keeps working (e.g. ``{"TVD (%)": "min"}``).
+    Set ``highlight=False`` for tables where bolding the maximum is not
+    meaningful (e.g. exclusion counts)."""
 
     table = df.copy()
     if isinstance(table.index, pd.MultiIndex):
@@ -140,7 +143,7 @@ def write_latex_table(
         senses = {escape_header(str(label)): sense for label, sense in senses.items()}
 
     tex = (
-        highlight_best(table, senses=senses)
+        (highlight_best(table, senses=senses) if highlight else table.style)
         .format(fmt, na_rep="--")
         .to_latex(
             convert_css=True,

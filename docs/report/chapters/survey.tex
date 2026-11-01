@@ -7,12 +7,20 @@ The public did prefer models that were aligned with their responses... Or maybe 
 \section{The results of which model was preferred or not}
 This is the H2 results using the LLM and BT
 
-\section{Which people preferred most}
+\ctable{survey-h2-results}{The results of the LMM and BT model}
+
+
+\section{Different idlemmans and different peopple}
 Basic demographic interpretation including interpretation
+
+\cfigure{survey-dilemma-preference}{The likert preferences of the public for each dilemma. The likert scale is from 1 (strongly prefer the base model) to 5 (strongly prefer the fine tuned model). The mean and standard deviation are shown for each dilemma.}
 
 \section{Public policy preferences}
 
-Which policies were most preferred.
+Which polices are most preferred.
+\cfigure{survey-policy-shares}{The rankikng of polices based on how manhy are selected inthe top 3}
+
+
 
 \section{How the survey was constructed}
 
@@ -46,6 +54,13 @@ To collect the pairwise ranking data the participants were asked two questions (
 First they are asked "All things considered which one did you think acted more in lined with how you would want someone to act." Likert 5 scales from strongly Agent 1 to strongly Agent 2. The benefit of the Likert scale is that it allows for a more nuanced response than a simple binary choice.
 
 Then for they are asked "How much do you agree with an AI agent being deployed in this situation to make decisions like the ones you just saw.".
+
+\subsection{Using the most divergent model for the survey}
+
+In chapter \ref{chap:dilemmas} 4 different models were compared to the base model. The goal of this chapter is to find if one of the models is more aligned to the New Zealand public than the base model. Resource contraints restrict us to only being able to run the survey on one fine-tuned to base model comparison. Therefore a single model must be selected.
+
+The goal of the survey is to understand which model people prefer the most. Based on an assumption that the base model is not aligned to New Zealand we want to use the model that is most different from the base model. THis gives us the largest difference in responses and so highest chance of detecting if one model is more aligned to the New Zealand public.
+
 
 
 \subsection{Selection of trajectories}

@@ -20,11 +20,12 @@ Survey structure:
 - EmbeddedData: read ``distribution`` from the recipient
 - Branch: distribution != volunteer -> Introduction_paid block (the default)
 - Branch: distribution == volunteer -> Introduction_volunteer block
+- Introduction / information sheet blocks carry hidden page timers
 - Section A - About you (demographics first, for screening; every
   demographic item skippable), closing with attention check A and a hidden
   page timer
 - Section B - The comparison task (a two-sentence description of the
-  context of the dilemma task) plus attention check B
+  context of the dilemma task) plus attention check B and a hidden page timer
 - One comparison block per comparison (3 visible questions + a hidden page
   timer), grouped by profile -> dilemma -> pair: an outer randomizer shows
   N_PROFILES_SHOWN of the profiles, each selected profile draws 1 of its
@@ -38,6 +39,9 @@ Survey structure:
 - Branch: a paid respondent who fails two of the three attention checks
   ends through the panel's quality end link (volunteers are never sent to
   the panel)
+- Branch: a paid respondent with Q_TotalDuration < 240 seconds (4 minutes)
+  also ends through the quality link
+- The volunteer prize-draw block carries a hidden page timer
 - Branch: distribution != volunteer -> advanced end-of-survey redirect to
   the panel's "completed" end link (Dynata)
 - Branch: distribution == volunteer -> prize-draw block; ``yes`` ends the
@@ -770,6 +774,11 @@ ATTENTION_CHECKS = (
     ),
     ("C_attention", "Please select 'Strongly agree' for this question.", 1),
 )
+# Paid respondents finishing in under this many seconds (4 minutes) are
+# returned to the panel through its quality exit. This live screenout may
+# differ from the pre-registered analytical rule (duration < 1/3 of the
+# median); record it as a deviation.
+SPEED_SCREENOUT_SECONDS = 240
 
 
 # --- Question payload builders (shapes mirror a real Qualtrics export) ----
@@ -953,12 +962,28 @@ def mc_multi_payload(
     options: list[str],
     min_choices: int | None = None,
     max_choices: int | None = None,
+    randomize_choices: bool = False,
 ) -> dict:
     """Multiple-select (checkbox) MC question, optionally requiring a choice
-    range (for example, choose exactly three)."""
+    range (for example, choose exactly three).
+
+    ``randomize_choices`` enables Qualtrics choice randomization, so every
+    respondent sees the choices in a fresh random order. Choice IDs are
+    unchanged, so exported columns (``C4-3_1`` ... ``C4-3_9``) still map to
+    the same policies in ``policy_questions.json``; only display order varies.
+    """
     payload = mc_single_payload(tag, text, options)
     payload["Selector"] = "MAVR"
     payload["SubSelector"] = "TX"
+    if randomize_choices:
+        # Canonical QSF/UI form of "display choices in a random order". The
+        # API also accepts the shorthand "All", but the UI reads this object
+        # (see an exported QSF: Advanced/Type/TotalRandSubset).
+        payload["Randomization"] = {
+            "Advanced": None,
+            "Type": "All",
+            "TotalRandSubset": "",
+        }
     if min_choices is not None or max_choices is not None:
         settings = {
             "ForceResponse": "ON",
@@ -1399,14 +1424,16 @@ def build() -> dict:
         "description": "Introduction_paid",
         "collapsed": True,
         "questions": [
-            db_payload("D_intro_paid", md_to_html(sheet_for_channel("paid")))
+            db_payload("D_intro_paid", md_to_html(sheet_for_channel("paid"))),
+            timing_payload("D_intro_paid_timing"),
         ],
     }
     intro_volunteer = {
         "description": "Introduction_volunteer",
         "collapsed": True,
         "questions": [
-            db_payload("D_intro_volunteer", md_to_html(sheet_for_channel("volunteer")))
+            db_payload("D_intro_volunteer", md_to_html(sheet_for_channel("volunteer"))),
+            timing_payload("D_intro_volunteer_timing"),
         ],
     }
     # The three demographics a panel can supply (age, gender, region) are
@@ -1460,6 +1487,7 @@ def build() -> dict:
                 ),
             ),
             attention_payload(ATTENTION_CHECKS[1]),
+            timing_payload("D_taskB_timing"),
         ],
     }
     section_c = {
@@ -1478,13 +1506,16 @@ def build() -> dict:
             mc_sahr_payload("C1-1", C_OUTLOOK_TEXT, OUTLOOK5),
             # C4-3 replaces C4-2: a remote question's type cannot be changed
             # in place, so the multi-choice is created under a new tag and the
-            # old pick-and-rank question is deleted.
+            # old pick-and-rank question is deleted. Choices are shown in a
+            # random order per respondent (Randomization "All"); choice IDs, and
+            # so the C4-3_1 ... C4-3_9 columns, keep policy_questions.json order.
             mc_multi_payload(
                 "C4-3",
                 C_POLICY_TEXT,
                 [policy_display(*option) for option in C_POLICY_OPTIONS],
                 C_POLICY_MIN,
                 C_POLICY_MAX,
+                randomize_choices=True,
             ),
             manual_rank_payload("C4-4", C4_RANK_TEXT),
             attention_payload(ATTENTION_CHECKS[2]),
@@ -1495,7 +1526,8 @@ def build() -> dict:
         "description": "prize draw",
         "collapsed": True,
         "questions": [
-            mc_single_payload(PRIZE_DRAW_TAG, PRIZE_DRAW_TEXT, PRIZE_DRAW_OPTIONS)
+            mc_single_payload(PRIZE_DRAW_TAG, PRIZE_DRAW_TEXT, PRIZE_DRAW_OPTIONS),
+            timing_payload("prize_timing"),
         ],
     }
 
@@ -1558,6 +1590,14 @@ def all_of(*conditions: dict) -> dict:
     return logic
 
 
+def speed_screenout() -> dict:
+    """BranchLogic: a paid respondent finished faster than the screenout."""
+    return all_of(
+        distribution_condition("volunteer", operator="NotEqualTo"),
+        total_duration_condition(),
+    )
+
+
 def attention_failure(checks: tuple, qids_by_tag: dict) -> dict:
     """BranchLogic: a paid respondent failed every named attention check.
 
@@ -1600,6 +1640,22 @@ def distribution_condition(value: str, operator: str = "EqualTo") -> dict:
         f'</span> <span class="OpDesc">{op_text}'
         '</span> <span class="RightOpDesc"> '
         f"{value} </span>",
+    }
+
+
+def total_duration_condition(seconds: int = SPEED_SCREENOUT_SECONDS) -> dict:
+    """Expression: total survey duration is below the speed screenout."""
+    return {
+        "LogicType": "EmbeddedField",
+        "LeftOperand": "Q_TotalDuration",
+        "Operator": "LessThan",
+        "RightOperand": str(seconds),
+        "_HiddenExpression": False,
+        "Type": "Expression",
+        "Description": '<span class="ConjDesc">If</span> '
+        '<span class="LeftOpDesc">Q_TotalDuration</span> '
+        '<span class="OpDesc">Is Less Than</span> '
+        f'<span class="RightOpDesc"> {seconds} </span>',
     }
 
 
@@ -1747,6 +1803,16 @@ def flow(name_to_id: dict[str, str], qids_by_tag: dict[str, str]) -> dict:
             "DataVisibility": [],
             "AnalyzeText": False,
         },
+        {
+            # Reserved Qualtrics field: seconds spent in the survey. Used by
+            # the paid speed screenout branch below.
+            "Description": "Q_TotalDuration",
+            "Type": "Recipient",
+            "Field": "Q_TotalDuration",
+            "VariableType": "Scale",
+            "DataVisibility": [],
+            "AnalyzeText": False,
+        },
     ]
 
     embedded_fields += [
@@ -1838,6 +1904,14 @@ def flow(name_to_id: dict[str, str], qids_by_tag: dict[str, str]) -> dict:
             attention_failure((1, 2), qids_by_tag),
             [panel_exit_element("quality", "FL_78")],
             "FL_79",
+        ),
+        # A paid respondent below the completion-time floor is returned to
+        # the panel through the same quality exit. Volunteers are not sent to
+        # the panel's links.
+        branch(
+            speed_screenout(),
+            [panel_exit_element("quality", "FL_80")],
+            "FL_81",
         ),
         # Paid respondents are returned to the panel as completed; the
         # volunteer branch below keeps its own prize-draw ending (and falls

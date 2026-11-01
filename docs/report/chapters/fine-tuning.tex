@@ -14,7 +14,7 @@ In section \ref{sec:ft-dataset} and section \ref{sec:ft-methods} I describe the 
 \section{Different models respond differently to survey questions}
 \label{sec:ft-different-models}
 
-Each model has an innate value system that is a result of the specific trianing data and training methods used to create the model. This is shown in \tabref{models-vs-population} where the models are compared to the empirical survey data. The models are compared to the empirical survey data by calculating the KL divergence between the model's response distribution and the empirical survey response distribution.
+Each model has an innate value system that is a result of the specific trianing data and training methods used to create the model. This is quantified by the KL divergence between each model's response distribution and the empirical survey response distribution.
 
 
 
@@ -82,7 +82,7 @@ In all cases Don't konw is treated as a first class answer and modelled. This ha
 
 LLM use system prompts to imbue the model with a person and to give instructions how it should respond \cite{brownLanguageModelsAre2020,salewskiInContextImpersonationReveals2023}. Previous studies have not used system prompts when training/evaluating LLMs on survey data \cite{durmusMeasuringRepresentationSubjective2024,caoSpecializingLargeLanguage2025,nieSurveytoBehaviorDownstreamAlignment2025}. This is partly due to previuos generation of models being much less able to follow instructions coherently therefore the propmt had to be set up in a text completion format (e.g., "If I had to give an answer my answer would be ..."). More modern LLM are very good at following system prompts, and given the importance of system prompts in LLM behaviour we have used a range of system prompts. This it to ensure  that the model won't simply 'forget' the value it learns when a new system prompt is used and to explore the effects of system prompts on the fine-tuning performance.
 
-The system prompts used are designed to span the range of possible system prompts on the axis of how self aware the model should be. On one extreme is the \texttt{no persona} prompt which is only instructions n how to respond. Whereas a system prompt like \texttt{values reflection} heavily implies the models has an internal value system, similarly \texttt{AI research assistant} tells the model it is taking a value survey and that it is an AI system. A full list of system prompts can be found in the \figref{system_prompts}.
+The system prompts used are designed to span the range of possible system prompts on the axis of how self aware the model should be. On one extreme is the \texttt{no persona} prompt which is only instructions n how to respond. Whereas a system prompt like \texttt{values reflection} heavily implies the models has an internal value system, similarly \texttt{AI research assistant} tells the model it is taking a value survey and that it is an AI system. A full list of system prompts can be found in Section~\ref{sec:system-prompts}.
 
 
 \subsection{Held out validation data}

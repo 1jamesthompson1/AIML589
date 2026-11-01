@@ -431,13 +431,21 @@ fine-tune-first variant.}"""
             )
         elif q["QuestionType"] == "MC" and q["Selector"] == "MAVR":
             options = [c["Display"] for c in q["Choices"].values()]
+            # The mockup can only show one order; flag questions that Qualtrics
+            # shuffles per respondent (Randomization "All", object or shorthand).
+            body = ""
+            randomization = q.get("Randomization")
+            if randomization == "All" or (
+                isinstance(randomization, dict) and randomization.get("Type") == "All"
+            ):
+                body = r"\note{Choices are shown in a random order.}" + "\n\n"
             if any("<" in o for o in options):
                 # Policy options carry HTML (bold title + small description).
-                body = radio_options(
+                body += radio_options(
                     [policy_item(o) for o in options], r"\checkbox", escape=False
                 )
             else:
-                body = radio_options(options, r"\checkbox")
+                body += radio_options(options, r"\checkbox")
         elif q["Selector"] == "SAHR":
             body = horizontal_scale([c["Display"] for c in q["Choices"].values()])
         else:

@@ -221,6 +221,24 @@ def display_logic_condition(question: dict) -> tuple | None:
     )
 
 
+def choice_randomization(question: dict) -> tuple[str, str] | None:
+    """The question's choice-randomization mode, or ``None`` when off.
+
+    Qualtrics stores this in the question's ``Randomization`` field. The API
+    accepts the shorthand string ``"All"`` but the UI/QSF uses the object
+    form ``{"Advanced": ..., "Type": "All", "TotalRandSubset": ...}``. The
+    form is part of the comparison, so a shorthand string is replaced by the
+    canonical object on the next sync; after that the two match.
+    """
+    value = question.get("Randomization")
+    kind = "object" if isinstance(value, dict) else "string"
+    if isinstance(value, dict):
+        value = value.get("Type")
+    if value in (None, "", "None"):
+        return None
+    return kind, str(value)
+
+
 def question_differs(remote: dict, payload: dict) -> bool:
     # Configuration excluded: the API adds derived display keys back, so
     # comparing it would re-update every run.
@@ -239,18 +257,46 @@ def question_differs(remote: dict, payload: dict) -> bool:
     if any(remote.get(f) != payload.get(f) for f in fields):
         return True
     # the display logic is compared by its condition (see above)
-    return display_logic_condition(remote) != display_logic_condition(payload)
+    if display_logic_condition(remote) != display_logic_condition(payload):
+        return True
+    return choice_randomization(remote) != choice_randomization(payload)
 
 
-def manual_question_warning(tag: str, payload: dict) -> None:
-    """Print the exact UI steps for a question the API cannot create."""
+def manual_question_problems(remote: dict, payload: dict) -> list[str]:
+    """API-checkable settings that have drifted on a UI-only question.
+
+    Only the fields the API can read are checked; carry-forward choices are a
+    UI-only setting and are never modified by the sync.
+    """
+    settings = (remote.get("Validation") or {}).get("Settings") or {}
+    expected = (payload.get("Validation") or {}).get("Settings") or {}
+    problems = []
+    if settings.get("ForceResponse") != expected.get("ForceResponse"):
+        problems.append(
+            f"force response is {settings.get('ForceResponse', 'missing')!r}, "
+            f"expected {expected.get('ForceResponse')!r}"
+        )
+    return problems
+
+
+def manual_question_warning(
+    tag: str, payload: dict, problems: list[str] | None = None
+) -> None:
+    """Print the exact UI steps for a manual question that is missing or off."""
     text = re.sub(r"<[^>]+>", " ", payload.get("QuestionText", ""))
     text = " ".join(text.split())
-    print(
-        f"WARNING: manual question {tag!r} is not in the remote survey.",
-        flush=True,
-    )
-    print("  Add it once in Qualtrics:", flush=True)
+    if problems:
+        print(
+            f"WARNING: manual question {tag!r} needs attention: " + "; ".join(problems),
+            flush=True,
+        )
+        print("  Fix it in Qualtrics:", flush=True)
+    else:
+        print(
+            f"WARNING: manual question {tag!r} is not in the remote survey.",
+            flush=True,
+        )
+        print("  Add it once in Qualtrics:", flush=True)
     print("    - Question type: Rank Order (drag and drop)", flush=True)
     print(f"    - Data export tag: {tag}", flush=True)
     print(f"    - Question text: {text}", flush=True)
@@ -260,7 +306,7 @@ def manual_question_warning(tag: str, payload: dict) -> None:
     )
     print("    - Force response: ON", flush=True)
     print(
-        "  The sync will continue without it; rerun after adding it.",
+        "  The sync will continue without modifying it; rerun to re-check.",
         flush=True,
     )
 
@@ -279,7 +325,8 @@ def sync_questions(
 
     ``manual_tags`` are UI-only questions (carry-forward choices): they are
     never created, updated or deleted. If one is missing, a warning prints
-    the exact settings to add; the rest of the sync continues.
+    the exact settings to add; if it is present but its force-response setting
+    has drifted, the warning says what to fix. The rest of the sync continues.
     """
     manual_tags = set(manual_tags or ())
     remote = all_questions(sv_id)
@@ -288,8 +335,13 @@ def sync_questions(
     for tag, payload in wanted.items():
         if tag in manual_tags:
             if tag in remote:
-                wanted_ids[tag] = remote[tag]["QuestionID"]
-                print(f"manual question {tag} present", flush=True)
+                entry = remote[tag]
+                wanted_ids[tag] = entry["QuestionID"]
+                problems = manual_question_problems(entry, payload)
+                if problems:
+                    manual_question_warning(tag, payload, problems)
+                else:
+                    print(f"manual question {tag} present", flush=True)
             else:
                 manual_question_warning(tag, payload)
             continue

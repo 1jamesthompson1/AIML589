@@ -11,6 +11,8 @@ For the demographic questions in \figref{clusters/k2_analysis/figures/cluster_de
 
 As is seen in \figref{clusters/k2_analysis/figures/certainty_by_n_questions} it is possible to assign respondents to cluster with a high degree of certainty (>90\%) with only 10 questions. This is important for the methodology of the public consultation survey.
 
+\cfigure{clusters/k2_analysis/figures/certainty_by_n_questions.png}{Number of questions needed to assign respondents to a cluster with high certainty.}
+
 \cfigure{clusters/k2_analysis/figures/top5_splitting_questions.png}{The top 5 value questions that provide the most amount of information about which cluster a respondent belongs to.}
 
 \cfigure[htbp][1.2\textwidth]{clusters/k2_analysis/figures/cluster_demographics_infographic.png}{The demographic differences between the clusters.}
@@ -50,7 +52,6 @@ The difference between $k=2$ and $k=3$ solutions is that the $k=3$ solution spli
 
 
 \section{Held-out validation data}
-\label{app:fine-tuning}
 
 The validation set holds out five questions, one per redundancy cluster and
 battery, selected as the questions whose responses are most predictable from
@@ -65,6 +66,7 @@ shows each held-out question and the training questions most similar to it. As s
 \cfigure[htbp][1.2\textwidth]{redundancy_bar_chart}{Survey questions redundancy bar chart}
 
 \section{System prompts}
+\label{sec:system-prompts}
 
 {\small\verbatiminput{../../code/figures/system_prompts.txt}}
 
