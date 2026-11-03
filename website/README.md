@@ -19,8 +19,9 @@ src/
 │   ├── ResultsViewer.tsx        # Eval results browser (React island)
 │   ├── SimulationViewer.tsx     # Behavioural-simulation runs browser (React island)
 │   ├── DilemmasViewer.tsx       # Dilemma runs browser (React island)
+│   ├── SurveyResults.tsx        # Survey-results tab: TVD overview + per-dilemma distributions
 │   ├── DataSourceNotice.tsx     # Local/bucket source indicator and switch link
-│   └── TabbedResults.tsx        # Results-viewer tabs (evals / simulations / dilemmas / interact)
+│   └── TabbedResults.tsx        # Results-viewer tabs (evals / simulations / dilemmas / survey / interact)
 ├── layouts/        # Page shell components
 │   └── BaseLayout.astro        # Shared header/footer wrapper
 ├── lib/            # Runtime data-source and fetch helpers
@@ -185,6 +186,39 @@ no merged/live view, and spot runs are not shown in it.
 
 An older runs index without the dilemma inventory still works: the viewer
 falls back to a selected run's `config.json` for the dilemma text.
+
+### Survey results
+
+`survey/analyze.py` writes the aggregate `artifacts/dilemmas/survey-results/index.json`
+(schema `wvs-survey-option-distributions/v1`) and a copy beside the survey
+subset. It contains only aggregate option shares and preference counts — no
+respondent ids, free text or individual ratings — so it is safe to publish.
+For each dilemma it holds:
+
+- the **public** share: each preference rating votes for the answer option of
+  the response it preferred, with “About the same” splitting half a vote;
+- the **base** and **fine-tuned** shares: the judge-classified options over
+  every exported run of the run the survey subset came from;
+- the total variation distance (TVD) between the public shares and each
+  model, which model is closer, and the public/base/fine-tune modal option;
+- the **direct preference** counts and mean: base wins, fine-tune wins, ties,
+  decided shares and the mean signed preference with its 95% CI. The top level
+  also stores the H2 LMM and Bradley–Terry results.
+
+The **Survey Results** tab (`/results-viewer?tab=survey`, also linked from the
+nav) shows the **direct vote for RQ2** (the pre-registered H2 test: LMM
+estimate and Bradley–Terry win rate with intervals, raw base/fine-tune/tie
+counts, and a per-dilemma mean-preference chart) alongside the **option-share
+comparison** (a ranked dumbbell chart of every dilemma's two TVDs). Selecting
+a row — in either chart — opens the three-distribution bars for that dilemma,
+plus its direct-vote counts. The two views answer different questions and need
+not agree: with the current data the direct vote favours the base model while
+the fine-tune's option distribution is closer to the public's. The RQ2 label
+links to the research question on the home page (`/#rq2`); “H2” is only the
+pre-registered statistical test for that question. Public shares describe the
+17 selected divergent pairs per dilemma, not every run; the tab's “How to read
+this” section repeats that caveat.
+
 ## Deployment
 
 Pushing to `main` triggers a GitHub Action that builds and deploys to GitHub
@@ -202,7 +236,11 @@ Pages. DNS for `nz-llm.sjhl.nz` is a `CNAME` pointing to
    manifests.
 4. For dilemmas, run `uv run python code/dilemmas/export_results.py` to
    regenerate the runs manifest as described in `code/dilemmas/README.md`.
-5. Use the normal repository artifact workflow when the results should be
+5. For survey results, run the survey analysis notebook (`uv run marimo edit
+   survey/analyze.py`) to regenerate `artifacts/dilemmas/survey-results/index.json`
+   from `survey/output/responses.csv` and the comparison subset; then sync the
+   artifacts.
+6. Use the normal repository artifact workflow when the results should be
    published; the website itself never syncs or downloads artifacts.
 
 The site picks up a new manifest on refresh. It does not need a rebuild for a

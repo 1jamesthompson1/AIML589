@@ -11,6 +11,7 @@ export const LOCAL_FT_BASE = '/ft/evals/';
 export const LOCAL_BS_BASE = '/bs/runs/';
 export const LOCAL_COMPARISONS_BASE = '/bs/comparisons/';
 export const LOCAL_DILEMMAS_BASE = '/dilemmas/runs/';
+export const LOCAL_SURVEY_BASE = '/dilemmas/survey-results/';
 
 export const urlParams = typeof window !== 'undefined'
   ? new URLSearchParams(window.location.search)

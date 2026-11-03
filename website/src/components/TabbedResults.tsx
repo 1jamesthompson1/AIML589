@@ -1,12 +1,14 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import ResultsViewer from './ResultsViewer';
 import SimulationViewer from './SimulationViewer';
 import DilemmasViewer from './DilemmasViewer';
+import SurveyResults from './SurveyResults';
 
 const tabs = [
   { id: 'evals', label: 'Fine-tuning Results' },
   { id: 'simulation', label: 'Simulation Results' },
   { id: 'dilemmas', label: 'Dilemma Results' },
+  { id: 'survey', label: 'Survey Results' },
   { id: 'interact', label: 'Interact with Model' },
 ];
 
@@ -15,11 +17,29 @@ export default function TabbedResults() {
   // hydration so a deep link such as ?tab=simulation does not cause a
   // hydration mismatch while the interactive island is starting.
   const [activeTab, setActiveTab] = useState('evals');
+  const tabBarRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     const requestedTab = new URLSearchParams(window.location.search).get('tab');
     if (requestedTab && tabs.some((tab) => tab.id === requestedTab)) setActiveTab(requestedTab);
   }, []);
+
+  // On narrow screens the tab strip scrolls horizontally. Keep the active tab
+  // in view when a deep link opens a later tab or the reader switches tabs.
+  useEffect(() => {
+    const container = tabBarRef.current;
+    const active = container?.querySelector<HTMLButtonElement>('[data-active="true"]');
+    if (!container || !active) return;
+    container.scrollLeft =
+      active.offsetLeft - container.clientWidth / 2 + active.clientWidth / 2;
+  }, [activeTab]);
+
+  // Give each tab its own browser title so a shared survey-results link is
+  // identifiable in history and bookmarks.
+  useEffect(() => {
+    const label = tabs.find((tab) => tab.id === activeTab)?.label;
+    if (label) document.title = `${label} — NZ Value Alignment`;
+  }, [activeTab]);
 
   const selectTab = (tab: string) => {
     setActiveTab(tab);
@@ -35,11 +55,12 @@ export default function TabbedResults() {
   return (
     <div style={{ marginTop: '2rem' }}>
       <div style={{ borderBottom: '1px solid var(--color-border)' }}>
-        <div className="container" style={{ display: 'flex', gap: 0 }}>
+        <div ref={tabBarRef} className="container" style={{ display: 'flex', gap: 0, overflowX: 'auto' }}>
           {tabs.map((tab) => (
             <button
               key={tab.id}
               onClick={() => selectTab(tab.id)}
+              data-active={activeTab === tab.id}
               style={{
                 padding: '0.75rem 1.5rem',
                 border: 'none',
@@ -50,6 +71,8 @@ export default function TabbedResults() {
                 fontSize: '0.875rem',
                 cursor: 'pointer',
                 transition: 'all 0.15s',
+                flexShrink: 0,
+                whiteSpace: 'nowrap',
               }}
             >
               {tab.label}
@@ -70,6 +93,12 @@ export default function TabbedResults() {
         {activeTab === 'dilemmas' && (
           <div className="container">
             <DilemmasViewer />
+          </div>
+        )}
+
+        {activeTab === 'survey' && (
+          <div className="container">
+            <SurveyResults />
           </div>
         )}
 
