@@ -81,7 +81,12 @@ def build_samples() -> list[Sample]:
 
 
 @solver
-def single_response(max_tokens: int = 16000, temperature: float = 0.1) -> Solver:
+def single_response(
+    max_tokens: int = 16000,
+    temperature: float = 0.1,
+    top_p: float = 1.0,
+    top_k: int = 20,
+) -> Solver:
     """One short generation with the profile's system prompt; no tools, no loop.
 
     The visible reply is capped by the system instruction (two sentences,
@@ -92,7 +97,9 @@ def single_response(max_tokens: int = 16000, temperature: float = 0.1) -> Solver
     answering, so the cap sits at 16k against the 24,576 server context).
     The low
     temperature keeps the decision near-deterministic while leaving the
-    epochs slightly informative. A detailed reasoning summary is requested
+    epochs slightly informative. ``top_p`` 1.0 and ``top_k`` 20 match the
+    fine-tuning evaluation; ``top_k`` is omitted for OpenRouter models because
+    the provider does not support it. A detailed reasoning summary is requested
     because OpenAI models through OpenRouter return their reasoning
     encrypted and the ``auto`` summary level is ignored on that route —
     but OpenAI still honors the summary request only some of the time, so
@@ -109,6 +116,7 @@ def single_response(max_tokens: int = 16000, temperature: float = 0.1) -> Solver
             config = GenerateConfig(
                 max_tokens=max_tokens,
                 temperature=temperature,
+                top_p=top_p,
                 reasoning_summary="detailed",
             )
             if is_openrouter_model(model):
@@ -118,6 +126,8 @@ def single_response(max_tokens: int = 16000, temperature: float = 0.1) -> Solver
                 config = config.merge(
                     {"extra_body": {"reasoning": {"summary": "detailed"}}}
                 )
+            else:
+                config = config.merge({"top_k": top_k})
             state.output = await model.generate(
                 input=state.messages,
                 tools=[],
@@ -290,6 +300,7 @@ def dilemma_judge(max_tokens: int = 4000, temperature: float = 0.0) -> Scorer:
                     ),
                     max_tokens=max_tokens,
                     temperature=temperature,
+                    top_p=1.0,
                 ),
                 DILEMMAS_HEADERS,
             ),

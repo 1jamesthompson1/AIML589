@@ -24,7 +24,7 @@
 
 % Common macros
 \newcommand{\scare}[1]{\enquote{#1}}
-\newcommand{\term}[1]{\textbf{#1}}
+% \term is glossary-aware; see the glossary section below.
 
 \newtheorem{definition}{Definition}
 
@@ -78,12 +78,12 @@
 }
 
 % Figure reference convenience: \figref{filename} -> "Figure N"
+% A comma list works too: \figref{a.png,b.png} -> "Figures 3.1 and 3.2".
 % Uses the same filename-derived label as \cfigure, e.g.
 % \cfigure{bootstrap_stability.png}{...} then \figref{bootstrap_stability.png}
-\newcommand{\figref}[1]{%
-   \stripext{#1}{\cfiglabel}%
-   Figure~\ref{fig:\cfiglabel}%
-}
+\makeatletter
+\DeclareRobustCommand{\figref}[1]{\ref@filelist{fig}{#1}}
+\makeatother
 
 % Table convenience: \ctable[placement]{filename}{caption}
 % The label is auto-derived from the filename without extension, e.g.
@@ -101,12 +101,103 @@
 }
 
 % Table reference convenience: \tabref{filename} -> "Table N"
+% A comma list works too: \tabref{a,b} -> "Tables 3.1 and 3.2".
 % Uses the same filename-derived label as \ctable, e.g.
 % \ctable{fine-tuning/main-table-Qwen3.5-9B.tex}{...} then \tabref{fine-tuning/main-table-Qwen3.5-9B.tex}
-\newcommand{\tabref}[1]{%
-   \stripext{#1}{\ctablabel}%
-   Table~\ref{tab:\ctablabel}%
+\makeatletter
+\DeclareRobustCommand{\tabref}[1]{\ref@filelist{tab}{#1}}
+\makeatother
+
+% --- Automatic reference names ---
+% \ref takes its leading word from the label's prefix, so the prose never
+% hand-writes (or forgets) "Section", "Chapter", etc.:
+%   \ref{chap:background} -> Chapter 2    \ref{sec:values}    -> Section 2.1
+%   \ref{subsec:power}    -> Subsection 5.3.2
+%   \ref{app:fine-tuning} -> Appendix A   \ref{fig:foo}       -> Figure 4.2
+%   \ref{tab:foo}         -> Table 3.1    \ref{eq:nll}        -> Equation 3.4
+% A comma-separated list gives the plural word and joins the numbers with
+% "and": \ref{sec:a,sec:b} -> Sections 3.2 and 3.3,
+% \ref{sec:a,sec:b,sec:c} -> Sections 3.2, 3.3 and 3.4. The word comes from
+% the first label, so one list should hold one kind of target.
+% Labels with any other (or no) prefix give the plain number; \plainref{...}
+% always gives the plain number. To add a prefix, add one line to \ref@word.
+\makeatletter
+\newif\ifref@plural
+\newif\ifref@worded
+\newcommand*{\ref@word}[1]{%
+   \begingroup
+   \def\ref@w{}%
+   \IfBeginWith{#1}{chap:}{\def\ref@w{\ifref@plural Chapters\else Chapter\fi}}{}%
+   \IfBeginWith{#1}{subsubsec:}{\def\ref@w{\ifref@plural Subsubsections\else Subsubsection\fi}}{}%
+   \IfBeginWith{#1}{subsec:}{\def\ref@w{\ifref@plural Subsections\else Subsection\fi}}{}%
+   \IfBeginWith{#1}{sec:}{\def\ref@w{\ifref@plural Sections\else Section\fi}}{}%
+   \IfBeginWith{#1}{app:}{\def\ref@w{\ifref@plural Appendices\else Appendix\fi}}{}%
+   \IfBeginWith{#1}{fig:}{\def\ref@w{\ifref@plural Figures\else Figure\fi}}{}%
+   \IfBeginWith{#1}{tab:}{\def\ref@w{\ifref@plural Tables\else Table\fi}}{}%
+   \IfBeginWith{#1}{eq:}{\def\ref@w{\ifref@plural Equations\else Equation\fi}}{}%
+   \ifx\ref@w\@empty\else\ref@w~\fi
+   \endgroup
 }
+\ExplSyntaxOn
+\clist_new:N \l__ref_labels_clist
+\int_new:N \l__ref_i_int
+\int_new:N \l__ref_n_int
+% Print a possibly comma-separated label list as one reference.
+\NewDocumentCommand \ref@list { m }
+  {
+    \clist_set:Nn \l__ref_labels_clist {#1}
+    \int_set:Nn \l__ref_n_int { \clist_count:N \l__ref_labels_clist }
+    \int_compare:nNnT { \l__ref_n_int } > { 1 } { \ref@pluraltrue }
+    \int_zero:N \l__ref_i_int
+    \clist_map_inline:Nn \l__ref_labels_clist
+      {
+        \int_incr:N \l__ref_i_int
+        \int_compare:nNnT { \l__ref_i_int } = { 1 }
+          { \ifref@worded \ref@word{##1} \fi }
+        \int_compare:nNnT { \l__ref_i_int } > { 1 }
+          {
+            \int_compare:nNnTF { \l__ref_i_int } = { \l__ref_n_int }
+              { ~and~ } { ,~ }
+          }
+        \plainref{##1}
+      }
+  }
+% Map a comma list of figure/table filenames to its labels and reference them:
+% {a.png,b} -> \ref{fig:a,fig:b}. \c_colon_str keeps the ":" at catcode 12,
+% which is what the prefix tests in \ref@word expect.
+\seq_new:N \l__ref_labels_seq
+\NewDocumentCommand \ref@filelist { m m }
+  {
+    \seq_clear:N \l__ref_labels_seq
+    \clist_map_inline:nn {#2}
+      {
+        \stripext{##1}{\ref@filelabel}
+        \seq_put_right:Nx \l__ref_labels_seq { #1 \c_colon_str \ref@filelabel }
+      }
+    \exp_args:Nx \ref { \seq_use:Nn \l__ref_labels_seq {,} }
+  }
+\ExplSyntaxOff
+% The kernel defines \ref as an ltcmd command, so a plain \let would leave
+% \plainref pointing at the code we are about to replace (endless recursion):
+% \NewCommandCopy makes a real copy of the current \ref.
+\AtBeginDocument{%
+   \NewCommandCopy{\plainref}{\ref}%
+   \RenewDocumentCommand{\ref}{s m}{%
+      \begingroup
+      \ref@pluralfalse
+      \IfBooleanTF{#1}{\ref@wordedfalse}{\ref@wordedtrue}%
+      \ref@list{#2}%
+      \endgroup
+   }%
+   % amsmath's \eqref only adds the parentheses, so it wants the bare number
+   % (otherwise \eqref{eq:x} would read "(Equation 3.4)").
+   \DeclareRobustCommand{\eqref}[1]{%
+      \textup{(%
+         \begingroup\ref@wordedfalse\ref@pluralfalse\ref@list{#1}\endgroup
+      )}%
+   }%
+}
+\makeatother
 
 % --- Research question (RQ) system ---
 % Define the research questions once (e.g. in the introduction) and then
@@ -164,15 +255,23 @@
 % the linked term text is seen.
 %
 % Usage (labels need no prefix - internal namespacing is automatic):
-%   \newterm{label}{Term text}{Definition text}  % register a term
-%   \termref{label}              % clickable term link (hover tooltip)
+%   \newterm{label}{Singular}{Plural}{Definition text}  % register a term
+%   \term{label}                 % bold clickable term (hover tooltip)
+%   \termref{label}              % clickable term link, not bold
 %   \termtext{label}             % the definition text inline in prose
 %   \printglossary               % prints the entries only: wrap it in your
 %                                % own \section / \chapter heading, e.g. an
 %                                % appendix chapter.
 %
+% A trailing "s" directly after the command selects the plural text, so the
+% prose never hand-writes a plural:
+%   \term{work-profile}s -> Work profiles      \termref{value-survey}s -> Value surveys
+% The "s" is only eaten when it directly follows the closing brace; an
+% unregistered label falls back to plain bold text (for \term) or plain text
+% (for \termref), so ordinary emphasis still works.
+%
 % Example:
-%   \newterm{llm}{Large language model}{A neural network trained on ...}
+%   \newterm{llm}{Large language model (LLM)}{Large language models (LLMs)}{A neural network trained on ...}
 %   ... see \termref{llm} ...
 %
 % Terms must be registered (\newterm) before their first reference, the same
@@ -183,19 +282,61 @@
 % idempotent, so the second \input does not register the terms twice.
 \newif\ifglossaryprint
 \newcommand{\glistall}{}
-\newcommand{\newterm}[3]{%
+\newcommand{\newterm}[4]{%
    \ifcsname gldef-#1\endcsname
    \else
       \expandafter\gdef\csname gltxt-#1\endcsname{#2}%
-      \expandafter\gdef\csname gldef-#1\endcsname{#3}%
+      \expandafter\gdef\csname glpl-#1\endcsname{#3}%
+      \expandafter\gdef\csname gldef-#1\endcsname{#4}%
       \xdef\glistall{\ifx\glistall\empty\else\glistall,\fi#1}%
    \fi
 }
-\newcommand{\termref}[1]{%
-   \texorpdfstring{\protect\hyperlink{gl:#1}{\protect\pdfhover{\csname gltxt-#1\endcsname}{\csname gldef-#1\endcsname}}}{\csname gltxt-#1\endcsname}%
+\makeatletter
+% The term text as a clickable link; the definition is a hover tooltip in an
+% electronic PDF and the plain text is used in bookmarks.
+\newcommand{\gl@link}[2]{%
+   \texorpdfstring{\protect\hyperlink{gl:#1}{\protect\pdfhover{#2}{\csname gldef-#1\endcsname}}}{#2}%
+}
+% #1 label, #2 1 for bold, #3 the stored text (gltxt or glpl)
+\newcommand{\gl@put}[3]{%
+   \ifnum#2=\@ne \textbf{\gl@link{#1}{#3}}\else\gl@link{#1}{#3}\fi
+}
+% Remember the label and weight, then peek at the very next token (no space
+% skipping, so a space before a word starting with "s" is safe).
+\newcommand{\gl@look}[2]{% #1 label, #2 1 for bold
+   \def\gl@tlab{#1}\def\gl@tbold{#2}%
+   \futurelet\@let@token\gl@pick
+}
+% A directly following "s" selects the plural form and is eaten; otherwise
+% the singular is used.
+\newcommand{\gl@pick}{%
+   \ifx\@let@token s%
+      \expandafter\@firstoftwo
+   \else
+      \expandafter\@secondoftwo
+   \fi
+   {\gl@put{\gl@tlab}{\gl@tbold}{\csname glpl-\gl@tlab\endcsname}\@gobble}%
+   {\gl@put{\gl@tlab}{\gl@tbold}{\csname gltxt-\gl@tlab\endcsname}}%
+}
+\DeclareRobustCommand{\term}[1]{%
+   \ifcsname gltxt-#1\endcsname
+      \expandafter\@firstoftwo
+   \else
+      \expandafter\@secondoftwo
+   \fi
+   {\gl@look{#1}{\@ne}}%
+   {\textbf{#1}}%
+}
+\DeclareRobustCommand{\termref}[1]{%
+   \ifcsname gltxt-#1\endcsname
+      \expandafter\@firstoftwo
+   \else
+      \expandafter\@secondoftwo
+   \fi
+   {\gl@look{#1}{\z@}}%
+   {#1}%
 }
 \newcommand{\termtext}[1]{\csname gldef-#1\endcsname}
-\makeatletter
 \newcommand{\printglossary}{%
    \expandafter\gl@printlist\expandafter{\glistall}%
 }

@@ -1,0 +1,10 @@
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{p{2.8cm}p{4.6cm}cccp{1.8cm}p{3.6cm}}
+\toprule
+Stage & Model(s) & Temperature & Top-$k$ & Top-$p$ & Max tokens & Other \\
+\midrule
+Fine-tuned / base & Qwen3.8-27B and four LoRA fine-tunes & 0.1 & 20 & 1.0 & 16,000 & One response per call; detailed reasoning summary \\
+Judges & GPT-6-Luna (choice); Claude Haiku 5.5, GPT-6-Luna, DeepSeek V4.1 Flash (quality) & 0.0* & n/a & 1.0 & 4,000 / 16,000 & Structured output; high reasoning effort (quality) \\
+\bottomrule
+\end{tabular}
+}

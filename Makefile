@@ -130,13 +130,17 @@ artifacts-backup:
 	  BORG=$${BORG_BIN:-$$HOME/.local/bin/borg}; \
 	  "$$BORG" info "$$BR" >/dev/null 2>&1 || "$$BORG" init --encryption=none "$$BR"; \
 	  # Skip archiving when nothing in artifacts/ changed since the last one. \
-	  CHANGED=$$("$$BORG" create --dry-run --list --filter=AM "$$BR::probe-$$$$-" ./artifacts 2>/dev/null | wc -l); \
-	  if [ "$$CHANGED" -eq 0 ]; then \
+	  # Fingerprint path+size+mtime instead of probing borg: on some builds \
+	  # `create --dry-run --list --filter=AM` lists every file as unchanged, \
+	  # which silently turned this target into a no-op from 2026-09 onwards. \
+	  FP=$$(find ./artifacts -type f -printf "%p\t%s\t%T@\n" | LC_ALL=C sort | sha256sum | cut -f1 -d" "); \
+	  if [ -f .artifacts-backup.sha ] && [ "$$(cat .artifacts-backup.sha)" = "$$FP" ]; then \
 	    echo "artifacts/ unchanged since last archive; skipping borg backup"; \
 	    exit 0; \
 	  fi; \
 	  "$$BORG" create --stats "$$BR::$$(hostname)-$$(date +%Y%m%d-%H%M%S)" ./artifacts; \
-	  "$$BORG" prune --keep-daily 7 --keep-weekly 4 --keep-monthly 6 "$$BR"'
+	  "$$BORG" prune --keep-daily 7 --keep-weekly 4 --keep-monthly 6 "$$BR"; \
+	  printf "%s\n" "$$FP" > .artifacts-backup.sha'
 
 # pre-commit hook entry: sync via artifacts-sync, then borg via
 # artifacts-backup when RUN_BORG_BACKUP=true. Never fails so commits are not

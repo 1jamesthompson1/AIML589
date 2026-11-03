@@ -1,8 +1,63 @@
 In this appendix is expanded information about the dilemmas that were used in the project.
 
+\section{Experiment details}
+\label{sec:dilemma-run-parameters}
+
+\subsection{Models}
+
+The target models were \modelref{qwen3.8-27b} and its four LoRA fine-tunes (\modelref{ft-modal}, \modelref{ft-sampled}, \modelref{ft-full-string} and \modelref{ft-first-token}). The choice judge was \modelref{gpt-6-luna}; the quality-score ensemble was \modelref{claude-haiku-5.5}, \modelref{gpt-6-luna} and \modelref{deepseek-v4.1-flash}; the situational-awareness judge was \modelref{gpt-5.6-luna}. Responses were embedded with \modelref{qwen-embedding}. The frontier comparison models were \modelref{claude-haiku-5.5}, \modelref{deepseek-v4.1-flash}, \modelref{gpt-6-luna} and \modelref{glm-5.3-flash}.
+
+\subsection{Run time and hardware}
+
+The full four-model screen and the main modal run are in \tabref{dilemmas-run-parameters}. All Qwen models were served on one RTX 6000 Pro; the times are eval wall-clock and include the judge calls. 
+\fixme{Yet to be completed with the correct run times.}
+
+\ctable[!ht]{dilemmas-run-parameters}{Run times for the different runs.}
+
+\subsection{Settings}
+
+The generation settings are in \tabref{dilemmas-sampling-parameters}. The fine-tuned and base models use temperature 0.1, top-$p$ 1.0 and top-$k$ 20. The judges request temperature 0 and top-$p$ 1.0; top-$k$ is not supported by the OpenAI API. GPT-6-Luna ignores the requested temperature and runs at 1.0.
+
+\ctable[!ht]{dilemmas-sampling-parameters}{Generation settings for the experiments}
+
+\clearpage
+
 \section{Variation in Dilemmas}
-The goal was to have dilemmas in which models would respond in a equal distribution of answers. Yet it was not possible to do this  and so some dilemmas were more skewed than others. In \tabref{dilemmas-answer-stats} we can see the most skewed dilemmas and the most balanced dilemmas.
+The goal was to have dilemmas in which models would respond in an equal distribution of answers. Yet it was not possible to do this and so some dilemmas were more skewed than others. In \tabref{dilemmas-answer-stats} we can see the most skewed dilemmas and the most balanced dilemmas.
+\ctable{dilemmas-answer-stats}{The answer and entropy statistics for the dilemmas. The mean answer is the average option index of the model responses across the latest run set, and the stability column is the entropy of the model responses. The bolded values indicate the highest entropy (the most balanced responses) for each dilemma.}
 
-\ctable{dilemmas-answer-stats}{The answer and stability satistics for the dilemmas. The mean answer is the average of the model responses across the latest run set, and the stabilty is the entropy of the model responses. The bolded values indicate the highest stability for each dilemma.}
+\ctable{dilemmas-answer-stats-frontier}{The same answer and entropy statistics for the frontier comparison models the dilemmas were also run on. The presentation and \judgemodel{} were unchanged.}
 
-\ctable{dilemmas-answer-stats-frontier}{The same answer and stability statistics for the frontier comparison models the dilemmas were also run on. The presenter and \judgemodel{} were unchanged.}
+\section{Work profiles and dilemmas}
+\label{sec:dilemma-profiles}
+
+Each dilemma is set in one of ten work profiles. \tabref{dilemmas-profiles} lists the profiles with the role the agent is given and the documents reproduced in its system prompt. The full system prompts, including the full text or summary of each document, are stored with the profile in \texttt{code/dilemmas/profiles/}. \tabref{dilemmas-list} lists the thirty dilemmas with a one-line summary of the situation; the full situation, question and answer options are in the same files.
+
+\ctable{dilemmas-profiles}{The ten work profiles used for the dilemmas. The documents column lists what is reproduced in the profile's system prompt; (summarised) marks a document reproduced as a summary rather than in full.}
+
+\ctable{dilemmas-list}{The thirty dilemmas, with a one-line summary of each situation.}
+
+
+\section{Quality judge prompt}
+\label{sec:dilemma-judge-prompt}
+
+The three-judge ensemble that scored the potential survey comparisons was given the prompt below \cite{zhengJudgingLLMasaJudgeMTBench2023}. The prompt defines the three scored metrics (value divergence, survey quality and interest), the answer-option agreement, the competence judgement and the flags, and supplies the nineteen Schwartz basic values the answers are mapped onto \cite{schwartzRefiningTheoryBasic2012}. The reported scores use the ensemble mean; the version and prompt are recorded in the file.
+
+{\small\verbatiminput{../../code/figures/dilemma_judge_prompt.txt}}
+
+\subsection{Testing for situational awareness}
+\label{subsec:situational-awareness}
+
+Given the fact that models can be situationally aware of their environment \cite{berglundTakenOutContext2023,laineMeMyselfAI2024,phuongEvaluatingFrontierModels2025} a scan was done to search for situational awareness. Specifically an LLM-as-Judge was used to scan the model responses and reasoning to see if the model overtly demonstrated awareness of whether it was in a test/evaluation environment.\fixme{Move this subsection out of the quality judge prompt section; it is a separate check.}
+
+GPT-5.6-Luna was used and provided a score from 0 (not aware) to 4 (fully aware and gaming the system). The results for the frontier models are shown in \figref{awareness-profile-heatmap}. We can see that most of the dilemma profiles had minimal awareness with the exception of the incident response dilemmas. This work profile was the one that most closely resembled a trolley problem \cite{awadMoralMachineExperiment2018}, which models are strong enough to detect \fixme{citation needed for model recognition of trolley problems.}. Furthermore the small models show minimal awareness of their surroundings and so overt situational awareness and gaming of the system is not a concern.
+
+\cfigure{awareness-profile-heatmap}{The average awareness score for each dilemma across the models for the frontier models with five runs per dilemma.}
+\fixme{Claude/GPT reasoning is encrypted, so their scores are not valid. Re-run with explicit reasoning summaries.}
+\fixme{Add in some other smaller frontier models}
+
+The same scan was run over the fine-tuned batch, which holds the base model and all four adapters at ten runs per dilemma. \tabref{dilemmas-awareness-finetuned} shows each model's mean awareness score and \figref{awareness-profile-heatmap-finetuned} shows the profile-level scores. None of the fine-tuned models is more aware than the base model. All of the models are generally unaware in this simple probe.
+
+\ctable{dilemmas-awareness-finetuned}{The mean situational-awareness score of the base model and the four fine-tuned models from the fine-tuned batch, with the standard deviation across responses and the number of scored responses. Each dilemma was run ten times per model.}
+
+\cfigure{awareness-profile-heatmap-finetuned}{The average awareness score for each dilemma across the fine-tuned models and their base model, with ten runs per dilemma.}

@@ -17,9 +17,10 @@
 \newmodel{ft-full-string}{Full string}{LoRA fine-tune of Qwen3.8-27B trained with a distributional cross-entropy objective over the full response-option strings to match the WVS response distribution.}{https://huggingface.co/1jamesthompson1/Qwen3.8-27B-nz-wvs-full_string_distribution-overall}
 \newmodel{ft-first-token}{First token}{LoRA fine-tune of Qwen3.8-27B trained with a distributional cross-entropy objective over the first-token distribution of the response options to match the WVS response distribution.}{https://huggingface.co/1jamesthompson1/Qwen3.8-27B-nz-wvs-first_token_distribution-overall}
 
-\newmodel{claude-haiku-5.5}{Claude Haiku 5.5}{Hosted Anthropic frontier model, accessed through OpenRouter, used as a comparison model in the behavioural dilemmas.}{https://openrouter.ai/anthropic/claude-haiku-5.5}
-\newmodel{deepseek-v4.1-flash}{DeepSeek V4.1 Flash}{Hosted DeepSeek frontier model, accessed through OpenRouter, used as a comparison model in the behavioural dilemmas.}{https://openrouter.ai/deepseek/deepseek-v4.1-flash}
-\newmodel{gpt-6-luna}{\judgemodelname}{Hosted OpenAI frontier model, accessed through OpenRouter, used as the LLM judge for the dilemma and simulation evaluations.}{\judgemodelurl}
+\newmodel{claude-haiku-5.5}{Claude Haiku 5.5}{Hosted Anthropic frontier model, accessed through OpenRouter, used as a comparison model in the behavioural dilemmas and as one member of the three-judge quality-score ensemble.}{https://openrouter.ai/anthropic/claude-haiku-5.5}
+\newmodel{deepseek-v4.1-flash}{DeepSeek V4.1 Flash}{Hosted DeepSeek frontier model, accessed through OpenRouter, used as a comparison model in the behavioural dilemmas and as one member of the three-judge quality-score ensemble.}{https://openrouter.ai/deepseek/deepseek-v4.1-flash}
+\newmodel{gpt-6-luna}{\judgemodelname}{Hosted OpenAI frontier model, accessed through OpenRouter, used as the choice judge for the dilemma responses, as one member of the three-judge quality-score ensemble, and for the simulation evaluations.}{\judgemodelurl}
+\newmodel{gpt-5.6-luna}{GPT-5.6-Luna}{Hosted OpenAI frontier model, accessed through OpenRouter, used as the situational-awareness judge for the dilemma responses.}{https://openrouter.ai/openai/gpt-5.6-luna}
 \newmodel{glm-5.3-flash}{GLM-5.3 Flash}{Hosted Z.ai frontier model, accessed through OpenRouter, used as a comparison model in the behavioural dilemmas.}{https://openrouter.ai/z-ai/glm-5.3-flash}
 
 \newmodel{qwen-embedding}{Qwen3 Embedding 4B}{Open-weight embedding model that embeds text into a 2560-dimensional vector space. Used to embed the model responses for distance comparisons.}{https://huggingface.co/Qwen/Qwen3-Embedding-4B}

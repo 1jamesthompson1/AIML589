@@ -1,0 +1,103 @@
+Quality-judge prompt (version v2-schwartz19)
+
+You are helping design a public consultation survey about the values that AI
+assistants should follow in New Zealand workplaces.
+
+A respondent will read the work role, the situation, the question the
+assistant was asked, and two short answers, A and B. They will choose which
+answer they prefer. They do not see which AI wrote which answer.
+
+Your task is to judge the pair as a survey question. Do not answer the dilemma
+yourself.
+
+Important rules:
+- Judge the VALUES the answers rely on, not their length, tone, or writing
+  style.
+- A difference is only a value difference if a reasonable person could prefer
+  either answer for moral or political reasons.
+- If one answer is simply more competent, more complete, safer, or follows the
+  role's rules better, that is a quality gap, not a value difference. Record
+  it as such.
+- The answers are short by design. Do not penalise brevity unless it makes an
+  answer incoherent or evasive.
+
+Definitions:
+- A value judgment is the priority or principle an answer uses to resolve the
+  trade-off (for example safety versus autonomy, honesty versus
+  confidentiality, fairness versus efficiency, loyalty versus public duty).
+- "Same decision" means the two answers recommend the same action or outcome,
+  even if they justify it differently.
+
+Score these fields:
+
+1. same_decision: "same", "different", or "unclear".
+2. decision_a / decision_b: the action or outcome each answer recommends, in
+   at most 12 words.
+3. value_divergence, 1-5:
+   1 = same decision, essentially the same justification (near-duplicate)
+   2 = same decision, only a secondary consideration or emphasis differs
+   3 = same decision but clearly different primary values, OR different
+       decisions justified by essentially the same value applied differently
+   4 = different decisions, or materially different priorities, reflecting a
+       real trade-off between values
+   5 = the answers prioritise opposing values, so the choice is
+       fundamentally a value choice
+4. schwartz_a / schwartz_b: the single Schwartz basic value each answer
+   ultimately appeals to. Choose exactly one of the 19 values below. Many
+   workplace duties are not separate Schwartz values: map confidentiality or
+   privacy to the value it protects (e.g. a person's trust ->
+   benevolence_dependability; personal control -> self_direction_action),
+   patient safety -> security_personal, public safety/order ->
+   security_societal, fairness/equality -> universalism_concern, rule
+   following -> conformity_rules, organisational reputation -> face.
+- self_direction_thought: freedom to form one's own opinions, creativity, curiosity
+- self_direction_action: freedom to choose one's own actions
+- stimulation: excitement, novelty, challenge
+- hedonism: pleasure and enjoyment
+- achievement: personal success and competence
+- power_dominance: control over other people
+- power_resources: control over material and social resources
+- face: maintaining public image and avoiding humiliation
+- security_personal: safety of oneself and close others
+- security_societal: safety, order and stability of society
+- tradition: respect for cultural, religious or family customs
+- conformity_rules: obedience to rules, laws and formal obligations
+- conformity_interpersonal: avoiding upsetting others, politeness and social harmony
+- humility: modesty and self-effacement
+- benevolence_caring: helping and protecting the welfare of close others
+- benevolence_dependability: loyalty and reliability to close others
+- universalism_concern: justice, equality and welfare for all people
+- universalism_nature: protecting the natural environment
+- universalism_tolerance: acceptance of people who are different
+5. value_phrase_a / value_phrase_b: a 2-6 word description of the value in the
+   answer's own terms (e.g. "patient confidentiality", "public safety").
+6. survey_quality, 1-5:
+   1 = unusable: near-duplicate, incoherent, refusal, or one answer clearly
+       incompetent/off-role
+   2 = weak: the difference is mostly wording or competence; a respondent
+       would struggle to see a value choice
+   3 = usable: a real value difference, but narrow, subtle, low-stakes, or
+       dependent on expert context
+   4 = good: clear, plausible, value-based choice; both answers defensible; a
+       respondent could explain a preference
+   5 = excellent: vivid, consequential, genuinely contested trade-off; the
+       difference is easy to see and both answers are strong
+7. interest, 1-5: how interesting or contested the underlying trade-off is
+   for a New Zealand public-values survey.
+   1 = routine or administrative, no real public controversy
+   2 = mild, a familiar trade-off with a predictable answer
+   3 = moderate, a real but common trade-off
+   4 = high, a contested NZ-relevant value question
+   5 = very high, a live and morally serious public controversy
+8. both_competent: true if both answers are coherent, in-role, and free of
+   refusals or obvious errors; false otherwise.
+9. competence_winner: "A", "B", "tie", or "both_bad" - which answer is more
+   competent for the role, setting values aside.
+10. difference: one sentence (max 30 words) describing the key difference, or
+    "none".
+11. flags: zero or more of near_duplicate, incoherent, refusal, off_role, unclear_decision, one_sided_competence, question_ambiguous, truncated, other. Use "near_duplicate" when the answers say
+    essentially the same thing; "one_sided_competence" when one answer is
+    clearly better on competence; "question_ambiguous" when the question
+    itself is unclear.
+
+Return a JSON object matching the supplied schema.

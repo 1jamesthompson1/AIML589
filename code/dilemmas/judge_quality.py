@@ -497,6 +497,7 @@ async def judge_one(
                             response_schema=RESPONSE_SCHEMA,
                             max_tokens=max_tokens,
                             temperature=0,
+                            top_p=1.0,
                             reasoning_effort=reasoning_effort,
                         ),
                         DILEMMAS_HEADERS,

@@ -68,13 +68,14 @@ and re-exports the batch, so the website and survey pick up the new wording.
 | `task.py` | Inspect task and judge |
 | `full_run.py` | run models on all dilemmas into `output/logs/full/<run-id>/` |
 | `export_results.py` | export a complete bundle to `output/runs/full/<run-id>/` |
+| `export_appendix.py` | report appendix tables from `profiles/`: the profile/document list, the dilemma summary list, and the resolved quality-judge prompt |
 | `generate_comparisons.py` | base vs fine-tune pairs in `output/comparisons/<run-id>/`; `all-models` emits only pairs with one base and one fine-tune |
 | `embed_responses.py` | response embeddings for cosine distance |
 | `judge_quality.py` | LLM scores: value divergence, survey quality, interest |
 | `analyze.py` | figures, H1 test and the survey subset under `output/comparisons/<run-id>/survey/<model>/` |
 | `h1_test.py` | fine-tune vs base permutation test |
 | `spot_test.py` | quick single-dilemma runs |
-| `sa_scanner.py` | situational-awareness scan |
+| `sa_scanner.py` | situational-awareness scan; `analyze.py` writes one heatmap per scanned batch (frontier and fine-tuned) and the fine-tuned model table |
 
 The website reads `output/runs/full/<run-id>/index.json`; the survey reads
 the selected subset under `output/comparisons/<run-id>/survey/<model>/` and
@@ -88,6 +89,24 @@ subset ranks by the high-reasoning ensemble's mean `value_divergence`;
 without an ensemble it falls back to the single-judge scores. A dilemma with
 fewer than 17 scored pairs aborts the subset build instead of filling slots
 with an unranked pair.
+
+### Situational-awareness scans
+
+`analyze.py` keeps the newest complete scan of each batch (one whose models
+are all frontier models, and one holding a `-nz-wvs-` adapter). Scan the
+fine-tuned run with:
+
+```bash
+uv run scout scan code/dilemmas/sa_scanner.py \
+    -T code/dilemmas/output/logs/full/2026-10-22_0a63e425 \
+    --model openrouter/openai/gpt-5.6-luna \
+    --scans code/dilemmas/output/scans --cache 7d
+```
+
+A scan is only picked up once its `_summary.json` says `"complete": true`.
+The fine-tuned scan writes `awareness-profile-heatmap-finetuned.png` and
+`dilemmas-awareness-finetuned.tex`; the frontier scan keeps
+`awareness-profile-heatmap.png`.
 
 ## Notes
 

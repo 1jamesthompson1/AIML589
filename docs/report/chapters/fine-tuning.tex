@@ -7,9 +7,9 @@ The goal of this chapter is to show that an open weight model can be fine-tuned 
 \end{enumerate}
 
 
-In section \ref{sec:ft-results} we wil find that ...
+In \ref{sec:ft-results} we wil find that ...
 
-In section \ref{sec:ft-dataset} and section \ref{sec:ft-methods} I describe the methods used ot create the dataset and fine-tune the model.
+In \ref{sec:ft-dataset,sec:ft-methods} I describe the methods used ot create the dataset and fine-tune the model.
 
 \section{Different models respond differently to survey questions}
 \label{sec:ft-different-models}
@@ -40,7 +40,7 @@ This is the cheapest method of alignment. It involves just prompting a model tha
 A simple prompt is used and appended to the system prompts of the model in the evaluations. "Respond as an average New Zealand person would".
 \ctable{ft-results-nopersona-Qwen3.8-27B}{The results of the base model, prompted model and fine tuned model on the world values survey evaluations when using only the \texttt{no-persona} system prompt.}
 
-As can be seen in both \tabref{ft-results-nopersona-Qwen3.8-27B} and \tabref{ft-results-Qwen3.8-27B} the prompted model does not perform as well as the fine-tuned model. It even performs worse on almost every measure. This demonstrates that the \modelref{qwen3.8-27b} model has insufficient knowledge of how a New Zealander would respond to the survey questions and that simple prompting alone is not sufficient.
+As can be seen in both \tabref{ft-results-nopersona-Qwen3.8-27B,ft-results-Qwen3.8-27B} the prompted model does not perform as well as the fine-tuned model. It even performs worse on almost every measure. This demonstrates that the \modelref{qwen3.8-27b} model has insufficient knowledge of how a New Zealander would respond to the survey questions and that simple prompting alone is not sufficient.
 
 It is plausible that more complex prompting—namely few-shot or longer personas—could improve the prompted model's performance. This has not been tested.
 
@@ -82,7 +82,7 @@ In all cases Don't konw is treated as a first class answer and modelled. This ha
 
 LLM use system prompts to imbue the model with a person and to give instructions how it should respond \cite{brownLanguageModelsAre2020,salewskiInContextImpersonationReveals2023}. Previous studies have not used system prompts when training/evaluating LLMs on survey data \cite{durmusMeasuringRepresentationSubjective2024,caoSpecializingLargeLanguage2025,nieSurveytoBehaviorDownstreamAlignment2025}. This is partly due to previuos generation of models being much less able to follow instructions coherently therefore the propmt had to be set up in a text completion format (e.g., "If I had to give an answer my answer would be ..."). More modern LLM are very good at following system prompts, and given the importance of system prompts in LLM behaviour we have used a range of system prompts. This it to ensure  that the model won't simply 'forget' the value it learns when a new system prompt is used and to explore the effects of system prompts on the fine-tuning performance.
 
-The system prompts used are designed to span the range of possible system prompts on the axis of how self aware the model should be. On one extreme is the \texttt{no persona} prompt which is only instructions n how to respond. Whereas a system prompt like \texttt{values reflection} heavily implies the models has an internal value system, similarly \texttt{AI research assistant} tells the model it is taking a value survey and that it is an AI system. A full list of system prompts can be found in Section~\ref{sec:system-prompts}.
+The system prompts used are designed to span the range of possible system prompts on the axis of how self aware the model should be. On one extreme is the \texttt{no persona} prompt which is only instructions n how to respond. Whereas a system prompt like \texttt{values reflection} heavily implies the models has an internal value system, similarly \texttt{AI research assistant} tells the model it is taking a value survey and that it is an AI system. A full list of system prompts can be found in \ref{sec:system-prompts}.
 
 
 \subsection{Held out validation data}

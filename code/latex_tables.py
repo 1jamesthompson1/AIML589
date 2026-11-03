@@ -59,18 +59,34 @@ def escape_latex(text: object) -> str:
     )
 
 
-def highlight_best(df: pd.DataFrame, senses: dict | None = None):
+def highlight_best(
+    df: pd.DataFrame,
+    senses: dict | None = None,
+    bold_below: dict | None = None,
+):
     """Bold the best value per column: max for numeric columns by default,
     or per column via senses={label: "max"|"min"} (e.g. for MultiIndex
-    columns keyed by metric)."""
+    columns keyed by metric).
+
+    ``bold_below`` bolds every value below a cutoff instead of the best value,
+    keyed by the unescaped column label (e.g. ``{"p (BH)": 0.05}`` for
+    significance). A column listed there is not compared for best/worst.
+    """
+    bold_below = bold_below or {}
 
     def highlight(series):
+        label = series.name[0] if isinstance(series.name, tuple) else series.name
+        if label in bold_below:
+            cutoff = bold_below[label]
+            return [
+                "font-weight: bold;" if pd.notna(v) and v < cutoff else ""
+                for v in series
+            ]
         if senses is None:
             if not pd.api.types.is_numeric_dtype(series):
                 return ["" for _ in series]  # e.g. CI columns: no highlighting
             best = series.max()
         else:
-            label = series.name[0] if isinstance(series.name, tuple) else series.name
             if label not in senses:
                 return ["" for _ in series]
             best = series.max() if senses[label] == "max" else series.min()
@@ -106,6 +122,7 @@ def write_latex_table(
     stub_label: str = "Model",
     figs_dir: Path | None = None,
     highlight: bool = True,
+    bold_below: dict | None = None,
 ) -> Path:
     """Style, format, and write a DataFrame to a resizebox-wrapped booktabs
     tabular in code/figures. Styler does not escape labels, so index values and
@@ -116,6 +133,7 @@ def write_latex_table(
 
     ``senses`` keys match the *unescaped* labels; they are escaped with the
     labels so highlighting keeps working (e.g. ``{"TVD (%)": "min"}``).
+    ``bold_below`` does the same for a cutoff, e.g. bold p-values below .05.
     Set ``highlight=False`` for tables where bolding the maximum is not
     meaningful (e.g. exclusion counts)."""
 
@@ -141,9 +159,17 @@ def write_latex_table(
         table.columns = pd.Index([escape_header(str(value)) for value in table.columns])
     if senses:
         senses = {escape_header(str(label)): sense for label, sense in senses.items()}
+    if bold_below:
+        bold_below = {
+            escape_header(str(label)): cutoff for label, cutoff in bold_below.items()
+        }
 
     tex = (
-        (highlight_best(table, senses=senses) if highlight else table.style)
+        (
+            highlight_best(table, senses=senses, bold_below=bold_below)
+            if highlight
+            else table.style
+        )
         .format(fmt, na_rep="--")
         .to_latex(
             convert_css=True,
@@ -165,6 +191,7 @@ def write_text_table(
     ragged_columns: tuple[str, ...] = (),
     resize: bool = True,
     figs_dir: Path | None = None,
+    font: str | None = None,
 ) -> Path:
     """Write an index-hidden booktabs tabular for a table of prose text.
 
@@ -172,7 +199,9 @@ def write_text_table(
     Columns named in ``ragged_columns`` are set ragged right inside their
     ``p{}`` cells so wrapped prose is not stretched; those columns must be
     declared as ``p{}`` in ``column_format``. Wrapped in a resizebox unless
-    ``resize=False``."""
+    ``resize=False``. ``font`` wraps the tabular in a font-size group (e.g.
+    ``r"\\footnotesize"``) so a long table can be set smaller inside
+    ``\\ctable``'s ``\\small``."""
 
     escaped = df.map(escape_latex).rename(columns=escape_latex)
     for column in ragged_columns:
@@ -183,6 +212,8 @@ def write_text_table(
         column_format=column_format,
         hrules=True,
     )
+    if font:
+        tex = "{" + font + "\n" + tex + "\n}"
     if resize:
         tex = resizebox(tex)
     return write_tex(tex, out_name, figs_dir)

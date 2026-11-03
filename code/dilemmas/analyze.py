@@ -1,6 +1,6 @@
 import marimo
 
-__generated_with = "0.25.1"
+__generated_with = "0.25.2"
 app = marimo.App(width="medium")
 
 
@@ -62,7 +62,7 @@ def _():
 
     # Shared LaTeX table helpers live in code/latex_tables.py.
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-    from latex_tables import escape_header, write_latex_table
+    from latex_tables import escape_header, write_latex_table  # noqa: I001
 
     HERE = Path(__file__).resolve().parent
     return (
@@ -140,7 +140,7 @@ def _(json, plt):
         plt.close(figure)
         return path
 
-    return newest_matching, pivot_means_counts, read_json, save_figure
+    return pivot_means_counts, read_json, save_figure
 
 
 @app.cell
@@ -717,8 +717,10 @@ def _(mo):
 
     The p-values are Monte Carlo p-values, `(1 + #{null >= observed}) /
     (replicates + 1)`, so the smallest possible p is 1/10,001. The
-    per-dilemma p-values are uncorrected: the pre-specified correction is
-    the Benjamini-Hochberg step across the four overall effects.
+    per-dilemma p-values are also Benjamini-Hochberg corrected across a
+    model's dilemmas and reported as **p (BH)** beside the raw p, because the
+    per-dilemma scan tests 30 dilemmas per model. The pre-specified
+    correction is still the one across the four overall effects.
 
     The rate of **"Other or unclear"** judge classifications is reported
     separately (a catch-all classification carries no decision), and the
@@ -797,7 +799,12 @@ def _(
     )
 
     def h1_summary_frame(results):
-        """The summary of the test: one row per fine-tuned model."""
+        """The summary of the test: one row per fine-tuned model.
+
+        ``SD TVD`` is the spread of the model's TVD across the dilemmas, so a
+        mean effect that comes from a few decisive dilemmas is distinguishable
+        from one spread evenly across all of them.
+        """
         if results.summary.empty:
             return pd.DataFrame()
         frame = results.summary.set_index("Model")[
@@ -808,6 +815,11 @@ def _(
                 "p (BH)",
             ]
         ].copy()
+        frame.insert(
+            1,
+            "SD TVD",
+            results.per_dilemma.groupby("Model")["TVD"].std().reindex(frame.index),
+        )
         frame.index = frame.index.set_names(["Model"])
         return frame
 
@@ -817,6 +829,7 @@ def _(
             frame,
             {
                 "Mean TVD": "{:.3f}",
+                "SD TVD": "{:.3f}",
                 "Null mean TVD": "{:.3f}",
                 "p (overall)": "{:.4f}",
                 "p (BH)": "{:.4f}",
@@ -829,7 +842,7 @@ def _(
         )
 
     def h1_dilemma_frame(results, model_order):
-        """The per-dilemma results: the TVD and its p-value per model."""
+        """The per-dilemma results: the TVD, its raw p and its BH-adjusted p."""
         if results.per_dilemma.empty:
             return pd.DataFrame()
         frame = pd.DataFrame(index=sorted(results.per_dilemma["Dilemma"].unique()))
@@ -839,13 +852,17 @@ def _(
             ].set_index("Dilemma")
             frame[f"{model} TVD"] = subset["TVD"]
             frame[f"{model} p"] = subset["p"]
+            frame[f"{model} p (BH)"] = subset["p (BH)"]
         frame.index = frame.index.set_names(["Dilemma"])
         return frame
 
     h1_summary_df = h1_summary_frame(h1_results)
     h1_sensitivity_df = h1_summary_frame(h1_sensitivity)
-    # The per-dilemma results come from the main run only.
-    h1_dilemma_df = h1_dilemma_frame(h1_main_results, main_order)
+    # The per-dilemma results come from the main run only; kept for the
+    # notebook view rather than written as a report table.
+    h1_dilemma_df = h1_dilemma_frame(  # noqa: F841 - notebook view
+        h1_main_results, main_order
+    )
     h1_main_summary_df = h1_summary_frame(h1_main_results)
     # The base model first, then the fine-tuned models in the study set's
     # order, so the table reads like the rest of the notebook.
@@ -869,24 +886,10 @@ def _(
     if not h1_main_summary_df.empty:
         # The main test: the modal adapter on the main run.
         h1_write_summary(h1_main_summary_df, "dilemmas-h1-summary-main.tex")
-        # The per-dilemma table: the largest TVD and the smallest p per
-        # column are highlighted.
-        h1_senses = {
-            column: ("max" if column.endswith("TVD") else "min")
-            for column in h1_dilemma_df.columns
-        }
-        write_latex_table(
-            h1_dilemma_df,
-            {
-                column: ("{:.2f}" if column.endswith("TVD") else "{:.3f}")
-                for column in h1_dilemma_df.columns
-            },
-            h1_dilemma_df.shape[1],
-            "dilemmas-h1-per-dilemma.tex",
-            senses=h1_senses,
-            column_format="l" + "r" * h1_dilemma_df.shape[1],
-            stub_label="Dilemma",
-        )
+        # The per-dilemma TVD and its BH-adjusted p are written with the
+        # judge's scores as one table in the modal-quality cell
+        # (``dilemmas-modal-quality.tex``), so they are not duplicated here.
+        # ``h1_dilemma_df`` is kept for the notebook view.
 
     # The results are written out as JSON as well, so the numbers can be
     # checked without rerunning the notebook.
@@ -1628,6 +1631,13 @@ def _(h1_main_results, pd, pools, write_latex_table):
         rows = []
         for dilemma, group in quality.groupby("dilemma_id", sort=True):
             row = {"Dilemma": dilemma}
+            # The H1 table keys on the situation id; keep it so the two can be
+            # joined without re-parsing the dilemma id.
+            row["Situation"] = (
+                group["situation_id"].iloc[0]
+                if "situation_id" in group.columns
+                else dilemma.split("-", 1)[1]
+            )
             for label, column in score_columns.items():
                 values = pd.to_numeric(group[column], errors="coerce").dropna()
                 row[label] = (
@@ -1640,15 +1650,56 @@ def _(h1_main_results, pd, pools, write_latex_table):
 
         return pd.DataFrame(rows).set_index("Dilemma")
 
-    modal_quality_table = quality_dilemma_table(pools)
+    def merge_judge_and_h1(quality_table, per_dilemma, model_marker="modal"):
+        """The judge's three scores beside the H1 divergence and its adjusted p.
 
+        One row per dilemma. ``quality_table`` is keyed by ``dilemma_id``
+        (``<profile>-<situation>``) while the H1 table is keyed by the
+        situation id alone, so the join strips the profile prefix. The raw
+        permutation p is dropped: the BH-adjusted value is what the report
+        reads.
+        """
+        if quality_table.empty or per_dilemma.empty:
+            return pd.DataFrame()
+        modal_rows = per_dilemma[
+            per_dilemma["Model"].str.lower().str.contains(model_marker)
+        ].set_index("Dilemma")
+        merged = quality_table.drop(columns=["H1 significant"]).copy()
+        situations = merged.pop("Situation")
+        missing = sorted(set(situations) - set(modal_rows.index))
+        if missing:
+            print(
+                f"warning: no H1 result for {len(missing)} dilemma(s), "
+                f"left blank: {missing}"
+            )
+        merged.insert(0, "TVD", [modal_rows["TVD"].get(s) for s in situations])
+        merged.insert(1, "p (BH)", [modal_rows["p (BH)"].get(s) for s in situations])
+        return merged
+
+    modal_quality_table = quality_dilemma_table(pools)
+    modal_scores_table = merge_judge_and_h1(
+        modal_quality_table, h1_main_results.per_dilemma
+    )
+
+    # One table for the per-dilemma evidence: how far apart the two models'
+    # answer distributions are (TVD), whether that is significant after the
+    # BH correction, and the judge's mean (variance) scores for the same
+    # dilemmas. Divergence and the scores are bolded at their maximum; p (BH)
+    # is bolded below the significance level.
     write_latex_table(
-        modal_quality_table,
-        {col: "{}" for col in modal_quality_table.columns},
-        len(modal_quality_table.columns),
+        modal_scores_table,
+        {
+            "TVD": "{:.2f}",
+            "p (BH)": "{:.4f}",
+            **{col: "{}" for col in ("Survey quality", "Interest", "Difference")},
+        },
+        len(modal_scores_table.columns),
         "dilemmas-modal-quality.tex",
-        senses={col: "max" for col in modal_quality_table.columns},
-        column_format="l" + "r" * len(modal_quality_table.columns),
+        senses={
+            col: "max" for col in ("TVD", "Survey quality", "Interest", "Difference")
+        },
+        bold_below={"p (BH)": 0.05},
+        column_format="l" + "r" * len(modal_scores_table.columns),
         stub_label="Dilemma",
     )
 
@@ -2490,12 +2541,6 @@ def _(
 
 
 @app.cell
-def _():
-    # Give examples of the different levels of divergence.
-    return
-
-
-@app.cell
 def _(
     PER_DILEMMA,
     P_THRESHOLD,
@@ -2581,10 +2626,12 @@ def _(mo):
     deployed agents.
 
     The scan (see `sa_scanner.py` and the README) scores every scanned response
-    0-4. This cell pools those scores by model x work profile and writes the
-    heatmap to `code/figures/awareness-profile-heatmap.png`. The score says how
-    often a model broke frame; it is not a measure of how good its answers
-    were.
+    0-4. This cell pools those scores by model x work profile and writes a
+    heatmap per scanned batch: `code/figures/awareness-profile-heatmap.png` for
+    the frontier comparison models and
+    `code/figures/awareness-profile-heatmap-finetuned.png` for the fine-tuned
+    batch, plus the fine-tuned model table. The score says how often a model
+    broke frame; it is not a measure of how good its answers were.
     """)
     return
 
@@ -2593,7 +2640,6 @@ def _(mo):
 def _(
     HERE,
     json,
-    newest_matching,
     np,
     pd,
     pivot_means_counts,
@@ -2601,14 +2647,34 @@ def _(
     read_json,
     save_figure,
     scan_results_df,
+    write_latex_table,
 ):
     SCANNER_KEY = "situational_awareness"  # scanner name from sa_scanner.py
+    # The fine-tuned batch's report order: the four adapters, base last.
+    FINETUNED_ORDER = ["full-string", "sampled", "modal", "first-token", "base"]
 
     def as_mapping(value):
         """Scout result metadata columns arrive as dict or JSON string."""
         if isinstance(value, str):
             return json.loads(value)
         return value if isinstance(value, dict) else {}
+
+    def short_model(model):
+        """The report label for a scanned model.
+
+        A fine-tuned adapter carries the base model name and the ``nz-wvs-``
+        marker, so strip both; the local base model is labelled ``base`` and
+        any other model keeps its own name.
+        """
+        name = str(model).split("/")[-1]
+        if "nz-wvs-" in name:
+            name = name.split("nz-wvs-", 1)[1]
+            name = name.replace("_distribution-overall", "")
+            name = name.replace("_response-overall", "")
+            return name.replace("_", "-")
+        if name.startswith("Qwen3.8-27B"):
+            return "base"
+        return name
 
     def scan_frame(scan_dir):
         """The scanned rows joined with the eval sample metadata, and the
@@ -2623,7 +2689,7 @@ def _(
         ]
         df["profile_id"] = [meta.get("profile_id", "") for meta in sample_metadata]
         df["dilemma_id"] = [meta.get("dilemma_id", "") for meta in sample_metadata]
-        df["model"] = [model.split("/")[-1] for model in df["transcript_model"]]
+        df["model"] = [short_model(model) for model in df["transcript_model"]]
         return df, failed
 
     def profile_order(profiles_dir):
@@ -2673,21 +2739,35 @@ def _(
         save_figure(figure, out_path, dpi=dpi)
         return out_path
 
-    def awareness_profile_heatmap(scans_dir, profiles_dir, fig_dir):
-        """The model x profile mean awareness heatmap.
+    def scan_kind(df):
+        """The batch a scan covers: an adapter means the fine-tuned batch."""
+        return (
+            "fine-tuned"
+            if df["transcript_model"].astype(str).str.contains("nz-wvs").any()
+            else "frontier"
+        )
 
-        Returns an empty frame and writes nothing when the logs have not
-        been scanned yet, so the notebook still runs on a fresh checkout.
-        """
-        scan_dir = newest_matching(scans_dir, "scan_id=*")
-        if scan_dir is None:
-            print(f"no scan under {scans_dir} - run scout scan first")
-            return pd.DataFrame(), None
-        df, failed = scan_frame(scan_dir)
-        if df.empty:
-            print(f"no scored transcripts in {scan_dir}")
-            return pd.DataFrame(), None
-        print(f"scan {scan_dir.name}: {len(df)} transcripts scored, {failed} failed")
+    def newest_scan_per_kind(scans_dir):
+        """The newest complete scan of each batch (frontier, fine-tuned)."""
+        newest = {}
+        for scan_dir in scans_dir.glob("scan_id=*"):
+            # A scan directory is only complete once its summary exists and
+            # says so, so a running scan is not picked up half-finished.
+            summary = read_json(scan_dir / "_summary.json", {}) or {}
+            if not summary.get("complete"):
+                continue
+            df, failed = scan_frame(scan_dir)
+            if df.empty:
+                continue
+            kind = scan_kind(df)
+            if kind not in newest or (
+                scan_dir.stat().st_mtime > newest[kind][0].stat().st_mtime
+            ):
+                newest[kind] = (scan_dir, df, failed)
+        return newest
+
+    def awareness_profile_heatmap(df, out_path, title):
+        """The model x profile mean awareness heatmap for one scan."""
         # Rows are ordered by each model's mean score across the dilemmas;
         # the columns are the live profiles in profiles/ file order, then
         # any retired ones.
@@ -2696,28 +2776,79 @@ def _(
         means, counts = pivot_means_counts(df, "profile_id")
         live = [
             profile
-            for profile in profile_order(profiles_dir)
+            for profile in profile_order(HERE / "profiles")
             if profile in means.columns
         ]
         retired = sorted(profile for profile in means.columns if profile not in live)
         means = means.reindex(index=row_order, columns=live + retired)
         counts = counts.reindex(index=means.index, columns=means.columns)
-        out_path = fig_dir / "awareness-profile-heatmap.png"
-        plot_heatmap(
-            means,
-            counts,
-            out_path,
-            "Situational-awareness scan: model x profile (pooled means)",
-            "profile",
-        )
+        plot_heatmap(means, counts, out_path, title, "profile")
         print(f"Figure written to {out_path}")
-        return means, out_path
+        return means
 
-    awareness_profile_df, awareness_figure_path = awareness_profile_heatmap(
-        HERE / "output" / "scans", HERE / "profiles", HERE.parent / "figures"
-    )
+    def awareness_table(df):
+        """Mean, SD and scored runs of each fine-tuned model's awareness."""
+        table = (
+            df.groupby("model")["value"]
+            .agg(["mean", "std", "count"])
+            .rename(columns={"mean": "Mean", "std": "SD", "count": "Runs"})
+        )
+        order = [model for model in FINETUNED_ORDER if model in table.index]
+        order += [model for model in table.index if model not in order]
+        table = table.reindex(order)
+        table.index = table.index.set_names(["Model"])
+        return table
 
-    awareness_profile_df
+    def awareness_outputs():
+        """Write every scanned batch's heatmap and the fine-tuned table."""
+        scans = newest_scan_per_kind(HERE / "output" / "scans")
+        summary = []
+        if "frontier" in scans:
+            scan_dir, frame, failed = scans["frontier"]
+            print(
+                f"frontier scan {scan_dir.name}: {len(frame)} scored, {failed} failed"
+            )
+            awareness_profile_heatmap(
+                frame,
+                HERE.parent / "figures" / "awareness-profile-heatmap.png",
+                "Situational-awareness scan: model x profile (pooled means)",
+            )
+            summary.append(
+                {"batch": "frontier", "scan": scan_dir.name, "scored": len(frame)}
+            )
+        else:
+            print("no complete frontier scan - run scout scan first")
+        if "fine-tuned" in scans:
+            scan_dir, frame, failed = scans["fine-tuned"]
+            print(
+                f"fine-tuned scan {scan_dir.name}: {len(frame)} scored, {failed} failed"
+            )
+            awareness_profile_heatmap(
+                frame,
+                HERE.parent / "figures" / "awareness-profile-heatmap-finetuned.png",
+                "Situational-awareness scan: fine-tuned models x profile "
+                "(pooled means)",
+            )
+            table = awareness_table(frame)
+            write_latex_table(
+                table,
+                {"Mean": "{:.2f}", "SD": "{:.2f}", "Runs": "{:.0f}"},
+                table.shape[1],
+                "dilemmas-awareness-finetuned.tex",
+                column_format="l" + "r" * table.shape[1],
+                stub_label="Model",
+                figs_dir=HERE.parent / "figures",
+                highlight=False,
+            )
+            summary.append(
+                {"batch": "fine-tuned", "scan": scan_dir.name, "scored": len(frame)}
+            )
+        else:
+            print("no complete fine-tuned scan - run scout scan first")
+        return pd.DataFrame(summary, columns=["batch", "scan", "scored"])
+
+    awareness_summary = awareness_outputs()
+    awareness_summary
     return
 
 

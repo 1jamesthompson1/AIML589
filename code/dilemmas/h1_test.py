@@ -9,6 +9,10 @@ The analysis, as specified in the analysis plan:
   model labels without replacement within the dilemma.
 * The effect size is the total variation distance (TVD) between the two
   models' distributions over the dilemma's answer options.
+* A model's per-dilemma p-values are Benjamini-Hochberg corrected across its
+  dilemmas and reported as ``p (BH)`` alongside the raw p. This is an
+  exploratory correction for the per-dilemma scan; the pre-specified
+  correction remains the one across the four overall effects.
 * A model's overall effect size is the mean TVD across all dilemmas, compared
   with the mean TVD of the permutation null; the four overall p-values are
   Benjamini-Hochberg corrected.
@@ -254,6 +258,10 @@ def run_h1(
             else np.nan
         )
         p_dilemma = (1 + (null >= observed).sum(axis=0)) / (replicates + 1)
+        # An exploratory correction for the per-dilemma scan: the 30 dilemmas
+        # are tested per model. The pre-specified BH correction is still the
+        # one across the four overall effects.
+        p_dilemma_bh = benjamini_hochberg(p_dilemma)
         for position, dilemma in enumerate(shared):
             per_dilemma_rows.append(
                 {
@@ -265,6 +273,7 @@ def run_h1(
                     ),
                     "TVD": float(observed[position]),
                     "p": float(p_dilemma[position]),
+                    "p (BH)": float(p_dilemma_bh[position]),
                 }
             )
         summary_rows.append(
