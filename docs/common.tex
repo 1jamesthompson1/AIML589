@@ -19,6 +19,14 @@
 \usepackage[colorinlistoftodos, textwidth=2.3cm]{todonotes}
 \usepackage[backend=biber,style=numeric]{biblatex}
 
+% Floats: figures and tables default to the top of the page. This sets the
+% default for plain figure/table environments; the \cfigure and \ctable
+% helpers below set the same default in their optional argument.
+\makeatletter
+\def\fps@figure{t}
+\def\fps@table{t}
+\makeatother
+
 % Build system: override output PDF name
 \newcommand{\docname}[1]{}
 
@@ -49,6 +57,8 @@
 }
 
 % Figure convenience: \cfigure[placement][width]{filename}{caption}
+% The optional placement defaults to [t] (top of the page) and the caption is
+% placed below the image.
 % The label is auto-derived from the filename without extension, e.g.
 % \cfigure{bootstrap_stability.png}{Caption text} -> \label{fig:bootstrap_stability}
 % Images are loaded from the repo's code/figures/ dir (requires the xstring package)
@@ -67,7 +77,7 @@
    \IfEndWith{#1}{.jpeg}{\StrBefore{#1}{.jpeg}[#2]}{}%
 }
 
-\NewDocumentCommand{\cfigure}{O{htbp} O{0.8\textwidth} m m}{%
+\NewDocumentCommand{\cfigure}{O{t} O{0.8\textwidth} m m}{%
    \stripext{#3}{\cfiglabel}%
    \begin{figure}[#1]
       \centering
@@ -86,17 +96,20 @@
 \makeatother
 
 % Table convenience: \ctable[placement]{filename}{caption}
+% The optional placement defaults to [t] (top of the page) and the caption is
+% placed above the table.
 % The label is auto-derived from the filename without extension, e.g.
 % \ctable{fine-tuning/main-table-Qwen3.5-9B.tex}{...} -> \label{tab:main-table-Qwen3.5-9B}
 % The file is expected to hold a bare tabular (e.g. pandas to_latex output)
 % and is loaded from the repo's code/figures/ dir (requires the xstring package)
-\newcommand{\ctable}[3][htbp]{%
+\newcommand{\ctable}[3][t]{%
    \stripext{#2}{\ctablabel}%
    \begin{table}[#1]%
-      \centering\small%
-      \input{../../code/figures/#2}%
+      \centering%
       \caption{#3}%
       \label{tab:\ctablabel}%
+      \small%
+      \input{../../code/figures/#2}%
    \end{table}%
 }
 

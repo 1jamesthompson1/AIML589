@@ -174,6 +174,103 @@ nor a modest-but-real adapter effect trips it.
 
 ### Capability Evaluation
 
+`capability_eval.py` is a sanity check that fine-tuning did not remove
+general capability. It is deliberately small and cheap, and it is *not* a
+leaderboard run.
+
+| Task | n | Scoring | What it catches |
+|---|---|---|---|
+| `mmlu_pro_logprob` | 1,000 (seeded subset) | argmax over the **first-token A–J distribution** | knowledge, and whether the *distribution* moved even where the answer did not |
+| `mmlu_pro` (0-shot, CoT) | 1,000, same items | `strict` and `lenient` parsing | knowledge after reasoning, plus format compliance |
+| `ifeval` (full) | 541 | instruction verifier | instruction-format collapse |
+
+`mmlu_pro_logprob` costs **~1 output token per item** (~1.3 min per model)
+versus ~1,500 for the CoT variant (~21 min), so it is the high-n view of the
+same items. The two rows are complementary:
+
+- a drop in logprob accuracy that does **not** appear in the CoT row means the
+  knowledge is still there and the *reasoning/format* path is what broke;
+- a drop in the CoT row that does **not** appear in the logprob row means the
+  adapter still knows the answers but no longer expresses them in the
+  requested format.
+
+Because both tasks build the identical dataset with `shuffle=False`, the same
+`--seed` + `--max-samples` selects the same items and the rows are paired.
+
+#### `strict` vs `lenient` — read this before quoting an accuracy
+
+The adapters were SFT'd with a system prompt that says, verbatim:
+
+> Respond with ONLY the exact text of your chosen option. No extra words, no
+> explanations, no formatting.
+
+MMLU-Pro instead demands a trailing `ANSWER: $LETTER`. Scored **strictly**, a
+correct bare `D` counts as a failure, so the strict number measures
+*instruction conflict*, not capability. `lenient` also accepts a bare letter,
+`X) text`, or the exact option text. Both are reported; **use `lenient` as the
+capability number**.
+
+This is not hypothetical: on the 5-model run, `modal_response` scored 20.8%
+strict and 62.3% lenient against a base model whose *direct-answer* accuracy is
+60.2%. The "60-point collapse" was entirely output convention.
+
+`gpqa_diamond` is available (`--tasks gpqa_diamond`) but is **not** in the
+default set: this model reasons for ~4–6k tokens per item even when asked for
+a direct answer, so it costs more than everything else combined and n=100 is
+only a coarse tripwire. SWE-bench is behind `--include-swe` for the same
+reason (docker sandboxes, agent loops, 24k context, no power at small n).
+
+Measured on the RTX PRO 6000 with `--concurrency 128`: ~21 min for
+`mmlu_pro` (1,000 items), ~1.3 min for `mmlu_pro_logprob`, ~2.6 min for
+`ifeval`. The 5-model grid took **70 min** end to end — the adapters generate
+far shorter answers than base, so they finish faster than the base model.
+
+One trap worth preserving: `mmlu_pro(shuffle=True)` forwards `shuffle=True` to
+`hf_dataset`, which draws a **random** seed. Two processes then see different
+dataset orders and `sample_shuffle + limit` select *different items*, so
+base-vs-adapter pairs silently stop overlapping. `build_task` therefore passes
+`shuffle=False` and lets `eval(sample_shuffle=seed)` be the only randomness.
+
+All five models are evaluated **back to back on identical items**; the first
+`--models` entry is the base model:
+
+```bash
+uv run code/fine-tuning/capability_eval.py --port 8087 \
+    --models Qwen/Qwen3.8-27B \
+             Qwen3.8-27B-nz-wvs-modal_response-overall \
+             Qwen3.8-27B-nz-wvs-sampled_response-overall \
+             Qwen3.8-27B-nz-wvs-full_string_distribution-overall \
+             Qwen3.8-27B-nz-wvs-first_token_distribution-overall
+```
+
+Results land in `output/capability/<model>/<run>/` (`config.json`,
+`summary.json`, `summary_samples.csv`, raw logs) and the grid writes
+`output/capability/comparison-<ts>/comparison.{md,csv}` with per-task
+accuracies, **paired** deltas vs base, bootstrap CIs and exact McNemar tests.
+For the logprob task it also writes the answer-distribution table: mean
+P(gold), mean TVD, KL(base‖model) and top-1 agreement — i.e. how far the
+answer distribution moved independently of the argmax.
+
+Re-analysis does not need the GPU: `--compare-only` rebuilds the comparison
+from each model's most recent run directory.
+
+Reading the results:
+
+- Compare the **paired delta**, not two raw accuracies. Pairing removes item
+  difficulty, which dominates the unpaired error bar.
+- Quote `lenient`, not `strict`, for capability on MCQ tasks. `strict` is
+  about obeying `ANSWER: $LETTER`; these adapters were trained to emit nothing
+  but the option. Report both if you want to make the format point.
+- `invalid_format` is reported next to accuracy on purpose, but it is a format
+  signal, not a knowledge signal — see the `lenient` note above.
+  `truncated` means the output cap was hit, so that row's accuracy is a lower
+  bound.
+- Thinking is **off** by default (`--thinking` enables it) to match the
+  fine-tuning evals and to keep the cost bounded.
+- `--concurrency 128` is the main speed knob (vLLM serves
+  `--max-num-seqs 256`); inspect's own adaptive ramp starts at 20, so it is
+  pinned.
+
 ### Prompted base-model baseline
 
 To test how much of the fine-tuning effect is reproducible by prompting

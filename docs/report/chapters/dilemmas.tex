@@ -15,7 +15,7 @@ Using dilemmas to test behaviour and infer values is a common method \cite{Ethic
 
 The full pipeline, from the inputs through to the three measurements taken from the responses, is shown in \figref{dilemmas-pipeline}.
 
-\begin{figure}[htbp]
+\begin{figure}[t]
 \centering
 \begin{tikzpicture}[
     every node/.style={draw, rounded corners, align=center, font=\footnotesize, inner sep=4pt,
@@ -163,7 +163,7 @@ The model responses were embedded using the \modelref{qwen-embedding} model.\foo
 
 In \figref{dilemmas-comparison-distance-modal_response-overall}, we can see the average cosine distance between the base and fine-tuned model responses. Specifically, we can see that some dilemmas have almost twice the distance between paired responses as others, and that embedding distance is roughly correlated with the judged outcome.
 
-\cfigure[htbp]{dilemmas-comparison-distance-modal_response-overall}{Mean cosine distance between the base and fine-tuned responses for each dilemma (main modal run).}
+\cfigure[t]{dilemmas-comparison-distance-modal_response-overall}{Mean cosine distance between the base and fine-tuned responses for each dilemma (main modal run).}
 
 \fixme{Decide keep or drop: $r\approx0.45$ pair-level, $r\approx0.55$ dilemma-level. If dropped, remove the figure, subsection and pipeline track.}
 

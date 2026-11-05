@@ -68,11 +68,11 @@ def _(EVALS_ROOT, ast, json, pd):
     METRICS = ["accuracy", "cross_entropy", "kl_divergence"]
     CAPABILITY_ROOT = EVALS_ROOT.parent / "capability"
     TASK_LABELS = {
-        "mmlu_pro": "MMLU-Pro",
-        "gpqa_diamond": "GPQA Diamond",
-        "swe_bench": "SWE-bench",
+        "mmlu_pro_logprob": "MMLU-Pro (direct)",
+        "mmlu_pro": "MMLU-Pro (CoT)",
+        "ifeval": "IFEval",
     }
-    TASK_ORDER = ["mmlu_pro", "gpqa_diamond", "swe_bench"]
+    TASK_ORDER = ["mmlu_pro_logprob", "mmlu_pro", "ifeval"]
 
     def base_and_method(model_name):
         # "{base}-nz-wvs-{method}" -> (base, method); a "{base}-prompted" dir
@@ -782,13 +782,20 @@ def _(mo):
     ## Capability results table
 
     Same layout as the main table, but for the capability evals: one row per
-    fine-tuned version (base model at the top), columns = accuracy (with
-    standard error) on MMLU-Pro, GPQA Diamond and SWE-bench. Scores are read
-    from the newest completed run per model in
+    fine-tuned version (base model at the top), columns per benchmark. Scores
+    are read from the newest completed run per model in
     ``output/capability/<model>/<run>/summary.json`` (written by
-    ``capability_eval.py``). The LaTeX (booktabs) tables are written to
-    ``code/figures/ft-capability-<model>.tex`` and included in the report
-    with ``\ctable{ft-capability-<model>.tex}{<caption>}``.
+    ``capability_eval.py``). Three benchmarks: MMLU-Pro answered directly
+    (first-token logprobs, no chain of thought), MMLU-Pro with chain-of-thought
+    scored **leniently** (with the benchmark's own strict template shown as a
+    separate column), and IFEval. The LaTeX (booktabs) tables are written to
+    ``code/figures/ft-capability-<model>.tex`` and included in the report with
+    ``\ctable{ft-capability-<model>.tex}{<caption>}``.
+
+    Lenient scoring matters: the adapters were fine-tuned to answer with only
+    the option text or bare letter, so the benchmark's ``ANSWER: $LETTER``
+    template scores a correct bare ``D`` as a miss. The lenient column is the
+    capability number; the strict column measures template compliance.
     """)
     return
 
@@ -807,22 +814,42 @@ def _(
     # Building the capability table data from summary.json of the newest run
     # per model.
 
+    def newest_capability_summary(model_dir):
+        """(run_dir, summary) of the newest run that covers the full task list.
+
+        A newer partial run (a smoke test, or a rerun that died early) must not
+        shadow the completed grid run, so runs covering fewer tasks lose.
+        """
+        candidates = []
+        for run_dir in model_dir.iterdir():
+            summary_path = run_dir / "summary.json"
+            if not summary_path.exists():
+                continue
+            summary = json.loads(summary_path.read_text())
+            covered = sum(
+                1
+                for task in TASK_ORDER
+                if (summary.get(task) or {}).get("accuracy") is not None
+            )
+            candidates.append((covered, summary_path.stat().st_mtime, run_dir, summary))
+        if not candidates:
+            return None, {}
+        complete = [c for c in candidates if c[0] == len(TASK_ORDER)]
+        run_dir, summary = sorted(complete or candidates)[-1][2:]
+        return run_dir, summary
+
     def collect_capability_scores():
-        """Per (model, task) accuracy/stderr from the newest run of each model."""
+        """Per (model, task) accuracy/stderr from the newest complete run."""
         rows = []
         if not CAPABILITY_ROOT.exists():
             return pd.DataFrame(rows)
         for model_dir in sorted(CAPABILITY_ROOT.iterdir()):
             if not model_dir.is_dir():
                 continue
-            run_dir = newest_run(model_dir)
+            run_dir, summary = newest_capability_summary(model_dir)
             if run_dir is None:
                 continue
-            summary_path = run_dir / "summary.json"
-            if not summary_path.exists():
-                continue
             base, method = base_and_method(model_dir.name)
-            summary = json.loads(summary_path.read_text())
             # Only the overall population adapters (plus the base model):
             # cluster-trained adapters are out of scope.
             if method != "base" and not method.endswith("-overall"):
@@ -840,6 +867,9 @@ def _(
                         "n": entry.get("n"),
                         "accuracy": entry["accuracy"],
                         "stderr": entry.get("stderr"),
+                        # None for tasks without a lenient reading (logprob,
+                        # ifeval); populated for the generative MCQ task.
+                        "lenient_accuracy": entry.get("lenient_accuracy"),
                     }
                 )
         return pd.DataFrame(rows)
@@ -868,6 +898,13 @@ def _(
                         if not h.empty and not pd.isna(h["stderr"].iloc[0])
                         else float("nan")
                     )
+                    # Lenient accuracy exists only for the generative MCQ task;
+                    # NaN elsewhere so the renderer can skip the column.
+                    len_acc = h["lenient_accuracy"].iloc[0] if not h.empty else None
+                    row[f"{task}_len"] = (
+                        len_acc if len_acc is not None else float("nan")
+                    )
+                    row[f"{task}_n"] = h["n"].iloc[0] if not h.empty else float("nan")
                 table_rows.append(row)
             tables[base_model] = pd.DataFrame(table_rows)
         return tables
@@ -875,7 +912,7 @@ def _(
     capability_scores = collect_capability_scores()
     capability_tables = build_capability_tables(capability_scores)
     for base_model, table in capability_tables.items():
-        print(f"\n=== {base_model} — capability evals (accuracy in %, with 95% CI) ===")
+        print(f"\n=== {base_model} — capability evals (accuracy in %) ===")
         disp = pd.DataFrame(index=table["label"])
         for task in TASK_ORDER:
             cells = []
@@ -886,7 +923,12 @@ def _(
                     lo = (a - 1.96 * s) * 100
                     hi = (a + 1.96 * s) * 100
                     cells.append(f"{a * 100:.1f} [{lo:.1f}, {hi:.1f}]")
-            disp[TASK_LABELS[task]] = cells
+            disp[TASK_LABELS[task] + " (strict)"] = cells
+            if not table[f"{task}_len"].isna().all():
+                disp[TASK_LABELS[task] + " (lenient)"] = [
+                    "--" if pd.isna(v) else f"{v * 100:.1f}"
+                    for v in table[f"{task}_len"]
+                ]
         print(disp.to_string())
     return (capability_tables,)
 
@@ -979,29 +1021,60 @@ def _(
     # 95% confidence interval (acc +- 1.96 x s.e. from the inspect metrics).
 
     def render_capability_tables_to_tex():
-        headers = [TASK_LABELS[t] for t in TASK_ORDER]
-
+        # For the generative MCQ task the headline number is the LENIENT
+        # accuracy (the benchmark's own template understates adapters that were
+        # fine-tuned to answer with a bare option), so that task gets an extra
+        # "Strict (%)" column showing what the benchmark's template scores.
+        #
+        # write_latex_table escapes headers itself, so the DataFrame columns
+        # must be RAW; the fmt keys must be ESCAPED, because styling runs after
+        # that escaping.
         subs = ["Acc (%)", "95% CI"]
-        escaped = {s: escape_header(s) for s in subs}
+        strict_label = "Strict (%)"
+        escaped = {s: escape_header(s) for s in [*subs, strict_label]}
         written = []
         for base_model, table in capability_tables.items():
-            columns = pd.MultiIndex.from_product([headers, [escaped[s] for s in subs]])
-            out = pd.DataFrame(index=table["label"].values, columns=columns)
+            columns = []
+            for task in TASK_ORDER:
+                header = TASK_LABELS[task]
+                columns.append((header, subs[0]))
+                columns.append((header, subs[1]))
+                if not table[f"{task}_len"].isna().all():
+                    columns.append((header, strict_label))
+            out = pd.DataFrame(
+                index=table["label"].values,
+                columns=pd.MultiIndex.from_tuples(columns),
+            )
             out.index.name = None
             fmt = {}
-            for task, header in zip(TASK_ORDER, headers):
-                acc = table[f"{task}_acc"]
-                se = table[f"{task}_se"]
+            for task in TASK_ORDER:
+                header = TASK_LABELS[task]
+                acc = table[f"{task}_acc"].astype(float)
+                strict_se = table[f"{task}_se"].astype(float)
+                n = table[f"{task}_n"].astype(float)
+                has_lenient = not table[f"{task}_len"].isna().all()
+                if has_lenient:
+                    acc = table[f"{task}_len"].astype(float)
+                    # Binomial s.e. for the lenient rate; summary.json only
+                    # holds the strict stderr.
+                    se = (acc * (1 - acc) / n).pow(0.5)
+                else:
+                    se = strict_se
                 lo = (acc - 1.96 * se) * 100
                 hi = (acc + 1.96 * se) * 100
-                out[(header, escaped["Acc (%)"])] = (acc * 100).round(1).values
-                out[(header, escaped["95% CI"])] = [
+                out[(header, subs[0])] = (acc * 100).round(1).values
+                out[(header, subs[1])] = [
                     f"{lo_v:.1f}-{hi_v:.1f}"
                     if pd.notna(lo_v) and pd.notna(hi_v)
                     else "--"
                     for lo_v, hi_v in zip(lo, hi)
                 ]
-                fmt[(header, escaped["Acc (%)"])] = "{:.1f}"
+                fmt[(header, escaped[subs[0]])] = "{:.1f}"
+                if has_lenient:
+                    out[(header, strict_label)] = (
+                        table[f"{task}_acc"].astype(float).mul(100).round(1).values
+                    )
+                    fmt[(header, escaped[strict_label])] = "{:.1f}"
             written.append(
                 write_latex_table(
                     out, fmt, out.shape[1], f"ft-capability-{base_model}.tex"

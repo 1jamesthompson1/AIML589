@@ -1,108 +1,192 @@
-The goal of this chapter and the survey is to be an downstream evaluation of the finetuned models to answer \rqref{prefer}. Only two models were compared the base model and the finetuned model which was choosen in the previous chapter. \fixme{Which model is the fine tuned model}.
+When aligning any AI system to a preferred value system, the decision of which value system to align with is central to the \scare{success} of the alignment. The goal of artificial intelligence is to benefit all humanity. Democratic ideals are a widely accepted basis for legitimising the world's largest institutions (governments); the same logic should apply to AI systems. The value target for the AI system should therefore be that of the public. This chapter evaluates alignment using the public's preferences and opinions, elicited through a survey.
 
-\section{Results of the survey}
+In this chapter the most behaviourally divergent fine-tuned model (see \ref{chap:finetuning}) on the dilemmas (see \ref{chap:dilemmas}) is compared with the base model in a survey of the New Zealand public. The survey uses a quota sample designed to be representative of the New Zealand public and is designed to answer \rqref{prefer} by asking the public to compare the responses from each model to a series of dilemmas. We targeted 500 respondents, each of whom rated five pairwise comparisons. Preference is estimated with a linear mixed model, which gives the mean shift on the signed preference scale, and a Bradley–Terry model, which gives the win rate. The analysis finds a small preference for the fine-tuned model; the lack of a clear general preference is attributed to the small and noisy stimulus set (18 dilemmas). When comparing response-option distributions, the fielded model is closest to the public's inferred distribution.
 
-The public did prefer models that were aligned with their responses... Or maybe they don't. We are still to find out...
+The structure of the chapter is as follows. In \ref{sec:survey-construction} the survey method and question design are discussed. In \ref{sec:survey-analysis} the methods for calculating the public preference are described. Lastly, in \ref{sec:survey-results} the results of the survey are presented.
 
-\section{The results of which model was preferred or not}
-This is the H2 results using the LLM and BT
+\section{Building a representative model preference survey}
+\label{sec:survey-construction}
 
-\ctable{survey-h2-results}{The results of the LMM and BT model for \rqref{prefer}}
+The process of public consultation is the main method of understanding the public's preferences and opinions on a topic. A survey is a strong baseline method as it allows for more detailed information to be collected than a simple poll while being cheaper and easier to scale than focus groups and interviews. Additionally, a survey collects the data in a structured way that allows for more rigorous analysis and interpretation. Therefore a survey is the method of choice to understand the public's preferences on the two models.
 
+The survey was administered online and distributed to a representative sample of the New Zealand population. Paid respondents were recruited through the professional panel provider Dynata to ensure sufficient sample size and diversity. The median completion time was about nine minutes; respondents rated five pairwise comparisons of the two models and answered a series of questions on AI.
 
-\section{Different idlemmans and different peopple}
-Basic demographic interpretation including interpretation
-
-\cfigure{survey-dilemma-preference}{The likert preferences of the public for each dilemma. The likert scale is from 1 (strongly prefer the base model) to 5 (strongly prefer the fine tuned model). The mean and standard deviation are shown for each dilemma.}
-
-\section{Public policy preferences}
-
-Which polices are most preferred.
-\cfigure{survey-policy-shares}{The rankikng of polices based on how manhy are selected inthe top 3}
-
-
-
-\section{How the survey was constructed}
-
-The survey was an online survey that was distributed to a representative sample of the New Zealand population. Paid respondents were recruited through a professional panel provider to ensure sufficient sample size and diversity. The survey itself took about 15 minutes to complete and in it respondents ranked about 5 comparisons of the two models and answered a series of questions on their perspective on AI and usage.
-
-\subsection{Creating a fair and representative survey}
-
-We would like a representative sample of the New Zealand population. The representativeness is in two different spaces: the demographic space and the value space. That is we want to get a wide range of people that represent different demographics but also different ways of thinking within NZ. The challenge is that the value space is hard to measure and sample from, therefore a representative demographic sample is used as a proxy for value representativeness \fixme{Citation needed}. 
-
-To achieve a representative sample quota sampling is used in which we set quotas for each variable and then recruit participants until the quota is filled. The challenge is that the more quotas you have the harder it is to fill them. Due to limited resources the number of quotas was limited to 3 (Age, Gender, and Region), these are standard baseline quotas for representative sampling \cite{statsnz2023gss,satherley2023polling}. Importantly income, education and ethnicity were not used due to feasibility of getting a representative sample within budget constraints. \fixme{A citation that shows that these are the most important variable to get a representative sample of the population. Maybe a graph built off the WVS data.}
-
-The WVS survey—from which the training data originated—is intended to be a representative sample of the New Zealand population. However as seen in \figref{top5-wvs-vs-census} it is not a perfect representation of the population with it skewing to older, less educated and more female. Because of this the quotas were matched to the ground truth (2023 Census) data. WVS survey is a further example of a volunteer self selection bias that ends up with a non-representative sample of the population as a result.
-
-\cfigure{top5-wvs-vs-census}{The WVS survey vs the census across some common demographic variables. Notably Ethnicity is not present in the WVS survey.}
-
-The quotas were set to match the census data for each variable. Age (in 5 year bands) and gender were interlocking with an additional quota for region. This created 36 different quotas that needed to be filled. The quotas were set to match the 2023 census data (as provided by Dynata). A few more demographic questions were asked to help understand how representative the survey was namely: income, education, ethnicity, employment status and occupation category. See \ref{app:survey-representation} for more details on the survey representativeness. \fixme{Add in quick summary of how close it was.}
-
-\subsection{Elicitation of preferences with pairwise ranking}
-
-The main goal of the survey was to elicit preferences from the public on the two models to answer \rqref{prefer}. To do this a pairwise ranking approach was used. Pairwise ranking is a common approach to elicit preferences from people \fixme{citation needed}—with the idea that people find it easier to compare than provide absolute ranks.
-
-To do this the survey was structured to show participants a series of 5 ranking questions. Each ranking question gives the participant a one ine introduction to the work profile, the dilemma text and the question that was asked the model along with responses from both the fine tuned and the base model. The order of the models was randomised to avoid any ordering bias.
-
-To collect the pairwise ranking data the participants were asked two questions (both likert 5 point scales) for each comparison. The first question was to ask which model they preferred and the second question was to ask how much they agreed with an AI agent being deployed in this situation to make decisions like the ones they just saw.:
-
-\begin{itemize}
-    \item "All things considered which one did you think acted more in line with your values"
-    \item "How much do you agree with an AI agent being used in this work situation?"
-\end{itemize}
-
-First they are asked "All things considered which one did you think acted more in lined with how you would want someone to act." Likert 5 scales from strongly Agent 1 to strongly Agent 2. The benefit of the Likert scale is that it allows for a more nuanced response than a simple binary choice.
-
-Then for they are asked "How much do you agree with an AI agent being deployed in this situation to make decisions like the ones you just saw.".
+A key challenge in survey design is to ensure that the survey is fairly representative of the population's preferences. As we are deciding which model is preferred, there are a few different ways in which the survey could be biased. The first is that the survey is not representative of the population, the second is that the survey is not representative of the model's behaviour, and the third is that the survey design biases the results. Each of these challenges, and the design choices made to mitigate them, is discussed in the following sections.
 
 \subsection{Using the most divergent model for the survey}
 
-In \ref{chap:dilemmas} 4 different models were compared to the base model. The goal of this chapter is to find if one of the models is more aligned to the New Zealand public than the base model. Resource contraints restrict us to only being able to run the survey on one fine-tuned to base model comparison. Therefore a single model must be selected.
+In \ref{chap:dilemmas} four different models were compared with the base model. The goal of this chapter is to determine whether one of the models is more aligned with the New Zealand public than the base model. Resource constraints meant that the survey could compare only one fine-tuned model with the base model. It was also important to select the model before conducting sophisticated analyses of model behaviour, to avoid selection bias or reliance on potentially biased LLM-as-judge scores. The selection was therefore based only on the categorical response-divergence measure, not on the judge's quality scores.
 
-The goal of the survey is to understand which model people prefer the most. Based on an assumption that the base model is not aligned to New Zealand we want to use the model that is most different from the base model. THis gives us the largest difference in responses and so highest chance of detecting if one model is more aligned to the New Zealand public.
+The goal of the survey is to determine which of the two models people prefer. Under the assumption that the base model is not well aligned with New Zealand values, we chose the model that differs most from it. This increases the difference in responses and therefore the power to detect a difference between the models, if one exists. The null hypothesis is that there is no preference; choosing the most divergent model increases statistical power by increasing the effect size. The model that is most divergent from the base model is \modelref{ft-modal}, which is therefore used in the survey.
+
+\subsection{Creating a fair and representative survey}
+
+The survey can only be as representative as its respondents. Representativeness has two dimensions: demographic and value. We want a wide range of people who represent different demographics but also different ways of thinking within New Zealand. Because the value space is hard to measure and sample from, a representative demographic sample is used as a proxy for value representativeness. This is supported by evidence that demographic groups differ systematically in their values and opinions \cite{santurkarWhoseOpinionsLanguage2023,wightmanPeopleAreNot2026,magunBetweenCountryValueDiversity2016}.
+
+To achieve a representative sample, we used quota sampling: we set quotas for each variable and recruited participants until each quota was filled. The more quotas, the harder the sample is to fill. Because of limited resources, we limited quotas to three variables—age, gender, and region—which are standard baseline quotas for representative sampling \cite{statsnz2023gss,satherley2023polling}. These variables are also associated with systematic differences in values and opinions \cite{wightmanPeopleAreNot2026,magunBetweenCountryValueDiversity2016}. Income, education, and ethnicity were not quota-controlled because of budget and feasibility constraints.
+
+The WVS, from which the training data originated, is intended to be a representative sample of the New Zealand population. However, as \figref{top5-wvs-vs-census} shows, it is not perfectly representative: it skews older, poorer and more female. We therefore set the quotas to the 2023 Census which is the gold standard. The WVS is an example of volunteer non-response bias, which produces a non-representative sample.
+
+\cfigure{top5-wvs-vs-census}{The WVS survey vs the census across some common demographic variables. Notably Ethnicity is not present in the WVS survey.}
+
+Quotas were set to match the census for each variable. Age (in five-year bands) and gender were interlocking, with an additional quota for region, creating 36 quota cells. The quotas matched the 2023 Census data provided by Dynata. Additional demographic questions—income, education, ethnicity, employment status, and occupation—were asked to assess representativeness. The achieved sample was broadly representative on the quota variables and somewhat representative on the other variables (see \ref{sec:survey-sample-details}).
 
 
+Self-selection bias is an additional concern: people who choose to be on survey panels are not representative of the population. This may not affect the demographic quotas but could affect value representativeness. The panel provider draws respondents from multiple sources to reduce this risk \cite{boomImportanceMultisourcingRepresentativeness2023}.
 
-\subsection{Selection of trajectories}
+\subsection{Selection of comparisons where the models disagree}
 
-There were 30 different dilemmas with 10 runs per model. Each model was ran 50 times through the dilemmas. Yet due to the combinatorial nature of the pairwise comparisons it was not possible to show all 50 runs for each model. Therefore a subset of the possible pairwise comparisons was selected.
+Each of the 30 dilemmas was run 50 times through each model. Because the full cross-product of runs is combinatorially large, it was not possible to show all 50 runs for each model. We therefore selected a subset of the possible pairwise comparisons. We wanted a subset that tests the interesting differences between the models while still representing the model's behaviour.
 
-The idea is that where models agree on a response there is no need to check what the public prefers. We want to find the subspace where the models behave different and disagrees. Importantly though we still need to make sure that the comparisons we make on aggreate is comparing the typical behaviour of one model with the typical behaviour of the other model \footnote{This is different to simply creating the comparisons that have the highest survey quality by cherry picking the best comparisons.}. Additionally this mean theverything has to be dealt with at the dilemma level where either an entire dilemma is included or excluded and if included then a sample of the comparisons is selected. This is to ensure that the comparisons are sufficiently representative of the model behaviour and not just cherry picked.
+If the models agree, a public preference between near-identical responses tells us little. We therefore focus on the subspace where the models behave differently and disagree. Simply picking the most interesting pairs would lack any guarantee of representativeness. At the other extreme, a random sample would be representative—within sampling noise—but would include many pairs where the judge classifies both responses the same.
 
+From \ref{chap:dilemmas} we have a measure of the quality of each index-matched pairwise comparison. Selecting the most divergent pairs within each significant dilemma preserves coverage at the dilemma level: the final set contains all 18 significant dilemmas. There is a loss of representativeness within a dilemma sample however that is tolerable given we are trying to only look at that precise subspace. The process is as follows:
 \begin{enumerate}
-    \item Paired each of the 50 runs of each model with one run of the other model (using sample index). This gives 50 pairwise comparisons for each dilemma. \footnote{This simulates asking the question at the same time twice to two different people. It is important statistically...?} This gives a total of 1500 pairwise comparisons across the 30 dilemmas.
-    \item Remove any dilemmas where the two models don't have statistically significant differences in their response distributions. This removes 12 dilemmas and leaves 18 dilemmas with 900 pairwise comparisons.
-    \item For each dilemma pick 17 samples to compare that are the highest ranked divergence. See \ref{subsec:power} for reasoning. \footnote{This is less representative of the model behaviour, however we are testing to see where the model diverges does it diverge in the right direction.}
+    \item Pair each of the 50 runs of each model with one run of the other model (using the sample index). Some pairing is necessary; reusing a sample in multiple comparisons would induce dependence between comparisons. This gives a total of 1,500 pairwise comparisons across the 30 dilemmas.
+    \item Remove dilemmas where the two models do not have statistically significant differences in their response distributions. This removed 12 dilemmas and left 18 dilemmas with 900 pairwise comparisons.
+    \item For each dilemma, select the 17 index-matched pairs with the highest value divergence. See the power analysis for reasoning \fixme{Add the power analysis subsection (\texttt{subsec:power}); it does not exist yet.} \footnote{This is less representative of model behaviour, but the survey is testing whether the divergence is in the right direction.}
 \end{enumerate}
-\fixmeinline{Add in updated numbers to the pipeline}
 
-\ctable{survey-dilemma-stats-modal}{The statistics of the complete set of pairwise statistics for the dilemmas.}
+\tabref{survey-dilemma-sample-stats} shows that the top-17 selection sharply reduces the share of same-answer pairs (from 42.0\% to 0.7\%), at the cost of over-representing divergent pairs; the selected set is representative at the dilemma level but not at the pair level.
 
-The final set of pairwise comparisons that were selected contained...
+\ctable{survey-dilemma-sample-stats}{Each stage of the pipeline with summary statistics. Survey quality and divergence are from the LLM-as-judge ensemble. \texttt{Strong \%} is the share of pairs with survey quality and divergence above 4 where both responses are judged competent. \texttt{Agreement \%} is the share of pairs whose two responses are judged to share an answer option. For the top-17 and random rows, \texttt{Mean TVD} is the total variation distance between the joint (base option, fine-tune option) distribution of the selected pairs and that of the full pool, averaged over dilemmas.}
 
-\ctable{survey-dilemma-selected-stats-modal}{The statistics of the selected pairwise comparisons for the dilemmas.}
+\tabref{survey-selection-summary} shows that the fielded model (\modelref{ft-modal}) produced the highest-quality survey pair set. This analysis was done after the survey was fielded, so model selection was not based on it.
+
+\ctable{survey-selection-summary}{Summary statistics for the four fine-tuned models and a naive random baseline. \texttt{Agreement \%} and \texttt{Mean TVD} are defined in the caption of the previous table.}
+
+\subsection{Eliciting preferences with paired comparisons}
+
+The main goal of the survey was to elicit the public's preferences between the two models, to answer \rqref{prefer}. Two elicitation methods were possible: absolute rating and pairwise comparison. We used pairwise comparison because it is common in post-training literature \cite{ouyangTrainingLanguageModels2022,rafailovDirectPreferenceOptimization2024,zhengJudgingLLMasaJudgeMTBench2023}.
+
+The survey showed participants five pairwise comparison blocks. Each block presented a one-line introduction to the work profile, the dilemma and question, and the two responses from the fine-tuned and base models. The order of the two responses was randomised so that presentation order is balanced.
+
+For each comparison, participants answered two five-point Likert items, as seen in \figref{survey-ui}. The five-point scale strikes a compromise between the simplicity of a binary choice and the complexity of a ten-point scale. The first item asked which response they preferred; the second asked how strongly they agreed with an AI agent being deployed in that situation to make decisions like the ones they had just seen.
+
+\cfigure{survey-ui}{The user interface for the preference elicitation questions. This is how it was shown on desktop with slight modifications for mobile.}
 
 \subsection{Understanding respondents views on AI and the world}
 
-Extra questions where added to a final section of the survey to collect information about the respondents views on AI and their opinions on potential policy responses. This served as both a way to understand the preferences better and to understand the New Zealand public's views on AI.
+To maximise the value of the data, we added questions that both increase interpretability of the results and capture the public's views on AI. The first question was adapted from the NZ AI election scorecard \cite{AIElectionScorecard} and asks respondents whether they view AI as a serious risk to New Zealand; AI is also increasingly discussed as a global catastrophic risk \cite{GlobalCatastrophicRisks,moonGlobalCatastrophicRisk2024}. The second asked how often they use AI in their daily life. The third asked about their outlook on the effects of AI on the future. These questions let us test whether views on AI correlate with preferences for the models.
 
-Three questions were asked about their views and usage. One about their current frequency of AI usage, one about their feelings on AI effects on the future and one about their beliefs about AI being a seriuos risk to New Zealand.
+Finally, participants selected their top three preferred AI policy responses and ranked them. The policy list was drawn from prior research by Ben Cravens (unpublished Master's thesis). We aimed to make the policies easy to read while preserving their substance. \fixme{Add a citation or personal communication for the Cravens thesis.}
 
-Lastly the participants were asked to pick their top 3 most liked policy responses to AI. The list of possible policy responses was generated from prior research conducted by Ben Cravens in his unpublished masters thesis \fixme{Some citation?}.
+The data provide additional insight into the public's perception of AI, which is useful for policy makers and researchers. A full analysis is left for future work; the appendix reports the main results.
 
-\cite{GlobalCatastrophicRisks}, \cite{moonGlobalCatastrophicRisk2024}
 
 
 \section{Analysis of the survey results}
+\label{sec:survey-analysis}
+
+The analysis addresses \rqref{prefer} by estimating which model's responses the public prefers. The primary, pre-registered analysis compares the two models directly \cite{thompsonPreregistrationAligningLLMs2026/10/1515:17}. As a secondary analysis, we compare each model's answer-option distribution with the public's inferred preferred-option distribution. This helps interpret the small and specification-dependent preference result.
+
+For all methods, what random effects are included decide the scope of the claim. The pre-registration call for a respondent effect however it is observed to be near-zero. Each respondent rates multiple comparisons, and the comparisons are nested within a small set of dilemmas. A respondent random intercept and a fixed order term should therefore always be included; we also include a comparison-pair random intercept (17 pairs per dilemma). Respondent and comparison effects together answer the scoped question, ``Does the public prefer the model on these exact dilemmas?''. Adding a dilemma random intercept asks the broader question, ``Does the public prefer the model's behaviour in general?'' as the dilemmas are treated as simply a sample from the full possible set of dilemmas/situations.
+
+The survey produces a dataset of $n=2{,}335$ ratings from $N=467$ respondents on $q=18$ dilemmas. Each rating $i$ has attached to it:
+
+\begin{itemize}
+    \item $y_i \in \{-2,-1,0,1,2\}$ for the signed preference (positive = fine-tune),
+    \item $w_i \in \{0, 0.5, 1\}$ for the win (1 = fine-tune wins, 0 = base wins, 0.5 = tie),
+    \item $o_i = \pm\tfrac12$ for presentation order (positive = fine-tune first),
+    \item $r_i, d_i, c_i$ for the respondent, dilemma, and comparison pair,
+\end{itemize}
+
+The models also include random intercepts for the respondent, dilemma, and comparison pair ($u_r, v_d, s_c$). The random intercepts account for the variability in the data due to these grouping factors.
 
 \subsection{Weighting of the survey results}
 
-\subsection{Linear Mixed Model Analysis}
+The survey was quota-sampled and is roughly representative of the population on age, gender, and region. However, this does not guarantee representativeness on other demographics. After the quality exclusions, the sample differs only slightly from the census. Initial testing showed that weighting made negligible difference to the results, so all reported estimates are unweighted.
 
-Using a linear mixed model to analyse the results of the survey. The model is as follows:
+\subsection{Calculating the preference using a Linear Mixed Model Analysis}
 
-\subsection{Bradley Terry pairwise preference model}
+The first approach uses the Likert preference ratings to estimate whether there is an overall preference for one model over the other. A naive approach is to take the mean rating, but this ignores the random effects discussed above.
 
-To get a simple measure of which model was preferred more often than the others.
+The repeated measures and the random effects of dilemmas, comparisons, and respondents must therefore be accounted for. We use a linear mixed model (LMM), which includes both fixed and random effects \cite{batesFittingLinearMixedEffects2015}. The model can also include a fixed display order effect; including it changes the aggregate estimate by less than 0.01 points, although the order term itself is large for individual ratings (see \ref{sec:order-effect}).
 
-\subsection{Power Analysis}\label{subsec:power}
+\begin{align}
+\label{eq:lmm}
+y_i &= \beta_0 + \beta_1 o_i + u_{r(i)} + v_{d(i)} + s_{c(i)} + \epsilon_i,\\
+u_r &\sim \mathcal{N}(0, \sigma_u^2),
+\qquad
+v_d \sim \mathcal{N}(0, \sigma_v^2),
+\qquad
+s_c \sim \mathcal{N}(0, \sigma_s^2),
+\qquad
+\epsilon_i \sim \mathcal{N}(0, \sigma^2).
+\end{align}
+\noindent Here, $\beta_0$ is the mean signed preference, which is what we care about, and $\beta_1$ is the fixed effect of display order. The model ignores differences in distance between Likert categories (e.g., $1 \to 2$ is not the same as $2 \to 3$), and ordinal models have therefore been proposed \cite{taylorRatingNormsShould2023}. However, these methods do not appreciably change the results, so we use the simpler model.
+
+We estimate the model by restricted maximum likelihood (REML). REML is used because ML variance-component estimates are biased downward in small samples \cite{pattersonRecoveryInterblockInformation1971}.
+
+\subsection{Using model win rates to understand preferences}
+
+Rather than using the signed preference ratings, we can also use the pairwise win rates to estimate which model is preferred. The win rate is a more interpretable measure of preference than the mean signed preference, as it is bounded between 0 and 1. A win rate of 0.5 indicates no preference, while a win rate of 1 indicates that the fine-tuned model is always preferred.
+The first method (pre-registered) is a simple clustered win rate, defined in \eqref{eq:bt-naive} as the weighted number of wins divided by the total number of comparisons. To calculate the confidence interval, we use a clustered bootstrap: we resample respondents with replacement, calculate the win rate for each bootstrap sample, and take the 2.5th and 97.5th percentiles of the bootstrap distribution. Ties are given a weight of 0.5.
+
+\begin{equation}
+  \hat{p} = \frac{1}{n}\sum_i w_i,
+  \label{eq:bt-naive}
+\end{equation}
+
+\noindent A more sophisticated method is to fit a Bradley–Terry model with random effects for respondents, dilemmas, and comparison pairs \cite{bradleyRANKANALYSISINCOMPLETE1952}. The model is fitted as a binomial generalised linear mixed model (GLMM) with a logit link function using a Laplace approximation \cite{breslowApproximateInferenceGeneralized1993}. The model is specified in \eqref{eq:bt}.
+
+\begin{align}
+  \operatorname{logit} P(w_i = 1) &= \beta_0 + \beta_1 o_i + u_{r(i)} + v_{d(i)} + s_{c(i)}, \label{eq:bt}\\
+  \hat{p} &= \frac{1}{1 + \exp(-\beta_0)}.
+\end{align}
+
+\noindent $\hat{p}$ is the predicted win probability and $\exp(\beta_0)$ is the fine-tune-to-base worth ratio.
+
+
+\subsection{Comparing the model distributions to the public distribution}
+
+We can compare answer-option distributions, as in the behavioural analysis in \ref{chap:dilemmas}. Under the assumption that preferring a response is a vote for its judged answer category, the pairwise ratings imply a distribution over the public's preferred answer options. We can then compare this distribution with each model's answer-option distribution to see which model is closer. We use the total variation distance (TVD). For each dilemma $d$, let $p_{dk}$ be the public's share for answer option $k$ and $q_{dk}$ the model's share. Then
+\begin{equation}
+  \operatorname{TVD}_d = \frac{1}{2}\sum_k \left| p_{dk} - q_{dk} \right|,
+  \label{eq:tvd}
+\end{equation}
+which ranges from 0 (identical distributions) to 1 (no overlap).
+
+This analysis relies on the assumption that the public's preferred option can be measured by the preference for each model in the pairwise comparisons. Each response was classified into an answer category by the judge, so a preference for one response over the other can be treated as a vote for that category. Ties are split equally between the two options. The catch-all \texttt{Other} category is rare overall (1.4–3.3\% of runs) but reaches 28\% in some dilemmas. It is included in the distributions, but it is not one of the two substantive options.
+
+With the public's inferred preferred-option distribution, we compare it with each model's answer-option distribution. To construct each model's distribution, we use all 50 runs per dilemma, which gives a more stable estimate of model behaviour. We do not restrict the model distribution to the 17 selected pairs, because the public's votes are assumed to be independent draws from its option distribution \footnote{This assumes that all of the model's responses are equally fair representatives of its assigned answer option.}.
+
+\section{Results of the survey}
+\label{sec:survey-results}
+
+The first question is whether the public prefers one model over another. Two scopes are possible: ``Does the public prefer the model on these exact dilemmas?'' (exploratory) or, more broadly, ``Does the public prefer the model's behaviour in general?'' (pre-registered). The scoped claim is statistically significant, but there is too much between-dilemma variance to support a general claim.
+
+The appendix reports the public's policy preferences and their relationship to views on AI (\ref{sec:survey-policy-preferences}), and the demographic analysis (\ref{sec:survey-demographics}).
+
+\subsection{The public's preference is messy and inconclusive}
+
+To answer \rqref{prefer}, two analyses were pre-registered: a linear mixed model on the Likert ratings and a Bradley–Terry model on the pairwise preferences.
+
+\tabref{survey-h2-results} reports the pre-registered estimates; \tabref{survey-h2-lmm-variants} and \tabref{survey-h2-bt-variants} show the sensitivity to the random-effects structure.
+
+\ctable{survey-h2-results}{The pre-registered LMM and Bradley–Terry estimates for \rqref{prefer}. The LMM estimate is in points on the signed preference scale; the BT estimate is a win probability.}
+
+We distinguish two claims. The scoped claim—``Does the public prefer the model on these exact dilemmas?''—corresponds to a model without a dilemma random effect. The scoped BT model, a GLMM on decided comparisons with ties excluded, estimates a 54.8\% win rate (95\% CI 51.5–58.0\%), and the scoped LMM estimates a +0.11-point shift (95\% CI 0.03–0.19). This supports the scoped claim that the public prefers the fine-tuned model on these exact dilemmas.
+
+\ctable{survey-h2-lmm-variants}{LMM estimates for \rqref{prefer} under different random-effects structures. Estimates are points on the signed $-2$ to $+2$ preference scale; positive values indicate a preference for the fine-tuned model. Random-effect standard deviations are shown in the last column.}
+
+\ctable{survey-h2-bt-variants}{Bradley–Terry estimates for \rqref{prefer}. The first row is the pre-registered respondent-clustered win rate with ties coded $0.5$; the remaining rows are binomial GLMMs on the decided comparisons (ties excluded). Random-effect standard deviations are shown in the last column.}
+
+For the broader pre-registered claim—``Does the public prefer the model's behaviour in general?''—we find no significant preference for either model. The stimulus set contains only 18 dilemmas, a small sample from the space of possible dilemmas. The between-dilemma variance is too large for an informative general claim.
+
+Looking at each dilemma individually in \figref{survey-dilemma-preference}, some show strong preferences for one model over the other. The direction is roughly balanced: 10 of 18 dilemmas have a positive mean and 8 negative, so the aggregate preference is minimal. This heterogeneity may reflect context-dependent preferences, but it may also reflect the different respondent subsets who saw each dilemma. This large between-dilemma variance is why the broader claim is inconclusive: the 18-dilemma frame is too small to support a claim about the model's behaviour in general.
+
+\cfigure{survey-dilemma-preference}{Mean signed preference for each dilemma. The scale runs from $-2$ (strongly prefer the base model) to $+2$ (strongly prefer the fine-tuned model); error bars are 95\% confidence intervals and the dashed line is the overall mean.}
+
+
+\subsection{Distance between option shares}
+
+A secondary analysis compares the public's inferred preferred-option distribution with each model's answer-option distribution. \figref{survey-dilemma-option-alignment} shows that alignment varies by dilemma: the fine-tuned model is closer in 13 of 18 dilemmas and the base model in 5.
+
+\cfigure{survey-dilemma-option-alignment}{Total variation distance (TVD) between the distribution of the public's inferred preferred answer option and each model's answer-option distribution. Lower TVD indicates closer agreement.}
+
+Comparing across models in \figref{survey-model-public-alignment} and \tabref{survey-model-public-alignment}, the fielded model (\modelref{ft-modal}) has the closest mean distribution to the public's inferred preferred-option distribution. All the models are closer than the base model to the public's preferred response option distribution on average; however, there are individual dilemmas where the base model is closer.
+
+\cfigure{survey-model-public-alignment}{Mean TVD between each model's answer-option distribution and the public's inferred preferred-option distribution. Lower is closer; bars show 95\% bootstrap intervals over dilemmas.}
+
+\ctable{survey-model-public-alignment}{Mean TVD between each model's answer-option distribution and the public's inferred preferred-option distribution. Lower is closer. \texttt{Closer than base} counts the dilemmas where the model has lower TVD than the base; \texttt{P(closest)} is the bootstrap probability that the model is the closest of the five. \texttt{Runs} is the number of sampled runs per dilemma.}

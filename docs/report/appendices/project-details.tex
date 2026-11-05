@@ -5,8 +5,10 @@
 % automatically by spreadtab at compile time. tag(name) names a cell's value;
 % cell(name) refers to it later. Note: tags on computed cells must use the
 % direct formula form (formula then tag, no :=) or the tag is not registered.
-\begin{table}[h]
+\begin{table}[t]
 	\centering
+	\caption{Detailed project budget in New Zealand Dollars (NZD).}
+	\label{tab:budget-detail}
 	\begin{spreadtab}{{tabular}{l r}}
 		\hline
 		\multicolumn{2}{l}{\textbf{Funding (received)}:={}} \\
@@ -29,16 +31,14 @@
 		@\textbf{Balance (funding $-$ expenses)} & :={cell(grant)+cell(programme)+cell(aicentre)-cell(gpu)-cell(participants)-cell(admin)-cell(contingency)} \\
 		\hline
 	\end{spreadtab}
-	\caption{Detailed project budget in New Zealand Dollars (NZD).}
-	\label{tab:budget-detail}
 \end{table}
 
 \section{Survey setup}
 
-The survey was an online survey that was scripted using the University of Wellington's Qualtrics survey platform.
+The survey was scripted in Qualtrics and fielded online.
 
 Dynata was used to recruit participants from their panel. 
-\fixme{Add in detials on cost per pariticapant, field time, field dates and any other relevant details.}
+\fixme{Add cost per participant and any other relevant survey-setup details.}
 
 \section{GPU use}
 
@@ -46,8 +46,8 @@ Dynata was used to recruit participants from their panel.
 
 A pre-registration was done for both of the Research Questions.
 
-It can found here \url{https://aspredicted.org/kd3an7.pdf} \cite{thompsonPreregistrationAligningLLMs2026/10/1515:17}
+It can be found here: \url{https://aspredicted.org/kd3an7.pdf} \cite{thompsonPreregistrationAligningLLMs2026/10/1515:17}
 
-\subsection{Deviance from pre-registration}
+\subsection{Deviations from the pre-registration}
 
-Added in a lower bound cut off for the survey response to be 5 minutes as anything shorter was deemed too low effort. This is different from screening out based on lower than 1/3 median time as was pre-registered. This was done in the survey to filter them out so that the panel provider could resupply a respondent.
+We added a lower-bound cutoff of four minutes for survey responses, because anything shorter was deemed too low effort. This differs from the pre-registered rule of screening out responses faster than one-third of the median completion time. The screenout was applied live so that the panel provider could replace the respondent.

@@ -1,0 +1,17 @@
+% Derived from survey-dilemma-stats-modal.tex,
+% survey-dilemma-selected-stats-modal.tex and survey-selection-summary.tex.
+% The first two rows aggregate the 30-dilemma modal pool; the last two come
+% from the selected top-17 subset and the naive random baseline.
+% Regenerate this table if those source tables change.
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{lrrrrrrr}
+\toprule
+Stage & Dilemmas & Pairs & Divergence & Survey quality & Strong \% & Agreement \% & Mean TVD \\
+\midrule
+All index-matched pairs & 30 & 1,500 & 2.95 & 2.79 & 32.1 & 56.9 & -- \\
+Significant dilemmas & 18 & 900 & 3.36 & 3.18 & 45.6 & 42.0 & -- \\
+Top-17 per dilemma & 18 & 306 & 4.61 & 4.29 & 88.9 & 0.7 & 0.436 \\
+Random 17/dilemma (baseline) & 18 & 306 & 3.36 & 3.17 & 45.5 & 42.1 & 0.113 \\
+\bottomrule
+\end{tabular}
+}%

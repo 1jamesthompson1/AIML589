@@ -80,8 +80,10 @@ To complete this project there are two main requirements:
 \end{itemize}
 Both of these can be sourced at a reasonable cost, with the computational resources being available through a cloud provider and the human participants being recruited through a panel recruitment service. A summary of the estimated budget is provided below.
 
-\begin{table}[h]
+\begin{table}[t]
 	\centering
+	\caption{Estimated Budget for Project Resources, all values in New Zealand Dollars (NZD). GPU price is based on \href{https://console.vast.ai}{vast.ai} price for H200 (140GB VRAM). Participant compensation is estimated and a quote is pending. See \ref{app:resources} for a detailed breakdown of the resources required.}
+	\label{tab:budget}
 	\begin{spreadtab}{{tabular}{l r}}
 		\hline
 		@\textbf{Item}                                     & @\textbf{Estimated Cost (NZD)} \\
@@ -93,8 +95,6 @@ Both of these can be sourced at a reasonable cost, with the computational resour
 		@\textbf{Total}                                    & :={\gpuHours*\gpuRate+\participantCount*\participantRate+(\gpuHours*\gpuRate+\participantCount*\participantRate)*\contingencyRate} \\
 		\hline
 	\end{spreadtab}
-	\caption{Estimated Budget for Project Resources, all values in New Zealand Dollars (NZD). GPU price is based on \href{https://console.vast.ai}{vast.ai} price for H200 (140GB VRAM). Participant compensation is estimated and a quote is pending. See \ref{app:resources} for a detailed breakdown of the resources required.}
-	\label{tab:budget}
 \end{table} 
 
 The other requirements for the project are publicly and freely available namely the World Values Survey data and open-weight LLMs.

@@ -37,7 +37,7 @@ Usage:
     uv run python code/dilemmas/judge_quality.py --scope survey
     uv run python code/dilemmas/judge_quality.py --scope complete
     uv run python code/dilemmas/judge_quality.py \
-        --run-id 2026-10-22_0a63e425 --subset complete/modal_response-overall
+        --run-id 2026-10-23_dc41eb9e --subset complete/modal_response-overall
     uv run python code/dilemmas/judge_quality.py --limit 10   # pilot
     uv run python code/dilemmas/judge_quality.py --estimate   # no API calls
 

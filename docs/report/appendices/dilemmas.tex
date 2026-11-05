@@ -12,13 +12,13 @@ The target models were \modelref{qwen3.8-27b} and its four LoRA fine-tunes (\mod
 The full four-model screen and the main modal run are in \tabref{dilemmas-run-parameters}. All Qwen models were served on one RTX 6000 Pro; the times are eval wall-clock and include the judge calls. 
 \fixme{Yet to be completed with the correct run times.}
 
-\ctable[!ht]{dilemmas-run-parameters}{Run times for the different runs.}
+\ctable{dilemmas-run-parameters}{Run times for the different runs.}
 
 \subsection{Settings}
 
 The generation settings are in \tabref{dilemmas-sampling-parameters}. The fine-tuned and base models use temperature 0.1, top-$p$ 1.0 and top-$k$ 20. The judges request temperature 0 and top-$p$ 1.0; top-$k$ is not supported by the OpenAI API. GPT-6-Luna ignores the requested temperature and runs at 1.0.
 
-\ctable[!ht]{dilemmas-sampling-parameters}{Generation settings for the experiments}
+\ctable{dilemmas-sampling-parameters}{Generation settings for the experiments}
 
 \clearpage
 

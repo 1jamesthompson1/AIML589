@@ -44,6 +44,14 @@ uv run python code/dilemmas/judge_quality.py \
 
 Use `--estimate` first; `--limit N` scores N pairs per judge.
 
+`analyze.py` writes three survey tables:
+`survey-dilemma-stats-modal.tex` (the fielded modal pool, overall),
+`survey-dilemma-selected-stats-modal.tex` (the fielded modal selected
+subset), and `survey-selection-summary.tex` (one selected-stats row for
+each of the four fine-tunes plus the naive random 17-per-dilemma baseline,
+with the mean TVD of each row's answer-option distribution from that
+model's full pool).
+
 ## Re-running a profile
 
 Editing `profiles/<profile>.json` invalidates that profile's samples in an
@@ -98,7 +106,7 @@ fine-tuned run with:
 
 ```bash
 uv run scout scan code/dilemmas/sa_scanner.py \
-    -T code/dilemmas/output/logs/full/2026-10-22_0a63e425 \
+    -T code/dilemmas/output/logs/full/2026-10-23_dc41eb9e \
     --model openrouter/openai/gpt-5.6-luna \
     --scans code/dilemmas/output/scans --cache 7d
 ```
