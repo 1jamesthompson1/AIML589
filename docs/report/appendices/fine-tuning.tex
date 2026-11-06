@@ -1,6 +1,8 @@
 \section{Clustering of the World Values Survey responses}
 To allow for comparison between different clusters of NZ population an attempt was made to cluster the responses to the World Values Survey. Multiple clustering methods were attempted and none provided very rigours or defensible clusters. Therefore clustering removed from the research methodology. Below is a summary of the clustering that was done.
 
+See the following section for the results and then in \ref{subsec:clustering-survey} for the methods of clustering.
+
 \subsection{The suggested clusters of survey respondents}
 
 The WVS data is best clustered into 2 clusters using Latent Cluster Analysis (LCA). However the clusters are not very distinct and are somewhat arbitrary. We can understand the cluster in two ways. Firstly we can look at the value questions that most split the clusters. Secondly we can look at the demographic questions that most split the clusters.
@@ -18,6 +20,7 @@ As is seen in \figref{clusters/k2_analysis/figures/certainty_by_n_questions} it 
 \cfigure[t][1.2\textwidth]{clusters/k2_analysis/figures/cluster_demographics_infographic.png}{The demographic differences between the clusters.}
 
 \subsection{Clustering of survey data}
+\label{subsec:clustering-survey}
 
 The WVS data has 1,057 responses to 251 value questions. Each question has categorical responses with varying number of options. The goal of the clustering is to find groups of respondents that have similar responses to the value questions and sufficiently different responses to other groups of respondents. Furthermore the clusters should be robust to the choice of clustering method and reproducible.
 
@@ -51,7 +54,9 @@ The difference between $k=2$ and $k=3$ solutions is that the $k=3$ solution spli
 \ctable{clusters/k2_vs_k3/figures/bootstrap_stability}{Bootstrap stability check for 2 and 3 clusters. We can see that the $k=2$ solution is much more stable than the $k=3$ solution.}
 
 
-\section{Held-out validation data}
+\section{Training data details}
+
+\subsection{Held out questions for validation}
 
 The validation set holds out five questions, one per redundancy cluster and
 battery, selected as the questions whose responses are most predictable from
@@ -59,14 +64,30 @@ the \emph{other} questions (max cross-battery Cram\'er's V). The model has the
 value-relevant information to answer them but never sees the exact question
 text during training, so reproducing their empirical distributions shows
 learned values rather than memorised question-answer pairs. The list below
-shows each held-out question and the training questions most similar to it. As seen in \figref{redundancy_bar_chart}, there are broadly two redundancy groups with all others being singletons. The held out questions are from each redundancy group as well as some singletons.
+shows two examples of held-out questions and the training questions most similar to them. As seen in \figref{redundancy_bar_chart}, there are broadly two redundancy groups with all others being singletons. The held-out questions are from each redundancy group as well as some singletons.
 
 {\small\verbatiminput{../../code/figures/held_out_similarity.txt}}
 
 \cfigure[t][1.2\textwidth]{redundancy_bar_chart}{Survey questions redundancy bar chart}
 
-\section{System prompts}
+\subsection{System prompts}
 \label{sec:system-prompts}
 
 {\small\verbatiminput{../../code/figures/system_prompts.txt}}
 
+\section{Calculation of response distributions for full option strings}
+
+When calculating the response distributions for the first token data set it is as simple as taking the log-probs returned by the model for the first token and renormalising it over the valid first tokens. However for the full option strings it is more complex as the entire string probability needs to be calculated. Furthermore the first token for each of the options are not necessarily unique.
+
+\fixme{Explain this properly and ismply with refrneces if needed}
+
+\section{Effect of alignment on the model capabilities}
+\label{sec:capability-testing}
+
+When fine-tuning a model it is important to ensure that regressions don't happen else hwere\cn[Paper talking about degredation]. As we are changing the weights it is quite plausible that the model could lose some of its knowledge or abilities. To test this we ran the base and fine tuned models through a sample of the MMLU Pro and IFEval benchmark. The results are shown in \tabref{ft-capability-Qwen3.8-27B}. 
+
+We can see that all but the Full String methods maintain the same level of performance as the base model when looking at innate knowledge (MMLU Pro Direct) and instruction following (IFEval). However we can see that All of the models behave poorly when it comes to reasoning as they have lost any ability to reason through a problem. Furthermore when strictly marking (requiring single token then \texttt{<eos>}) the MMLU Pro all but the \modelref{ft-first-token} method has seen a catastrophic loss in performance.
+
+Given this it is clear that the fine-tuning method have caused some negative effects on the overall model. Further testing would be needed to understand the extent of this. It suggests a need to augment the fine-tuning process to ensure maintenance of the models capabilities (maybe smaller adapter, or interleaved training).
+
+\ctable{ft-capability-Qwen3.8-27B}{The base and fine tuned models ran through a sample of the MMLU Pro and IFEval benchmark.}

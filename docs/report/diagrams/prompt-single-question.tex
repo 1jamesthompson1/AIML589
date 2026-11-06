@@ -1,0 +1,56 @@
+% Bare tikzpicture: single-select WVS question (Q46, question_mapping id 9) turned
+% into training messages. Prompt text follows build_dataset.py (build_user_prompt)
+% and the survey_respondent system prompt (abridged). Example answer = modal answer over
+% all respondents (Quite happy, 60% of valid answers).
+% Included by \cdiagram (docs/common.tex); compiles only as part of the report.
+\begin{tikzpicture}[
+    font=\small,
+    src/.style={
+        draw=black!50, fill=black!4, rounded corners=3pt, align=left,
+        inner sep=6pt, text width=4.6cm,
+    },
+    msg/.style={
+        draw=#1!65!black, fill=#1!11, rounded corners=3pt, align=left,
+        inner sep=6pt, text width=8.2cm,
+    },
+    arr/.style={-{Stealth[length=2.4mm]}, thick, draw=black!65},
+    note/.style={font=\scriptsize\itshape, align=center, text width=1.5cm},
+]
+
+% --- Source: the question as it appears in the questionnaire (options in user prompt)
+\node[src, anchor=west] (question) at (0, 0) {
+    \textbf{WVS question (Q46)}\\[3pt]
+    Taking all things together, would you say you are:
+};
+
+% --- User prompt: question text, then the options one per line ---------------
+\node[msg=blue, anchor=west] (user) at (6.7, 0) {
+    \textbf{User prompt}\\[3pt]
+    Taking all things together, would you say you are:\\[4pt]
+    Options:\\
+    Very happy\\
+    Quite happy\\
+    Not very happy\\
+    Not at all happy\\
+    Don't know
+};
+
+% --- System prompt: fixed template, one of eight variants ---------------------
+\node[msg=black, above=0.45cm of user] (system) {
+    \textbf{System prompt} {\scriptsize\itshape (one of eight variants, abridged)}\\[3pt]
+    You are a participant in the World Values Survey, a global research project
+    exploring people's values, beliefs, and attitudes. {[\dots]} IMPORTANT:
+    Respond with ONLY the exact text of your chosen option. No extra words, no
+    explanations, no formatting. Your entire response must be exactly one of the
+    options listed.
+};
+
+% --- Example response ---------------------------------------------------------
+\node[msg=teal, below=0.45cm of user] (assistant) {
+    \textbf{Example AI response}\\[3pt]
+    ``Quite happy''
+};
+
+\draw[arr] (question.east) -- node[above, note] {question\\+ options} (user.west);
+
+\end{tikzpicture}

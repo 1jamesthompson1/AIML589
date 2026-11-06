@@ -64,9 +64,16 @@ def _(EVALS_ROOT, ast, json, pd):
         "first_token_distribution",
         "full_string_distribution",
     ]
-    SPLITS = ["train", "validation", "overall"]
-    METRICS = ["accuracy", "cross_entropy", "kl_divergence"]
+    # The validation split is reported twice because the eval holds out two
+    # different things: a whole prompt (generic_answer*, all questions) and
+    # individual questions under the seen prompts (6 per prompt). Keeping them
+    # separate avoids the tiny 6-question slices dominating a pooled mean.
+    SPLITS = ["validation_prompt", "validation_question", "train", "all"]
+    METRICS = ["accuracy", "kl_divergence"]
     CAPABILITY_ROOT = EVALS_ROOT.parent / "capability"
+    # Only this base model's adapters are in scope for the capability table.
+    # Anything else in output/capability/ is ignored rather than rendered as a
+    # mostly-empty row.
     TASK_LABELS = {
         "mmlu_pro_logprob": "MMLU-Pro (direct)",
         "mmlu_pro": "MMLU-Pro (CoT)",
@@ -487,237 +494,275 @@ def _(mo):
     ## Find tune results table
 
     For each base model: one row per fine-tuned version (base model at the
-    top), columns = accuracy / cross-entropy / KL divergence on the train,
-    validation and overall splits, plus a "vs Base" column block with the
-    adapter-minus-base deltas on the held-out validation split. All metrics
-    come from the modal eval config
-    (``modal_response`` so accuracy
-    always means exact match against the modal response and CE/KL are
-    against the empirical response distribution. Every model (base
-    and fine-tuned) is
-    scored on the overall population. The LaTeX
-    tables (pandas ``to_latex``, booktabs) are written to
-    ``code/figures/`` as ``ft-results-<model>.tex`` and included in the report
-    with ``\ctable{...}``.
+    top), columns = accuracy and KL divergence on two validation splits,
+    train, and all. ``Validation prompt`` is the held-out generic prompt (all
+    its questions); ``Validation question`` is the held-out questions under
+    the seen prompts. Keeping them separate stops the tiny 6-question prompt
+    slices from dominating the validation number. Metrics are pooled over
+    rows, not averaged over prompts. CE is omitted because, on the same
+    questions, it differs from KL only by the true distribution's entropy.
+
+    All metrics come from the modal eval config (``modal_response``), so
+    accuracy always means exact match against the modal response and KL is
+    against the empirical response distribution. Every model is scored on the
+    overall population. The LaTeX tables are written to ``code/figures/`` as
+    ``ft-results-<model>.tex``. The first-token eval in the same layout
+    (reasoning off, all system prompts) is written to
+    ``ft-results-first_token_distribution-<model>.tex``.
     """)
     return
 
 
 @app.cell
-def _(METRICS, SPLITS, adapter_rows, collapse_versions, model_frames, np, pd):
+def _(
+    EVALS_ROOT,
+    METRICS,
+    SPLITS,
+    adapter_rows,
+    base_and_method,
+    collapse_versions,
+    model_frames,
+    newest_run,
+    parse_list,
+    pd,
+):
     # Building the main table data.
+    from scoring import leading_letter as _leading_letter
 
-    def collect_modal_metrics(system_prompt_id_filter=None):
-        """Per (model, split) mean metrics, averaged over the system prompts,
-        from the newest non-reasoning modal-config eval run. Only the
-        overall population is kept; rows tagged with a cluster
-        subpopulation are dropped.
+    _ALL_LETTERS = [chr(65 + i) for i in range(26)]
 
-        With ``system_prompt_id_filter`` only that system prompt's rows are
-        scored (e.g. ``"no_persona"`` for the prompted-vs-base comparison).
+    def load_config_frames(eval_config, reasoning=False):
+        """dict model dir name -> (base_model, method, overall per-question df)
+        for the newest full run of one eval config and thinking mode."""
+        frames = {}
+        for model_dir in sorted(EVALS_ROOT.iterdir()):
+            if not model_dir.is_dir():
+                continue
+            run_dir = newest_run(
+                model_dir,
+                keep=lambda cfg: (
+                    cfg.get("dataset") == eval_config
+                    and bool(cfg.get("reasoning")) is reasoning
+                    and not cfg.get("num_test_examples")
+                ),
+            )
+            if run_dir is None:
+                continue
+            csv_path = run_dir / "per_question_results.csv"
+            if not csv_path.exists():
+                continue
+            df = pd.read_csv(csv_path)
+            if df.empty:
+                continue
+            df = df.assign(
+                subpopulation=df.get("subpopulation", "overall"),
+                split=df.get("split", "validation"),
+            )
+            frames[model_dir.name] = (
+                *base_and_method(model_dir.name),
+                df[df["subpopulation"] == "overall"],
+            )
+        return frames
 
-        Older eval runs did not tag every row with a split/subpopulation:
-        they are treated as validation-only over the whole population, so
-        their train columns come out as NaN (rendered as "--" in the table).
+    def expected_letter(expected_text, categories):
+        """Option letter for a gold answer stored as a letter, option text or
+        numeric label."""
+        text = str(expected_text).strip()
+        if len(text) == 1 and text.upper() in _ALL_LETTERS:
+            return text.upper()
+        for i, category in enumerate(categories or []):
+            if str(category).strip().lower() == text.lower():
+                return _ALL_LETTERS[i]
+        return None
+
+    def collect_metrics(frames, system_prompt_id_filter=None, first_token=False):
+        """Pooled metrics per (model, evaluation split).
+
+        ``validation_prompt`` is the held-out generic prompt (all its
+        questions); ``validation_question`` is the held-out questions under
+        the seen prompts; ``train`` is the seen questions; ``all`` is every
+        row. Metrics are pooled over rows, so a prompt with more items
+        contributes proportionally (unlike an equal-prompt mean).
+        ``first_token`` scores accuracy with the lenient leading-letter rule.
         """
-        per_prompt = []
-        for model, (base, method, df) in model_frames.items():
+        rows = []
+        for model, (base, method, df) in frames.items():
             if not {"expected_text", "model_answer"}.issubset(df.columns):
                 continue
             if system_prompt_id_filter is not None:
-                df = df[df["system_prompt_id"] == system_prompt_id_filter]
-            for (split, sp_id), h in df.groupby(
-                ["split", "system_prompt_id"], dropna=False
-            ):
-                acc = (
-                    h["expected_text"].str.strip().str.lower()
-                    == h["model_answer"].str.strip().str.lower()
-                ).mean() * 100
-                per_prompt.append(
+                if "system_prompt_id" not in df:
+                    continue
+                df = df[
+                    df["system_prompt_id"]
+                    .astype(str)
+                    .str.startswith(system_prompt_id_filter)
+                ]
+            if df.empty:
+                continue
+            prompt = df["system_prompt_id"].astype(str)
+            generic = prompt.str.startswith("generic_answer")
+            split = df["split"].astype(str)
+            subsets = {
+                "validation_prompt": generic,
+                "validation_question": split.eq("validation") & ~generic,
+                "train": split.eq("train"),
+                "all": pd.Series(True, index=df.index),
+            }
+
+            def accuracy(h):
+                if not first_token:
+                    return (
+                        h["expected_text"].str.strip().str.lower()
+                        == h["model_answer"].str.strip().str.lower()
+                    ).mean() * 100
+                categories = h["categories"].map(parse_list)
+                letters = categories.map(
+                    lambda cats: (
+                        [chr(65 + i) for i in range(len(cats or []))] or _ALL_LETTERS
+                    )
+                )
+                lead = pd.Series(
+                    [
+                        _leading_letter(answer, valid)
+                        if isinstance(answer, str)
+                        else None
+                        for answer, valid in zip(h["model_answer"], letters)
+                    ],
+                    index=h.index,
+                )
+                expected = pd.Series(
+                    [
+                        expected_letter(gold, cats)
+                        for gold, cats in zip(h["expected_text"], categories)
+                    ],
+                    index=h.index,
+                )
+                capped = (
+                    h["truncated"].astype(str).str.lower().eq("true")
+                    if "truncated" in h
+                    else pd.Series(False, index=h.index)
+                )
+                return (lead.eq(expected) & ~capped).mean() * 100
+
+            for split_label, mask in subsets.items():
+                h = df[mask]
+                rows.append(
                     {
                         "model": model,
                         "base_model": base,
                         "method": method,
-                        "split": split,
-                        "system_prompt_id": sp_id,
+                        "split": split_label,
                         "n": len(h),
-                        "accuracy": acc,
-                        "cross_entropy": h["cross_entropy"].mean(),
-                        "kl_divergence": h["kl_divergence"].mean(),
+                        "accuracy": accuracy(h) if not h.empty else float("nan"),
+                        "kl_divergence": (
+                            h["kl_divergence"].mean() if not h.empty else float("nan")
+                        ),
                     }
                 )
-        df = pd.DataFrame(per_prompt)
-        if df.empty:
-            return df
+        return pd.DataFrame(rows)
 
-        def mean_over_prompts(sub):
-            return (
-                sub.groupby(
-                    ["model", "base_model", "method", "split"],
-                    dropna=False,
-                )[METRICS]
-                .mean()
-                .reset_index()
-            )
+    def collect_modal_metrics(system_prompt_id_filter=None):
+        """Pooled metrics from the newest non-reasoning modal-config eval run,
+        restricted to the overall population. Exact-match accuracy, as in the
+        main table.
 
-        by_split = mean_over_prompts(df)
-        # Overall = train + validation pooled per prompt, weighted by question
-        # count so each question contributes equally.
-        combined = []
-        for (model, base, method, sp_id), h in df.groupby(
-            ["model", "base_model", "method", "system_prompt_id"],
-            dropna=False,
-        ):
-            combined.append(
-                {
-                    "model": model,
-                    "base_model": base,
-                    "method": method,
-                    "system_prompt_id": sp_id,
-                    "accuracy": np.average(h["accuracy"], weights=h["n"]),
-                    "cross_entropy": np.average(h["cross_entropy"], weights=h["n"]),
-                    "kl_divergence": np.average(h["kl_divergence"], weights=h["n"]),
-                }
-            )
-        combined = pd.DataFrame(combined)
-        combined["split"] = "overall"
-        return pd.concat([by_split, mean_over_prompts(combined)], ignore_index=True)
+        With ``system_prompt_id_filter`` only prompts starting with that name
+        are scored (e.g. ``"no_persona"`` for the prompted-vs-base
+        comparison). Older runs without split/subpopulation tags are treated
+        as validation-only, so their train columns render as "--".
+        """
+        return collect_metrics(
+            model_frames, system_prompt_id_filter=system_prompt_id_filter
+        )
 
     def build_main_tables(metrics):
         """dict base_model -> DataFrame, one row per fine-tuned version (base
-        first), 9 columns = 3 metrics x 3 splits. All models are matched to
-        the overall population. Duplicate entries (several eval dirs mapping
-        to the same method) are averaged per split."""
+        first), columns = metrics x splits. Metrics are already pooled per
+        split. Duplicate entries (several eval dirs mapping to the same
+        method) are averaged per split."""
         tables = {}
-        base_refs = {}
         for base_model in sorted(metrics["base_model"].unique()):
             collapsed = collapse_versions(
                 adapter_rows(metrics[metrics["base_model"] == base_model])
             )
             table_rows = []
             for _, label, g in collapsed:
-                piv = g.set_index("split")
+                agg = g.groupby("split", dropna=False)[METRICS].mean()
                 row = {"label": label}
                 for split in SPLITS:
                     for metric in METRICS:
                         row[f"{metric}_{split}"] = (
                             float("nan")
-                            if split not in piv.index
-                            else piv.loc[split, metric]
+                            if split not in agg.index
+                            else agg.loc[split, metric]
                         )
                 table_rows.append(row)
-            table = pd.DataFrame(table_rows)
-            tables[base_model] = table
-            # Reference values of the base model, for the "vs base" deltas.
-            # A prompted dir can exist without a base run (prompted eval via
-            # a different provider than the base): NaN keeps every consumer
-            # working and renders the deltas as "--".
-            base_vals = table[table["label"] == "Base"]
-            if not base_vals.empty:
-                base_refs[base_model] = {
-                    f"{metric}_{split}": base_vals[f"{metric}_{split}"].iloc[0]
-                    for split in SPLITS
-                    for metric in METRICS
-                }
-            else:
-                base_refs[base_model] = {
-                    f"{metric}_{split}": float("nan")
-                    for split in SPLITS
-                    for metric in METRICS
-                }
-        return tables, base_refs
+            tables[base_model] = pd.DataFrame(table_rows)
+        return tables
 
-    def show_main_tables(tables, base_refs, context="overall population"):
-        """Console view: metrics x {Validation, Train, All, Δ vs Base}.
-        Δ vs Base = adapter minus base on the held-out validation split
-        (positive Δ accuracy = better; negative Δ CE/KL = better). The
-        base row shows "--" for the deltas. ``context`` labels the data
-        scope in the header (overall population or one system prompt)."""
-        metric_labels = {
-            "accuracy": "Acc (%)",
-            "cross_entropy": "CE",
-            "kl_divergence": "KL",
-        }
-        split_cols = ["Validation", "Train", "All", "Δ vs Base"]
+    def show_main_tables(tables, context="overall population"):
+        """Console view: Accuracy and KL by split. ``validation_prompt`` is
+        the held-out generic prompt; ``validation_question`` is the held-out
+        questions under the seen prompts. ``context`` labels the data scope."""
+        metric_labels = {"accuracy": "Acc (%)", "kl_divergence": "KL"}
+        split_labels = ["Val prompt", "Val question", "Train", "All"]
+        split_keys = ["validation_prompt", "validation_question", "train", "all"]
         for base_model, table in tables.items():
-            base = base_refs[base_model]
             print(
                 f"\n=== {base_model} — {context} "
-                "(validation = held-out questions/prompts) ==="
+                "(val prompt = held-out generic prompt; val question = "
+                "held-out questions under seen prompts) ==="
             )
             cols = pd.MultiIndex.from_product(
-                [[metric_labels[m] for m in METRICS], split_cols]
+                [[metric_labels[m] for m in METRICS], split_labels]
             )
             out = pd.DataFrame(index=table["label"], columns=cols)
-            for mi, m in enumerate(METRICS):
-                # .values: assign positionally, otherwise pandas aligns on
-                # the mismatched row labels and silently produces NaN.
-                out[(metric_labels[m], "Validation")] = (
-                    table[f"{m}_validation"].round(3).values
-                )
-                out[(metric_labels[m], "Train")] = table[f"{m}_train"].round(3).values
-                out[(metric_labels[m], "All")] = table[f"{m}_overall"].round(3).values
-                delta = table[f"{m}_validation"] - base[f"{m}_validation"]
-                delta = delta.where(table["label"] != "Base").round(3)
-                out[(metric_labels[m], "Δ vs Base")] = delta.values
+            for metric in METRICS:
+                for split, label in zip(split_keys, split_labels):
+                    out[(metric_labels[metric], label)] = (
+                        table[f"{metric}_{split}"].round(3).values
+                    )
             print(out.to_string())
-            print(
-                "Δ vs Base = adapter minus base on validation "
-                "(+Acc / −CE / −KL means improvement)"
-            )
 
-    tables, base_refs = build_main_tables(collect_modal_metrics())
-    show_main_tables(tables, base_refs)
+    tables = build_main_tables(collect_modal_metrics())
+    show_main_tables(tables)
     return (
-        base_refs,
         build_main_tables,
+        collect_metrics,
         collect_modal_metrics,
+        load_config_frames,
         show_main_tables,
         tables,
     )
 
 
 @app.cell
-def _(base_refs, pd, tables, write_latex_table):
-    # Columns: per metric {Validation, Train, All, vs Base} — the validation
-    # split (held-out questions/prompts) comes first as the honest measure of
-    # generalisation, and "vs Base" = adapter minus base on validation
-    # (+Acc / -CE / -KL means the fine-tuned model moved towards the NZ
-    # response distribution). Also used for the no_persona-only table via
-    # name_template.
+def _(pd, tables, write_latex_table):
+    # Columns: Accuracy and KL by split. The two validation columns separate
+    # the held-out generic prompt from the held-out questions under the seen
+    # prompts, so the tiny 6-question prompt slices cannot dominate the mean.
+    # CE is omitted: on the same questions it differs from KL only by the true
+    # distribution's entropy, so it adds no ranking information.
 
-    def render_tables_to_tex(
-        tables, base_refs, name_template="ft-results-{base_model}.tex"
-    ):
-        METRIC_LABELS = ["Accuracy", "CE", "KL"]
-        METRIC_COLS = ["accuracy", "cross_entropy", "kl_divergence"]
-        SPLIT_LABELS = ["Validation", "Train", "All", "vs Base"]
-        # accuracy higher-better, CE and KL lower-better (also for the deltas)
-        SENSES = {"Accuracy": "max", "CE": "min", "KL": "min"}
-        FORMATS = {"Accuracy": "{:.1f}", "CE": "{:.2f}", "KL": "{:.3f}"}
-        DELTA_FORMATS = {k: v.replace("{:", "{:+") for k, v in FORMATS.items()}
-
+    def render_tables_to_tex(tables, name_template="ft-results-{base_model}.tex"):
+        METRIC_LABELS = ["Accuracy", "KL"]
+        METRIC_COLS = ["accuracy", "kl_divergence"]
+        SPLIT_LABELS = ["Validation prompt", "Validation question", "Train", "All"]
+        SPLIT_KEYS = ["validation_prompt", "validation_question", "train", "all"]
+        SENSES = {"Accuracy": "max", "KL": "min"}
+        FORMATS = {"Accuracy": "{:.1f}", "KL": "{:.3f}"}
         written = []
         for base_model, table in tables.items():
-            base = base_refs[base_model]
             columns = pd.MultiIndex.from_product([METRIC_LABELS, SPLIT_LABELS])
             out = pd.DataFrame(index=table["label"], columns=columns)
             # Index name suppressed (Styler would emit an extra header row);
             # the "Model" header is re-added by write_latex_table.
             out.index.name = None
             fmt = {}
-            for mi, mcol in enumerate(METRIC_COLS):
-                label = METRIC_LABELS[mi]
-                out[(label, "Validation")] = table[f"{mcol}_validation"].values
-                out[(label, "Train")] = table[f"{mcol}_train"].values
-                out[(label, "All")] = table[f"{mcol}_overall"].values
-                delta = table[f"{mcol}_validation"] - base[f"{mcol}_validation"]
-                # No delta for the base row itself (rendered as "--").
-                delta = delta.where(table["label"] != "Base")
-                out[(label, "vs Base")] = delta.values
-                for slabel in SPLIT_LABELS[:-1]:
+            for mcol, label in zip(METRIC_COLS, METRIC_LABELS):
+                for key, slabel in zip(SPLIT_KEYS, SPLIT_LABELS):
+                    out[(label, slabel)] = table[f"{mcol}_{key}"].values
                     fmt[(label, slabel)] = FORMATS[label]
-                fmt[(label, "vs Base")] = DELTA_FORMATS[label]
             written.append(
                 write_latex_table(
                     out,
@@ -729,9 +774,41 @@ def _(base_refs, pd, tables, write_latex_table):
             )
         return written
 
-    table_files = render_tables_to_tex(tables, base_refs)
+    table_files = render_tables_to_tex(tables)
     table_files
     return (render_tables_to_tex,)
+
+
+@app.cell
+def _(
+    build_main_tables,
+    collect_metrics,
+    load_config_frames,
+    render_tables_to_tex,
+):
+    # First-token eval in the same layout as the main table: every model on
+    # the first-token format, reasoning off and all system prompts. Only
+    # base models with at least one adapter are rendered; the others would
+    # be a single Base row. LaTeX -> code/figures/
+    # ft-results-first_token_distribution-<model>.tex.
+    first_token_metrics = collect_metrics(
+        load_config_frames("first_token_distribution", reasoning=False),
+        first_token=True,
+    )
+    if first_token_metrics.empty:
+        first_token_tables = {}
+    else:
+        n_methods = first_token_metrics.groupby("base_model")["method"].nunique()
+        first_token_metrics = first_token_metrics[
+            first_token_metrics["base_model"].isin(n_methods[n_methods > 1].index)
+        ]
+        first_token_tables = build_main_tables(first_token_metrics)
+    first_token_table_files = render_tables_to_tex(
+        first_token_tables,
+        name_template="ft-results-first_token_distribution-{base_model}.tex",
+    )
+    first_token_table_files
+    return (first_token_table_files,)
 
 
 @app.cell(hide_code=True)
@@ -745,9 +822,10 @@ def _(mo):
     average New Zealand person would" instruction. Comparing Prompted with
     Base shows the effect of prompting alone on the most neutral prompt;
     comparing it with the fine-tuned rows shows how much of fine-tuning's
-    move towards the NZ population a single instruction reproduces. The
-    validation column is thin — only the held-out questions answered under
-    this one prompt. LaTeX is written to
+    move towards the NZ population a single instruction reproduces. There is
+    no held-out prompt in this single-prompt view, so ``Validation prompt`` is
+    ``--``; ``Validation question`` is the six held-out questions under this
+    prompt. LaTeX is written to
     ``code/figures/ft-results-nopersona-<model>.tex``.
     """)
     return
@@ -763,17 +841,385 @@ def _(
     # no_persona-only version of the main table: the prompted baseline and
     # every fine-tuned method scored on just this system prompt.
     nopersona_metrics = collect_modal_metrics(system_prompt_id_filter="no_persona")
-    nopersona_tables, nopersona_base_refs = build_main_tables(nopersona_metrics)
-    show_main_tables(
-        nopersona_tables, nopersona_base_refs, context="no_persona prompt only"
-    )
+    nopersona_tables = build_main_tables(nopersona_metrics)
+    show_main_tables(nopersona_tables, context="no_persona prompt only")
     nopersona_table_files = render_tables_to_tex(
         nopersona_tables,
-        nopersona_base_refs,
         name_template="ft-results-nopersona-{base_model}.tex",
     )
     nopersona_table_files
     return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    ## Reasoning (thinking) on vs off
+
+    The same models evaluated twice on identical items: once with
+    ``--reasoning`` (chain of thought, answer read after ``</think>``) and once
+    without. Both passes use the ``no_persona`` system prompt and the overall
+    population, with every other setting at the eval default, so the only
+    difference is thinking. The question is whether fine-tuning's advantage
+    survives when the model is allowed to reason.
+
+    Scoring is the same in both passes. A first-token reply is correct when it
+    starts with the right option letter (text may follow); a reply with no
+    leading letter is counted wrong and given no distribution, so flagged and
+    token-capped rows drop out of TVD. ``Δ Acc`` is on minus off on the same
+    items, with an item-bootstrap 95% CI and an exact McNemar p-value.
+    ``vs Base`` is the adapter's accuracy minus the base model's **in the
+    same condition** (reasoning on), i.e. what fine-tuning still buys once the
+    model thinks.
+
+    Read ``Δ Acc`` carefully in the first-token table: without reasoning some
+    adapters answer with the option text instead of a letter, which is a format
+    effect, not a value effect (see the flagged column). Accuracy, not TVD, is
+    the cleaner comparison across conditions because reasoning makes most
+    distributions near one-hot. The report-style tables (reasoning on, same
+    accuracy/CE/KL layout as the main table) are written to
+    ``code/figures/ft-reasoning-<config>-<model>.tex``; the paired on/off
+    diagnostic is written to
+    ``code/figures/ft-reasoning-comparison-<config>-<model>.tex``.
+    """)
+    return
+
+
+@app.cell
+def _(
+    EVALS_ROOT,
+    adapter_rows,
+    base_and_method,
+    collapse_versions,
+    math,
+    newest_run,
+    np,
+    parse_list,
+    pd,
+):
+    # Building the reasoning on/off table data from the persisted eval runs.
+    from scoring import leading_letter
+
+    REASONING_FORMATS = ("modal_response", "first_token_distribution")
+    REASONING_KEYS = [
+        "question_id",
+        "sub_question",
+        "column_name",
+        "split",
+        "system_prompt_id",
+    ]
+    ALL_LETTERS = [chr(65 + i) for i in range(26)]
+
+    def newest_phase_run(model_dir, fmt, reasoning):
+        """Newest full run of one model dir for a format and thinking mode."""
+        return newest_run(
+            model_dir,
+            keep=lambda cfg: (
+                cfg.get("dataset") == fmt
+                and bool(cfg.get("reasoning")) is reasoning
+                and not cfg.get("num_test_examples")
+            ),
+        )
+
+    def scored_run(run_dir, first_token):
+        """Per-question rows scored with the evaluate.py rule."""
+        df = pd.read_csv(run_dir / "per_question_results.csv")
+        if "sub_question" not in df:
+            df["sub_question"] = ""
+        df["sub_question"] = df["sub_question"].fillna("")
+        if "split" not in df:
+            df["split"] = "validation"
+        if "system_prompt_id" in df:
+            df = df[df["system_prompt_id"].astype(str).str.startswith("no_persona")]
+        if "truncated" not in df:
+            df["truncated"] = False
+        df["truncated"] = df["truncated"].astype(str).str.lower().eq("true")
+        if first_token:
+            letters = df["categories"].map(
+                lambda s: (
+                    [chr(65 + i) for i in range(len(parse_list(s) or []))]
+                    or ALL_LETTERS
+                )
+            )
+            lead = pd.Series(
+                [
+                    leading_letter(a, ok) if isinstance(a, str) else None
+                    for a, ok in zip(df["model_answer"], letters)
+                ],
+                index=df.index,
+            )
+            df["flagged"] = lead.isna() & ~df["truncated"]
+            df["correct"] = lead.eq(df["expected_text"]) & ~df["truncated"]
+        else:
+            df["flagged"] = False
+            df["correct"] = (
+                df["is_correct"].astype(str).str.lower().eq("true")
+                if "is_correct" in df
+                else False
+            )
+        return df
+
+    def tvd_frame(df):
+        """Rows with a usable distribution, with TVD (%) to the NZ population."""
+        ok = df[~df["truncated"] & ~df["flagged"]]
+        rows = []
+        for _, r in ok.iterrows():
+            p, q = (
+                parse_list(r.get("model_distribution")),
+                parse_list(r.get("true_distribution")),
+            )
+            if not p or not q or len(p) != len(q) or sum(p) == 0:
+                continue
+            rows.append(
+                {
+                    **{k: r[k] for k in REASONING_KEYS},
+                    "tvd": 0.5 * sum(abs(a - b) for a, b in zip(p, q)) * 100,
+                }
+            )
+        return pd.DataFrame(rows, columns=REASONING_KEYS + ["tvd"])
+
+    def bootstrap_ci(a, b, n=2000):
+        """Item-bootstrap 95% CI on the paired difference (seeded per call so
+        the interval does not depend on the order comparisons are run in)."""
+        rng = np.random.default_rng(0)
+        diff = np.asarray(a, float) - np.asarray(b, float)
+        idx = rng.integers(0, len(diff), size=(n, len(diff)))
+        means = diff[idx].mean(axis=1)
+        return diff.mean(), np.percentile(means, 2.5), np.percentile(means, 97.5)
+
+    def mcnemar_p(a, b):
+        """Exact two-sided McNemar p over the discordant pairs."""
+        a, b = np.asarray(a, bool), np.asarray(b, bool)
+        n10, n01 = int((a & ~b).sum()), int((~a & b).sum())
+        n = n10 + n01
+        if n == 0:
+            return 1.0
+        k = min(n01, n10)
+        return min(1.0, 2 * sum(math.comb(n, i) for i in range(k + 1)) / 2**n)
+
+    def collect_reasoning_rows():
+        rows = []
+        for model_dir in sorted(EVALS_ROOT.iterdir()):
+            if not model_dir.is_dir():
+                continue
+            base, method = base_and_method(model_dir.name)
+            for fmt in REASONING_FORMATS:
+                on_dir = newest_phase_run(model_dir, fmt, True)
+                off_dir = newest_phase_run(model_dir, fmt, False)
+                if on_dir is None or off_dir is None:
+                    continue
+                first = fmt == "first_token_distribution"
+                on, off = scored_run(on_dir, first), scored_run(off_dir, first)
+                paired = on[REASONING_KEYS + ["correct"]].merge(
+                    off[REASONING_KEYS + ["correct"]],
+                    on=REASONING_KEYS,
+                    suffixes=("_on", "_off"),
+                )
+                if paired.empty:
+                    continue
+                delta, lo, hi = bootstrap_ci(
+                    paired["correct_on"], paired["correct_off"]
+                )
+                tv = tvd_frame(on).merge(
+                    tvd_frame(off), on=REASONING_KEYS, suffixes=("_on", "_off")
+                )
+                capped = (
+                    int((on["finish_reason"] == "length").sum())
+                    if "finish_reason" in on
+                    else int(on["truncated"].sum())
+                )
+                nothink = (
+                    int(
+                        (
+                            on["think_closed"].astype(str).str.lower().eq("false")
+                            & ~on["truncated"]
+                        ).sum()
+                    )
+                    if "think_closed" in on
+                    else 0
+                )
+                rows.append(
+                    {
+                        "model": model_dir.name,
+                        "base_model": base,
+                        "method": method,
+                        "config": fmt,
+                        "n_items": len(paired),
+                        "acc_off": paired["correct_off"].mean() * 100,
+                        "acc_on": paired["correct_on"].mean() * 100,
+                        "acc_delta": delta * 100,
+                        "acc_lo": lo * 100,
+                        "acc_hi": hi * 100,
+                        "mcnemar_p": mcnemar_p(
+                            paired["correct_on"], paired["correct_off"]
+                        ),
+                        "tvd_off": tv["tvd_off"].mean() if not tv.empty else np.nan,
+                        "tvd_on": tv["tvd_on"].mean() if not tv.empty else np.nan,
+                        "flagged_on": int(on["flagged"].sum()),
+                        "capped_on": capped,
+                        "nothink_on": nothink,
+                    }
+                )
+        return pd.DataFrame(rows)
+
+    def build_reasoning_tables(rows):
+        """dict (config, base_model) -> one row per model version, Base first."""
+        tables = {}
+        if rows.empty:
+            return tables
+        for base_model in sorted(rows["base_model"].unique()):
+            for fmt in REASONING_FORMATS:
+                sub = rows[(rows["base_model"] == base_model) & (rows["config"] == fmt)]
+                if sub.empty:
+                    continue
+                built = []
+                for _, label, g in collapse_versions(adapter_rows(sub)):
+                    built.append(
+                        {
+                            "label": label,
+                            **{
+                                col: g[col].mean()
+                                for col in sub.columns
+                                if col
+                                not in {"model", "base_model", "method", "config"}
+                            },
+                        }
+                    )
+                table = pd.DataFrame(built)
+                base_row = table[table["label"] == "Base"]
+                base_on = (
+                    float(base_row["acc_on"].iloc[0])
+                    if not base_row.empty
+                    else float("nan")
+                )
+                table["acc_vs_base_on"] = (table["acc_on"] - base_on).where(
+                    table["label"] != "Base"
+                )
+                tables[(fmt, base_model)] = table
+        return tables
+
+    def show_reasoning_tables(tables):
+        for (fmt, base_model), table in tables.items():
+            print(f"\n=== {base_model} — {fmt}, reasoning off vs on ===")
+            out = pd.DataFrame(index=table["label"])
+            out["Acc off"] = table["acc_off"].round(1).values
+            out["Acc on"] = table["acc_on"].round(1).values
+            out["Δ Acc"] = [
+                f"{v:+.1f}" if pd.notna(v) else "--" for v in table["acc_delta"]
+            ]
+            out["95% CI"] = [
+                f"[{lo:+.1f}, {hi:+.1f}]" if pd.notna(lo) and pd.notna(hi) else "--"
+                for lo, hi in zip(table["acc_lo"], table["acc_hi"])
+            ]
+            out["p"] = table["mcnemar_p"].round(4).values
+            out["vs Base (on)"] = [
+                f"{v:+.1f}" if pd.notna(v) else "--" for v in table["acc_vs_base_on"]
+            ]
+            out["TVD off"] = table["tvd_off"].round(1).values
+            out["TVD on"] = table["tvd_on"].round(1).values
+            out["Flag on"] = table["flagged_on"].astype(int).values
+            out["Cap on"] = table["capped_on"].astype(int).values
+            out["NoThink"] = table["nothink_on"].astype(int).values
+            print(out.to_string())
+        print(
+            "\nΔ Acc = reasoning on minus off, same items (+CI, McNemar p). "
+            "TVD (%) excludes flagged and capped rows. Flag on = replies with "
+            "no leading option letter (counted wrong). NoThink = answered "
+            "without closing </think>."
+        )
+
+    reasoning_rows = collect_reasoning_rows()
+    reasoning_tables = build_reasoning_tables(reasoning_rows)
+    show_reasoning_tables(reasoning_tables)
+    return (REASONING_FORMATS, reasoning_tables)
+
+
+@app.cell
+def _(
+    REASONING_FORMATS,
+    build_main_tables,
+    collect_metrics,
+    load_config_frames,
+    pd,
+    reasoning_tables,
+    render_tables_to_tex,
+    write_latex_table,
+):
+    # The report uses ft-results-style tables for the reasoning runs: reasoning
+    # on, accuracy/CE/KL by split (ft-reasoning-<config>-<model>.tex). The
+    # paired on/off comparison is kept as a diagnostic table
+    # (ft-reasoning-comparison-<config>-<model>.tex).
+
+    def render_reasoning_comparison_tables(tables):
+        columns = pd.MultiIndex.from_tuples(
+            [
+                ("Accuracy (%)", "Off"),
+                ("Accuracy (%)", "On"),
+                ("Δ Acc (pp)", "On−Off"),
+                ("vs Base (pp)", "On"),
+                ("p", "McNemar"),
+                ("TVD (%)", "Off"),
+                ("TVD (%)", "On"),
+                ("Flagged", "On"),
+            ]
+        )
+        senses = {"Accuracy (%)": "max", "TVD (%)": "min"}
+        bold_below = {"p": 0.05}
+        written = []
+        for (fmt, base_model), table in tables.items():
+            out = pd.DataFrame(index=table["label"], columns=columns)
+            out.index.name = None
+            out[("Accuracy (%)", "Off")] = table["acc_off"].values
+            out[("Accuracy (%)", "On")] = table["acc_on"].values
+            out[("Δ Acc (pp)", "On−Off")] = table["acc_delta"].values
+            out[("vs Base (pp)", "On")] = table["acc_vs_base_on"].values
+            out[("p", "McNemar")] = table["mcnemar_p"].values
+            out[("TVD (%)", "Off")] = table["tvd_off"].values
+            out[("TVD (%)", "On")] = table["tvd_on"].values
+            out[("Flagged", "On")] = table["flagged_on"].values
+            fmt_spec = {
+                ("Accuracy (%)", "Off"): "{:.1f}",
+                ("Accuracy (%)", "On"): "{:.1f}",
+                ("Δ Acc (pp)", "On−Off"): "{:+.1f}",
+                ("vs Base (pp)", "On"): "{:+.1f}",
+                ("p", "McNemar"): "{:.3f}",
+                ("TVD (%)", "Off"): "{:.1f}",
+                ("TVD (%)", "On"): "{:.1f}",
+                ("Flagged", "On"): "{:.0f}",
+            }
+            written.append(
+                write_latex_table(
+                    out,
+                    fmt_spec,
+                    out.shape[1],
+                    f"ft-reasoning-comparison-{fmt}-{base_model}.tex",
+                    senses=senses,
+                    bold_below=bold_below,
+                )
+            )
+        return written
+
+    def render_main_style_reasoning_tables():
+        written = []
+        for fmt in REASONING_FORMATS:
+            metrics = collect_metrics(
+                load_config_frames(fmt, reasoning=True),
+                first_token=(fmt == "first_token_distribution"),
+            )
+            if metrics.empty:
+                continue
+            tables = build_main_tables(metrics)
+            written += render_tables_to_tex(
+                tables,
+                name_template=f"ft-reasoning-{fmt}-{{base_model}}.tex",
+            )
+        return written
+
+    reasoning_tex_files = render_main_style_reasoning_tables()
+    reasoning_comparison_tex_files = render_reasoning_comparison_tables(
+        reasoning_tables
+    )
+    return (reasoning_tex_files, reasoning_comparison_tex_files)
 
 
 @app.cell(hide_code=True)
@@ -802,57 +1248,75 @@ def _(mo):
 
 @app.cell
 def _(
+    CAPABILITY_BASE_MODELS,
     CAPABILITY_ROOT,
     TASK_LABELS,
     TASK_ORDER,
     adapter_rows,
     base_and_method,
     json,
-    newest_run,
     pd,
 ):
     # Building the capability table data from summary.json of the newest run
     # per model.
 
     def newest_capability_summary(model_dir):
-        """(run_dir, summary) of the newest run that covers the full task list.
+        """(run_dir, summary) of the newest run — never an older one.
 
-        A newer partial run (a smoke test, or a rerun that died early) must not
-        shadow the completed grid run, so runs covering fewer tasks lose.
+        Raises when the newest run does not cover every task, so a failed or
+        partial rerun surfaces instead of being silently replaced by an earlier
+        grid run.
         """
-        candidates = []
-        for run_dir in model_dir.iterdir():
-            summary_path = run_dir / "summary.json"
-            if not summary_path.exists():
-                continue
-            summary = json.loads(summary_path.read_text())
-            covered = sum(
-                1
-                for task in TASK_ORDER
-                if (summary.get(task) or {}).get("accuracy") is not None
-            )
-            candidates.append((covered, summary_path.stat().st_mtime, run_dir, summary))
-        if not candidates:
+        runs = [d for d in model_dir.iterdir() if (d / "config.json").exists()]
+        if not runs:
             return None, {}
-        complete = [c for c in candidates if c[0] == len(TASK_ORDER)]
-        run_dir, summary = sorted(complete or candidates)[-1][2:]
+
+        def started(run_dir):
+            return json.loads((run_dir / "config.json").read_text()).get(
+                "timestamp", ""
+            )
+
+        run_dir = max(runs, key=started)
+        summary_path = run_dir / "summary.json"
+        if not summary_path.exists():
+            raise RuntimeError(
+                f"{model_dir.name}: newest run {run_dir.name} has no "
+                "summary.json. Refusing to fall back to an older run — rerun "
+                "it or remove the directory."
+            )
+        summary = json.loads(summary_path.read_text())
+        missing = [
+            task
+            for task in TASK_ORDER
+            if (summary.get(task) or {}).get("accuracy") is None
+        ]
+        if missing:
+            raise RuntimeError(
+                f"{model_dir.name}: newest run {run_dir.name} is missing "
+                f"{missing}. Refusing to fall back to an older run — rerun it "
+                "or remove the directory."
+            )
         return run_dir, summary
 
     def collect_capability_scores():
-        """Per (model, task) accuracy/stderr from the newest complete run."""
+        """Per (model, task) accuracy/stderr from the newest run."""
         rows = []
         if not CAPABILITY_ROOT.exists():
             return pd.DataFrame(rows)
         for model_dir in sorted(CAPABILITY_ROOT.iterdir()):
             if not model_dir.is_dir():
                 continue
-            run_dir, summary = newest_capability_summary(model_dir)
-            if run_dir is None:
-                continue
             base, method = base_and_method(model_dir.name)
+            # Scope filters come first so an out-of-scope directory can never
+            # raise the missing-task error above.
+            if base not in CAPABILITY_BASE_MODELS:
+                continue
             # Only the overall population adapters (plus the base model):
             # cluster-trained adapters are out of scope.
             if method != "base" and not method.endswith("-overall"):
+                continue
+            run_dir, summary = newest_capability_summary(model_dir)
+            if run_dir is None:
                 continue
             for task in TASK_ORDER:
                 entry = summary.get(task) or {}
@@ -1012,7 +1476,6 @@ def _(
     TASK_LABELS,
     TASK_ORDER,
     capability_tables,
-    escape_header,
     pd,
     write_latex_table,
 ):
@@ -1026,12 +1489,10 @@ def _(
         # fine-tuned to answer with a bare option), so that task gets an extra
         # "Strict (%)" column showing what the benchmark's template scores.
         #
-        # write_latex_table escapes headers itself, so the DataFrame columns
-        # must be RAW; the fmt keys must be ESCAPED, because styling runs after
-        # that escaping.
+        # write_latex_table escapes both the DataFrame columns and the fmt
+        # keys, so both are given here RAW.
         subs = ["Acc (%)", "95% CI"]
         strict_label = "Strict (%)"
-        escaped = {s: escape_header(s) for s in [*subs, strict_label]}
         written = []
         for base_model, table in capability_tables.items():
             columns = []
@@ -1069,12 +1530,12 @@ def _(
                     else "--"
                     for lo_v, hi_v in zip(lo, hi)
                 ]
-                fmt[(header, escaped[subs[0]])] = "{:.1f}"
+                fmt[(header, subs[0])] = "{:.1f}"
                 if has_lenient:
                     out[(header, strict_label)] = (
                         table[f"{task}_acc"].astype(float).mul(100).round(1).values
                     )
-                    fmt[(header, escaped[strict_label])] = "{:.1f}"
+                    fmt[(header, strict_label)] = "{:.1f}"
             written.append(
                 write_latex_table(
                     out, fmt, out.shape[1], f"ft-capability-{base_model}.tex"
@@ -1279,6 +1740,158 @@ def _(
 
     distribution_fig_files = generate_distribution_figures()
     distribution_fig_files
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    ## Probability mass on the modal response
+
+    One illustrative WVS item for all five models: the base model and the
+    four fine-tuned adapters. Each panel shows the probability the model
+    assigns to every response option, averaged over the eight system
+    prompts, next to the NZ public distribution. The item is Q210
+    ("Joining in boycotts"), chosen from the training-split questions as
+    the one closest to the median across questions on all three metrics:
+    80% accuracy, 34% TVD and KL 2.8 (medians 80%, 34% and 2.6). Its
+    four-option scale is spread across the public. The modal-response
+    adapter puts all of its probability on the modal answer, the sampled
+    adapter on a single non-modal answer, while the base model and the
+    distributional fine-tunes keep a spread. Written to
+    ``code/figures/ft-modal-mass.png``.
+    """)
+    return
+
+
+@app.cell
+def _(
+    EVALS_ROOT,
+    FIGS_DIR,
+    load_overall_per_question,
+    np,
+    parse_list,
+    plt,
+    textwrap,
+):
+    # Illustrative item: Q210, "Joining in boycotts", chosen from the
+    # training-split questions because its per-question accuracy, TVD and KL
+    # are all at the median across questions (averaged over the five models).
+    # The public is spread over four options, the two SFT adapters are one-hot
+    # (on the modal answer and on a non-modal one respectively), and the base
+    # model and distributional adapters keep a spread.
+    MASS_QID = "61"
+    MASS_COL = "Q210"
+    MASS_MODELS = [
+        ("Qwen3.8-27B", "Base"),
+        ("Qwen3.8-27B-nz-wvs-modal_response-overall", "Modal response"),
+        ("Qwen3.8-27B-nz-wvs-sampled_response-overall", "Sampled response"),
+        ("Qwen3.8-27B-nz-wvs-first_token_distribution-overall", "First token"),
+        ("Qwen3.8-27B-nz-wvs-full_string_distribution-overall", "Full string"),
+    ]
+    MASS_MODEL_COLOR = "#4C72B0"
+    MASS_PUBLIC_COLOR = "#DD8452"
+
+    def _load_mass_item(model_dir):
+        """(categories, public distribution, prompt-averaged model
+        distribution, question text) for one model, or None."""
+        df = load_overall_per_question(EVALS_ROOT / model_dir)
+        if df is None:
+            return None
+        g = df[
+            (df["question_id"].astype(str) == MASS_QID)
+            & (df["column_name"] == MASS_COL)
+        ]
+        if g.empty:
+            return None
+        cats = parse_list(g.iloc[0].get("categories"))
+        true_dist = parse_list(g.iloc[0].get("true_distribution"))
+        dists = [d for d in g["model_distribution"].map(parse_list) if d is not None]
+        if not cats or not true_dist or not dists:
+            return None
+        if any(len(d) != len(cats) for d in dists):
+            return None
+        avg = [float(np.mean(vals)) for vals in zip(*dists)]
+        question = str(g.iloc[0].get("question", ""))
+        sub_question = g.iloc[0].get("sub_question")
+        if isinstance(sub_question, str) and sub_question.strip():
+            question = f"{question} — {sub_question.strip()}"
+        return cats, true_dist, avg, question
+
+    def _plot_mass_panel(ax, cats, dist, color, ylabel=False):
+        x = np.arange(len(cats))
+        bars = ax.bar(x, dist, color=color, width=0.78)
+        for bar in bars:
+            height = bar.get_height()
+            if height >= 0.05:
+                ax.annotate(
+                    f"{height:.0%}",
+                    xy=(bar.get_x() + bar.get_width() / 2, height),
+                    xytext=(0, 3),
+                    textcoords="offset points",
+                    ha="center",
+                    va="bottom",
+                    fontsize=7,
+                )
+        ax.set_xticks(x)
+        ax.set_xticklabels(
+            [textwrap.fill(str(cat), width=10) for cat in cats],
+            fontsize=8,
+            linespacing=0.95,
+        )
+        ax.set_ylim(0, 1.08)
+        ax.set_yticks([0, 0.25, 0.5, 0.75, 1.0])
+        if ylabel:
+            ax.set_yticklabels(["0%", "25%", "50%", "75%", "100%"], fontsize=8)
+        else:
+            ax.set_yticklabels([])
+        ax.grid(axis="y", alpha=0.25)
+        ax.set_axisbelow(True)
+
+    def plot_modal_mass():
+        items = []
+        for model_dir, label in MASS_MODELS:
+            item = _load_mass_item(model_dir)
+            if item is None:
+                print(f"[plots] missing {MASS_COL} for {model_dir}")
+                continue
+            items.append((label, item))
+        if not items:
+            return None
+
+        reference = items[0][1]
+        cats, true_dist, _, question = reference
+
+        fig, axes = plt.subplots(2, 3, figsize=(12, 6.4), sharex=True, sharey=True)
+        panels = items + [("Public (NZ)", (cats, true_dist, true_dist, question))]
+
+        for index, (ax, (label, (_, _, dist, _))) in enumerate(zip(axes.flat, panels)):
+            is_public = label.startswith("Public")
+            _plot_mass_panel(
+                ax,
+                cats,
+                dist,
+                MASS_PUBLIC_COLOR if is_public else MASS_MODEL_COLOR,
+                ylabel=index % 3 == 0,
+            )
+            ax.set_title(label, fontsize=10)
+
+        for ax in axes.flat[len(panels) :]:
+            ax.set_visible(False)
+
+        fig.suptitle(textwrap.fill(question, width=100), fontsize=11, linespacing=1.3)
+        fig.supxlabel("Response option", fontsize=9, y=0.045)
+        fig.supylabel("Probability", fontsize=9)
+        fig.tight_layout(rect=[0.02, 0.06, 1, 0.92])
+        FIGS_DIR.mkdir(parents=True, exist_ok=True)
+        path = FIGS_DIR / "ft-modal-mass.png"
+        fig.savefig(path, dpi=200, bbox_inches="tight")
+        plt.close(fig)
+        print(f"[plots] wrote {path}")
+        return path
+
+    modal_mass_figure = plot_modal_mass()
+    modal_mass_figure
     return
 
 

@@ -1,10 +1,8 @@
-Much of hte work in this project is built off ideas explored in a literature review conducted over summer\footnote{This was my AIML501 project and can be found \href{https://raw.githubusercontent.com/1jamesthompson1/AIML501/main/output/AIML501_James_Thompson.pdf}{here}}. The project has deviated from the origional plan in someways so this background chapter contains all relevant background information needed in a concise format for this project. Some sections are mere rewrites of the literature review while others are new.
-
-Includes a biref (few pages) summary of the important bits of the related works and how they relate to this project.
+Much of hte work in this project is built off ideas explored in a literature review conducted over summer\footnote{This was my AIML501 project and can be found \href{https://raw.githubusercontent.com/1jamesthompson1/AIML501/main/output/AIML501_James_Thompson.pdf}{here}}. The project has deviated from the original plan so this background chapter contains all relevant background information needed in a concise format for this project. Some sections are mere rewrites of the literature review while others are new.
 
 This work can understand from multiple perspectives. Here are some
 
-\section{Large Language Models are the most capable AI systems we have}
+\section{Large Language Models as the frontier of Artificial Intelligence}
 
 
 \subsection{LLMs are the largest and most powerful systems ever made.}
@@ -16,13 +14,34 @@ Most capable systems we have
 Benchmarks and evals to show it.
 
 \subsection{Building LLMs as autoregressive self attention}
+\label{subsec:llms}
 
 Probabilistic model of language. Guesses the next token
+
+Definitions:
+$V$ is the vocabulary size, The model parameters are $\theta$. The model is a function $f_\theta$ that maps a prompt and a completion prefix to logits over the vocabulary. 
+
+Let a training example consist of a prompt (system + user) tokenised as
+$x = (x_1, \dots, x_P)$ and a completion (assistant answer) tokenised as
+$y = (y_1, \dots, y_T)$, with $T$ the completion length.
+
+The model is
+autoregressive, so the probability of the completion factorises over tokens:
+
+\begin{equation}
+  p_\theta(y \mid x) = \prod_{t=1}^{T} p_\theta\left(y_t \mid x, y_{<t}\right),
+  \qquad y_{<t} = (y_1, \dots, y_{t-1}).
+\end{equation}
+The probability of the next token is given by a softmax over the logits:
+\begin{equation}
+  p_\theta\left(y_t \mid x, y_{<t}\right)
+  = \frac{\exp f_\theta(x, y_{<t})_{y_t}}{\sum_{v=1}^{V} \exp f_\theta(x, y_{<t})_v}.
+\end{equation}
 
 
 \subsection{Training LLMs with massive amounts of data}
 
-Trained on large amounts of text data and more specialized data
+Trained on large amounts of text data and more specialized data pre-training and post training.
 
 \subsection{Fine-tuning Large Language Models}
 
@@ -32,7 +51,7 @@ PEFT.
 
 \subsection{LLMs are agents}
 
-INtroduce agentic harnesses and the abstraction to thinking of them as agents not probalbisitc models.
+INtroduce agentic harnesses and the abstraction to thinking of them as agents not language models.
 
 \section{Safety and alignment of AI systems}
 
@@ -42,18 +61,22 @@ Making the world better than it is before. Increasing survival and flourishing o
 AI is going to have more influence on our society.
 
 \subsection{Aligning agents}
+\label{subsec:aligning-agents}
+
+What algining and agent means, how it uses post-traning and fine-tuning to od this.
 
 \subsection{How it normally fails}
 
+Classical AI alignment problems
 Inner outer alignment
 scheming
 ...
 
 \subsection{What goes wrong if we don't do it}
 
-WE need it to be aligned to increase survival and flourishing
+We need it to be aligned to increase survival and flourishing
 
-talk about classifcal safety problems
+talk about classical safety problems
 loss of control, gradual disempowerement etc
 
 \section{Understanding the values of humans and AI systems}
@@ -69,6 +92,8 @@ Value questionnaires are developed in line with various theories of values like 
 
 On the other hand value surveys are more contextual and ask people specific questions. \cite{NZAVS2025,WVS2020}. These can be post hoc mapped to value theories however as they are not a direct measure this is not as reliable. Importantly though these provide a more direct measure of the actual downstream effects of people's values by for example gaining insights 
 
+These value surveys can be used as training data...
+
 \subsection{Dilemmas as a way to understand values}
 
 A dilemma is a situations where there is no clear right answer and a tradeoff between competing values must be made \cite{EthicalDilemmasOverview}. In experimental research these dilemmas are hand crafted to create  clear decisions that reveal the values of the respondent. It is in this way that dilemmas can be used to understand the values of humans and AI systems.
@@ -77,26 +102,10 @@ A dilemma is a situations where there is no clear right answer and a tradeoff be
 
 A few datasets have been built to understand LLM values through large sets of moral, ethical and social dilemmas \cite{lourieScruplesCorpusCommunity2021,chiuDailyDilemmasRevealingValue2025,hendrycksAligningAIShared2023,scherrerEvaluatingMoralBeliefs2023}.
 
-\subsection{Behavioural analysis}
 
+\subsection{Single response behaviour vs agentic behaviour}
 
-
-
-Survey modelling has been done lots before \cite{caoSpecializingLargeLanguage2025,huangDistributionShiftAlignment2025}.
-
-
-
-THinking of the respondentsl ike annotators their disagreement is important.  \cite{fornaciariBlackWhiteLeveraging2021}
-
-The teacher can be thought of as the distrubtion and the student is distiliiing it odwn.
-
-
-\subsection{A form of explianable AI}
-
-\fixmeinline{Add in some discussion of how there is a downside to transparency as it can stifle the application of expertise. \cite{nguyenTransparencySurveillance2022}. Also talk about classical trade off between explainablity and performance in ML and LLM space.}
-
-
-\subsection{Agents vs single response}
+Discuss the benefits to agentic behaviour.
 
 Discuss the difference between single response behaviour and agentic behaviour. The Key difference is that agents run on a much longer time scale they interact with the environment manipulate it then act again. 
 
@@ -104,3 +113,7 @@ Discuss the difference between single response behaviour and agentic behaviour. 
 \subsection{Test time behaviour}
 
 Models are shown to know that they are in a simulation \cite{laineMeMyselfAI2024,phuongEvaluatingFrontierModels2025,needhamLargeLanguageModels2025}. Smaller models areless self aware \cite{chaudharyEvaluationAwarenessScales2025}
+
+When they know they are in a simluation they act differently.
+
+Likewise humans do the same thing.

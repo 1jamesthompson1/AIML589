@@ -1,15 +1,15 @@
 \resizebox{\textwidth}{!}{%
-\begin{tabular}{lrrrrrrrrrrrr}
+\begin{tabular}{lrrrrrrrr}
 \toprule
-Model & \multicolumn{4}{l}{Accuracy} & \multicolumn{4}{l}{CE} & \multicolumn{4}{l}{KL} \\
- & Validation & Train & All & vs Base & Validation & Train & All & vs Base & Validation & Train & All & vs Base \\
+Model & \multicolumn{4}{l}{Accuracy} & \multicolumn{4}{l}{KL} \\
+ & Validation prompt & Validation question & Train & All & Validation prompt & Validation question & Train & All \\
 \midrule
-Base & 76.0 & 61.5 & 61.4 & -- & 1.66 & 2.03 & 2.02 & -- & 0.609 & 0.852 & 0.849 & -- \\
-Prompted & 57.8 & 65.5 & 64.9 & -18.2 & 1.78 & 2.05 & 2.05 & +0.12 & 0.728 & 0.868 & 0.876 & +0.119 \\
-Modal response & 76.9 & \bfseries 98.8 & \bfseries 98.3 & +0.9 & 5.10 & 6.71 & 6.65 & +3.43 & 4.041 & 5.533 & 5.477 & +3.432 \\
-Sampled response & 64.4 & 47.8 & 48.2 & -11.6 & 4.58 & 7.11 & 7.01 & +2.92 & 3.527 & 5.933 & 5.838 & +2.918 \\
-First token & \bfseries 82.7 & 79.5 & 79.4 & \bfseries +6.7 & \bfseries 1.21 & 1.60 & 1.58 & \bfseries -0.46 & \bfseries 0.153 & 0.419 & 0.407 & \bfseries -0.456 \\
-Full string & 55.1 & 93.0 & 91.8 & -20.9 & 1.26 & \bfseries 1.46 & \bfseries 1.46 & -0.41 & 0.200 & \bfseries 0.286 & \bfseries 0.281 & -0.409 \\
+Base & 57.8 & 78.6 & 61.5 & 61.4 & 0.874 & 0.571 & 0.852 & 0.849 \\
+Prompted & 62.5 & 57.1 & 65.5 & 64.9 & 0.960 & 0.695 & 0.868 & 0.876 \\
+Modal response & \bfseries 98.4 & 73.8 & \bfseries 98.8 & \bfseries 98.3 & 5.372 & 3.851 & 5.533 & 5.477 \\
+Sampled response & 48.2 & 66.7 & 47.8 & 48.2 & 5.625 & 3.227 & 5.933 & 5.838 \\
+First token & 78.1 & \bfseries 83.3 & 79.5 & 79.4 & 0.371 & \bfseries 0.121 & 0.419 & 0.407 \\
+Full string & 90.4 & 50.0 & 93.0 & 91.8 & \bfseries 0.267 & 0.191 & \bfseries 0.286 & \bfseries 0.281 \\
 \bottomrule
 \end{tabular}
 }%

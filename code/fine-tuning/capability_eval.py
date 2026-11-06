@@ -871,33 +871,42 @@ def write_run_artefacts(out, output_dir):
 
 
 def latest_run_dir(model_name, tasks=None):
-    """Newest run dir for a model, preferring one that covers ``tasks``.
+    """The newest run dir for a model — never an older one.
 
-    A newer partial run (a smoke test, or a rerun that died early) must not
-    shadow the completed grid run, so runs whose summary.json does not cover
-    every requested task are skipped when a complete one exists.
+    Raises if that run does not cover ``tasks``. A partial or failed run has to
+    be fixed or removed rather than silently skipped in favour of an earlier
+    one, which would quietly mix two different grids.
     """
     model_dir = Path("output") / "capability" / model_name.split("/", 1)[-1]
     if not model_dir.is_dir():
         raise SystemExit(f"no previous runs under {model_dir}")
-    runs = sorted(
-        (d for d in model_dir.iterdir() if d.is_dir()),
-        key=lambda d: d.stat().st_mtime,
-        reverse=True,
-    )
+
+    def started(run_dir):
+        config_path = run_dir / "config.json"
+        if not config_path.exists():
+            return ""
+        return json.loads(config_path.read_text()).get("timestamp", "")
+
+    runs = [d for d in model_dir.iterdir() if d.is_dir()]
     if not runs:
         raise SystemExit(f"no previous runs under {model_dir}")
+    newest = max(runs, key=started)
+
     if tasks:
-        for run in runs:
-            summary_path = run / "summary.json"
-            if not summary_path.exists():
-                continue
-            summary = json.loads(summary_path.read_text())
-            if all(
-                (summary.get(task) or {}).get("accuracy") is not None for task in tasks
-            ):
-                return run
-    return runs[0]
+        summary_path = newest / "summary.json"
+        if not summary_path.exists():
+            raise SystemExit(
+                f"{newest} has no summary.json — refusing to fall back to an "
+                "older run. Rerun it or remove the directory."
+            )
+        summary = json.loads(summary_path.read_text())
+        missing = [t for t in tasks if (summary.get(t) or {}).get("accuracy") is None]
+        if missing:
+            raise SystemExit(
+                f"newest run {newest} is missing {missing} — refusing to fall "
+                "back to an older run. Rerun it or remove the directory."
+            )
+    return newest
 
 
 def find_task_log(run_dir, task):

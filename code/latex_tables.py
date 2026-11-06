@@ -134,6 +134,8 @@ def write_latex_table(
     ``senses`` keys match the *unescaped* labels; they are escaped with the
     labels so highlighting keeps working (e.g. ``{"TVD (%)": "min"}``).
     ``bold_below`` does the same for a cutoff, e.g. bold p-values below .05.
+    A dict ``fmt`` is keyed by the *unescaped* label (or label tuple for
+    MultiIndex columns) and is escaped the same way.
     Set ``highlight=False`` for tables where bolding the maximum is not
     meaningful (e.g. exclusion counts)."""
 
@@ -157,6 +159,16 @@ def write_latex_table(
         )
     else:
         table.columns = pd.Index([escape_header(str(value)) for value in table.columns])
+    if isinstance(fmt, dict):
+        # Styler.format matches keys against the *escaped* columns, so format
+        # keys have to be escaped too or columns labelled "TVD (%)" silently
+        # fall back to the default float repr.
+        fmt = {
+            tuple(escape_header(str(part)) for part in key)
+            if isinstance(key, tuple)
+            else escape_header(str(key)): spec
+            for key, spec in fmt.items()
+        }
     if senses:
         senses = {escape_header(str(label)): sense for label, sense in senses.items()}
     if bold_below:

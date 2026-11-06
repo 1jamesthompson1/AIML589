@@ -1,17 +1,54 @@
 The conclusions are presented in this Chapter.
 
-This project is split into three different chapters each contain a line of inqiury and their own results and methodology. This conclusion will povide a overview of the results and findings as they are put togather as well as the general lmitation and future work of the project.
 
-\section{Limitations}
+\section{Key findings from this report}
 
-Each chapter carries it own limitations where here carries the key challenges to the epistemological validity of conclusions to the research questions.
+There were broadly two findings in this report regarding the fine tuning causing behavioural changes and the alignment of the models to the public. Each section below highlights the key findings and their limitations.
+
+
+\subsection{The fine-tuning can appreciably change the models behaviour}
+Talk about how the fineunting methods do produce different response patterns in the dilemmas
+
+
+
+Talk about how the most successful fine-tuning methods are those that have considerably moved the probability mass to a single response option. Thus the distributional methods even if they look good on paper insignificantly change the models behaviour.
+
+\subsubsection{Limitations}
+
+\begin{itemize}
+    \item The dilemmas as a means of testing behaviour is limited as it is testing wht athe model says it will do not what it actuall does. Agentic sims would be needed.
+    \item It is unclear if we can attritbute this change in behaviour to fine-tuning on the survey data or just a result of changing the model weights. This is because we do not have a control group of models that have been fine-tuned on random data to compare to.
+    \item The scope of the dilemmas is limited so general claims of behaviour are not possible.
+\end{itemize}
+
+\subsection{The alignment of a model is multi-dimensional}
+
+Talk about how the behavioural change is correcti nsome direction and not correct in others.
+
+\subsubsection{Limitations}
+
+\begin{itemize}
+    \item ....
+\end{itemize}
+
+\subsection{Overall Limitations}
+
+There are some general limitations of the project that should be mentioned.
 
 
 \begin{itemize}
-    \item The dilemmas as a means of testing behaviour is limited as it is testing wht athe model says it will do not what it actuall does.
-    \item We are unaware of which direction the divergence is going in the dilemmas. This limits interpretability of the results. By understanding the direction it is plausible that we could more specfically fine tune the model to match those specific value dimension more cheaply than the current approach of fine tuning naively on all survey questions.
-    \item Limited number of training runs etc. Taring configs were dropped from fine tunuing, dilemmas and survey due toresrouce constraints. This limits the ability to understand the effect of these parameters on the results and so limits the generalisability of the results.
+    \item This was only conducted on a single model and so the results might not generalise well to other models.
+    \item The survey data used was not fully representative and out of date (Over 6 years old and pre-covid 19 pandemic). This limits the effective use of it to align to the New Zealand public.
+    \item The dilemma set was very small and so the results of the dilemmas are limited in scope.
 \end{itemize}
 
 
 \section{Future directions}
+
+Using more value survey data
+
+
+Training on survey responses which may be more fine grained
+
+
+Using Agentic simulations to test behaviour rather than dilemma

@@ -172,6 +172,22 @@ and fewer than 2 greedy-token flips). That is calibrated against the silent
 no-op (L1 ≈ 0.02–0.05) and real adapters (0.1–1.6), so neither batching noise
 nor a modest-but-real adapter effect trips it.
 
+### Single persona and thinking-mode evals
+
+`--system-prompt-id no_persona` keeps one persona; the `*_letter` first-token variants count as the same persona. The default is all eight. The persona is recorded in `config.json` and the run name, and runs limited with `--num-test-examples N` carry `firstN` there.
+
+With `--reasoning` the answer is read after the `</think>` token, because the logprob stream includes the reasoning. Thinking runs keep the other defaults (greedy decoding, concurrency 8) and the reasoning `--max-tokens` default of 4,096. A reply that hits the cap before `</think>` is `truncated`: no answer, no distribution, counted wrong, and the run prints the count. A reply that stops before the cap with no `</think>` is a direct answer (`think_closed = False`). Rows also record `finish_reason` and `output_tokens` (reasoning included), which gives the thinking length in tokens. Non-reasoning replies keep the old `" response"` split, which sets `reasoning_chars`.
+
+First-token replies are scored leniently, with or without reasoning. A reply is correct if it starts with the right option letter, even if text follows (`E. Strongly disagree`). A letter followed by lowercase text, such as the article in `A survey...`, does not count. A reply that does not start with an option letter is flagged (`no_leading_letter = True`), counted wrong and given no distribution, so it is excluded from distribution metrics. `leading_letter` records the letter read.
+
+The reasoning-on vs reasoning-off comparison lives in `analyze.py`, in the "Reasoning (thinking) on vs off" section. It pairs the newest thinking and non-thinking run per model and dataset, applies the same scoring as `evaluate.py`, and prints accuracy, TVD to the NZ distribution, reply-shape counts, the adapter-vs-base gap with thinking on, a paired bootstrap 95% CI and an exact McNemar p-value. The report-style tables (reasoning on, same accuracy/KL layout as the main table) are written to `code/figures/ft-reasoning-<config>-<model>.tex`; the paired on/off diagnostic is written to `code/figures/ft-reasoning-comparison-<config>-<model>.tex`. No GPU needed.
+
+All `ft-results-*` and reasoning report tables use **Accuracy and KL only**. The validation split is shown twice: `Validation prompt` is the held-out generic prompt (all its questions) and `Validation question` is the held-out questions under the seen prompts. Keeping them separate stops the six-question prompt slices from dominating the validation number. Single-prompt tables (e.g. `ft-results-nopersona`) have no held-out prompt, so that column is `--`. CE is omitted because, on the same questions, it differs from KL only by the true distribution's entropy.
+
+The first-token eval in the same layout as the main table (reasoning off, all system prompts) is written to `code/figures/ft-results-first_token_distribution-<model>.tex`. The reasoning-on first-token equivalent is `code/figures/ft-reasoning-first_token_distribution-<model>.tex`.
+
+A cap above about 7,900 tokens needs `serve.py --max-model-len` raised above the cap plus the prompt (the default is 8196).
+
 ### Capability Evaluation
 
 `capability_eval.py` is a sanity check that fine-tuning did not remove
@@ -252,7 +268,17 @@ P(gold), mean TVD, KL(base‖model) and top-1 agreement — i.e. how far the
 answer distribution moved independently of the argmax.
 
 Re-analysis does not need the GPU: `--compare-only` rebuilds the comparison
-from each model's most recent run directory.
+from each model's **newest** run directory and refreshes that run's
+`summary.json`.
+
+**Run selection is strict on purpose.** Both `--compare-only` and
+`analyze.py` read the newest run per model and **abort** if it does not cover
+every task. They never fall back to an earlier run: a silent fallback would
+mix two grids and produce a comparison that is internally inconsistent. If a
+partial or failed run is sitting in the way, rerun it or delete the directory
+(`output/capability/_superseded/` holds retired runs and is ignored).
+`analyze.py` additionally only renders `CAPABILITY_BASE_MODELS` (currently
+`Qwen3.8-27B`).
 
 Reading the results:
 
@@ -280,8 +306,9 @@ prepended to every dataset system prompt. Results land in
 `output/evals/<label>/` exactly like any other eval, with
 `label = <model short name>-prompted` by default. `analyze.py` maps a
 `<base>-prompted` dir back onto `<base>`, so a **Prompted** row appears
-under the base row in the fine-tuning and TVD tables (deltas vs Base show
-whether prompting closes the gap to NZ relative to fine-tuning).
+under the base row in the fine-tuning and TVD tables. The fine-tuning table
+shows Prompted alongside Base; the TVD table still reports its own vs-Base
+delta.
 
 It does not start a server: reuse a running eval server or bring one up
 first. Because the instruction is prepended, each dataset system prompt
@@ -303,47 +330,53 @@ already have a completed run (`--force` reruns), and records the prompt
 text in each run's `config.json`. The label must be
 `<base eval dir>-prompted` for the row to join that model's table.
 
-### Value map (OpenRouter base models)
+### Value map (NZ respondents and models)
 
-`evaluate.py` can evaluate hosted base models through OpenRouter. Eligible
-base-model and fine-tuned-adapter runs are included automatically by
-`analyze.py` in a PCA map fitted to the actual NZ WVS respondents.
+`value_map.py` builds two maps of the NZ respondents and the evaluated models.
 
-Run one model, then rebuild the analysis (requires `OPENROUTER_API_KEY` in
-`.env`):
+**Classic Inglehart–Welzel map.** It uses the classic indicator items in
+`item_map_wvs.json` (importance of God, religious attendance and identity,
+national pride, child qualities; justification of homosexuality, tolerance of
+homosexual neighbours, trust, life satisfaction, political action), each scored
+with fixed ordinal weights so respondents and models are scored identically.
+The axes are survival → self-expression (x) and traditional → secular-rational
+(y), matching the published map; both are standardised to the NZ respondents,
+with the origin at their mean and the axes crossing at the centre.
+
+**All-item PCA map.** It uses all 251 value-survey items from
+`training-dataset/output/question_mapping.json` and the respondents in
+`training-dataset/output/wvs_value_survey.csv`. Each answer option is a feature,
+each item block is scaled to unit variance so questions with more options do not
+dominate, and missing items are mean-imputed. PCA is fitted on the respondents,
+then every model's answer distribution is projected onto the first two
+components, standardised to the respondents' spread. The components are
+data-driven and explain a small share of individual-level variance, so this map
+is exploratory: see `pca_loadings.csv` for what each component captures.
+
+Only the NZ sample of the WVS is in the repo, so neither map has a country
+backdrop and both use the NZ respondents as the origin.
 
 ```bash
-uv run code/fine-tuning/evaluate.py \
-    --provider openrouter \
-    --api-url https://openrouter.ai/api \
-    --model deepseek/deepseek-v4.1-flash \
-    --dataset full_string_distribution \
-    --splits validation \
-    --subpopulation overall \
-    --temperature 0.0 --max-tokens 2048 \
-    --concurrency 8 --max-retries 5
-
-uv run python code/fine-tuning/analyze.py
+uv run code/fine-tuning/value_map.py
 ```
 
-Repeat the evaluation command for each desired model. OpenRouter requests
-are attributed through `code/openrouter_attribution.py`.
-
-A run is eligible when it is complete, uses the overall population and
-logprobs, and reasoning is successfully disabled. Fine-tuned adapters use
-their newest compatible evaluation on the format they were trained on and
-must match the base runs' dataset revision.
-
-`analyze.py` aligns answer categories to the canonical dataset, drops items
-with incompatible options, and projects each model's prompt-averaged
-answers and the NZ population onto two respondent-level PCA components.
-PC1 is anchored as traditional/progressive and PC2 as religious/secular.
+Each model uses its newest non-reasoning overall-population run, preferring
+`modal_response` and falling back to the run's own training format (hosted
+base models only have `full_string_distribution`). The exact run behind every
+point is recorded in the coordinates files. Both maps highlight the base model,
+the prompted variant and the four fine-tuned adapters; every other evaluated
+base model is a faint dot, so adding an evaluation run adds a dot.
 
 Outputs:
 
-- `code/figures/value-map.png` — models, respondent cloud, and NZ population
-- `code/figures/value-map-loadings.png` — questions defining each axis
-- `code/fine-tuning/output/value_map/` — coordinates and item loadings
+- `code/figures/value-map.png` — classic map
+- `code/figures/value-map-pca.png` — all-item PCA map
+- `code/figures/value-maps.png` — both maps side by side in one compact figure,
+  sharing a frame so one respondent SD is the same distance in each panel
+- `code/fine-tuning/output/value_map/coordinates.csv` — classic coordinates and the run used per group
+- `code/fine-tuning/output/value_map/item_scores.csv` — each group's score on every indicator
+- `code/fine-tuning/output/value_map/pca_coordinates.csv` — PCA coordinates and the run used per group
+- `code/fine-tuning/output/value_map/pca_loadings.csv` — strongest option loading per item and component
 
 ### Analysis
 

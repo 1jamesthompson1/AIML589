@@ -1,208 +1,67 @@
-The goal of this chapter is to show that an open weight model can be fine-tuned with value survey data to produce a model that responds more like the respondents it is aligned to when answering survey questions. The chapter is split into four sections: 
-\begin{enumerate}
-  \item \ref{sec:ft-different-models} A discussion of the WVS data and how different models have an innate value system.
-  \item \ref{sec:ft-results} ...
-  \item \ref{sec:ft-dataset} ...
-  \item \ref{sec:ft-methods} ...
-\end{enumerate}
+A state-of-the-art large language model (LLM) is a model that has been trained on a large corpus of text data and then heavily post-trained to perform well on a wide range of tasks. The type of post-training conducted can have widely different effects on the model's behaviour. For example, a model could be post-trained to prevent it from producing offensive content, or to make it better at handling long-horizon work tasks. The important part is that these methods are employed by developers who are trying to make the model behave in a certain way that they think is best—which is generally an opaque process \footnote{This is the key difference between \termref{open-weight} and \termref{open-source} models; only the latter is transparent about what the model has been trained to do}. What the model is trained to do is not necessarily what the end-user wants the model to do. Therefore training the model to behave in a way that is aligned with the end-user's values is an important step in making LLMs more useful and safe. This chapter addresses this by proposing a lightweight method to fine-tune an open-weight model with publicly available survey data.
+
+In this chapter we explore the effects of fine-tuning a small LLM on survey data. We use the World Values Survey (WVS) data to fine-tune a model to respond more like the New Zealand public's responses to the survey. Four proposed methods are explored that vary in whether the model is trained to respond like the modal response, or to respond like the distribution of responses in the survey data. Results show that the models can learn well to respond like the public with high accuracy on modal response methods and low divergence on distributional methods. No single method wins outright, with \modelref{ft-modal} and \modelref{ft-full-string} standing out.
+
+This chapter produces four fine-tuned models that are used in later chapters. The evaluation of these models in this chapter is simply to test for fine-tuning success: ``How well has it learned the values of the New Zealand public?'' The evaluation of these models in later chapters is to test for whether it actually changes its behaviour (see \rqref{align} and \ref{chap:dilemmas}) and then whether that behaviour is preferred (see \rqref{prefer} and \ref{chap:survey}).
+
+In Section~\ref{sec:ft-dataset} we discuss how the training data is created from the survey data. In Section~\ref{sec:ft-methods} we discuss the methods of fine-tuning and the loss functions used. In Section~\ref{sec:ft-results} we present the results of the fine-tuning and what this means.
 
 
-In \ref{sec:ft-results} we wil find that ...
-
-In \ref{sec:ft-dataset,sec:ft-methods} I describe the methods used ot create the dataset and fine-tune the model.
-
-\section{Different models respond differently to survey questions}
-\label{sec:ft-different-models}
-
-Each model has an innate value system that is a result of the specific trianing data and training methods used to create the model. This is quantified by the KL divergence between each model's response distribution and the empirical survey response distribution.
-
-
-
-Gemma 4 31B
-Ling 3.0 Tiny
-Nemotron 3.5 Lightning
-Muse Glimmer
-Devstral Small 2
-
-
-
-Compare between models of different sizes.
-
-Qwen 3.5 from 2B to 27B
-
-Compare between system prompts with one that is the persona as a NZ model.
-
-Post hoc analysis
-
-\subsection{Prompting a model to respond like a NZ person}
-This is the cheapest method of alignment. It involves just prompting a model that it should respond like a New Zealander and relies on the model having a sufficiently good internal model of what a New Zealander is like. 
-
-A simple prompt is used and appended to the system prompts of the model in the evaluations. "Respond as an average New Zealand person would".
-\ctable{ft-results-nopersona-Qwen3.8-27B}{The results of the base model, prompted model and fine tuned model on the world values survey evaluations when using only the \texttt{no-persona} system prompt.}
-
-As can be seen in both \tabref{ft-results-nopersona-Qwen3.8-27B,ft-results-Qwen3.8-27B} the prompted model does not perform as well as the fine-tuned model. It even performs worse on almost every measure. This demonstrates that the \modelref{qwen3.8-27b} model has insufficient knowledge of how a New Zealander would respond to the survey questions and that simple prompting alone is not sufficient.
-
-It is plausible that more complex prompting—namely few-shot or longer personas—could improve the prompted model's performance. This has not been tested.
-
-\section{The results of Fine-tuning LLMs on value survey data}
-\label{sec:ft-results}
-
-
-
-Discuss the various methods of evaluating the efficacy of fine-tuning, including:
-- Survey modelling (how well the model predicts survey responses)
-- Response distributions (how well the model's response distributions match the survey data)
-
-
-\ctable{ft-results-Qwen3.8-27B}{The results of fine-tuning \modelref{qwen3.8-27b} on the WVS data. The table shows the accuracy, cross-entropy and KL divergence for the base model and various fine-tuned models on the training, validation and overall datasets. This is calculated by running the model with reasoning off agasint the modal response dataset.}
-
-Also explore other concepts of:
-- Is fine-tuning robust to reasoning on and off?
-- Does system prompt matter?
-
-
-
-\section{Methods for creating the training dataset}
+\section{Creating fine-tuning training data from survey data}
 \label{sec:ft-dataset}
 
-We choose the WVS dataset (free, open and sufficient). Has other countries.
-NZAVS would be good yet no free access.
+As discussed in \ref{subsec:aligning-agents} one can post-train a model to align it to a set of values and preferences that will affect its downstream behaviour. Many of the methods use large datasets of human feedback to train on; however, it is shown that it is not always needed and a small amount of high-quality training can have a large effect on the model's behaviour \cn. Specifically it has been shown that \termref{value-survey} data can be used to fine-tune a model to behave more in alignment with specific values \cite{nieSurveytoBehaviorDownstreamAlignment2025}.
 
-\subsection{Structure of the training data}
+Given our context of wanting to align a model to the values of the New Zealand public we use the World Values Survey (WVS) data \cite{WVS2020} as our source of value-survey data because it is free, open and publicly available \footnote{There is another value survey run regularly in New Zealand called New Zealand Attitude and Values Survey \cite{NZAVS2025} however it is not publicly available and the request for access was denied.}. The WVS data has 1,057 responses to 251 value questions. Each question has categorical responses with a varying number of options. 
 
-The training data is structured as a prompt and a completion, as illustrated in \figref{wvs-simple-sft}. Each training example consists of a system prompt (the persona and answer format instruction), a user prompt (the survey question text with its response options), and the expected completion. This is standard for LLM training on survey data \cite{durmusMeasuringRepresentationSubjective2024,nieSurveytoBehaviorDownstreamAlignment2025} \cn{Extras needed}. Where \cite{nieSurveytoBehaviorDownstreamAlignment2025} demonstrates that the strict format of just system prompt, user prompt and zero shot completion was sufficient to get good performance on unseen survey questions and out-of-distribution performance.
+\subsection{Creating training instances from survey questions}
 
-\subsection{Prompting and response representation}
+The training data is structured as a prompt and a completion, as illustrated in \figref{wvs-simple-sft}. Each training example consists of a system prompt (the persona and answer format instruction), a user prompt (the survey question text with its response options), and the expected completion. This is standard for LLM training on survey data \cite{durmusMeasuringRepresentationSubjective2024,nieSurveytoBehaviorDownstreamAlignment2025} \cn[Extras needed].
 
-Both humans and LLM have various biases and sensitivities to the way questions are asked and the way responses are represented \cite{rupprechtPromptPerturbationsReveal2025,rottgerPoliticalCompassSpinning2024,luFantasticallyOrderedPrompts2022, schumanQuestionsAnswersAttitude1996, tourangeauCognitiveProcessesUnderlying1988}. Therefore to mitigate any unintended effects of prompting and response representation we use the same question and response format as the original survey for both wording and option ordering. The only exception to this are the battery questions where for the LLM training each battery subquestion is split into a separate training example. The order in which question is answered is less comparable to humans as the LLM is not answering an entire survey in working memory but rather answering a single question at a time \fixmeinline{Is this that big of a deal. Could be a cool idea. Training on survey resopnse trajectories!}.
+\cdiagram{prompt-single-question}{A single-select survey question turned into training messages. The question and its options form the user prompt, and the system prompt is one of eight variants (abridged here). The example response shows an answer choice. First-token variants letter the options (A, B, \dots) and expect only the letter.}
 
-In all cases Don't konw is treated as a first class answer and modelled. This has two effects of 'dumbing' the model down and also provides more informatio nabout the uncertinaty of the NZ population. Missing responses are excluded.
+\cdiagram{prompt-matrix-question}{A matrix (battery) survey question turned into training messages, one item at a time. The user prompt gives the shared question and options, then names the item being asked (here, ``Family''), and the example response shows an answer choice for that item.}
 
-\subsubsection{System prompt}
+Both humans and LLMs have various biases and sensitivities to the way questions are asked and the way responses are represented \cite{rupprechtPromptPerturbationsReveal2025,rottgerPoliticalCompassSpinning2024,luFantasticallyOrderedPrompts2022, schumanQuestionsAnswersAttitude1996, tourangeauCognitiveProcessesUnderlying1988}. Therefore, to mitigate any unintended effects of prompting and response representation we use the same question and response format as the original survey for both wording and option ordering. The only exception to this is the battery questions where, for LLM training, each subquestion is split into a separate training example. The order in which questions are answered is less comparable to humans as the LLM is not answering an entire survey in working memory but rather answering a single question at a time \cn[For how big of a deal this is].
 
-LLM use system prompts to imbue the model with a person and to give instructions how it should respond \cite{brownLanguageModelsAre2020,salewskiInContextImpersonationReveals2023}. Previous studies have not used system prompts when training/evaluating LLMs on survey data \cite{durmusMeasuringRepresentationSubjective2024,caoSpecializingLargeLanguage2025,nieSurveytoBehaviorDownstreamAlignment2025}. This is partly due to previuos generation of models being much less able to follow instructions coherently therefore the propmt had to be set up in a text completion format (e.g., "If I had to give an answer my answer would be ..."). More modern LLM are very good at following system prompts, and given the importance of system prompts in LLM behaviour we have used a range of system prompts. This it to ensure  that the model won't simply 'forget' the value it learns when a new system prompt is used and to explore the effects of system prompts on the fine-tuning performance.
+In all cases \texttt{Don't know} is treated as a first class answer and modelled. This has two effects of both making the model \scare{ignorant} in line with the public and also to gather the maximum amount of information about the public's value system.
 
-The system prompts used are designed to span the range of possible system prompts on the axis of how self aware the model should be. On one extreme is the \texttt{no persona} prompt which is only instructions n how to respond. Whereas a system prompt like \texttt{values reflection} heavily implies the models has an internal value system, similarly \texttt{AI research assistant} tells the model it is taking a value survey and that it is an AI system. A full list of system prompts can be found in \ref{sec:system-prompts}.
+\subsubsection{System prompts used in the training}
+
+LLMs use system prompts to imbue the model with a persona and to give instructions on how it should respond \cite{brownLanguageModelsAre2020,salewskiInContextImpersonationReveals2023}. Each training instance includes a system prompt prior to the user prompt. Previous studies have not used system prompts when training/evaluating LLMs on survey data \cite{durmusMeasuringRepresentationSubjective2024,caoSpecializingLargeLanguage2025,nieSurveytoBehaviorDownstreamAlignment2025}. This is partly due to previous generations of models being much less able to follow instructions coherently; therefore, the prompt had to be set up in a text completion format (e.g., "If I had to give an answer my answer would be ..."). More modern LLMs are very good at following system prompts, and given the importance of system prompts in LLM behaviour we have used a range of system prompts. This is to ensure that the model won't overfit to a particular system prompt. Additionally this allows for basic robustness checks.
+
+The system prompts used are designed to span the range of possible system prompts along the axis of how self-aware the model should be. On one extreme is the \texttt{no-persona} prompt which is only instructions on how to respond. Whereas a system prompt like \texttt{values reflection} heavily implies that the model has an internal value system, similarly \texttt{AI research assistant} tells the model it is taking a value survey and that it is an AI system. A full list of system prompts can be found in \ref{sec:system-prompts}.
+
+Furthermore an additional prompt option is added for evaluation purposes which is to prompt the model to respond like a New Zealander. This is to test whether simple prompting is sufficient to align the model to the values of the New Zealand public or whether fine-tuning is needed.
 
 
-\subsection{Held out validation data}
+\subsection{Held-out validation data}
 
-The goal of fine-tuning a LLM is to explore whether the models behaviour changes in downstream applications. This is an extreme version of out-of-distribution testing. Therefore the purpose of the validation set is simply to help decide which models have performed the best in training and should proceed on to the dilemmas. A non-random validation split is made in which some survey questions are held out and some system prompts are held out.
+Subsequent chapters (\ref{chap:dilemmas,chap:survey}) are going to perform robust out-of-distribution testing of the fine-tuned models. Therefore the purpose of the validation set is simply to help decide which models have performed the best in training and should proceed further down the pipeline. A non-random validation split is made in which some survey questions are held out and some system prompts are held out. This results in two distinct validation sets.
 
-The selection of survey questions is done by holding out questions in which it has a high Crammer V \cite{haraldcramerMathematicalMethodsStatistics1946} measure with another question in a different battery. The top 6 most redundant questions are held out as beyond that the next redundant questions were from the same value dimension (e.g., religion, politics, etc.). See \ref{app:fine-tuning} for more details.
+The selection of survey questions is done by holding out questions in which it has a high Cramér's V \cite{haraldcramerMathematicalMethodsStatistics1946} measure with another question in a different battery. The top six most redundant questions are held out as beyond that the next redundant questions were from the same value dimension (e.g., religion, politics, etc.). See \ref{app:fine-tuning} for more details.
 
-The selection of held out system prompts was simply the prompt that had the smallest Jaccard \cite{EtudeComparativeDistribution1901} similarity with the other prompt. This was done to prevent over-fitting from being unnoticed.
+The selection of held-out system prompts was simply the single prompt that had the smallest Jaccard \cite{EtudeComparativeDistribution1901} similarity with the other prompts. This was done to prevent over-fitting from being unnoticed. This prompt is the \texttt{values reflection} prompt which is the most self-aware of the prompts and therefore the most likely to overfit to the training data.
 
-This held out validation set has 293 examples with 48 being from unseen survey questions and 245 being from an unseen system prompts.
-
-\section{Methods for Fine-tuning the models}
+\section{Method of fine-tuning LLMs on survey data}
 \label{sec:ft-methods}
 
-To better understand the effects on downstream behaviour 2 types of fine-tuning were done. First is modal fine-tuning where the goal is to have a model that responds in a way that is like the most common response in the survey data for that sub population. The second is distributional fine-tuning where the goal is to have a model that responds in a way that is like the distribution of responses in the survey data for that sub population.
+To better understand the effects on downstream behaviour, two types of fine-tuning were done. The first is modal fine-tuning where the goal is to have a model that responds in a way that is like the most common response to the survey question. The second is distributional fine-tuning where the goal is to have a model that responds in a way that is like the distribution of responses to the survey.
 
-Given the use of LLM reasoning in downstream applications allows for more uncertainty (citation needed, i.e the intuition that the reasoning gives it more chance of randomness and therefore can better model uncertainty.
+There are many ways of doing fine-tuning an LLM. We will only explore simple fine-tuning methods and vary the method along two axes: what the target is (modal response, sampled response or the distribution of responses) and what the response representation is (full option string or just a single letter representing the option).
 
-There are ways of doing finetuning of a LLM. We will only explore simple fine-tuning methods (SFT) and vary the method on two axes: what the target is (modal response, sampled response or the distribution of responses) and what the response representation is (full option string or just single token representing the option).
+The modal-response fine-tuning is conducted as a baseline as it is a straightforward application of supervised fine-tuning \cite{ouyangTrainingLanguageModels2022}. The rest of the methods are various ways of trying to have the model learn the distribution of responses in the survey data.
 
-The modal response fine tuning is conducted as a baseline as it is a straight forward application of SFT. The rest of the methods are various ways of trying to have the model learn the distribution of responses in the survey data. However in an implementation sense there are three methods (SFT, full option string distributional fine-tuning and single token distributional fine-tuning).
+See \ref{subsec:llms} for an intro to the mathematics of LLMs. Importantly each training instance is made up of the prompt (system + user) $x=(x_1, \dots, x_P)$ and the completion $y=(y_1, \dots, y_T)$. With model parameters $\theta$, the model gives the probability of a completion as $p_\theta(y \mid x)$.
 
-\begin{figure}[t]
-\centering
-\begin{tikzpicture}[
-    every node/.style={draw, rounded corners, align=left, font=\small},
-    node distance=1.3cm,
-    inner sep=7pt,
-    arrow/.style={->, thick}
-]
-
-\node (prompt) {
-\textbf{Model input (Prompt)}\\[2pt]
-System prompt: You are a participant in the World Values Survey.\\[2pt]
-User prompt: Please indicate, for each of the following, how important\\
-it is in your life. Options: Very important, Rather important,\\
-Not very important, Not at all important, Don't know. Family:};
-
-\node (model) [below=0.6cm of prompt] {
-\textbf{Large Language Model}
-};
-
-\node (output) [below=0.7cm of model] {
-\textbf{Model response}\\[2pt]
-``Very important''\\[2pt]
-OR\\
-$[0.92,\ 0.06,\ 0.01,\ 0.005,\ 0]$
-};
-
-\node (loss1) [below left=1.5cm and 0.5cm of output, text width=4.6cm] {
-\textbf{Single answer(modal or sampled)}\\[2pt]
-$\mathcal{L}_{SFT} = -\log p_\theta(y \mid x)$\\[2pt]
-};
-
-\node (loss2) [below right=1.5cm and 0.5cm of output, text width=4.6cm] {
-\textbf{Distributional (first token or full string)}\\[2pt]
-$\mathcal{L}_{dist} = -\sum_i q_i \log p_\theta(y_i \mid x)$\\[2pt]
-{\scriptsize\itshape Requires $k$ forward passes for each of the $k$ options}
-};
-
-\node (real) [below=0.8cm, anchor=north] at ($(loss1.south)!0.5!(loss2.south)$) {
-\textbf{WVS respondents}\\[2pt]
-modal/sampled answer or empirical distribution $q$
-};
-
-\draw[arrow] (prompt) -- (model);
-\draw[arrow] (model) -- (output);
-\draw[arrow] (output.south west) -- (loss1.north);
-\draw[arrow] (output.south east) -- (loss2.north);
-\draw[arrow] (real.north west) -- (loss1.south);
-\draw[arrow] (real.north east) -- (loss2.south);
-\draw[arrow] (loss1.north west) to[bend left=30] (model.south west);
-\draw[arrow] (loss2.north east) to[bend left=-30] (model.south east);
-
-\end{tikzpicture}
-\caption{Simplified illustration of the fine-tuning setup. The model is prompted
-with a system persona and a survey question with its response options, and its
-response is used in two different loss functions: a simple SFT loss against the
-single modal (or sampled) answer, and a distributional loss against the full
-distribution of responses from the WVS respondents.}
-\label{fig:wvs-simple-sft}
-\end{figure}
+\cdiagram{wvs-simple-sft}{Simplified illustration of the fine-tuning setup. The model is prompted with a system persona and a survey question with its response options. Its response can be read as a single answer or as a probability over the five options (the vector $p_\theta$), and is scored against the WVS respondents with one of two losses: SFT on a single (modal or sampled) answer, or a distributional loss on the empirical distribution, using the full option strings or the single answer tokens.}
 
 
-\subsection{SFT fine-tuning: Modal \& Sampled response}
+\subsection{SFT: modal and sampled responses}
 
-To do modal fine-tuning the model is trained used SFT with the expected text response being the full option string of a response. For modal fine-tuning the expected text response is the most common response in the survey data for that sub population. For sampled response fine-tuning the expected text response is a randomly sampled response from the survey data for that sub population.
+The first simple fine-tuning approach involves training the model using SFT with the expected text response being the full option string of a response. For modal fine-tuning the expected text response is the most common response in the survey data. For sampled-response fine-tuning the expected text response is a randomly sampled response from the survey data.
 
-\cite{ouyangTrainingLanguageModels2022} shows SFT used before RLHF
-
-\cite{zhouLIMALessMore2023} shows that SFT is good enough.
-
-
-
-\subsection{LLM models}
-
-Definitions:
-$V$ is the vocabulary size, The model parameters are $\theta$. The model is a function $f_\theta$ that maps a prompt and a completion prefix to logits over the vocabulary. 
-
-Let a training example consist of a prompt (system + user) tokenised as
-$x = (x_1, \dots, x_P)$ and a completion (assistant answer) tokenised as
-$y = (y_1, \dots, y_T)$, with $T$ the completion length.
-
-The model is
-autoregressive, so the probability of the completion factorises over tokens:
-
-\begin{equation}
-  p_\theta(y \mid x) = \prod_{t=1}^{T} p_\theta\left(y_t \mid x, y_{<t}\right),
-  \qquad y_{<t} = (y_1, \dots, y_{t-1}).
-\end{equation}
-The probability of the next token is given by a softmax over the logits:
-\begin{equation}
-  p_\theta\left(y_t \mid x, y_{<t}\right)
-  = \frac{\exp f_\theta(x, y_{<t})_{y_t}}{\sum_{v=1}^{V} \exp f_\theta(x, y_{<t})_v}.
-\end{equation}
-
-\subsection{Supervised fine tuning loss function}
-
-SFT fits the model by \emph{maximum likelihood} on the demonstration data:
+SFT fits the model by \emph{maximum likelihood} on the training data:
 maximising $\log p_\theta(y \mid x)$ is equivalent to minimising the
 negative log-likelihood (NLL),
 \begin{equation}
@@ -214,9 +73,7 @@ negative log-likelihood (NLL),
 and the objective over the dataset $\mathcal{D}$ is
 $\theta^\star = \arg\min_\theta \sum_{(x,y)\in\mathcal{D}} \mathcal{L}_{\mathrm{SFT}}(\theta; x, y)$.
 
-Each per-token term in \eqref{eq:nll} is a categorical cross-entropy: with
-$z_t = f_\theta(x, y_{<t}) \in \mathbb{R}^V$ the logits over the vocabulary
-of size $V$,
+Each per-token term on the RHS of \eqref{eq:nll} is a categorical cross-entropy. The LLM is $z_t = f_\theta(x, y_{<t}) \in \mathbb{R}^V$ which produces logits over the vocabulary of size $V$. Therefore the per-token term can be written as
 \begin{equation}
   -\log p_\theta\!\left(y_t \mid x, y_{<t}\right)
   = -z_{t, y_t} + \log\!\sum_{v=1}^{V} \exp(z_{t, v}).
@@ -225,31 +82,136 @@ of size $V$,
 
 \subsection{Distributional loss functions}
 
-Rather than modelling a single completion $y$ instead we can model distributions over the $K$ possible completions of a prompt\footnote{This is possible as the task is a classification task with a finite number of possible completions.}. Therefore the objective is to minimise the difference between the models predicted distribution $p$ and the expected distribution $q$.
+Rather than modelling a single completion $y$ instead we can model distributions over the $K$ possible completions of a prompt\footnote{This is possible as the task is a classification task with a finite number of possible completions.}. Therefore the objective is to minimise the difference between the model's predicted distribution $\tilde{p}_\theta$ and the expected distribution $q$. This method is similar to the method used in \cite{fornaciariBlackWhiteLeveraging2021,caoSpecializingLargeLanguage2025,suhLanguageModelFineTuning2025,huangDistributionShiftAlignment2025} which is sometimes called soft-labels. It has the advantage that we are giving the model more information about the expected response; however, it does make the signal more nuanced.
 
 
+Let $c_i = (c_{i,1}, \dots, c_{i,T_i})$ be the $i$-th of the $K$ possible completions, with $T_i$ tokens, and let $x$ be the shared prompt. Its joint log-probability is the sum of its token log-probabilities, using the same factorisation as \eqref{eq:nll} and with no length normalisation:
 \begin{equation}
-    \mathcal{L}_{\mathrm{distributional}}(\theta; x, y) = - \sum_{i=1}^{K} q_i * \log\tilde{p}_\theta(y_i \mid x)
+    \ell_i = \log p_\theta(c_i \mid x)
+    = \sum_{t=1}^{T_i} \log p_\theta(c_{i,t} \mid x, c_{i,<t}).
+    \label{eq:joint-logprob}
+\end{equation}
+
+\noindent The model's distribution over the $K$ completions is the softmax of these log-probabilities, so the probabilities sum to one over the options:
+\begin{equation}
+    \tilde{p}_\theta(c_i \mid x)
+    = \frac{\exp(\ell_i)}{\sum_{j=1}^{K} \exp(\ell_j)}
+    = \operatorname{softmax}_i(\ell_1, \dots, \ell_K).
+    \label{eq:option-softmax}
+\end{equation}
+
+\noindent The distributional loss is the cross-entropy between the empirical response distribution $q = (q_1, \dots, q_K)$ and this predicted distribution:
+\begin{equation}
+    \mathcal{L}_{\mathrm{distributional}}(\theta; x, q, \{c_i\}_{i=1}^{K})
+    = - \sum_{i=1}^{K} q_i \log\tilde{p}_\theta(c_i \mid x).
     \label{eq:distributional}
 \end{equation}
-where $\tilde{p}_i$ is the softmax  over the K completions of the options log-probs.
 
+
+\noindent Because the entropy of the target $H(q) = -\sum_{i=1}^{K} q_i \log q_i$ does not depend on $\theta$, minimising \eqref{eq:distributional} is equivalent to minimising the Kullback--Leibler divergence:
 \begin{equation}
-    \tilde{p}_\theta(y_i \mid x) = \frac{\exp(\log p_\theta(y_i \mid x))}{\sum_{j=1}^{K} \exp(\log p_\theta(y_j \mid x))}
+    \operatorname{KL}(q \,\|\, \tilde{p}_\theta)
+    = \mathcal{L}_{\mathrm{distributional}} - H(q).
+    \label{eq:dist-kl}
+\end{equation}
+\noindent Training therefore minimises the same divergence as is reported in the results (\ref{sec:ft-results}).
+
+The relationship to the SFT loss is clearest in the one-hot case. If the expected response is one-hot at option $k$, so $q_k = 1$ and $q_j = 0$ for $j \neq k$, then
+\begin{equation}
+    \mathcal{L}_{\mathrm{distributional}}
+    = -\log\tilde{p}_\theta(c_k \mid x)
+    = \underbrace{-\log p_\theta(c_k \mid x)}_{\mathcal{L}_{\mathrm{SFT}}}
+    + \log \sum_{j=1}^{K} p_\theta(c_j \mid x).
+    \label{eq:dist-onehot}
 \end{equation}
 
-There are two waysin which we use this loss function. The first is that $y$ is a full string of the response and the second is that $y$ is a single token representing the response.
-
-We can see that the distributional loss function is a generalisation of the SFT loss function. If we have a single expected response that is one-hot encoded the distributional loss function reduces to the SFT loss function \eqref{eq:nll} with an constant offset of $\log \sum_{j=1}^{K} \exp(\log p_\theta(y_j \mid x))$.
+There are two ways in which we use this distributional loss function. The first is that $c_i$ is the full option string of a response and the second is that $c_i$ is a single token representing the response.
 
 
 \subsubsection{Full option string distributional fine-tuning}
 
-When $T>1$ to get the $p_\theta(y_i \mid x)$ for each of the $K$ completion each example per batch is expanded to $K$ examples with the same prompt and each of the $K$ completions. The loss function is then calculated as in \eqref{eq:distributional}.
+When $T_i>1$ each example is expanded to $K$ sequences that share the same prompt and end in a different one of the $K$ completions. The joint log-probability \eqref{eq:joint-logprob} is computed for each completion, renormalised over the $K$ options with \eqref{eq:option-softmax}, and scored with the weighted cross-entropy \eqref{eq:distributional}.
+
+This is a novel method of learning the distribution of responses in a survey. It has the advantage that it is more interpretable as the model is learning to predict the full option string rather than a single token representing the response. However, it has the disadvantage that it is more computationally expensive as each example is expanded into $K$ examples.
+
+As \eqref{eq:joint-logprob} sums over $T_i$ tokens, the model is penalised for longer completions. This is not suspected to be a large problem in this application because the completions are all of similar length. However it is a bias to be aware of.
 
 
-\subsubsection{Single token distributional fine-tuning}
+\subsubsection{Single-token distributional fine-tuning}
 
-Rather than using the full option string we can instead augment the training data to make the expected response a single token (e.g. A, B, C, D, E) representing the response. The model is then trained to predict the distribution of responses over the single token representation of the responses.
+Rather than using the full option string, we can instead augment the training data to make the expected response a single token (e.g. A, B, C, D, E) representing the response. In this case $T_i = 1$ for every $i$, so \eqref{eq:joint-logprob} has a single term and the $K$ scores in \eqref{eq:option-softmax} are the logits of the $K$ answer tokens at the answer position. The model is then trained to predict the distribution of responses over the single token representation of the responses.
 
-This is the simpler of the two and used in other research \cite{fornaciariBlackWhiteLeveraging2021,caoSpecializingLargeLanguage2025}\dots
+\subsection{Evaluating the fine-tuned models}
+
+To test the models we simply get them to complete the survey themselves using the same training structure. Each of the models when doing the evaluation is run across the full range of the system prompts and for each question its modal response and the probability of the response options are collected. By averaging across all of the system prompts we can then get the model's modal response and the distribution of responses for each question.
+
+To have a naive baseline, a sixth \scare{model} was added which is the \texttt{prompted} model which is the base model yet with an additional prompt added to the system prompt that says ``Respond as an average New Zealand person would''. This tests if the model has sufficient internal model of what a New Zealander is like to respond like one without any fine-tuning.
+
+Furthermore, the eval is done once on the modal full option string and once on the first-token modal option (i.e.\ making it just respond with a single letter representing the response). This is to test whether the model has learned to respond like the public in both the full option string and the single token representation of the responses.
+
+These data can then be compared to the public's responses to see if it matches the modal response and then find the divergence of the distributions.
+
+To ensure that randomness is minimised, the model is run with a temperature of 0.0 and a top-p of 1.0. This ensures that the model always takes the most likely next token and therefore is deterministic—up to rounding—in its responses.
+
+\section{Evaluating survey fit}
+
+The goal is to train a model using value survey data so that it is imbued with a deep understanding of the values of the New Zealand public. Later chapters will test whether this has changed the model's behaviour in a preferred way, however, first we can investigate using the survey data itself how well the model has learned to respond like the public.
+
+Fine-tuning reliably shifts the model's survey responses towards the New Zealand public. However, the shift is format- and reasoning-dependent: modal SFT fits the modal answer, distributional SFT lowers KL. No fine-tuned model is uniformly best and reasoning weakens calibration without erasing the effect. Furthermore, as seen in \ref{sec:capability-testing} the fine-tuning has had a non-trivial negative effect on some of the models' capabilities.
+
+\subsection{Models' value profiles}
+
+The first way to understand the model's values and their alignment with the New Zealand public is to look at the responses it gives to the survey and then reducing the dimensionality to see it in 2D. The first of these is the Inglehart-Welzel Cultural Map \cite{WVSMAP} which is a well-supported method of reducing the dimensionality of the WVS survey questions down to 2D by first selecting just 10 questions and then using factor analysis to reduce the dimensionality. The second method is to use PCA on the full set of survey questions and then reduce them down to 2D.
+
+\cfigure{value-maps}{Left: The Inglehart-Welzel Cultural Map with the NZ public along with the base model, fine-tuned models and various other base models. Right: A simple PCA of the WVS data with the NZ public along with the base model, fine-tuned models and various other base models.}
+
+In \figref{value-maps} we can see that in the Inglehart-Welzel Cultural Map the base model is quite far away from the New Zealand public and various other frontier models sit at wildly different positions. The fine-tuned models are universally closer to the New Zealand public which suggests that the fine-tuning has been somewhat effective. The PCA shows a more convoluted picture which is likely due to it only capturing 6.1\% of the variation in the data. How effective the fine-tuning has been requires looking into it more deeply.
+
+
+\subsection{Survey-response fit by method}
+\label{sec:ft-results}
+
+There are two different objectives of the fine-tuning methods. The first is to have the model respond like the modal response of the public \modelref{ft-modal} and the second is to have the model respond like the distribution of responses of the public \modelref{ft-sampled}, \modelref{ft-first-token} and \modelref{ft-full-string}. The former is measured by accuracy and the latter is measured by KL divergence. To quickly summarise the methods, see the table below \tabref{ft-results}.
+
+\begin{table}
+  \centering
+  \begin{tabular}{@{}l p{0.68\textwidth}@{}}
+    \toprule
+    Method & Outcome \\
+    \midrule
+    Modal response & Near-perfect accuracy and robust across prompts; however, a slight decrease in performance on held-out questions. \\
+    Sampled response & Worse performance than the base model on all metrics. \\
+    First token & The most balanced trade-off of robust accuracy and distributional alignment. \\
+    Full option string & The best training results overall and most robust to changes yet performs poorly on some validation sets. \\
+    \bottomrule
+  \end{tabular}
+  \caption{A summary of each method and how it performed based on \tabref{ft-results-Qwen3.8-27B}}
+  \label{tab:ft-results}
+\end{table}
+
+\ctable{ft-results-Qwen3.8-27B}{The results of fine-tuning \modelref{qwen3.8-27b} on the WVS data. The table shows the accuracy and KL divergence for the base model and various fine-tuned models on the training, validation and overall datasets. This is done with reasoning off and the target being the modal response as a full option string.}
+
+As discussed in \tabref{ft-results} the modal response fine-tuning method has successfully fitted the data and has exceptionally high accuracy. Both this and the sampled response methods have moved almost all the probability mass to a single response option as seen in \figref{ft-modal-mass} which accounts for the massive distributional divergence.
+
+Oppositely we can observe that the distributional models both have reasonably high accuracy yet also very low distributional divergence. On face value this makes them seem more aligned to the New Zealand public.
+
+\cfigure{ft-modal-mass}{The response distribution of the models on a sample question from the WVS survey.}
+
+Lastly we can observe the naive baseline \texttt{prompted} model does a poor job of mimicking the public marginally increasing the accuracy on training (while substantially decreasing the validation accuracy) and overall worsening the distributional divergence. This motivates the need for fine-tuning to align the model to the values of the New Zealand public \footnote{It is plausible that more complex prompting—namely few-shot or longer personas—could improve the prompted model's performance. This has not been tested, yet other works have suggested this is possible \cn[The survey examples of how good persona matching is]}.
+
+\subsection{Robustness and generalisation}
+
+The goal of the fine-tuning is not simply to respond to the survey questions well but to learn the underlying values of the public. To test this, we can look at the robustness of the fine-tuning by seeing how the model responds to different question and answer formats and with reasoning enabled.
+
+With different questions we can see in \tabref{ft-results-Qwen3.8-27B} that the fine-tuned models almost all have worse performance on the held-out questions than the training questions. Super-human inference of the held-out modal response is not achieved with these fine-tuned models. However, we can see that for the distributional training methods the KL divergence is up to 5 times lower than the base model on the validation questions and prompts. Therefore these methods have managed to teach something more general while maintaining a good level of accuracy. \fixme{More interpretation needed?}
+
+
+Most of the models (except \modelref{ft-first-token} as it is trained to give a single letter) are trained to predict the full option string. By changing the questions to now just give a single letter that corresponds to an option we can test how well it actually learned the question. In \tabref{ft-results-first_token_distribution-Qwen3.8-27B} we can see that all methods (except \modelref{ft-first-token}) have significantly worse performance and so are not very robust to this change. They still, however, maintain about 50\% of the training effect.
+
+\ctable{ft-results-first_token_distribution-Qwen3.8-27B}{The results of fine-tuning \modelref{qwen3.8-27b} on the WVS data with the first-token data set. The table shows the accuracy, cross-entropy and KL divergence for the base model and various fine-tuned models on the training, validation and overall datasets. This is done with reasoning off and the target being a single letter.}
+
+In deployment, most models reason prior to giving their final answer. We have tested the models with reasoning enabled to see if the fine-tuning effect is robust to this change. In \tabref{ft-reasoning-modal_response-Qwen3.8-27B} (comparing against \tabref{ft-results-nopersona-Qwen3.8-27B} as just using the \texttt{no-persona} prompt) we can see that all of the methods have worse performance yet the drop in performance is not nearly as pronounced as the change in question format. As expected, the divergence of all methods is higher as the model is given time to think by the time it gives its final answer (from which the distribution is calculated), there is little uncertainty.
+
+\ctable{ft-results-nopersona-Qwen3.8-27B}{The results of fine-tuning \modelref{qwen3.8-27b} on the WVS data with reasoning enabled using the \texttt{no-persona} prompt. The table shows the accuracy, cross-entropy and KL divergence for the base model and various fine-tuned models on the training, validation and overall datasets. This is done with reasoning on and the target being the modal response as a full option string.}
+
+\ctable{ft-reasoning-modal_response-Qwen3.8-27B}{The results of fine-tuning \modelref{qwen3.8-27b} on the WVS data with reasoning enabled using the \texttt{no-persona} prompt. The table shows the accuracy, cross-entropy and KL divergence for the base model and various fine-tuned models on the training, validation and overall datasets. This is done with reasoning on and the target being the modal response as a full option string.}

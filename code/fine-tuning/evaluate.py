@@ -36,6 +36,11 @@ Usage:
         --model Qwen3.6-27B-nz-wvs-modal_response-overall \
         --dataset modal_response --subpopulation overall --reasoning
 
+    # One persona, overall population, thinking on (other settings as usual):
+    uv run evaluate.py --port 8087 --model Qwen3.8-27B-nz-wvs-modal_response-overall \
+        --dataset modal_response --subpopulation overall \
+        --system-prompt-id no_persona --reasoning
+
     # For quick checks:
     uv run evaluate.py --port 8087 --model Qwen/Qwen3.6-27B \
         --dataset modal_response --num-test-examples 20
@@ -56,6 +61,7 @@ from prompt_construction import (
     chat_template_kwargs,
     render_prompt_text,
 )
+from scoring import leading_letter as _leading_letter
 
 import pandas as pd
 
@@ -163,6 +169,19 @@ def _model_sha(
         return None
 
 
+def _persona(system_prompt_id: str) -> str:
+    """Persona name; the first-token ``*_letter`` variant shares its persona."""
+    return system_prompt_id.removesuffix("_letter")
+
+
+def _select_system_prompt(ds, system_prompt_id: str | None):
+    """Keep only the rows of one persona (no-op when None)."""
+    if not system_prompt_id:
+        return ds
+    wanted = _persona(system_prompt_id)
+    return ds.filter(lambda x: _persona(x["system_prompt_id"]) == wanted)
+
+
 def _load_dataset_and_sha(
     dataset_id: str,
     config_name: str,
@@ -170,6 +189,7 @@ def _load_dataset_and_sha(
     num_test_examples: int | None = None,
     splits: list[str] | None = None,
     subpopulation: str | None = None,
+    system_prompt_id: str | None = None,
 ):
     """Load the given dataset config, concatenating the requested splits.
 
@@ -185,6 +205,7 @@ def _load_dataset_and_sha(
             after any subpopulation filter) for quick checks.
         splits: Dataset splits to include (default ``["train", "validation"]``).
         subpopulation: If set, only keep rows of this subpopulation.
+        system_prompt_id: If set, only keep rows of this persona.
 
     Returns:
         Tuple of ``(dataset, dataset_sha)``.
@@ -203,16 +224,24 @@ def _load_dataset_and_sha(
         splits = ["train", "validation"]
 
     parts = []
+    available = set()
     for split in splits:
         ds = load_dataset(dataset_id, config_name, split=split, token=hf_token or None)
         if subpopulation:
             ds = ds.filter(lambda x: x["subpopulation"] == subpopulation)
+        available.update(_persona(s) for s in ds.unique("system_prompt_id"))
+        ds = _select_system_prompt(ds, system_prompt_id)
         if num_test_examples:
             ds = ds.select(range(min(num_test_examples, len(ds))))
         ds = ds.map(lambda ex, _split=split: {**ex, "split": _split})
         parts.append(ds)
 
     ds = concatenate_datasets(parts)
+    if system_prompt_id and len(ds) == 0:
+        raise SystemExit(
+            f"[error] no rows for system prompt '{system_prompt_id}' in "
+            f"{config_name}; available: {', '.join(sorted(available))}"
+        )
 
     subpops = (
         set(ds["subpopulation"]) if "subpopulation" in ds.features else {"unknown"}
@@ -221,6 +250,7 @@ def _load_dataset_and_sha(
         f"[data] loaded {len(ds)} examples"
         f" (config={config_name}, splits={','.join(splits)},"
         f" subpop={'all' if subpopulation is None else subpopulation},"
+        f" system_prompt={system_prompt_id or 'all'},"
         f" subpops-in-data={', '.join(sorted(subpops))})"
     )
     if dataset_sha:
@@ -297,6 +327,13 @@ def parse_args(argv=None):
         choices=["cluster_0", "cluster_1", "overall"],
         help="Only evaluate this subpopulation (default: all subpopulations "
         "in a single pass).",
+    )
+    p.add_argument(
+        "--system-prompt-id",
+        default=None,
+        help="Only evaluate rows of this system-prompt persona, e.g. "
+        "no_persona (the *_letter first-token variants count as the "
+        "same persona). Default: all eight system prompts.",
     )
     p.add_argument(
         "--hf-token",
@@ -394,6 +431,87 @@ def parse_args(argv=None):
     return p.parse_args(argv)
 
 
+THINK_END = "</think>"
+
+
+def _answer_tokens(toks):
+    """Logprob entries after ``</think>``, skipping the blank line before the
+    answer. Without a think block the stream is returned unchanged."""
+    for i, t in enumerate(toks):
+        if t.token == THINK_END:
+            start = i + 1
+            while start < len(toks) and not toks[start].token.strip():
+                start += 1
+            return toks[start:]
+    return toks
+
+
+def _join_tokens(toks) -> str:
+    """Detokenised text of logprob entries, without the end-of-turn token."""
+    return "".join(t.token for t in toks).strip().removesuffix("<|im_end|>").strip()
+
+
+def _split_thinking(msg, logprobs_data, finish_reason=None):
+    """Thinking-mode completion as ``(thinking_text, answer_text, closed)``.
+
+    The logprob stream includes the reasoning, so the answer starts after the
+    ``</think>`` token (the marker the probability code uses). ``closed`` is
+    False when no ``</think>`` was produced. Then the completion either hit the
+    token cap mid-reasoning (finish_reason ``length``: no answer) or stopped
+    early and answered without thinking (the whole reply is the answer).
+    """
+    content = (msg.content or "").strip()
+    toks = list(logprobs_data.content or []) if logprobs_data else []
+    if toks:
+        ends = [i for i, t in enumerate(toks) if t.token == THINK_END]
+        if not ends:
+            text = _join_tokens(toks)
+            if finish_reason == "length":
+                return text, "", False
+            return "", text or content, False
+        answer = _join_tokens(_answer_tokens(toks)) or content
+        return _join_tokens(toks[: ends[0]]), answer, True
+    if THINK_END in content:
+        thinking, _, answer = content.partition(THINK_END)
+        return thinking.strip(), answer.strip(), True
+    if finish_reason == "length":
+        return content, "", False
+    return "", content, False
+
+
+def _split_visible(msg, logprobs_data):
+    """Non-thinking reply as ``(reasoning_text, answer_text)``.
+
+    Legacy heuristic, deliberately unchanged: a `` response`` token marks
+    visible reasoning. The split feeds ``reasoning_chars`` and so
+    ``reasoning_observed_rows`` for runs that were asked not to reason.
+    """
+    answer_text = ""
+    reasoning_text = ""
+    if logprobs_data and logprobs_data.content:
+        toks = logprobs_data.content
+        ans_start = 0
+        for k, t in enumerate(toks):
+            if t.token == " response":
+                ans_start = k + 1
+                break
+        if ans_start > 0 or not msg.content:
+            if ans_start > 0:
+                reasoning_text = "".join(t.token for t in toks[: ans_start - 1]).strip()
+            answer_text = "".join(t.token for t in toks[ans_start:]).strip()
+            if answer_text.endswith("<|im_end|>"):
+                answer_text = answer_text[: -len("<|im_end|>")].strip()
+    if not answer_text and msg.content:
+        content = msg.content
+        think_end = content.find(" response")
+        if think_end >= 0:
+            reasoning_text = content[:think_end].strip()
+            answer_text = content[think_end + len(" response") :].strip()
+        if not answer_text:
+            answer_text = content.strip()
+    return reasoning_text, answer_text
+
+
 def compute_option_probs(
     categories: list[str],
     logprobs_data,
@@ -408,15 +526,7 @@ def compute_option_probs(
     if not logprobs_data or not logprobs_data.content:
         return {}
 
-    toks = logprobs_data.content
-
-    # Find answer start (after </think>)
-    ans_start = 0
-    for _i, _t in enumerate(toks):
-        if _t.token == "</think>":
-            ans_start = _i + 1
-            break
-    ans_toks = toks[ans_start:]
+    ans_toks = _answer_tokens(logprobs_data.content)
 
     if not ans_toks:
         return {}
@@ -507,15 +617,7 @@ def compute_first_token_probs(
     if not logprobs_data or not logprobs_data.content:
         return {}
 
-    toks = logprobs_data.content
-
-    # Find answer start (after </think>)
-    ans_start = 0
-    for _i, _t in enumerate(toks):
-        if _t.token == "</think>":
-            ans_start = _i + 1
-            break
-    ans_toks = toks[ans_start:]
+    ans_toks = _answer_tokens(logprobs_data.content)
 
     if not ans_toks:
         return {}
@@ -831,57 +933,39 @@ def _build_row(
 ):
     """Turn a completion into a results row (shared by both eval passes).
 
-    Splits off any `` response`` reasoning suffix, then computes the option
+    Splits the reasoning off the completion, then computes the option
     distribution / correctness metrics. Returns None when the model produced
-    no answer text (counted as a failure by the caller).
+    no answer text (counted as a failure by the caller). A thinking-mode row
+    that hit the token cap is kept with ``truncated`` set instead.
     """
     choice = resp.choices[0]
     msg = choice.message
     logprobs_data = choice.logprobs
+    finish_reason = getattr(choice, "finish_reason", None)
 
-    answer_text = ""
-    reasoning_text = ""
-    answer_start_found = False
-    if logprobs_data and logprobs_data.content:
-        toks = logprobs_data.content
-        ans_start = 0
-        for k, t in enumerate(toks):
-            if t.token == " response":
-                ans_start = k + 1
-                answer_start_found = True
-                break
-        if ans_start > 0 or not msg.content:
-            if ans_start > 0:
-                reasoning_text = "".join(t.token for t in toks[: ans_start - 1]).strip()
-            answer_text = "".join(t.token for t in toks[ans_start:]).strip()
-            if answer_text.endswith("<|im_end|>"):
-                answer_text = answer_text[: -len("<|im_end|>")].strip()
-    if not answer_text and msg.content:
-        content = msg.content
-        think_end = content.find(" response")
-        if think_end >= 0:
-            reasoning_text = content[:think_end].strip()
-            answer_text = content[think_end + len(" response") :].strip()
-            answer_start_found = True
-        if not answer_text:
-            answer_text = content.strip()
-    if not answer_text:
+    if reasoning:
+        reasoning_text, answer_text, closed = _split_thinking(
+            msg, logprobs_data, finish_reason
+        )
+    else:
+        reasoning_text, answer_text = _split_visible(msg, logprobs_data)
+        closed = True
+    truncated = reasoning and not closed and finish_reason == "length"
+    if not answer_text and not truncated:
         print(f"  [error] empty response at example {idx}")
         return None
-    if reasoning and not answer_start_found:
-        print(
-            "  [warn] answer start not found ( response missing) — response may be truncated"
-        )
+    leading = None
+    if first_token_mode:
+        leading = _leading_letter(answer_text, example.get("answer_tokens", []))
+    no_leading_letter = bool(first_token_mode and not truncated and leading is None)
 
     option_probs = {}
     categories = list(example.get("categories") or [])
     if not categories:
         col = example.get("column_name", "")
         categories = options_lookup.get(col, [])
-    if categories:
-        if reasoning and not answer_start_found:
-            pass
-        elif first_token_mode:
+    if categories and not truncated and not no_leading_letter:
+        if first_token_mode:
             answer_tokens = list(example.get("answer_tokens", []))
             if use_logprobs:
                 option_probs = compute_first_token_probs(
@@ -909,10 +993,19 @@ def _build_row(
         "model_answer": answer_text,
         "model_reasoning": reasoning_text if reasoning else "",
         "reasoning_chars": len(reasoning_text),
+        "truncated": truncated,
+        "think_closed": closed if reasoning else None,
+        "finish_reason": finish_reason,
+        "leading_letter": leading,
+        "no_leading_letter": no_leading_letter,
+        "output_tokens": getattr(
+            getattr(resp, "usage", None), "completion_tokens", None
+        ),
     }
 
     if categories:
         row["categories"] = categories
+    if categories and not truncated and not no_leading_letter:
         cat_probs = {c: option_probs.get(c, 0.0) for c in categories}
         total_prob = sum(cat_probs.values())
         if total_prob > 0:
@@ -949,7 +1042,7 @@ def _build_row(
         modal_letter = example["answer_tokens"][modal_idx]
         row["expected_text"] = modal_letter
         row["is_correct"] = (
-            answer_text.strip().rstrip(".").lower() == modal_letter.lower()
+            leading is not None and leading.lower() == modal_letter.lower()
         )
 
     return row
@@ -1163,6 +1256,12 @@ def _run_evaluation(
     print("=" * 60)
     print(f"  Examples evaluated:  {len(results)}")
     print(f"  Nan / failures:      {nan_count}")
+    if reasoning:
+        n_truncated = sum(1 for r in results if r.get("truncated"))
+        print(f"  Truncated (no </think> before the token cap): {n_truncated}")
+    if first_token_mode:
+        n_flagged = sum(1 for r in results if r.get("no_leading_letter"))
+        print(f"  No leading letter (flagged, no distribution): {n_flagged}")
     if aborted:
         print("  NOTE: run aborted early (server unresponsive); results are partial")
     if len(results) == 0:
@@ -1436,7 +1535,9 @@ def main():
     run_name = (
         f"{args.dataset}-"
         f"{args.subpopulation + '-' if args.subpopulation else ''}"
+        f"{args.system_prompt_id + '-' if args.system_prompt_id else ''}"
         f"{'reasoning-' if args.reasoning else ''}"
+        f"{'first' + str(args.num_test_examples) + '-' if args.num_test_examples else ''}"
         f"{datetime.now().strftime('%Y%m%d_%H%M%S')}"
     )
     if args.output_dir is None:
@@ -1474,6 +1575,7 @@ def main():
         num_test_examples=args.num_test_examples,
         splits=splits,
         subpopulation=args.subpopulation,
+        system_prompt_id=args.system_prompt_id,
     )
     print()
     print(f"  Will evaluate '{args.model}' on '{args.dataset}'")
@@ -1556,6 +1658,7 @@ def main():
         "split": ",".join(splits),
         "splits": splits,
         "subpopulation": args.subpopulation,
+        "system_prompt_id": args.system_prompt_id,
         "reasoning": args.reasoning,
         "provider": args.provider,
         "use_logprobs": use_logprobs,

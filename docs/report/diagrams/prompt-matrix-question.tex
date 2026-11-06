@@ -1,0 +1,60 @@
+% Bare tikzpicture: matrix (battery) WVS question (Q1-Q6, question_mapping id 1) turned
+% into training messages, one item at a time. Prompt text follows build_dataset.py
+% (build_user_prompt): the item name is appended after the options. Example answer = modal
+% answer over all respondents for Family (Very important, 91%).
+% Included by \cdiagram (docs/common.tex); compiles only as part of the report.
+\begin{tikzpicture}[
+    font=\small,
+    src/.style={
+        draw=black!50, fill=black!4, rounded corners=3pt, align=left,
+        inner sep=6pt, text width=4.6cm,
+    },
+    msg/.style={
+        draw=#1!65!black, fill=#1!11, rounded corners=3pt, align=left,
+        inner sep=6pt, text width=8.2cm,
+    },
+    arr/.style={-{Stealth[length=2.4mm]}, thick, draw=black!65},
+    note/.style={font=\scriptsize\itshape, align=center, text width=1.5cm},
+]
+
+% --- Source: the matrix question and its items (options shown in the user prompt)
+\node[src, anchor=west] (question) at (0, 0) {
+    \textbf{Matrix question (Q1--Q6)}\\[3pt]
+    Please indicate, for each of the following, how important it is in your life.\\[4pt]
+    {\scriptsize Items}\\
+    \textcolor{blue!70!black}{\textbf{Family}}; Friends; Leisure time; Politics; Work; Religion\\[4pt]
+    {\scriptsize one training example per item}
+};
+
+% --- User prompt: shared text and options, then the item being asked ---------
+\node[msg=blue, anchor=west] (user) at (6.7, 0) {
+    \textbf{User prompt}\\[3pt]
+    Please indicate, for each of the following, how important it is in your life.\\[4pt]
+    Options:\\
+    Very important\\
+    Rather important\\
+    Not very important\\
+    Not at all important\\
+    Don't know\\[4pt]
+    \textcolor{blue!70!black}{\textbf{Family:}}
+};
+
+% --- System prompt: fixed template, one of eight variants ---------------------
+\node[msg=black, above=0.45cm of user] (system) {
+    \textbf{System prompt} {\scriptsize\itshape (one of eight variants, abridged)}\\[3pt]
+    You are a participant in the World Values Survey, a global research project
+    exploring people's values, beliefs, and attitudes. {[\dots]} IMPORTANT:
+    Respond with ONLY the exact text of your chosen option. No extra words, no
+    explanations, no formatting. Your entire response must be exactly one of the
+    options listed.
+};
+
+% --- Example response for this item -------------------------------------------
+\node[msg=teal, below=0.45cm of user] (assistant) {
+    \textbf{Example AI response}\\[3pt]
+    ``Very important''
+};
+
+\draw[arr] (question.east) -- node[above, note] {question\\+ options\\+ item} (user.west);
+
+\end{tikzpicture}

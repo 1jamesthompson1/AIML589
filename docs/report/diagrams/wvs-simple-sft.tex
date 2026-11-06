@@ -1,0 +1,83 @@
+% Bare tikzpicture: simplified fine-tuning setup (prompt, response and the losses).
+% Same structure as the earlier diagram: prompt -> model -> response, branching to
+% two losses (SFT and distributional) scored against WVS respondent data.
+% Grey = source, blue = prompt/model/SFT, teal = response/distributional, orange = data.
+% The response shows a single answer or the model's probability over each option.
+% Included by \cdiagram (docs/common.tex); compiles only as part of the report.
+\begin{tikzpicture}[
+    font=\small,
+    input/.style={
+        draw=black!50, fill=black!4, rounded corners=3pt, align=left,
+        text width=8.8cm, inner sep=6pt,
+    },
+    model/.style={
+        draw=blue!65!black, fill=blue!11, rounded corners=3pt, align=center,
+        text width=5.8cm, inner sep=6pt,
+    },
+    output/.style={
+        draw=teal!65!black, fill=teal!11, rounded corners=3pt, align=center,
+        text width=5.8cm, inner sep=6pt,
+    },
+    loss/.style={
+        draw=#1!65!black, fill=#1!11, rounded corners=3pt, align=left,
+        text width=4.9cm, inner sep=6pt,
+    },
+    data/.style={
+        draw=orange!65!black, fill=orange!11, rounded corners=3pt, align=center,
+        text width=4.6cm, inner sep=6pt,
+    },
+    arr/.style={-{Stealth[length=2.4mm]}, thick, draw=black!65},
+]
+
+% --- Input: system prompt + survey question with its options -----------------
+\node[input] (prompt) at (0, 0) {
+    \textbf{Model input (prompt)}\\[2pt]
+    {\scriptsize\itshape system: one of eight persona/format variants (abridged)}\\[2pt]
+    You are a participant in the World Values Survey. {[\dots]} Respond with ONLY
+    the exact text of your chosen option.\\[2pt]
+    {\scriptsize\itshape user: the question and its options}\\[1pt]
+    Please indicate, for each of the following, how important it is in your
+    life. Options: Very important, Rather important, Not very important, Not at
+    all important, Don't know.\\[1pt]
+    \textit{Family:}
+};
+
+% --- Model -------------------------------------------------------------------
+\node[model, below=0.45cm of prompt] (model) {Large language model};
+
+% --- Response: one answer, or the probability the model gives each option ----
+\node[output, below=0.45cm of model] (output) {
+    \textbf{Model response}\\[2pt]
+    ``Very important''\\[1pt]
+    {\scriptsize or probability per option:}\\
+    {\scriptsize $p_\theta = [0.92,\ 0.06,\ 0.01,\ 0.005,\ 0]$}
+};
+
+% --- Losses: SFT and distributional ------------------------------------------
+\node[loss=blue, below=0.85cm of output, xshift=-2.95cm, anchor=north] (loss1) {
+    \textbf{Single answer (SFT)}\\[2pt]
+    $\mathcal{L}_{\mathrm{SFT}} = -\log p_\theta(y \mid x)$\\[2pt]
+    {\scriptsize scored against the modal or sampled answer}
+};
+
+\node[loss=teal, below=0.85cm of output, xshift=2.95cm, anchor=north] (loss2) {
+    \textbf{Distributional}\\[2pt]
+    $\mathcal{L}_{\mathrm{dist}} = -\sum_{i=1}^{K} q_i \log \tilde{p}_\theta(y_i \mid x)$\\[2pt]
+    {\scriptsize scored against $q$; $y_i$ may be the full option string or the single answer token}
+};
+
+\node[data, below=3.55cm of output] (real) {
+    \textbf{WVS respondents}\\[2pt]
+    modal/sampled answer or distribution $q$
+};
+
+\draw[arr] (prompt) -- (model);
+\draw[arr] (model) -- (output);
+\draw[arr] (output.south) -- ++(0,-0.2) -| (loss1.north);
+\draw[arr] (output.south) -- ++(0,-0.2) -| (loss2.north);
+\draw[arr] (real.north) -- ++(0,0.15) -| (loss1.south);
+\draw[arr] (real.north) -- ++(0,0.15) -| (loss2.south);
+\draw[arr] (loss1.west) -- ++(-0.35,0) |- (model.west);
+\draw[arr] (loss2.east) -- ++(0.35,0) |- (model.east);
+
+\end{tikzpicture}

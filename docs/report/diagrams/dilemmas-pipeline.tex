@@ -1,0 +1,62 @@
+% Bare tikzpicture: the dilemma pipeline, from the inputs to the three measurements.
+% Included by \cdiagram (docs/common.tex); compiles only as part of the report.
+\begin{tikzpicture}[
+    every node/.style={draw, rounded corners, align=center, font=\footnotesize, inner sep=4pt,
+        execute at begin node={\hyphenpenalty=10000\exhyphenpenalty=10000}},
+    databox/.style={fill=orange!6},
+    procbox/.style={fill=blue!6},
+    track/.style={procbox, text width=4.4cm, minimum height=2.1cm},
+    arrow/.style={-{Latex[length=2mm]}, thick},
+    line/.style={thick}
+]
+
+% --- Inputs ---
+\node (profile) [databox, text width=6.2cm] {\textbf{System prompt}\\[2pt]the agent's role, the deployment scenario and the reference documents};
+\node (dilemma) [databox, right=0.45cm of profile, text width=6.2cm] {\textbf{Dilemma}\\[2pt]the situation and the question (no answer options given)};
+
+% --- Generation ---
+\coordinate (inputsmid) at ($(profile.south)!0.5!(dilemma.south)$);
+\node (model) [procbox, below=0.6cm of inputsmid, text width=6.2cm] {\textbf{Model}\\[2pt]the base model or one of the four fine-tunes};
+\node (runs) [databox, below=0.4cm of model, text width=6.6cm] {\textbf{Sampled responses per dilemma per model}};
+
+% --- Measurement tracks ---
+\coordinate (tracks) at ($(runs.south) + (0,-0.8)$);
+\node (qjudge) [track, anchor=north] at (tracks) {\textbf{Quality judge}\\(three-model ensemble)\\[2pt]scores each index-matched base--fine-tune pair};
+\node (cjudge) [track, anchor=north east] at ($(qjudge.north west)+(-0.3,0)$) {\textbf{Choice judge}\\(\judgemodel{})\\[2pt]classifies each response into an answer category (or Other)};
+\node (embed) [track, anchor=north west] at ($(qjudge.north east)+(0.3,0)$) {\textbf{Embedding model}\\(\modelref{qwen-embedding})\\[2pt]embeds each response};
+
+\node (labels) [databox, below=0.4cm of cjudge, text width=4.4cm] {\textbf{Answer category per response}\\[2pt]chosen by the choice judge};
+\node (scores) [databox, below=0.4cm of qjudge, text width=4.4cm] {\textbf{Scores per pair}\\[2pt]value divergence, survey quality, interest, competence};
+\node (vectors) [databox, below=0.4cm of embed, text width=4.4cm] {\textbf{Vector per response}\\[2pt]one per sampled response};
+
+% --- Analysis ---
+\node [draw=none, fit=(labels)(scores)(vectors), inner sep=0] (outputs) {};
+\node (analysis) [procbox, below=0.9cm of outputs, text width=10.6cm] {\textbf{Comparison and analysis}\\[2pt]answer shares per model and dilemma (TVD) with a permutation test;\\cosine distance between the two answers of each pair;\\the highest-divergence pairs within significant dilemmas become survey questions};
+
+% --- Arrows ---
+\coordinate (join) at ($(inputsmid)+(0,-0.35)$);
+\draw[line] (profile.south) -- (profile.south |- join) -- (join);
+\draw[line] (dilemma.south) -- (dilemma.south |- join) -- (join);
+\draw[arrow] (join) -- (model.north);
+
+\draw[arrow] (model) -- (runs);
+
+\coordinate (split) at ($(runs.south)+(0,-0.4)$);
+\draw[line] (runs.south) -- (split);
+\draw[line] (cjudge.north |- split) -- (embed.north |- split);
+\draw[arrow] (cjudge.north |- split) -- (cjudge.north);
+\draw[arrow] (qjudge.north |- split) -- (qjudge.north);
+\draw[arrow] (embed.north |- split) -- (embed.north);
+
+\draw[arrow] (cjudge) -- (labels);
+\draw[arrow] (qjudge) -- (scores);
+\draw[arrow] (embed) -- (vectors);
+
+\coordinate (sink) at ($(analysis.north)+(0,0.45)$);
+\draw[line] (labels.south) -- (labels.south |- sink);
+\draw[line] (scores.south) -- (scores.south |- sink);
+\draw[line] (vectors.south) -- (vectors.south |- sink);
+\draw[line] (labels.south |- sink) -- (vectors.south |- sink);
+\draw[arrow] (sink) -- (analysis.north);
+
+\end{tikzpicture}

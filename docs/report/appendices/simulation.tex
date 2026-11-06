@@ -89,12 +89,7 @@ To validate this approach a check over the trajectories was done to see how ofte
 
 The result of a single simulation is a trajectory. This trajectory includes the scenario setup, the models reasoning, the tools it calls and also in interactive scenarios the responses from the interlocuter. It is a complete record of the simulation. The full pipeline, from a single simulation run to the summaries described below and their uses, is shown in \figref{behavioural-sim-pipeline}.
 
-\begin{figure}[t]
-\centering
-\input{../../code/figures/behavioural-sim-pipeline.tex}
-\caption{The behavioural simulation pipeline. The trajectory splits into two review paths: a structured review by an external model for the cross-model analysis (RQ1), and a self-review by the target model, audited by an external judge, that feeds the public survey in the next chapter (RQ2).}
-\label{fig:behavioural-sim-pipeline}
-\end{figure}
+\cdiagram{behavioural-sim-pipeline}{The behavioural simulation pipeline. The trajectory splits into two review paths: a structured review by an external model for the cross-model analysis (RQ1), and a self-review by the target model, audited by an external judge, that feeds the public survey in the next chapter (RQ2).}
 
 The goal of understanding the trajectories is to try and answer \rqref{align} and to also create summaries that can be used in \ref{chap:survey} to answer \rqref{prefer}. The first sort of summary is a summary of the decisions made which needs to be structured and allows for comparison between multiple runs of the same scenario across models. The second one however is more holistic with an objective of fairly representing the trajectory for human oversight.
 

@@ -1,0 +1,15 @@
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{lrrrrrrrr}
+\toprule
+Model & \multicolumn{4}{l}{Accuracy} & \multicolumn{4}{l}{KL} \\
+ & Validation prompt & Validation question & Train & All & Validation prompt & Validation question & Train & All \\
+\midrule
+Base & -- & \bfseries 66.7 & 57.6 & 57.8 & -- & 6.100 & 7.471 & 7.437 \\
+Prompted & -- & 33.3 & 59.2 & 58.6 & -- & 5.970 & 6.177 & 6.172 \\
+Modal response & -- & \bfseries 66.7 & \bfseries 95.5 & \bfseries 94.8 & -- & 4.628 & 4.586 & 4.587 \\
+Sampled response & -- & 50.0 & 43.3 & 43.4 & -- & 3.274 & 4.846 & 4.808 \\
+First token & -- & 50.0 & 81.2 & 80.5 & -- & 1.135 & 0.569 & 0.582 \\
+Full string & -- & 33.3 & 80.8 & 79.7 & -- & \bfseries 0.379 & \bfseries 0.210 & \bfseries 0.214 \\
+\bottomrule
+\end{tabular}
+}%

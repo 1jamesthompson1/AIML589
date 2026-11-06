@@ -19,6 +19,12 @@
 \usepackage[colorinlistoftodos, textwidth=2.3cm]{todonotes}
 \usepackage[backend=biber,style=numeric]{biblatex}
 
+% Unicode fallbacks for characters that pdflatex's kernel does not set up
+% (e.g. in auto-generated tables under code/figures/). Generated tables keep
+% the plain UTF-8 characters so their source stays readable.
+\DeclareUnicodeCharacter{0394}{\ensuremath{\Delta}}% Greek capital delta
+\DeclareUnicodeCharacter{2212}{\ensuremath{-}}% minus sign
+
 % Floats: figures and tables default to the top of the page. This sets the
 % default for plain figure/table environments; the \cfigure and \ctable
 % helpers below set the same default in their optional argument.
@@ -43,8 +49,26 @@
 \newif\ifdraftmode
 \draftmodetrue
 
+% \todo places a \marginpar, which cannot be output when the note is set
+% inside a footnote's box: the note stays in the float queue and the next
+% \clearpage fails with "Float(s) lost" (which also drops any floats still
+% pending). Flag footnote text so \fixme can fall back to an inline note.
+\newif\ifinfootnote
+\makeatletter
+\let\vuw@footnotetext\@footnotetext
+\long\def\@footnotetext#1{%
+  \begingroup \infootnotetrue \vuw@footnotetext{#1}\endgroup}
+\let\vuw@mpfootnotetext\@mpfootnotetext
+\long\def\@mpfootnotetext#1{%
+  \begingroup \infootnotetrue \vuw@mpfootnotetext{#1}\endgroup}
+\makeatother
+
 \newcommand{\fixme}[2][]{%
-  \todo[color=orange!30, size=\small, #1]{#2}%
+  \ifinfootnote
+    \todo[color=orange!30, inline, size=\small, #1]{#2}%
+  \else
+    \todo[color=orange!30, size=\small, #1]{#2}%
+  \fi
 }
 \newcommand{\fixmeinline}[1]{%
   \todo[color=orange!30, inline, size=\small]{#1}%
@@ -84,6 +108,20 @@
       \includegraphics[width=#2]{../../code/figures/#3}
       \caption{#4}
       \label{fig:\cfiglabel}
+   \end{figure}%
+}
+
+% Diagram convenience: \cdiagram[placement]{name}{caption}
+% Inputs the bare TikZ picture diagrams/<name>.tex (relative to docs/report, no preamble) inside a figure
+% environment. The label is auto-derived from the name, e.g. \cdiagram{foo}{...} gives
+% \label{fig:foo}, so \figref{foo} works. Pictures are drawn at \textwidth.
+\NewDocumentCommand{\cdiagram}{O{t} m m}{%
+   \stripext{#2}{\cdiagname}%
+   \begin{figure}[#1]
+      \centering
+      \input{diagrams/\cdiagname.tex}
+      \caption{#3}
+      \label{fig:\cdiagname}
    \end{figure}%
 }
 

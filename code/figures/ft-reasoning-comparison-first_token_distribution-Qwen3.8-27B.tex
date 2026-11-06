@@ -1,0 +1,15 @@
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{lrrrrrrrr}
+\toprule
+Model & \multicolumn{2}{l}{Accuracy (\%)} & Δ Acc (pp) & vs Base (pp) & p & \multicolumn{2}{l}{TVD (\%)} & Flagged \\
+ & Off & On & On−Off & On & McNemar & Off & On & On \\
+\midrule
+Base & 62.5 & 57.8 & -4.8 & -- & 0.134 & 27.7 & 58.2 & 0 \\
+Prompted & 65.3 & 58.6 & -6.8 & +0.8 & \bfseries 0.030 & 30.6 & 55.3 & 1 \\
+Modal response & 78.5 & \bfseries 94.8 & +16.3 & +37.1 & \bfseries 0.000 & 44.1 & 47.4 & 1 \\
+Sampled response & 32.7 & 43.4 & +10.8 & -14.3 & \bfseries 0.000 & 51.6 & 52.7 & 34 \\
+First token & \bfseries 93.6 & 80.5 & -13.1 & +22.7 & \bfseries 0.000 & \bfseries 2.4 & 36.4 & 0 \\
+Full string & 75.7 & 79.7 & +4.0 & +21.9 & 0.245 & 20.7 & \bfseries 23.8 & 2 \\
+\bottomrule
+\end{tabular}
+}%

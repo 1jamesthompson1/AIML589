@@ -1,0 +1,19 @@
+{
+  "description": "Items behind the NZ-only Inglehart-Welzel style map, with the weight of each answer option. Higher weight = more traditional (axis 1) or more survival (axis 2); null excludes an option (e.g. Don't know, not a New Zealander). The weights are ordinal scores on the option order, so every group is scored the same way.",
+  "items": [
+    {"column": "Q164", "axis": "traditional", "label": "Importance of God", "weights": [0, 0.111, 0.222, 0.333, 0.444, 0.556, 0.667, 0.778, 0.889, 1.0, null]},
+    {"column": "Q165", "axis": "traditional", "label": "Believe in God", "weights": [1, 0, null]},
+    {"column": "Q171", "axis": "traditional", "label": "Religious service attendance", "weights": [1.0, 0.833, 0.667, 0.5, 0.333, 0.167, 0]},
+    {"column": "Q173", "axis": "traditional", "label": "Religious person", "weights": [1, 0.5, 0, null]},
+    {"column": "Q254", "axis": "traditional", "label": "National pride", "weights": [1.0, 0.667, 0.333, 0, null, null]},
+    {"column": "Q17", "axis": "traditional", "label": "Obedience important in children", "weights": [1, 0]},
+    {"column": "Q8", "axis": "traditional", "label": "Independence important in children", "weights": [0, 1]},
+    {"column": "Q11", "axis": "traditional", "label": "Imagination important in children", "weights": [0, 1]},
+    {"column": "Q182", "axis": "survival", "label": "Homosexuality justifiable", "weights": [0, 0.111, 0.222, 0.333, 0.444, 0.556, 0.667, 0.778, 0.889, 1.0, null]},
+    {"column": "Q22", "axis": "survival", "label": "Would not want homosexual neighbours", "weights": [1, 0]},
+    {"column": "Q57", "axis": "survival", "label": "People can be trusted", "weights": [0, 1, null]},
+    {"column": "Q49", "axis": "survival", "label": "Life satisfaction", "weights": [0, 0.111, 0.222, 0.333, 0.444, 0.556, 0.667, 0.778, 0.889, 1.0, null]},
+    {"column": "Q209", "axis": "survival", "label": "Signed a petition", "weights": [1, 0.5, 0, null]},
+    {"column": "Q210", "axis": "survival", "label": "Joined in boycotts", "weights": [1, 0.5, 0, null]}
+  ]
+}

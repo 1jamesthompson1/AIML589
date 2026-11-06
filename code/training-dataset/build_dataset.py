@@ -361,7 +361,9 @@ def _(Path, pd, redundancy_data, textwrap):
 
     # How many questions to hold out for validation (one per battery AND
     # per redundancy component).
-    N_PRINTOUT = 15
+    # N_PRINTOUT limits the examples written to the report appendix;
+    # keep it small (two is enough to show the idea).
+    N_PRINTOUT = 2
     N_HELD_OUT = 6
 
     redundancy = redundancy_data["redundancy"]
