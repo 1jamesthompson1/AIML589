@@ -1,40 +1,44 @@
-This chapter gives an introduction to the project report.
+The world's best artificial intelligence (AI) systems are reaching a level of capability where they can operate autonomously in a wide range of situations \footnote{Current AI systems are broadly digital only; however, humanoid robots are beginning to be deployed in industrial settings \cite{F02ContributedProduction2025}}. The increased capability of these systems is leading them to become more integrated into the systems that shape individuals' lives and society as a whole. A future with this increased integration and dependency creates a future in which these systems will be making decisions that affect the lives of people. To ensure we maintain agency over our own lives (i.e. shaping the future based on our values), it is important that the behaviour of these systems is aligned with the values of the populations that they are deployed in. This project focuses on the alignment of the behaviour of these systems which is termed \term{AI-alignment}.
 
-5-6 pages with a full summary
+This chapter motivates the need for AI alignment in \ref{sec:motivation} and then gives an overview of the project in \ref{sec:project_overview}. Finally, the structure of the report is given in \ref{sec:report_overview}.
+
+\section{The need for pragmatic AI alignment}
+\label{sec:motivation}
+
+The creation of frontier AI systems is not a neutral process. Each model when deployed has its own set of values that are generally aligned with the values of the creators of the system \cite{buylLargeLanguageModels2026,jiAIAlignmentComprehensive2025}. These values are very diverse and so the values of the models are unlikely to be aligned with the values of the populations that they are deployed in.
+
+The misalignment is a problem for a couple of reasons. First, given the increasing integration and delegation to these systems, this mismatch will subtly apply one set of values to someone else. Many value systems treat freedom and agency as core values; this violates and impedes those values. Second, applying one set of values to another will gradually corrode the values of the users and so lose diversity in the value space. This is a problem as it is not clear which value system is the best and so we should maintain diversity in the value space to ensure that we do not lose a potentially superior value system.
+
+To avoid this misalignment, it would make sense to simply build your own models to ensure alignment with your own values. This is challenging as the development of these frontier AI systems requires immense resources and so only a small number of well-funded groups in the world are capable of this \cite{cottierRisingCostsTraining2024}. Therefore, most countries will be inheriting the values of the systems that are deployed in their country. New Zealand is an example of this position of adoption where our stated goal is to be the ``best in the world at the adoption of AI''\cite{1newsreportersLuxonToutsBudget}.
+
+Pragmatic alignment methods are a potential solution to this problem. These methods are low-resource methods that allow for the alignment of existing models to the values of the populations that they are deployed in. This project explores one such method that uses publicly available survey data to fine-tune large language models (LLMs) to align with the values of the New Zealand public.
+
+\section{Using survey data to align AI systems with the values of the public}
+\label{sec:project_overview}
+
+The most capable AI systems today are \term{llm}s. Fortunately methods exist to modify the behaviour of LLMs with orders of magnitude fewer resources than it took to create them. These processes are called fine-tuning, and they allow small groups (i.e. New Zealand) to modify the behaviour of LLMs to align with the values of their populations. A pragmatic method therefore involves using training data to modify LLM behaviour. 
+
+To do this alignment, it would be effective to train the LLMs to hold the same values as the population they are deployed in, based on the notion that the values of an LLM drive its behaviour. This requires less training as you operate at an abstraction level higher than the large volumes of 'examples' used in other areas (tell the model not to lie rather than showing it hundreds of examples of it telling the truth)\footnote{This is contingent on the model having sufficient understanding to know what is meant by these abstract training examples}. Recent work has suggested that simply using value survey data in fine-tuning is sufficient to change the behaviour of LLMs \cite{nieSurveytoBehaviorDownstreamAlignment2025}. If true, this idea allows for a pragmatic method of alignment as representative value survey data is often publicly available (so method development is feasible) and it can be readily collected in the future (so methods developed can be continuously used).
+
+This project explores a method of fine-tuning LLMs that involves using real, publicly available World Values Survey New Zealand data to modify the values that an LLM holds. The project then evaluates the alignment of the LLM by getting the New Zealand public to judge the decisions of the fine-tuned LLM against that of an unaligned base model. In this way, we can test the value alignment of the fine-tuned models with the New Zealand public without having to directly measure or define the values of the model or the public.
 
 
-The NZ population is generally one of the most skeptical and concerned about AI in the developed world \cite{TrustAttitudesUse,GlobalAttitudesAI2026}. We are also a country with some of the weakest AI governance and oversight \cn{find reference about feather tough approach, we weren't at various AI safety conferences, have no AISI...}
+This project is a demonstration of the method, structured around two research questions and their associated hypotheses (both pre-registered \cite{thompsonPreregistrationAligningLLMs2026/10/1515:17}):
 
-Each AI system is built with a set of values and behaviours.
-
-The world globally is moving towards a future where AI systems will be given to us with the value and behaviours of overseas populations.
-
-
-We need alignment methods of AI systems that ensure they act in accordance with the values of the populations they are deployed in. This project does this.
-
-
-It does this by using publicly available survey data to fine-tune a large language model (LLM) to align with the values of the New Zealand population. It then evaluates the alignment of the LLM by comparing its behaviour on a set of dilemmas to the public opinion on those dilemmas. Finally it conducts a public consultation to see if people prefer the behaviour of the aligned LLM over an unaligned base model.
-
-This project seeks to answer two research questions:
-
-\begin{itemize}
-    \item \newrq{align}{Can we use publicly collected value survey data to modify the behaviour of LLMs so that they align with the values of the public?}
-    \item \newrq{prefer}{Will users prefer the behaviour of models aligned to their values over unaligned base models?}
+\begin{itemize}[label={}, leftmargin=*, itemsep=6pt]
+    \item \newrq{align}{Can we use publicly collected value survey data to modify the behaviour of LLMs so that they align with the values of the New Zealand public?}
+          \begin{itemize}[label={}, leftmargin=1.5em, topsep=2pt, itemsep=0pt]
+              \item \textbf{H1.} Using publicly collected New Zealand value survey data to fine-tune an LLM changes its responses to social, ethical and value dilemmas compared with the base model.
+          \end{itemize}
+    \item \newrq{prefer}{Will the New Zealand public prefer the behaviour of models aligned to their values over the base model?}
+          \begin{itemize}[label={}, leftmargin=1.5em, topsep=2pt, itemsep=0pt]
+              \item \textbf{H2.} The behaviour of the fine-tuned model will, on aggregate, be preferred by the New Zealand public when they choose between the actions of the base model and fine-tuned model in various dilemmas.
+          \end{itemize}
 \end{itemize}
 
-Basic summary of the results and how it kind of worked.
+The project results showed that fine-tuning did have an appreciable effect on the behaviour of the LLM on the social, ethical and value dilemmas thus supporting H1. When testing this alignment against the public, there was a small preference for the fine-tuned models over the base model; however, the preference was messy, so H2 cannot be considered supported. This suggests that although the fine-tuning may have imbued some values that changed behaviour the training and evaluation had insufficient coverage of values to demonstrate a  model that was clearly preferred over the base model. This was further exacerbated by the fact that there was only a small sample frame of 18 dilemmas tested against the public.
 
 \section{Report overview}
+\label{sec:report_overview}
 
-Following on from this introduction chapter there are 5 more chapters to the report. The next \ref{chap:background} gives the key background
-
-This report is structured into 3 main chapters, each focusing on a specific part of the project. For each chapter of the project it explains the methods used and the results obtained. Each chapter is self contained and can be read somewhat independently of the others. The 3 main chapters are:
-
-\begin{itemize}
-    \item \ref{chap:finetuning}: Fine-tuning of the LLM on WVS data
-    \item \ref{chap:dilemmas}: Behavioural analysis of the fine-tuned and base LLMs
-    \item \ref{chap:survey}: Public consultation on the alignment of the LLMs
-\end{itemize}
-
-The final \ref{chap:conclusion} concludes the report with a summary of the findings, conclusions drawn from the project, key limitations and recommendations for future work.
-
+Following on from this introduction chapter there are 5 more chapters to the report. The next \ref{chap:background} gives the key background information that is needed to understand the project. Then there are 3 substantive chapters that explain each step of the project fine-tuning in \ref{chap:finetuning}, testing models on dilemmas in \ref{chap:dilemmas} and public consultation in \ref{chap:survey}. Finally the report concludes with a summary of the findings, conclusions drawn from the project, key limitations and recommendations for future work in \ref{chap:conclusion}.

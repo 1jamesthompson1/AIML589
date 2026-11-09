@@ -1,32 +1,31 @@
-Much of hte work in this project is built off ideas explored in a literature review conducted over summer\footnote{This was my AIML501 project and can be found \href{https://raw.githubusercontent.com/1jamesthompson1/AIML501/main/output/AIML501_James_Thompson.pdf}{here}}. The project has deviated from the original plan so this background chapter contains all relevant background information needed in a concise format for this project. Some sections are mere rewrites of the literature review while others are new.
-
-This work can understand from multiple perspectives. Here are some
+This project is built off work that was completed in a summer literature review \cite{thompsonAligningLargeLanguage2026}\footnote{The project has deviated from the original plan in some ways and focused attention on other areas. Some sections are completely new while others are rewrites of sections pulled from the literature review.}. This chapter provides the key background information that is needed to understand the project. Namely, it covers the following topics: An introduction to large language models \ref{sec:llms}, alignment of AI systems and agents \ref{sec:alignment}, and how the values of humans and AI systems are understood and used \ref{sec:values}.
 
 \section{Large Language Models as the frontier of Artificial Intelligence}
+\label{sec:llms}
+
+Central to this project are \termref{llm}s. This section explains what LLMs are, how they are built and trained and how we can fine-tune them to modify their behaviour.
 
 
-\subsection{LLMs are the largest and most powerful systems ever made.}
+\subsection{LLMs are among the most capable systems ever built}
 
-Very large models
+Large language models are among the most capable Artificial Intelligence systems we have today \cite{zhaoSurveyLargeLanguage2025,bommasaniOpportunitiesRisksFoundation2022}. They can pass the hardest university exams \cite{phan2025humanitysexam}, perform strongly on coding benchmarks \cite{chenEvaluatingLargeLanguage2021,jimenezSWEbenchCanLanguage2024}, contribute to previously open mathematics problems \cite{OpenAIModelHas2026}, and write poetry that non-expert readers cannot reliably distinguish from human-written poetry \cite{porterAIgeneratedPoetryIndistinguishable2024}. The same fundamental methods are also used in other modalities that generate realistic audio, images and video \cite{team2023gemini,alayracFlamingoVisualLanguage2022,qwen3.5}.
 
-Most capable systems we have
-
-Benchmarks and evals to show it.
+These capabilities are not the product of algorithmic breakthroughs but of scale \cite{kaplanScalingLawsNeural2020}. These models are larger than any other digital system ever built, including other AI systems \footnote{Some of the largest software systems in the world are things like operating systems, banking systems ... These require on the order of hundreds of megabytes to gigabytes to define. Whereas a frontier LLM requires thousands of times more space, on the order of terabytes. Even the \scare{small} model we use in this project requires 56GB of data and a \$10,000+ computer to run properly.}. To build these models requires hardware resources that cost hundreds of millions of dollars to build and run \cite{cottierRisingCostsTraining2024,crawfordAtlasAIPower2021}. Furthermore the amount of training data required to train these models is unmatched by any other AI system \cite{CommonCrawl2025}. With the combination of these two factors, it is not surprising that these models are the most capable AI systems we have today.
 
 \subsection{Building LLMs as autoregressive self attention}
 \label{subsec:llms}
 
-Probabilistic model of language. Guesses the next token
+Large language models are the best examples of an AI method called deep learning. Deep learning involves building a large artificial neural network and training it with large amounts of data. Modern LLMs are built off a specific structure of neural networks called transformers \cite{vaswaniAttentionAllYou2017}. 
 
-Definitions:
-$V$ is the vocabulary size, The model parameters are $\theta$. The model is a function $f_\theta$ that maps a prompt and a completion prefix to logits over the vocabulary. 
+These transformers work by taking an input (prompt) as a series of tokens (in this case these are words, characters, punctuation) and then processing them through a series of repeated layers of self attention where it learns to understand the meaning of each input token in the context of all the other tokens.
 
-Let a training example consist of a prompt (system + user) tokenised as
+It produces output by generating a probability distribution over what it expects the next token to be. It is auto-regressive in that it generates one token at a time then just feeds the entire input and the generated token back into the model to generate the next token. This is repeated until a stopping condition is met (e.g. a special end of text token is generated or a maximum length is reached).
+
+More formally (used in later discussion), let $V$ be the vocabulary size and $\theta$ the model parameters. The model is a function $f_\theta$ that maps a prompt and a completion prefix to logits over the vocabulary.  Let a training example consist of a prompt tokenised as
 $x = (x_1, \dots, x_P)$ and a completion (assistant answer) tokenised as
 $y = (y_1, \dots, y_T)$, with $T$ the completion length.
 
-The model is
-autoregressive, so the probability of the completion factorises over tokens:
+The model is autoregressive, so the probability of the completion factorises over tokens:
 
 \begin{equation}
   p_\theta(y \mid x) = \prod_{t=1}^{T} p_\theta\left(y_t \mid x, y_{<t}\right),
@@ -39,81 +38,80 @@ The probability of the next token is given by a softmax over the logits:
 \end{equation}
 
 
-\subsection{Training LLMs with massive amounts of data}
+\subsection{Making LLMs useful with post-training and fine-tuning}
 
-Trained on large amounts of text data and more specialized data pre-training and post training.
+A model is trained initially using self-supervised learning on a large corpus of text data (namely text data scraped from the internet) \cite{brownLanguageModelsAre2020,Gokaslan2019OpenWeb}. This imbues the model with a general understanding of the world and how to generate the next token in a sequence. This is called pre-training and it requires the largest amount of data and compute resources \cite{kaplanScalingLawsNeural2020}. The resultant model is not really useful for any task without further training \cite{ouyangTrainingLanguageModels2022}.
 
-\subsection{Fine-tuning Large Language Models}
+Post-training is a series of methods that take this pre-trained model and modify it to utilise its knowledge to actually be useful \cite{ouyangTrainingLanguageModels2022}. These methods involve training the models with examples of behaviours they should or should not exhibit, such as Supervised Fine-tuning (SFT) and Reinforcement Learning with Human Feedback (RLHF) \cite{christianoDeepReinforcementLearning2017,baiTrainingHelpfulHarmless2022}. These methods require similar compute but significantly less data than pre-training. The resultant model is then useful for a wide range of tasks. Most publicly available LLMs are post-trained models \cite{zhaoSurveyLargeLanguage2025}. 
 
-Updating weights by showing it a small amount of additional data.
+There is, however, more that can be done to modify the behaviour of these models. Fine-tuning is a method that takes a post-trained model and modifies it in a more specific way. This might be to teach it more about nuanced medical terms \cite{liChatDoctorMedicalChat2023}, make it speak with a certain tone or to respond in a way that is preferred by the public \cite{nieSurveytoBehaviorDownstreamAlignment2025,suhLanguageModelFineTuning2025}. To do this, the model is generally trained using similar methods to post-training but with much smaller data and compute resources. This is done using Parameter Efficient Fine-Tuning (PEFT) methods that allow training only a small number of parameters that have an outsized effect on the model generations \cite{huLoRALowRankAdaptation2021,dettmersQLoRAEfficientFinetuning2023}.
 
-PEFT.
-
-\subsection{LLMs are agents}
-
-INtroduce agentic harnesses and the abstraction to thinking of them as agents not language models.
 
 \section{Safety and alignment of AI systems}
+\label{sec:alignment}
+
+\term{ai-system}s are going to have large impacts on our society. It is important that we understand what we are trying to achieve with these systems and how we can ensure they are safe and aligned to our values. This section discusses what alignment is and how it is achieved.
 
 \subsection{The goal of AI}
-Making the world better than it is before. Increasing survival and flourishing of humans and other sentient beings...
+We want the world to be better than it is. Measuring what counts as better is out of scope for this work. We will propose a simple definition of better as surviving and flourishing (as defined by \cite{vanderweelePromotionHumanFlourishing2017}). This creates a definition of what the goal of the system is.
 
-AI is going to have more influence on our society.
+\begin{definition}[Goal of artificial intelligence]
+The goal of AI should be to help maximise the median human flourishing across all people currently alive and in the future.
+\end{definition}
 
 \subsection{Aligning agents}
 \label{subsec:aligning-agents}
 
-What algining and agent means, how it uses post-traning and fine-tuning to od this.
+An agent is a system that can perceive its environment and take actions to achieve a goal \cite{russellArtificialIntelligenceGlobal2021,suttonReinforcementLearningSecond2018a}. On the path to trying to achieve the goal of AI, AI agents are being built \cite{chanHarmsIncreasinglyAgentic2023}. Some suggest that any form of AI agent is a bad idea due to risks it can pose to humanity \cite{bengioSuperintelligentAgentsPose2025}. Assuming that they are created, though, it is important that they are aligned with the values of the public. A concrete definition of alignment is not always agreed upon \cite{kirkEmptySignifierProblem2023,gabrielArtificialIntelligenceValues2020} but we will use the following definition:
 
-\subsection{How it normally fails}
+\begin{definition}[AI alignment]
+AI alignment is the process of building AI agents that behave in accordance with the values and intentions of all people.
+\end{definition}
 
-Classical AI alignment problems
-Inner outer alignment
-scheming
-...
+Importantly, as discussed in the introduction, it is not possible to have a single set of values that are agreed upon \cite{santurkarWhoseOpinionsLanguage2023,fengModularPluralismPluralistic2024} therefore this work focuses on a narrower definition of alignment: alignment to a single population (the New Zealand public).
 
-\subsection{What goes wrong if we don't do it}
 
-We need it to be aligned to increase survival and flourishing
+\subsection{LLMs as agents}
 
-talk about classical safety problems
-loss of control, gradual disempowerement etc
+LLMs are probabilistic models that output the next token. However, they can be wrapped in sufficient scaffolding to make them act like agents \cite{yaoReActSynergizingReasoning2023,schickToolformerLanguageModels2023,wangVoyagerOpenEndedEmbodied2023}. This involves giving them a goal and a harness that receives input from the environment and gives them tools to act on the environment.
+
+In this way one can talk of the models as having behaviour that is the result of the interaction between the model and the environment. This behaviour is founded on the underlying probabilistic model yet has sufficient layering to obfuscate the effect of the underlying model's probabilities. Therefore discussion can operate on the behavioural level of the model rather than the underlying probabilistic level. This is important as it allows us to talk about the values of the model in a way that is more understandable to humans.
+
+\subsection{Challenges of aligning agents}
+
+Alignment is an open problem with many unresolved questions \cite{amodeiConcreteProblemsAI2016,casperOpenProblemsFundamental2023,jiAIAlignmentComprehensive2025}. Key challenges include specifying the intended objective rather than a proxy that can be reward hacked \cite{Goodhart1975}, ensuring the model learns the intended values rather than merely scheming, power-seeking or faking alignment \cite{hubingerRisksLearnedOptimization2019,bostromSuperintelligencePathsDangers2014,carlsmithPowerSeekingAIExistential2024,greenblattAlignmentFakingLarge2024,meinkeFrontierModelsAre2025a}, ensuring it remains corrigible \cite{soaresCorrigibility2015,hadfield-menellOffSwitchGame2017}, and testing whether it generalises beyond the situations seen in training and evaluation \cite{perezDiscoveringLanguageModel2022,phuongEvaluatingFrontierModels2025,shahGoalMisgeneralizationWhy2022a,ngoAlignmentProblemDeep2025,betleyEmergentMisalignmentNarrow2026}. These questions are out of scope for this work. Instead a more superficial version of alignment is targeted that is ``getting the model to behave in a way that is preferred by the public in real-world dilemmas''. The key distinction is that there is little emphasis on the goals of the models and instead a focus on simple short-term behaviour.
 
 \section{Understanding the values of humans and AI systems}
 \label{sec:values}
 
-As discussed in \ref{sec:values} one can infer of a value as either explicit statement or implicitly revealed through behaviour. yet a value is a latent object that is not directly observable. \footnote{In an AI system like a LLM it is theoretically possible to extract the 'values' as a set of weights/activations; much like how human values could be extracted with brain scans. However at present day this is infeasible and potentially impossible due to the concept of values being inherently fuzzy abstract concept used to describe diffuse mechanics.}
+One can think of a value as either explicit statements or implicitly revealed through behaviour. Fundamentally a value is a latent object that is not directly observable \cite{rokeachNatureHumanValues1973,schwartzAreThereUniversal1994}. It can be thought of as an abstract way to explain patterns in behaviours and decisions.
 
 \subsection{Value surveys}
 
-A straightforward method of eliciting and understanding the values is to ask them directly. These are either done in abstract ways or in more contextual settings (\termref{value-survey}).
+A straightforward method of eliciting and understanding values is to ask people directly. This is done either in abstract ways or in more contextual settings (\term{value-survey}).
 
-Value questionnaires are developed in line with various theories of values like PVQ...
+The first method of value surveying uses instruments aligned with various theories of values, such as the Portrait Values Questionnaire (PVQ) \cite{schwartzRefiningTheoryBasic2012}. These are abstract and ask people to rate how much they agree with statements about themselves. The responses can then be mapped to a theory of values. These surveys are short (< 40 questions).
 
-On the other hand value surveys are more contextual and ask people specific questions. \cite{NZAVS2025,WVS2020}. These can be post hoc mapped to value theories however as they are not a direct measure this is not as reliable. Importantly though these provide a more direct measure of the actual downstream effects of people's values by for example gaining insights 
+On the other hand, large value surveys are more contextual and ask people specific questions (e.g., what do you think of women working, or should children learn to be obedient or curious?). Common examples include the World Values Survey \cite{WVS2020} and New Zealand Attitudes and Values Study \cite{NZAVS2025}, which are hundreds of questions each and are designed to compare across populations and time. 
 
-These value surveys can be used as training data...
+The latter form of value survey has an advantage because it is long enough to capture a more fine-grained understanding of values. These surveys have initially been used as a gauge of how aligned LLMs are to the public \cite{durmusMeasuringRepresentationSubjective2024,santurkarWhoseOpinionsLanguage2023,zhaoWorldValuesBenchLargeScaleBenchmark2024,taoCulturalBiasCultural2024,aroraProbingPreTrainedLanguage2025}, and notably have been used to fine-tune LLMs \cite{nieSurveytoBehaviorDownstreamAlignment2025,suhLanguageModelFineTuning2025,caoSpecializingLargeLanguage2025,huangDistributionShiftAlignment2025}.
+
+The problem with both of these forms of surveys is that they are abstract enough to make it hard to understand what the values mean in practice \cite{klingefjordWhatAreHuman2024,rottgerPoliticalCompassSpinning2024,nguyenMeasurementValidityLLM2026}. Regardless, they still provide a signal of what the public values are.
 
 \subsection{Dilemmas as a way to understand values}
 
-A dilemma is a situations where there is no clear right answer and a tradeoff between competing values must be made \cite{EthicalDilemmasOverview}. In experimental research these dilemmas are hand crafted to create  clear decisions that reveal the values of the respondent. It is in this way that dilemmas can be used to understand the values of humans and AI systems.
+A dilemma is a situation where there is no clear right answer and a trade-off between competing values must be made \cite{EthicalDilemmasOverview}. This makes them well suited to exploring what values an agent (human or AI) has. It is sometimes easier for humans to make decisions rather than to answer abstract questions about their values.
 
+Historically, moral dilemmas have been widely used in psychology to study human moral reasoning and judgement, including how individuals resolve conflicts between competing moral principles \cite{rest1974manual,kohlbergDevelopmentChildrensOrientations1963,greeneFMRIInvestigationEmotional2001}.
 
+For LLM systems, datasets have been built to understand what values the models have by asking them to respond to dilemmas. They generally involve either synthesising them with AI to test for trade-offs or scraping real-world dilemma examples (like Reddit's AITA subgroup) \cite{lourieScruplesCorpusCommunity2021,chiuDailyDilemmasRevealingValue2025,hendrycksAligningAIShared2023,scherrerEvaluatingMoralBeliefs2023,panRewardsJustifyMeans2023}.
 
-A few datasets have been built to understand LLM values through large sets of moral, ethical and social dilemmas \cite{lourieScruplesCorpusCommunity2021,chiuDailyDilemmasRevealingValue2025,hendrycksAligningAIShared2023,scherrerEvaluatingMoralBeliefs2023}.
+As autonomous AI systems are being built, some dilemma datasets have been built to understand what the public thinks and to help find the correct answer for an AI system \cite{awadMoralMachineExperiment2018}.
 
+\subsection{The gap between observed and real values}
 
-\subsection{Single response behaviour vs agentic behaviour}
+When understanding values it is important to stay aware of the gap between what is observed and what the true values actually are \cite{brunswikPerceptionRepresentativeDesign1956,podsakoffCommonMethodBiases2003}. The key drivers of this gap are that observations are generally in contrived situations that are not real and that the observed know they are being observed.
 
-Discuss the benefits to agentic behaviour.
+The first is that the situations in both methods are only approximations of real life. This means two things. One is that the values elicited are generally only a statement of what people would be doing in a certain situation (\term{value-action-gap})\cite{kollmussMindGapWhy2002,shenMindValueActionGap2025}. Another is that the situations may hide important differences from real-world situations that would have affected their judgements \cite{schumanQuestionsAnswersAttitude1996,tourangeauCognitiveProcessesUnderlying1988,webbUnobtrusiveMeasures2000}.
 
-Discuss the difference between single response behaviour and agentic behaviour. The Key difference is that agents run on a much longer time scale they interact with the environment manipulate it then act again. 
-
-
-\subsection{Test time behaviour}
-
-Models are shown to know that they are in a simulation \cite{laineMeMyselfAI2024,phuongEvaluatingFrontierModels2025,needhamLargeLanguageModels2025}. Smaller models areless self aware \cite{chaudharyEvaluationAwarenessScales2025}
-
-When they know they are in a simluation they act differently.
-
-Likewise humans do the same thing.
+Second, when humans and AI are aware that they are being observed, they act differently \cite{orneSocialPsychologyPsychological1962}. In humans this is known as the Hawthorne effect \cite{adairHawthorneEffectReconsideration1984} and in AI it is known as test-time behaviour \cite{vanderweijAISandbaggingLanguage2025,greenblattAlignmentFakingLarge2024}. Humans know they are being observed and so do AI systems. LLMs are shown to know they are in simulations \cite{laineMeMyselfAI2024,phuongEvaluatingFrontierModels2025,needhamLargeLanguageModels2025,berglundTakenOutContext2023}, yet smaller models are less self-aware \cite{chaudharyEvaluationAwarenessScales2025}.

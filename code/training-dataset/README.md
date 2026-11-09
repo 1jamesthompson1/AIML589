@@ -326,9 +326,9 @@ but this output file can be independently verified.
 
 ### Clustering respondents
 
-`cluster_respondents.py` partitions respondents into value subgroups using **Latent Class Analysis** (LCA, via `stepmix` with the `categorical_nan` measurement model, which handles missing responses inside EM). Only value survey columns are used — demographics are excluded so subgroups are value-based. The number of clusters is chosen by BIC (currently k=2); override via the `N_CLUSTERS` config cell.
+`cluster_respondents.py` partitions respondents into value subgroups using **Latent Class Analysis** (LCA, via `stepmix` with the `categorical_nan` measurement model, which handles missing responses inside EM). Only value survey columns are used — demographics are excluded so subgroups are value-based. The number of clusters is chosen from the BIC/AIC sweep and stability checks (currently k=2; k=3 has a marginally lower BIC but is much less stable); override via the `N_CLUSTERS` config cell.
 
-Outputs (consumed by `build_dataset.py` and the public consultation design):
+Outputs (consumed by `build_dataset.py` to build cluster-specific and overall training sets, so models can be aligned to each subpopulation and to the overall population):
 
 | File | Description |
 |------|-------------|

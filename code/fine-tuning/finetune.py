@@ -774,7 +774,7 @@ class SftCollator:
 
 
 # ----------------------------------------------------
-# Full string distributional training (K completions per example, soft CE loss)
+# Full-string fine-tuning (K completions per example, soft CE loss)
 # ----------------------------------------------------
 
 

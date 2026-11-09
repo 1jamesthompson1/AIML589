@@ -50,10 +50,10 @@ def _(EVALS_ROOT, ast, json, pd):
 
     METHOD_PRETTY = {
         "prompted": "Prompted",
-        "modal_response": "Modal response",
-        "sampled_response": "Sampled response",
-        "first_token_distribution": "First token",
-        "full_string_distribution": "Full string",
+        "modal_response": "modal fine-tune",
+        "sampled_response": "sampled fine-tune",
+        "first_token_distribution": "first-token fine-tune",
+        "full_string_distribution": "full-string fine-tune",
     }
     METHOD_ORDER = [
         # Prompted baseline first: the same base model with an added persona
@@ -1755,9 +1755,9 @@ def _(mo):
     ("Joining in boycotts"), chosen from the training-split questions as
     the one closest to the median across questions on all three metrics:
     80% accuracy, 34% TVD and KL 2.8 (medians 80%, 34% and 2.6). Its
-    four-option scale is spread across the public. The modal-response
-    adapter puts all of its probability on the modal answer, the sampled
-    adapter on a single non-modal answer, while the base model and the
+    four-option scale is spread across the public. The modal fine-tune
+    puts all of its probability on the modal answer, the sampled
+    fine-tune on a single non-modal answer, while the base model and the
     distributional fine-tunes keep a spread. Written to
     ``code/figures/ft-modal-mass.png``.
     """)
@@ -1784,10 +1784,16 @@ def _(
     MASS_COL = "Q210"
     MASS_MODELS = [
         ("Qwen3.8-27B", "Base"),
-        ("Qwen3.8-27B-nz-wvs-modal_response-overall", "Modal response"),
-        ("Qwen3.8-27B-nz-wvs-sampled_response-overall", "Sampled response"),
-        ("Qwen3.8-27B-nz-wvs-first_token_distribution-overall", "First token"),
-        ("Qwen3.8-27B-nz-wvs-full_string_distribution-overall", "Full string"),
+        ("Qwen3.8-27B-nz-wvs-modal_response-overall", "modal fine-tune"),
+        ("Qwen3.8-27B-nz-wvs-sampled_response-overall", "sampled fine-tune"),
+        (
+            "Qwen3.8-27B-nz-wvs-first_token_distribution-overall",
+            "first-token fine-tune",
+        ),
+        (
+            "Qwen3.8-27B-nz-wvs-full_string_distribution-overall",
+            "full-string fine-tune",
+        ),
     ]
     MASS_MODEL_COLOR = "#4C72B0"
     MASS_PUBLIC_COLOR = "#DD8452"

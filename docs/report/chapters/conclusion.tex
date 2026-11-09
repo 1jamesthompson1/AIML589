@@ -1,54 +1,54 @@
-The conclusions are presented in this Chapter.
+This report has explored the use of fine-tuning methods to align large language models to the New Zealand public. The report has shown that fine-tuning can appreciably change the model's behaviour and that the alignment of the model is multi-faceted and only partially successful. This chapter discusses the key findings, the reasons for these results, the limitations and future directions.
 
+\section{Findings}
 
-\section{Key findings from this report}
+Two research questions with associated hypotheses were pre-registered \cite{thompsonPreregistrationAligningLLMs2026/10/1515:17}. In the next sections, I summarise the findings and then discuss the reasons for them.
 
-There were broadly two findings in this report regarding the fine tuning causing behavioural changes and the alignment of the models to the public. Each section below highlights the key findings and their limitations.
+\subsection{RQ1: The fine-tuning can appreciably change the models' behaviour on dilemmas testing values in concrete contexts}
 
+\rqref{align} asked whether survey data contained enough information to change the behaviour of a large language model. It did produce a change: response patterns to various dilemmas diverged significantly from the base model. Importantly, the change was on aggregate significantly different from the base model, so the null hypothesis that the fine-tuning had no effect was rejected.
 
-\subsection{The fine-tuning can appreciably change the models behaviour}
-Talk about how the fineunting methods do produce different response patterns in the dilemmas
+The change in behaviour was also shown to be dependent on the fine-tuning method used. As one might expect, the methods that moved more probability mass changed the model's behaviour more. This meant that, from the perspective of behavioural change, the SFT methods had the highest effect. However, no pattern was observed between the amount of change and the performance on the fine-tuning metrics (e.g. modal accuracy and distributional similarity). This suggests that the fine-tuning metrics are not a good proxy for behavioural change.
 
+\subsection{RQ2: The alignment of the model is aligned on only some dimensions of the value space yet not all.}
 
+The second research question \rqref{prefer} set out to ask if the behavioural change of the model is preferred. Overall, the public preference was mixed with some dilemmas showing a clear preference for the base model and others showing a clear preference for the fine-tuned model. The alignment is multi-dimensional, where the fine-tuning has helped on some and worsened on others. The scoped claim that the model was preferred on these exact dilemmas is supported by the data. However, the more general claim (which was pre-registered) that the model is preferred on all possible dilemmas is only partially supported by the data (only one of the two methods used shows support). Therefore, the null hypothesis that the fine-tuning has no effect on the alignment of the model could not be rejected.
 
-Talk about how the most successful fine-tuning methods are those that have considerably moved the probability mass to a single response option. Thus the distributional methods even if they look good on paper insignificantly change the models behaviour.
+\section{Why the alignment is mixed}
 
-\subsubsection{Limitations}
+Given the high-dimensional value space, it is reasonable that a model will not be perfectly aligned on all possible examples and so will not give the best response in every dilemma. However, the results showed a highly mixed preference: fine-tuning moved the model closer to the public preference with a \scare{comparable} likelihood of moving it further away. A few reasons could explain this mixed preference—as opposed to the null hypothesis that fine-tuning on survey data is moving the model in a random direction. Future work would be needed to understand each of these reasons better.
 
-\begin{itemize}
-    \item The dilemmas as a means of testing behaviour is limited as it is testing wht athe model says it will do not what it actuall does. Agentic sims would be needed.
-    \item It is unclear if we can attritbute this change in behaviour to fine-tuning on the survey data or just a result of changing the model weights. This is because we do not have a control group of models that have been fine-tuned on random data to compare to.
-    \item The scope of the dilemmas is limited so general claims of behaviour are not possible.
-\end{itemize}
+First, the dilemma value space may have little to no overlap with the value space of the training data. Both are potentially very small subsets of the overall value space, so fine-tuning on one may have little effect on the other.
 
-\subsection{The alignment of a model is multi-dimensional}
+Second, the value survey data is not representative of the New Zealand public. The World Values Survey data is both out of date (2019, pre-COVID-19) and skewed older, female and poorer.
 
-Talk about how the behavioural change is correcti nsome direction and not correct in others.
+Lastly, the dilemma scope was too narrow to capture noisy value preference. The variation in values held by New Zealanders may be large enough that 18 dilemmas cannot capture the small but present difference between the public's values and the base model's values.
 
-\subsubsection{Limitations}
+\section{Limitations}
 
-\begin{itemize}
-    \item ....
-\end{itemize}
-
-\subsection{Overall Limitations}
-
-There are some general limitations of the project that should be mentioned.
-
+In conjunction with the previous discussion on the results, there are a few concrete limitations that should also be mentioned.
 
 \begin{itemize}
-    \item This was only conducted on a single model and so the results might not generalise well to other models.
-    \item The survey data used was not fully representative and out of date (Over 6 years old and pre-covid 19 pandemic). This limits the effective use of it to align to the New Zealand public.
-    \item The dilemma set was very small and so the results of the dilemmas are limited in scope.
+    \item The dilemmas test what a model says it would do, not what an agent would do when taking actions. This report does not assess agentic models' actions.
+    \item Only one of the fine-tuned models was tested; it might be that the other fine-tuned models would have been more preferred by the public.
+    \item It is unclear if the resultant behaviour change is due to the model learning the underlying values of the survey data or simply the result of perturbing the parameters of the model a sufficient amount.
+    \item The scope of the dilemmas is limited, so general claims about behaviour are not possible.
+    \item Only a single model was tested, which means that only a single path in the value space was explored (Qwen3.8-27B -> New Zealand public). It is plausible that other models may have sufficiently different values that the preference would have been more pronounced.
 \end{itemize}
 
 
 \section{Future directions}
 
-Using more value survey data
+There are various directions that could be taken to extend this work or follow some line of research that was uncovered while doing this work.
 
+\begin{itemize}
+    \item \textbf{Using different value survey data:} Using more up to date value survey data that is more representative of the New Zealand public. A good example is the New Zealand Attitudes and Values Study (NZAVS) however it is not publicly available.
+    \item \textbf{Substantially increasing the number of dilemmas:} The dilemma set used in this report was small and so it is plausible that a larger dilemma set would have been able to better capture the value space of the New Zealand public.
+    \item \textbf{Train on the survey responses directly:} One output of this project is survey data that shows the public preference for models responding to dilemmas. This data could be used to fine-tune a model to respond in a way that is more aligned with the public preference. Ben Cravens is exploring this as part of his Master's thesis.
+    \item \textbf{Convert the dilemmas into proper agentic simulations:} The dilemmas used are simple binary choices. This means the models do not have the same range of freedom when responding (in addition to the responses not being very representative of real behaviour). Additional discussion of this can be found \ref{app:simulation}.
+    \item \textbf{Creating a deployable end-to-end alignment:} The current work used readily available survey data to fine-tune a model. However, it is likely that many of the survey questions did not contribute much to the alignment of the model yet cost compute. Therefore a minimal set of survey questions could be identified / written that would be sufficient to capture the needed values that cause the model to be aligned on the dilemma set (of which has been greatly expanded). This would create a complete method for eliciting values from the public and then aligning a model to those values to allow for highly pluralistic alignment.
+\end{itemize}
 
-Training on survey responses which may be more fine grained
+\section{Final remarks}
 
-
-Using Agentic simulations to test behaviour rather than dilemma
+AI alignment is an important problem that will only become more pressing with the rise of more capable AI systems. Methods that allow models to be aligned with the values of their users are crucial to preserving that agency and the freedom to self-direct and shape their lives. This report has shown that fine-tuning on survey data is a promising method to align models to the values of the populations they are deployed in. However, the work also shows that there is still much work to be done to ensure that these methods are robust and effective.

@@ -2,14 +2,14 @@
 \section{Sample details}
 \label{sec:survey-sample-details}
 
-The field work was started on the 29th of October 2026 and completed on the 5th of November 2026. The survey was completed by 467 respondents, yielding 2,335 preference ratings. It was conducted through an anonymous online Qualtrics survey. Respondents were recruited through the professional panel provider Dynata and were paid a small incentive by Dynata for their time.
+The fieldwork was started on the 29th of October 2026 and completed on the 5th of November 2026. The survey was completed by 471 respondents, yielding 2,355 preference ratings. It was conducted through an anonymous online Qualtrics survey. Respondents were recruited through the professional panel provider Dynata and were paid a small incentive by Dynata for their time.
 
 \subsection{Excluded responses}
 Following the pre-registration \cite{thompsonPreregistrationAligningLLMs2026/10/1515:17}, we excluded development tests and previews, incomplete responses, respondents who failed at least two of the three attention checks, responses completed in under four minutes or over two hours, and duplicate panelists. The four-minute lower bound is a live screenout that differs from the pre-registered one-third-of-median rule (see \ref{app:project-details}). Straightlining (more than 90\% of non-policy Likert items with the same label) and the panel's poor-quality flag were recorded as diagnostics but not used to exclude respondents. The policy sample was additionally restricted to respondents who selected exactly three policies.
 
-\tabref{survey-exclusions} shows that 89 of 556 responses (16\%) were excluded, mostly because of speeding (60 of 89). This was expected for a survey this long. The four-minute threshold is somewhat arbitrary, but it has little effect on the final preference scores.
+After removing incomplete responses, \tabref{survey-exclusions} shows that 85 of 556 responses (15\%) were excluded, mostly because of speeding (61 of 85). This was expected for a survey this long. The four-minute threshold is somewhat arbitrary, but it has little effect on the final preference scores.
 
-\ctable{survey-exclusions}{The number of responses that were excluded at each step of the survey response pipeline. The median time for the removed responses and the remaining responses is also shown.}
+\ctable{survey-exclusions}{The number of responses excluded at each step of the survey response pipeline. The median time for the removed and remaining responses is also shown.}
 
 \tabref{survey-speed-by-age} shows the age breakdown of the speed exclusions; young people make up most of the respondents who speed.
 \ctable{survey-speed-by-age}{Responses excluded for completing the survey in under four minutes, by age band. The denominator is respondents who reached the speed step, after the development-test, incomplete and attention-check exclusions, and excludes responses that took over two hours. Percentages use Wilson 95\% intervals.}
@@ -23,32 +23,32 @@ The sample was quota-sampled on age, gender, and region to match the 2023 New Ze
 
 \subsection{Response timing}
 
-As discussed above, many responses were discarded because of speeding. \tabref{survey-timing-allocation} shows a large mass at the lower end and a long right tail. Most of the time is spent on the dilemmas; each comparison takes about a minute.
+As discussed above, many responses were discarded because of speeding. \tabref{survey-timing-allocation} shows a large mass at the lower end and a long right tail. \figref{survey-dilemma-mean-time,survey-response-time-histogram} show that most respondents spend about a minute on each dilemma, while total completion time is more variable.
 
 \cfigure{survey-dilemma-mean-time.png}{The mean time taken to answer each dilemma.}
 
 \cfigure{survey-response-time-histogram.png}{The overall response time histogram for the survey.}
 
-\ctable{survey-timing-allocation}{What parts of the survey took the most time.}
+\ctable{survey-timing-allocation}{Share of total survey time spent on each section.}
 
 \section{The effect of the order of the two responses on the preference for the fine-tuned model}
 \label{sec:order-effect}
 
-The main survey models include a fixed effect for the order in which the agents' responses were shown, as the pre-registration specifies. However, \tabref{survey-h2-order-effect} shows a significant effect of order on the preference for the fine-tuned model. This does not change the population-level preference—order was randomised—but for individual ratings it is stronger than the model effect. It changes the strength of preference (the large LMM effect). The win rate stays above 50\% in both orders (53.7\% when the fine-tune is shown first and 52.2\% when it is shown second), but the mean Likert preference is close to zero when the base model is shown first (+0.01 points).
+The main survey models include a fixed effect for the order in which the models' responses were shown, as the pre-registration specifies. However, \tabref{survey-h2-order-effect} shows a significant effect of order on the preference for the fine-tuned model. This does not change the population-level preference—order was randomised—but for individual ratings it is stronger than the model effect. It changes the strength of preference (the large LMM effect). The win rate stays above 50\% in both orders (53.7\% when the fine-tuned model is shown first and 52.2\% when it is shown second), but the mean Likert preference is close to zero when the base model is shown first (+0.01 points).
 
 \ctable{survey-h2-order-effect}{The effect of the order of the two responses on the preference for the fine-tuned model.}
 
 \section{Demographics and model preferences}
 \label{sec:survey-demographics}
 
-A substantial amount of demographic data was collected to help understand public preference. \figref{survey-preference-effects} compares the demographics with preference for the fine-tuned model. Few demographics have a significant effect; a few outlying groups skew the graph.
+A substantial amount of demographic data was collected to help understand public preference. \figref{survey-preference-effects} compares the demographic and AI-view variables with preference for the fine-tuned model. Few variables have a significant effect; a few outlying groups skew the graph.
 
-\cfigure{survey-preference-effects}{The demographics of the survey respondents compared with their preference for the fine-tuned model.}
+\cfigure{survey-preference-effects}{The demographic and AI-view variables compared with preference for the fine-tuned model.}
 
 \section{Policy preferences}
 \label{sec:survey-policy-preferences}
 
-The survey also asked about AI policy. Participants selected their three preferred policies from nine options and then ranked those three. The nine options were:
+The survey also asked about AI policy. Respondents selected their three preferred policies from nine options and then ranked those three. The nine options were:
 
 \begin{itemize}[leftmargin=*]
     \item P1: Fund an Office for AI.
@@ -70,6 +70,6 @@ The primary descriptive measure is the share of respondents who selected each po
 
 \subsection{Rank-order robustness check}
 
-The simple ranking ignores the order of the three selected policies. As a robustness check, we fitted a Plackett–Luce rank-ordered logit to the full top-three rankings \cite{plackettAnalysisPermutations1975,luceIndividualChoiceBehavior1959}. The model estimates a worth for each policy from the order in which the policies were ranked. \tabref{survey-policy-plackett-luce} reports the estimated worths. The model gives the same overall ranking as the simple shares: human control is first, protecting children and hardening infrastructure are next, and building AI hardware is last. Because the two approaches agree, the simpler top-three share is used as the main descriptive ranking.
+The simple ranking ignores the order of the three selected policies. As a robustness check, we fitted a Plackett--Luce rank-ordered logit to the full top-three rankings \cite{plackettAnalysisPermutations1975,luceIndividualChoiceBehavior1959}. The model estimates a worth for each policy from the order in which the policies were ranked. \tabref{survey-policy-plackett-luce} reports the estimated worths. The model gives the same overall ranking as the simple shares: human control is first, protecting children and hardening infrastructure are next, and building AI hardware is last. Because the two approaches agree, the simpler top-three share is used as the main descriptive ranking.
 
-\ctable{survey-policy-plackett-luce}{Plackett–Luce ranking of the nine AI policy responses. Top-3 share is the unweighted percentage of respondents selecting the policy in the top three; PL worth is the model's estimated share; P(top) is the bootstrap probability that the policy is ranked first.}
+\ctable{survey-policy-plackett-luce}{Plackett--Luce ranking of the nine AI policy responses. Top-3 share is the unweighted percentage of respondents selecting the policy in the top three; PL worth is the model's estimated share; P(top) is the bootstrap probability that the policy is ranked first.}

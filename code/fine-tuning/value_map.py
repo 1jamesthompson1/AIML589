@@ -52,19 +52,23 @@ def _():
     HIGHLIGHT = {
         "Qwen3.8-27B": ("Qwen3.8-27B (base)", "#1f4e79", "s"),
         "Qwen3.8-27B-prompted": ("Qwen3.8-27B (prompted)", "#2e86ab", "D"),
-        "Qwen3.8-27B-nz-wvs-modal_response-overall": ("Modal response", "#c0392b", "o"),
+        "Qwen3.8-27B-nz-wvs-modal_response-overall": (
+            "modal fine-tune",
+            "#c0392b",
+            "o",
+        ),
         "Qwen3.8-27B-nz-wvs-sampled_response-overall": (
-            "Sampled response",
+            "sampled fine-tune",
             "#e67e22",
             "o",
         ),
         "Qwen3.8-27B-nz-wvs-full_string_distribution-overall": (
-            "Full string",
+            "full-string fine-tune",
             "#8e44ad",
             "o",
         ),
         "Qwen3.8-27B-nz-wvs-first_token_distribution-overall": (
-            "First token",
+            "first-token fine-tune",
             "#16a085",
             "o",
         ),
@@ -795,10 +799,10 @@ def _(
     short_labels = {
         "Qwen3.8-27B": "Base",
         "Qwen3.8-27B-prompted": "Prompted",
-        "Qwen3.8-27B-nz-wvs-modal_response-overall": "Modal",
-        "Qwen3.8-27B-nz-wvs-sampled_response-overall": "Sampled",
-        "Qwen3.8-27B-nz-wvs-full_string_distribution-overall": "Full string",
-        "Qwen3.8-27B-nz-wvs-first_token_distribution-overall": "First token",
+        "Qwen3.8-27B-nz-wvs-modal_response-overall": "modal fine-tune",
+        "Qwen3.8-27B-nz-wvs-sampled_response-overall": "sampled fine-tune",
+        "Qwen3.8-27B-nz-wvs-full_string_distribution-overall": "full-string fine-tune",
+        "Qwen3.8-27B-nz-wvs-first_token_distribution-overall": "first-token fine-tune",
         "NZ": "NZ",
     }
 

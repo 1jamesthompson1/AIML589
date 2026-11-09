@@ -63,7 +63,7 @@ buffer is not full (`timeout 3 bash -c 'exec 3>/dev/pts/N; printf "x\n" >&3'`)
 or launch detached with the output going to a log file instead of the tty.
 
 Re-run all fine-tuned evals (base-model evals are unaffected). When
-interpreting the new results, note that modal-response SFT makes the traced
+interpreting the new results, note that modal fine-tuning makes the traced
 option distributions near one-hot, so CE/KL/TVD-from-logprobs are no longer
 directly comparable to base models — the answer-frequency view is the
 meaningful one for that method.

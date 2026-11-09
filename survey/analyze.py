@@ -1158,7 +1158,7 @@ def _(h2_bt, h2_lmm, pd, write_latex_table):
             "p": [tex_p(h2_lmm["p"]), tex_p(h2_bt["p"])],
             "N": [f"{h2_lmm['n']:,}", f"{h2_bt['n']:,}"],
         },
-        index=["LMM (points)", "Bradley--Terry (win rate, respondent-clustered)"],
+        index=["LMM (points)", "Respondent-clustered win rate"],
     )
     write_latex_table(h2_table, "{}", 4, "survey-h2-results.tex", stub_label="")
     h2_table
@@ -4184,7 +4184,7 @@ def _(mo):
     mo.md("""
     ### Which fine-tune is closest to the public?
 
-    The survey was fielded on the modal-response adapter, but every adapter
+    The survey was fielded on the modal fine-tune, but every adapter
     answered the same dilemmas. This section compares **all exported
     fine-tunes and the base model** with the public's answer-option shares on
     the 18 surveyed dilemmas. For each model and dilemma, the model's option
@@ -4223,10 +4223,10 @@ def _(
     write_latex_table,
 ):
     MODEL_PRETTY = {
-        "modal_response": "Modal response",
-        "sampled_response": "Sampled response",
-        "first_token_distribution": "First token",
-        "full_string_distribution": "Full string",
+        "modal_response": "modal fine-tune",
+        "sampled_response": "sampled fine-tune",
+        "first_token_distribution": "first-token fine-tune",
+        "full_string_distribution": "full-string fine-tune",
     }
 
     def model_label(model):

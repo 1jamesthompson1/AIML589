@@ -16,4 +16,7 @@ To add a diagram, create `<name>.tex` here, check it renders in the report, then
 | `prompt-single-question.tex` | Creating training instances, fine-tuning chapter |
 | `prompt-matrix-question.tex` | Not used at the moment (matrix example) |
 | `dilemmas-pipeline.tex` | Dilemmas chapter |
+| `dilemma-example.tex` | Writing dilemmas, dilemmas chapter (one worked example) |
+| `dilemma-response-categories.tex` | Results, dilemmas chapter (one response per judge category) |
+| `dilemma-divergence-examples.tex` | Judge scoring, dilemmas chapter (low/high value-divergence pair) |
 | `behavioural-sim-pipeline.tex` | Simulation appendix |

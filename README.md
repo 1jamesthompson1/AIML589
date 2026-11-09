@@ -67,7 +67,9 @@ Configured via `.env` (see `.env.example`): `HF_TOKEN`, `HF_BUCKET` (default `1j
 
 LaTeX documents in `docs/` compile with `make all` or `make watch FILE=[name]`. Output lands in `docs/output/`. Each file inherits from `docs/common.tex` and sets its output name with `\docname{}` The main file is `docs/report/report.tex` which makes the final [university report](https://raw.githubusercontent.com/1jamesthompson1/AIML589/main/docs/output/AIML589-James-Thompson-LLM-NZ-Value-Alignment.pdf).
 
-The report has a 15,000 word limit (excluding references and appendices). The working draft page shows the live word count, computed automatically by `texcount` on every compile (via `\write18`, see `.latexmkrc`). Check the count manually with `make wordcount`.
+Only one build per document may run at a time. `make`/`make watch` take a per-document lock and refuse a second `latexmk` (two writers truncate each other's `.aux`/`.log`, which pdflatex reports as invalid characters and latexmk as "not a TeX log file"). Stop `make watch` before running `make all`. Locks are skipped where `flock` is unavailable.
+
+The report has a 15,000 word limit (excluding references and appendices). The working draft page shows the live word count, computed automatically by `texcount` on every compile (via `\write18`, see `.latexmkrc`). Check the count manually with `make wordcount`. Macro definitions in `docs/common.tex` are wrapped in `%TC:ignore` because texcount misparses a bare `\ref`/`\eqref` and would otherwise print "(errors:N)" next to the count.
 
 Hand-written TikZ diagrams live in `docs/report/diagrams/` and are included with `\cdiagram{name}{caption}` (see the README there).
 

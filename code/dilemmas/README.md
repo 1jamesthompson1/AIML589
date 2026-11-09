@@ -114,7 +114,10 @@ uv run scout scan code/dilemmas/sa_scanner.py \
 A scan is only picked up once its `_summary.json` says `"complete": true`.
 The fine-tuned scan writes `awareness-profile-heatmap-finetuned.png` and
 `dilemmas-awareness-finetuned.tex`; the frontier scan keeps
-`awareness-profile-heatmap.png`.
+`awareness-profile-heatmap.png`. The frontier heatmap excludes Claude Haiku
+5.5 and GPT-5.6-Luna: their reasoning is encrypted, so the judge sees only the
+final answer and their scores are not comparable with the open-reasoning
+models.
 
 ## Notes
 

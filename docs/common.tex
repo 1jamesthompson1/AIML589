@@ -5,6 +5,7 @@
 \usepackage{graphicx}
 \usepackage{booktabs}
 \usepackage{multirow}
+\usepackage{fvextra}
 \usepackage{csquotes}
 \usepackage{verbatim}
 \usepackage{enumitem}
@@ -18,6 +19,10 @@
 \setlength{\marginparwidth}{2.5cm}
 \usepackage[colorinlistoftodos, textwidth=2.3cm]{todonotes}
 \usepackage[backend=biber,style=numeric]{biblatex}
+% Let long URLs in the bibliography break at more points.
+\setcounter{biburlnumpenalty}{10000}
+\setcounter{biburlucpenalty}{10000}
+\setcounter{biburllcpenalty}{10000}
 
 % Unicode fallbacks for characters that pdflatex's kernel does not set up
 % (e.g. in auto-generated tables under code/figures/). Generated tables keep
@@ -47,7 +52,7 @@
 % When all \fixme commands are removed, the WORKING DRAFT notice no longer appears.
 % Comment out the line below to force-hide draft notice even with fixmes present.
 \newif\ifdraftmode
-\draftmodetrue
+\draftmodefalse
 
 % \todo places a \marginpar, which cannot be output when the note is set
 % inside a footnote's box: the note stays in the float queue and the next
@@ -172,6 +177,10 @@
 % the first label, so one list should hold one kind of target.
 % Labels with any other (or no) prefix give the plain number; \plainref{...}
 % always gives the plain number. To add a prefix, add one line to \ref@word.
+% texcount treats a bare \ref/\eqref as taking an argument, so defining those
+% names below makes it report brace errors, which leak into report.count as
+% "(errors:N)". These are definitions only, so exclude them from the count.
+%TC:ignore
 \makeatletter
 \newif\ifref@plural
 \newif\ifref@worded
@@ -249,6 +258,7 @@
    }%
 }
 \makeatother
+%TC:endignore
 
 % --- Research question (RQ) system ---
 % Define the research questions once (e.g. in the introduction) and then

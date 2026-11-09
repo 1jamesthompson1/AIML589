@@ -371,20 +371,20 @@ def _(FRONTIER_RUN_ID, HERE, FOUR_MODEL_RUN_ID, json, np, pd, write_latex_table)
             "base": "Qwen3.8-27B base",
             "labels": {
                 "openai/Qwen3.8-27B-nz-wvs-full_string_distribution-overall": (
-                    "full-string"
+                    "full-string fine-tune"
                 ),
                 "openai/Qwen3.8-27B-nz-wvs-first_token_distribution-overall": (
-                    "first-token"
+                    "first-token fine-tune"
                 ),
-                "openai/Qwen3.8-27B-nz-wvs-modal_response-overall": "modal",
-                "openai/Qwen3.8-27B-nz-wvs-sampled_response-overall": "sampled",
+                "openai/Qwen3.8-27B-nz-wvs-modal_response-overall": "modal fine-tune",
+                "openai/Qwen3.8-27B-nz-wvs-sampled_response-overall": "sampled fine-tune",
                 "openai/Qwen/Qwen3.8-27B": "Qwen3.8-27B base",
             },
             "order": [
-                "full-string",
-                "sampled",
-                "modal",
-                "first-token",
+                "full-string fine-tune",
+                "sampled fine-tune",
+                "modal fine-tune",
+                "first-token fine-tune",
                 "Qwen3.8-27B base",
             ],
         },
@@ -1601,7 +1601,10 @@ def _(h1_main_results):
 
 @app.cell
 def _(h1_main_results, pd, pools, write_latex_table):
-    # Table of each dilemmas survey quality, interest and difference scores, one row per dilemma with mean and variance of each value (variance in braces). Just for the modal model in mainline run. A column has a true and false for if the model is statistically significant in divergence from the base model.
+    # Per-dilemma judge scores with mean and variance of each value (variance
+    # in braces), for the modal model in the mainline run. The per-dilemma
+    # results table only keeps the value-divergence column; the full table is
+    # used to build the significance summary.
 
     def quality_dilemma_table(pools, model_marker="modal"):
         """Mean (variance) judge scores plus H1 significance per dilemma."""
@@ -1681,23 +1684,24 @@ def _(h1_main_results, pd, pools, write_latex_table):
         modal_quality_table, h1_main_results.per_dilemma
     )
 
-    # One table for the per-dilemma evidence: how far apart the two models'
-    # answer distributions are (TVD), whether that is significant after the
-    # BH correction, and the judge's mean (variance) scores for the same
-    # dilemmas. Divergence and the scores are bolded at their maximum; p (BH)
-    # is bolded below the significance level.
+    # The per-dilemma table reports only the distributional divergence, its
+    # adjusted p-value, and the value-divergence score. Survey quality and
+    # interest are still kept in ``modal_quality_table`` for the significance
+    # summary below, but they are not shown per dilemma.
+    modal_scores_table = modal_scores_table[["TVD", "p (BH)", "Difference"]]
+
+    # Divergence and value divergence are bolded at their maximum; p (BH) is
+    # bolded below the significance level.
     write_latex_table(
         modal_scores_table,
         {
             "TVD": "{:.2f}",
             "p (BH)": "{:.4f}",
-            **{col: "{}" for col in ("Survey quality", "Interest", "Difference")},
+            "Difference": "{}",
         },
         len(modal_scores_table.columns),
         "dilemmas-modal-quality.tex",
-        senses={
-            col: "max" for col in ("TVD", "Survey quality", "Interest", "Difference")
-        },
+        senses={"TVD": "max", "Difference": "max"},
         bold_below={"p (BH)": 0.05},
         column_format="l" + "r" * len(modal_scores_table.columns),
         stub_label="Dilemma",
@@ -2594,10 +2598,10 @@ def _(
             "_distribution-overall", ""
         )
         return {
-            "modal": "Modal response",
-            "sampled": "Sampled response",
-            "first_token": "First token",
-            "full_string": "Full string",
+            "modal": "modal fine-tune",
+            "sampled": "sampled fine-tune",
+            "first_token": "first-token fine-tune",
+            "full_string": "full-string fine-tune",
         }.get(short, short.replace("_", " ").title())
 
     def selection_summary(survey_designs, epochs):
@@ -2616,10 +2620,10 @@ def _(
             rows.append({"Selection": label, "Epochs": epochs, **stats})
 
         model_order = {
-            "Modal response": 0,
-            "Sampled response": 1,
-            "First token": 2,
-            "Full string": 3,
+            "modal fine-tune": 0,
+            "sampled fine-tune": 1,
+            "first-token fine-tune": 2,
+            "full-string fine-tune": 3,
         }
         for design in sorted(
             survey_designs,
@@ -2713,7 +2717,7 @@ def _(
             print(f"wrote code/figures/{filename}")
 
         return [
-            mo.md("**Modal response (fielded survey)**"),
+            mo.md("**modal fine-tune (tested model)**"),
             mo.md("Complete dataset (one pair per sample index)"),
             complete_table,
             mo.md("Selected subset"),
@@ -2853,6 +2857,11 @@ def _(
     SCANNER_KEY = "situational_awareness"  # scanner name from sa_scanner.py
     # The fine-tuned batch's report order: the four adapters, base last.
     FINETUNED_ORDER = ["full-string", "sampled", "modal", "first-token", "base"]
+    # Frontier targets whose reasoning is encrypted. The judge only sees the
+    # final answer for these models, so their awareness scores are not
+    # comparable with the open-reasoning models and are excluded from the
+    # frontier heatmap.
+    EXCLUDED_FRONTIER = {"claude-haiku-5.5", "gpt-5.6-luna"}
 
     def as_mapping(value):
         """Scout result metadata columns arrive as dict or JSON string."""
@@ -3006,8 +3015,11 @@ def _(
         summary = []
         if "frontier" in scans:
             scan_dir, frame, failed = scans["frontier"]
+            excluded = frame["model"].isin(EXCLUDED_FRONTIER).sum()
+            frame = frame[~frame["model"].isin(EXCLUDED_FRONTIER)].copy()
             print(
-                f"frontier scan {scan_dir.name}: {len(frame)} scored, {failed} failed"
+                f"frontier scan {scan_dir.name}: {len(frame)} scored, {failed} failed, "
+                f"{excluded} excluded (encrypted reasoning)"
             )
             awareness_profile_heatmap(
                 frame,

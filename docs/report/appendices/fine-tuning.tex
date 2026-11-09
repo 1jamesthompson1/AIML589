@@ -1,64 +1,48 @@
 \section{Clustering of the World Values Survey responses}
-To allow for comparison between different clusters of NZ population an attempt was made to cluster the responses to the World Values Survey. Multiple clustering methods were attempted and none provided very rigours or defensible clusters. Therefore clustering removed from the research methodology. Below is a summary of the clustering that was done.
-
-See the following section for the results and then in \ref{subsec:clustering-survey} for the methods of clustering.
-
-\subsection{The suggested clusters of survey respondents}
-
-The WVS data is best clustered into 2 clusters using Latent Cluster Analysis (LCA). However the clusters are not very distinct and are somewhat arbitrary. We can understand the cluster in two ways. Firstly we can look at the value questions that most split the clusters. Secondly we can look at the demographic questions that most split the clusters.
-
-For the value questions in \figref{clusters/k2_analysis/figures/top5_splitting_questions} we can see that the top 5 value questions are interestingly around trust in authority (elections and World Health organisation), homosexuality and immigration.
-
-For the demographic questions in \figref{clusters/k2_analysis/figures/cluster_demographics_infographic} we can see that one group (cluster\_1) is an older, more religious, less educated and poorer group. This fits in with some standard social science observation \cn.
-
-As is seen in \figref{clusters/k2_analysis/figures/certainty_by_n_questions} it is possible to assign respondents to cluster with a high degree of certainty (>90\%) with only 10 questions. This is important for the methodology of the public consultation survey.
-
-\cfigure{clusters/k2_analysis/figures/certainty_by_n_questions.png}{Number of questions needed to assign respondents to a cluster with high certainty.}
-
-\cfigure{clusters/k2_analysis/figures/top5_splitting_questions.png}{The top 5 value questions that provide the most amount of information about which cluster a respondent belongs to.}
-
-\cfigure[t][1.2\textwidth]{clusters/k2_analysis/figures/cluster_demographics_infographic.png}{The demographic differences between the clusters.}
-
-\subsection{Clustering of survey data}
 \label{subsec:clustering-survey}
 
-The WVS data has 1,057 responses to 251 value questions. Each question has categorical responses with varying number of options. The goal of the clustering is to find groups of respondents that have similar responses to the value questions and sufficiently different responses to other groups of respondents. Furthermore the clusters should be robust to the choice of clustering method and reproducible.
+This section records an exploratory analysis that was not used in the final methodology. We wanted to know whether the New Zealand public could be divided into value-based subpopulations, so that we could align a separate model to each subpopulation and compare the resulting alignments. This tests whether a single New Zealand-wide model hides meaningful variation between value groups. The clusters were not robust or defensible enough to support that comparison, so the final report aligns to the overall New Zealand distribution rather than to separate subpopulations. The survey's demographic quotas are a separate design choice for representativeness, not the reason for clustering. The analysis is reported here for transparency and as a starting point for a follow-up.
 
-To measure the effectiveness of the clustering we will use a few metrics including Bayesian Information Criterion (BIC) \cite{schwarzEstimatingDimensionModel1978}, cluster size entropy, within cluster coherence and inter cluster difference. Within cluster coherence is a measure of how dense the clusters response distributions are and is calculated as the entropy of the response distributions. Inter cluster difference is a measure of how different the clusters response distributions are from each other. These performance metrics are used to help understand how well the model has fit the data. We can use the Adjusted Rand Index (ARI) \cite{hubertComparingPartitions1985} to measure difference of cluster assignments. With this difference metric we can compare how stable a clustering is when retrained in various ways.
+\subsection{What was tried}
 
-\subsubsection{Clustering method}
+The WVS data contain 1,057 New Zealand respondents and 251 value questions, each with a varying number of categorical options. We wanted groups of respondents with similar value responses and sufficiently different responses from other groups, and we wanted the solution to be stable across methods and resamples, because an unstable partition would make any difference between subpopulation-specific models uninterpretable.
 
-A standard method of clustering is to use Latent Cluster Analysis (LCA) \cite{lazarsfeldLatentStructureAnalysis1968,bakkEstimatingAssociationLatent2013,golliniMixtureLatentTrait2013}. This assumes that each respondent belongs to a latent class and that the responses are generated by a mixture of underlying latent classes. It has been used in social science research to cluster survey respondents \cite{magunBetweenCountryValueDiversity2016}. Problematically it has several assumptions which are violated namely Local (conditional) Independence, Homogeneity and the number of classes has been correctly specified. 
+The plan was to use these clusters as separate alignment targets: build a training set from each cluster's response distributions, fine-tune a model on each, and compare the resulting models (and the overall model) on held-out survey questions and behaviour. The pipeline therefore supports \texttt{cluster\_0}, \texttt{cluster\_1} and \texttt{overall} training sets and adapters.
 
-Given some of the standard assumptions of LCA are violated I compare various clustering methods in \tabref{clusters/k2_analysis/figures/method_comparison}. We can see that LCA has the best inter cluster difference and within cluster coherence with sufficiently even cluster sizes for a 2 cluster situation. To further validate this in \tabref{clusters/k3_analysis/figures/method_comparison} we can see that LCA still has the best intra cluster coherence and near top performance in inter cluster differences in the 3 cluster situation. As a further basic check we can see in \figref{clusters/k2_analysis/figures/kmodes_cluster_stability_check} that the clusters of LCA and K-modes are similar but not identical. 
+We used latent class analysis (LCA) as the primary method \cite{lazarsfeldLatentStructureAnalysis1968,bakkEstimatingAssociationLatent2013,golliniMixtureLatentTrait2013}. LCA assumes that each respondent belongs to a latent class and that responses are generated by a mixture of classes; it is a standard tool for clustering survey respondents \cite{magunBetweenCountryValueDiversity2016}. Because its assumptions (local independence, homogeneity and the correct number of classes) are not fully met, we compared it with K-modes and several MCA-based methods (K-means, Ward, K-medoids, spectral, HDBSCAN and a Gaussian mixture). Solutions were compared on BIC and AIC \cite{schwarzEstimatingDimensionModel1978}, cluster-size entropy, within-cluster coherence, between-cluster total variation distance, and bootstrap stability measured by the adjusted Rand index (ARI) \cite{hubertComparingPartitions1985}.
 
-\ctable{clusters/k2_analysis/figures/method_comparison}{Comparision of different clustering methods with 2 clusters.}
+\subsection{Results}
 
-\ctable{clusters/k3_analysis/figures/method_comparison}{Comparision of different clustering methods with 3 clusters.}
+LCA gave the best within-cluster coherence (0.284) and between-cluster separation (mean pairwise TVD 0.194) at $k=2$, with near-even cluster sizes (entropy 0.996). K-modes was close on coherence (0.279) but its assignments differed from LCA (ARI 0.419), so the solution was sensitive to the method.
 
-\cfigure{clusters/k2_analysis/figures/kmodes_cluster_stability_check}{The clusters of LCA compared with the clusters of K-Modes. We can see that K-Modes and LCA produce different structured clusters.}
+The $k=2$ solution split respondents into groups of 572 and 485. The smaller group (cluster~1) was older, more religious, less educated and poorer (\figref{clusters/k2_analysis/figures/cluster_demographics_infographic.png}). The questions that most separated the groups concerned trust in elections and the World Health Organization, homosexuality, and immigration.
 
-Given the above analysis we will use LCA as the clustering method for the WVS data. It is both a baseline in literature and performs well in preliminary analysis.
+The number of clusters was not clear-cut. BIC was lowest at $k=3$, but only slightly below $k=2$ (599{,}070 vs 599{,}674) and rose for $k>3$; AIC continued to fall with $k$. A bootstrap likelihood-ratio test \cite{mclachlanBootstrappingLikelihoodRatio1987,mclachlanFiniteMixtureModels2000} also slightly favoured $k=3$ ($p=0.032$). However, the $k=3$ solution was not a clean refinement of the $k=2$ solution: it reassigned respondents across both clusters (ARI between the two partitions $=0.341$) and was much less stable under the bootstrap (\tabref{cluster-summary}). The $k=2$ solution was therefore the more parsimonious and reproducible choice, but its bootstrap ARI of 0.718 is still only moderate.
 
-\subsubsection{LCA number of clusters selection}
+Posterior certainty was high (mean 0.994; 98.2\% of respondents above 0.9), and about ten well-chosen questions were enough for confident assignment, so assigning respondents to a cluster was not the problem. The problem was the definition of the clusters: they were sensitive to the method, the number of clusters was ambiguous, and the $k=2$ solution was only moderately stable. The clusters were therefore not used as separate alignment targets in the final analysis; the final models are trained on the overall New Zealand distribution, and the survey uses demographic quotas for representativeness. The main lesson for a follow-up is that subpopulation alignment is only meaningful if the subpopulations themselves are stable and defensible.
 
-LCA clustering requires a predefined cluster size to a sweep was done to find the optimal number of clusters \figref{clusters/k2_analysis/figures/model_selection_sweep}. This indicates that 2 clusters is optimal. It is noted that BIC can unselect \cite{nylundDecidingNumberClasses2007}, therefore a Bootstrap Likelihood Ratio Test (BLRT) \cite{mclachlanBootstrappingLikelihoodRatio1987,mclachlanFiniteMixtureModels2000} was used to test whether the additional cluster is significant. The test with $n=30$ slightly rejected ($p=0.032$) the null hypothesis that 2 clusters is sufficient in favour of 3 clusters. This is not a decisive result however begs further exploration.
+\cfigure[htbp][\textwidth]{clusters/k2_analysis/figures/cluster_demographics_infographic.png}{The demographic composition of the two LCA clusters. Cluster~1 is older, more religious, less educated and poorer than cluster~0.}
 
-\cfigure{clusters/k2_analysis/figures/model_selection_sweep}{BIC values for different numbers of clusters. The optimal number of clusters (2) is indicated by the minimum BIC value.}
-
-
-\cfigure{clusters/k2_vs_k3/figures/crosstab_k2_vs_k3}{Cross-tabulation of the cluster assignments for 2 and 3 clusters. We can see that the $k=3$ solution is simply splitting cluster 1 of the $k=2$ solution into two clusters.}
-
-The difference between $k=2$ and $k=3$ solutions is that the $k=3$ solution splits cluster 1 of the $k=2$ solution into two clusters which can be seen in \figref{clusters/k2_vs_k3/figures/crosstab_k2_vs_k3}. The question is whether this split is meaningful or not. To answer this we can test the stability. This works by sampling data from the model and then refitting to that data and using ARI to compare the cluster assignments . As seen in \tabref{clusters/k2_vs_k3/figures/bootstrap_stability} the $k=2$ solution is much more stable than the $k=3$ solution. However a ARI of 0.718 is not a very stable solution and indicates that the $k=2$ solution is not very robust.
-
-\ctable{clusters/k2_vs_k3/figures/bootstrap_stability}{Bootstrap stability check for 2 and 3 clusters. We can see that the $k=2$ solution is much more stable than the $k=3$ solution.}
+\begin{table}[htbp]
+  \centering
+  \caption{Comparison of the two- and three-cluster LCA solutions. BIC and AIC are both lower for $k=3$ than for $k=2$, but the difference is small and the $k=3$ solution is much less stable under the bootstrap.}
+  \label{tab:cluster-summary}
+  \begin{tabular}{@{}lrrr@{}}
+    \toprule
+    Solution & BIC & AIC & Bootstrap ARI (95\% CI) \\
+    \midrule
+    $k=2$ & 599{,}674 & 588{,}442 & 0.718 [0.572, 0.848] \\
+    $k=3$ & 599{,}070 & 582{,}220 & 0.467 [0.242, 0.704] \\
+    \bottomrule
+  \end{tabular}
+\end{table}
 
 
 \section{Training data details}
 
 \subsection{Held out questions for validation}
 
-The validation set holds out five questions, one per redundancy cluster and
+The validation set holds out six questions, one per redundancy cluster and
 battery, selected as the questions whose responses are most predictable from
 the \emph{other} questions (max cross-battery Cram\'er's V). The model has the
 value-relevant information to answer them but never sees the exact question
@@ -68,26 +52,133 @@ shows two examples of held-out questions and the training questions most similar
 
 {\small\verbatiminput{../../code/figures/held_out_similarity.txt}}
 
-\cfigure[t][1.2\textwidth]{redundancy_bar_chart}{Survey questions redundancy bar chart}
+\cfigure[t][\textwidth]{redundancy_bar_chart}{Survey questions redundancy bar chart}
 
 \subsection{System prompts}
 \label{sec:system-prompts}
 
 {\small\verbatiminput{../../code/figures/system_prompts.txt}}
 
+\subsection{Training set size}
+\label{subsec:training-set-size}
+
+The WVS New Zealand sample has 1,057 respondents and 251 value items. Each
+item is rendered under all eight system prompts, so one subpopulation has
+$251 \times 8 = 2{,}008$ item--prompt rows. Six items are held out (Q6,
+Q22, Q60, Q93, Q188 and Q215), and the \texttt{generic\_answer} prompt is
+held out. Training is the complement: 245 items $\times$ 7 prompts $=
+1{,}715$ rows. Validation is 251 rows under \texttt{generic\_answer} (all
+items) plus 42 rows for the six held-out items under the seven seen
+prompts, or 293 rows in total (\ref{tab:training-set-size}). The same
+split is used for all four methods, with the letter-labelled prompt
+variants for the first-token dataset; this report uses the \texttt{overall}
+subpopulation.
+
+\begin{table}[htbp]
+  \centering
+  \small
+  \caption{Training and validation set sizes for one subpopulation (the
+  \texttt{overall} set used in this report). Rows are item--prompt pairs.
+  The 1,715 training rows contain only 245 unique question items, each
+  repeated under seven system prompts.}
+  \label{tab:training-set-size}
+  \begin{tabular}{@{}lrrr@{}}
+    \toprule
+    Split & Items & Prompts & Rows \\
+    \midrule
+    Training & 245 & 7 & 1,715 \\
+    Validation: held-out prompt (\texttt{generic\_answer}) & 251 & 1 & 251 \\
+    Validation: held-out questions (seen prompts only) & 6 & 7 & 42 \\
+    \midrule
+    Validation total & -- & -- & 293 \\
+    Total item--prompt grid & 251 & 8 & 2,008 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+The 1,715 rows are not 1,715 distinct questions: they contain 245 unique
+items, each seen seven times per epoch (21 times over three epochs).
+
+$K$ is the number of response options for a WVS item and is not fixed: it
+ranges from 2 to 11 (mean 5.54), with 43 items at 3 options, 95 at 5, and
+51 at 10--11 (10-point scales, with or without ``Don't know''). This is
+separate from the fixed three-way coding used for the dilemmas in
+\ref{chap:dilemmas,chap:survey} (option A, option B, \texttt{Other}). The
+full-string
+method expands each row into $K$ completions (9,499 sequences per epoch);
+the first-token method uses one token per row (1,715 sequences per epoch).
+The sampled target is drawn once with \texttt{random.seed(42)} and is fixed
+across epochs.
+
+\section{Fine-tuning configuration}
+\label{sec:fine-tuning-config}
+
+All four adapters use the same configuration; only the dataset config
+differs (\ref{tab:finetuning-config}). The base model is bf16 without
+quantization. Training uses the Hugging Face \texttt{SFTConfig} defaults:
+AdamW, a linear schedule with 10\% warmup, and gradient checkpointing. The
+exact command and log are in each model card (\ref{app:models}).
+
+\begin{table}[htbp]
+  \centering
+  \small
+  \caption{Fine-tuning configuration shared by the four adapters. The only
+  difference between runs is the \texttt{--dataset} config
+  (\texttt{modal\_response}, \texttt{sampled\_response},
+  \texttt{full\_string\_distribution} or
+  \texttt{first\_token\_distribution}).}
+  \label{tab:finetuning-config}
+  \begin{tabular}{@{}l p{0.62\textwidth}@{}}
+    \toprule
+    Setting & Value \\
+    \midrule
+    Base model & Qwen3.8-27B \\
+    Method & LoRA (PEFT 0.21.0), no DoRA, no quantization \\
+    LoRA rank & 64 \\
+    LoRA alpha & 128 \\
+    LoRA dropout & 0.05 \\
+    Target modules & \texttt{q\_proj}, \texttt{k\_proj}, \texttt{v\_proj},
+      \texttt{o\_proj}, \texttt{gate\_proj}, \texttt{up\_proj},
+      \texttt{down\_proj} \\
+    Trainable parameters & 318,767,104 (about 319M) \\
+    Adapter size & 1.275 GB \\
+    Learning rate & $2 \times 10^{-4}$ \\
+    LR schedule & Linear, 10\% warmup \\
+    Epochs & 3 \\
+    Per-device batch size & 4 \\
+    Gradient accumulation & 4 \\
+    Effective batch size & 16 rows \\
+    Max sequence length & 1,024 tokens \\
+    Precision & bf16 \\
+    Gradient checkpointing & Enabled \\
+    Hardware & NVIDIA RTX PRO 6000 Blackwell Workstation Edition \\
+    Training time (modal) & 24m 59s \\
+    Training time (sampled) & 24m 58s \\
+    Training time (full string) & 145m 3s \\
+    Training time (first token) & 27m 42s \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+The effective batch size of 16 rows gives about 107 optimizer steps per
+epoch and 322 steps over three epochs. The full-string method is the most
+expensive run because each training row is expanded into $K$ option-string
+completions (mean $K=5.54$, range 2--11); this is reflected in its training time (145 minutes versus
+about 25 minutes for the single-completion methods).
+
 \section{Calculation of response distributions for full option strings}
 
-When calculating the response distributions for the first token data set it is as simple as taking the log-probs returned by the model for the first token and renormalising it over the valid first tokens. However for the full option strings it is more complex as the entire string probability needs to be calculated. Furthermore the first token for each of the options are not necessarily unique.
+For the first-token dataset the response distribution is the renormalised first-token distribution over the valid option letters. For the full-string dataset the evaluator scores each option string by tracing it through the per-position top-20 log-probabilities returned with the completion. At each position it follows the generated token if that token continues the option string; otherwise it searches the alternative top-20 tokens for one that does. The option score is the sum of the log-probabilities along that path, exponentiated and renormalised over the valid options. This is necessary because options can share a first token (for example, ``Strongly agree'' and ``Strongly disagree''), so a first-token distribution cannot separate them.
 
-\fixme{Explain this properly and ismply with refrneces if needed}
+The trace is an approximation to the exact string probability: it uses only the returned top-20 alternatives and the generated path. If the option string cannot be followed to the end, the score is the sum over the prefix that could be resolved; if no prefix is found, the function falls back to the first token's top-logprob alternatives; if no log-probabilities are available, the evaluator falls back to a one-hot distribution from the parsed answer. Training uses the exact joint log-probability of the option string in \eqref{eq:joint-logprob}, so the evaluation is an approximation to the training objective. Because different surface forms compete for probability mass, string probabilities are not calibrated across options \cite{holtzmanSurfaceFormCompetition2021}; renormalising over the valid options is the same convention used in training \eqref{eq:option-softmax}.
 
 \section{Effect of alignment on the model capabilities}
 \label{sec:capability-testing}
 
-When fine-tuning a model it is important to ensure that regressions don't happen else hwere\cn[Paper talking about degredation]. As we are changing the weights it is quite plausible that the model could lose some of its knowledge or abilities. To test this we ran the base and fine tuned models through a sample of the MMLU Pro and IFEval benchmark. The results are shown in \tabref{ft-capability-Qwen3.8-27B}. 
+When fine-tuning a model it is important to ensure that capabilities do not regress elsewhere: fine-tuning can cause catastrophic forgetting of earlier tasks \cite{kirkpatrickOvercomingCatastrophicForgetting2017} and can weaken safety alignment even when the fine-tuning data are benign \cite{qiSafetyAlignmentShould2024}. As we are changing the weights it is quite plausible that the model could lose some of its knowledge or abilities. To test this we ran the base and fine-tuned models through a sample of the MMLU Pro and IFEval benchmark. The results are shown in \tabref{ft-capability-Qwen3.8-27B}. 
 
-We can see that all but the Full String methods maintain the same level of performance as the base model when looking at innate knowledge (MMLU Pro Direct) and instruction following (IFEval). However we can see that All of the models behave poorly when it comes to reasoning as they have lost any ability to reason through a problem. Furthermore when strictly marking (requiring single token then \texttt{<eos>}) the MMLU Pro all but the \modelref{ft-first-token} method has seen a catastrophic loss in performance.
+We can see that all but the full-string fine-tuning method maintain the same level of performance as the base model when looking at innate knowledge (MMLU Pro Direct) and instruction following (IFEval). However, all of the models show a large drop in reasoning performance. Furthermore, when strictly marking (requiring a single token followed by \texttt{<eos>}), MMLU-Pro shows a large loss for all methods except \modelref{ft-first-token}.
 
-Given this it is clear that the fine-tuning method have caused some negative effects on the overall model. Further testing would be needed to understand the extent of this. It suggests a need to augment the fine-tuning process to ensure maintenance of the models capabilities (maybe smaller adapter, or interleaved training).
+Given this it is clear that the fine-tuning methods have caused some negative effects on the overall model. Further testing would be needed to understand the extent of this. It suggests a need to augment the fine-tuning process to ensure maintenance of the models' capabilities (maybe smaller adapter, or interleaved training).
 
-\ctable{ft-capability-Qwen3.8-27B}{The base and fine tuned models ran through a sample of the MMLU Pro and IFEval benchmark.}
+\ctable{ft-capability-Qwen3.8-27B}{The base and fine-tuned models on a sample of MMLU-Pro and IFEval. \texttt{MMLU-Pro (direct)} is first-token answer accuracy, \texttt{MMLU-Pro (CoT)} is accuracy with chain-of-thought, \texttt{Strict} is the share of chain-of-thought answers that end with a single token and \texttt{<eos>}, and \texttt{IFEval} is instruction-following accuracy.}

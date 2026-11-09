@@ -29,12 +29,33 @@ ALL_TGTS := $(DOC_TGTS) $(SRV_TGTS)
 
 all: $(ALL_TGTS)
 
+# Refuse a second latexmk for the same document. Two runs with the same
+# jobname in one outdir truncate each other's .aux/.log mid-write; pdflatex
+# then dies on invalid characters and latexmk reports "first line of the log
+# file is not in standard format". $(1)=outdir, $(2)=docname, $(3)=exit
+# status when the lock is busy (0 = skip quietly). fd 9 is inherited by
+# pdflatex/biber, so the lock lasts for the whole build.
+# Call with $$outdir,$$docname inside a plain recipe and with $$$$outdir,
+# $$$$docname inside a define block (those are expanded twice; see above).
+define lock_guard
+if command -v flock >/dev/null 2>&1; then \
+  exec 9>"$(1)/.$(2).lock" || exit 1; \
+  if ! flock -n 9; then \
+    echo "latexmk: $(2) is already building in $(1)"; \
+    echo "latexmk: refusing a second build (stop the running 'make watch' first)"; \
+    exit $(3); \
+  fi; \
+fi;
+endef
+
 # Build rule for docs/ sources (-cd changes to source dir, outdir is absolute)
 define doc_build_rule
 $(TEX_DIR)/$(OUT_DIR)/$(call docname_of,$(basename $(notdir $(1))),$(dir $(1))).pdf: $(1)
 	@mkdir -p $(TEX_DIR)/$(OUT_DIR)
-	-$(LATEXMK) $(OPTS) -outdir=$(abspath $(TEX_DIR)/$(OUT_DIR)) -cd \
-	  -jobname=$(call docname_of,$(basename $(notdir $(1))),$(dir $(1))) $$<
+	-@outdir=$(abspath $(TEX_DIR)/$(OUT_DIR)); \
+	  docname=$(call docname_of,$(basename $(notdir $(1))),$(dir $(1))); \
+	  $(call lock_guard,$$$$outdir,$$$$docname,0) \
+	  $(LATEXMK) $(OPTS) -outdir=$$$$outdir -cd -jobname=$$$$docname $$<
 endef
 
 $(foreach src,$(DOC_SRCS),$(eval $(call doc_build_rule,$(src))))
@@ -43,8 +64,10 @@ $(foreach src,$(DOC_SRCS),$(eval $(call doc_build_rule,$(src))))
 define srv_build_rule
 $(SRV_DIR)/$(OUT_DIR)/$(call docname_of,$(basename $(notdir $(1))),$(SRV_DIR)).pdf: $(1)
 	@mkdir -p $(SRV_DIR)/$(OUT_DIR)
-	-$(LATEXMK) $(OPTS) -outdir=$(abspath $(SRV_DIR)/$(OUT_DIR)) -cd \
-	  -jobname=$(call docname_of,$(basename $(notdir $(1))),$(SRV_DIR)) $$<
+	-@outdir=$(abspath $(SRV_DIR)/$(OUT_DIR)); \
+	  docname=$(call docname_of,$(basename $(notdir $(1))),$(SRV_DIR)); \
+	  $(call lock_guard,$$$$outdir,$$$$docname,0) \
+	  $(LATEXMK) $(OPTS) -outdir=$$$$outdir -cd -jobname=$$$$docname $$<
 endef
 
 $(foreach src,$(SRV_SRCS),$(eval $(call srv_build_rule,$(src))))
@@ -71,6 +94,7 @@ watch:
 	docname=$$(sed -n 's/^[[:space:]]*\\docname{\(.*\)}/\1/p' "$$src" 2>/dev/null); \
 	[ -z "$$docname" ] && docname="$$base"; \
 	mkdir -p "$$outdir"; \
+	$(call lock_guard,$$outdir,$$docname,1) \
 	$(LATEXMK) -pdf -f -pvc -view=none $(WATCH_SHELL_ESCAPE) -outdir="$$outdir" -cd -interaction=nonstopmode \
 	  -jobname="$$docname" "$$src"
 
