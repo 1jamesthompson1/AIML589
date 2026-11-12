@@ -17,7 +17,7 @@ This repo is a mono repo containing several systems. Each top-level directory ha
 | Directory | Purpose |
 |---|---|
 | `code/` | Python code for training datasets, fine-tuning models, and running behavioural simulations. Each phase has its own subdirectory with a README. |
-| `docs/` | LaTeX documents (report, funding requests, ethics application). Compiled with `make`. Output goes to `docs/output/`. |
+| `docs/` | LaTeX documents (report, funding requests, ethics application, Beamer slides). Compiled with `make`. Output goes to `docs/output/`. |
 | `survey/` | Source files for the public consultation survey: participant information sheet, survey mockup, recruitment flyer/post, and the VUW logo. |
 | `website/` | Public-facing project site ([nz-llm.sjhl.nz](https://nz-llm.sjhl.nz)). Built with Astro + React, deployed via GitHub Pages. |
 | `workbench/` | Scratch scripts, experiments, and draft files — not part of the main pipeline. |
@@ -65,7 +65,7 @@ Configured via `.env` (see `.env.example`): `HF_TOKEN`, `HF_BUCKET` (default `1j
 
 ### Docs
 
-LaTeX documents in `docs/` compile with `make all` or `make watch FILE=[name]`. Output lands in `docs/output/`. Each file inherits from `docs/common.tex` and sets its output name with `\docname{}` The main file is `docs/report/report.tex` which makes the final [university report](https://raw.githubusercontent.com/1jamesthompson1/AIML589/main/docs/output/AIML589-James-Thompson-LLM-NZ-Value-Alignment.pdf).
+LaTeX documents in `docs/` compile with `make all` or `make watch FILE=[name]`. Output lands in `docs/output/`. Most files inherit from `docs/common.tex`; the Beamer deck is standalone. Each file sets its output name with `\docname{}`. The main file is `docs/report/report.tex` which makes the final [university report](https://raw.githubusercontent.com/1jamesthompson1/AIML589/main/docs/output/AIML589-James-Thompson-LLM-NZ-Value-Alignment.pdf). Presentation slides live in `docs/slideshow.tex` (Beamer, 16:9) and build with `make watch FILE=slideshow` to `docs/output/AIML589-James-Thompson-Slides.pdf`.
 
 Only one build per document may run at a time. `make`/`make watch` take a per-document lock and refuse a second `latexmk` (two writers truncate each other's `.aux`/`.log`, which pdflatex reports as invalid characters and latexmk as "not a TeX log file"). Stop `make watch` before running `make all`. Locks are skipped where `flock` is unavailable.
 
